@@ -48,7 +48,7 @@ where
     }
 
     /// Sets the text alignment.
-    pub fn align<AA: TextAlignment>(self, alignment: AA) -> TextBoxStyleBuilder<C, F, AA> {
+    pub fn alignment<AA: TextAlignment>(self, alignment: AA) -> TextBoxStyleBuilder<C, F, AA> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment,
