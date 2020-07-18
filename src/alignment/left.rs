@@ -16,11 +16,10 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    NewWord,
+    NextWord,
     DrawWord(Chars<'a>),
     DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>),
     DrawWhitespace(u32, EmptySpaceIterator<C, F>),
-    Invalid,
 }
 
 impl<C, F> Default for LeftAlignedState<'_, C, F>
@@ -29,7 +28,7 @@ where
     F: Font + Copy,
 {
     fn default() -> Self {
-        Self::NewWord
+        Self::NextWord
     }
 }
 
@@ -58,8 +57,8 @@ where
                 break None;
             }
 
-            match self.state.clone() {
-                LeftAlignedState::NewWord => {
+            match &mut self.state {
+                LeftAlignedState::NextWord => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
@@ -114,7 +113,7 @@ where
                     }
                 }
 
-                LeftAlignedState::DrawWord(mut chars_iterator) => {
+                LeftAlignedState::DrawWord(ref mut chars_iterator) => {
                     if let Some(c) = chars_iterator.next() {
                         // TODO character spacing!
                         // word wrapping
@@ -125,25 +124,24 @@ where
                         }
 
                         self.state = LeftAlignedState::DrawCharacter(
-                            chars_iterator,
+                            chars_iterator.clone(),
                             StyledCharacterIterator::new(c, self.char_pos, self.style.text_style),
                         );
                     } else {
-                        self.state = LeftAlignedState::NewWord;
+                        self.state = LeftAlignedState::NextWord;
                     }
                 }
 
-                LeftAlignedState::DrawWhitespace(n, mut iterator) => {
+                LeftAlignedState::DrawWhitespace(n, ref mut iterator) => {
                     let pixel = iterator.next();
                     if pixel.is_some() {
-                        self.state = LeftAlignedState::DrawWhitespace(n, iterator);
                         break pixel;
                     }
 
                     let width = F::char_width(' ');
                     self.char_pos.x += width as i32;
-                    if n == 0 {
-                        self.state = LeftAlignedState::NewWord;
+                    if *n == 0 {
+                        self.state = LeftAlignedState::NextWord;
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
@@ -152,24 +150,21 @@ where
                         }
 
                         self.state = LeftAlignedState::DrawWhitespace(
-                            n - 1,
+                            *n - 1,
                             EmptySpaceIterator::new(self.char_pos, width, self.style.text_style),
                         );
                     }
                 }
 
-                LeftAlignedState::DrawCharacter(chars_iterator, mut iterator) => {
+                LeftAlignedState::DrawCharacter(chars_iterator, ref mut iterator) => {
                     let pixel = iterator.next();
                     if pixel.is_some() {
-                        self.state = LeftAlignedState::DrawCharacter(chars_iterator, iterator);
                         break pixel;
-                    } else {
-                        self.char_pos.x += F::char_width(iterator.character) as i32;
-                        self.state = LeftAlignedState::DrawWord(chars_iterator);
                     }
-                }
 
-                _ => panic!("Invalid state reached"),
+                    self.char_pos.x += F::char_width(iterator.character) as i32;
+                    self.state = LeftAlignedState::DrawWord(chars_iterator.clone());
+                }
             };
         }
     }

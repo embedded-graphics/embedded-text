@@ -7,7 +7,7 @@ use crate::{
 use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
 
 /// Pixel iterator to render a styled character
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct StyledCharacterIterator<C, F>
 where
     C: PixelColor,
@@ -78,7 +78,7 @@ where
 }
 
 /// Pixel iterator to render font spacing
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct EmptySpaceIterator<C, F>
 where
     C: PixelColor,
