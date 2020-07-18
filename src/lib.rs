@@ -49,3 +49,45 @@ impl<'a> TextBox<'a> {
         }
     }
 }
+
+impl Transform for TextBox<'_> {
+    #[inline]
+    #[must_use]
+    fn translate(&self, by: Point) -> Self {
+        Self {
+            bounds: self.bounds.translate(by),
+            ..*self
+        }
+    }
+
+    #[inline]
+    fn translate_mut(&mut self, by: Point) -> &mut Self {
+        self.bounds.translate_mut(by);
+
+        self
+    }
+}
+
+impl Dimensions for TextBox<'_> {
+    #[inline]
+    #[must_use]
+    fn top_left(&self) -> Point {
+        self.bounds.top_left
+    }
+
+    #[inline]
+    #[must_use]
+    fn bottom_right(&self) -> Point {
+        self.bounds.bottom_right
+    }
+
+    #[inline]
+    #[must_use]
+    fn size(&self) -> Size {
+        // TODO: remove if fixed in embedded-graphics
+        let width = (self.bottom_right().x - self.top_left().x) as u32 + 1;
+        let height = (self.bottom_right().y - self.top_left().y) as u32 + 1;
+
+        Size::new(width, height)
+    }
+}

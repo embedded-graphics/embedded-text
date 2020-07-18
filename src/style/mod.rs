@@ -9,7 +9,7 @@ pub use builder::TextBoxStyleBuilder;
 pub struct TextBoxStyle<C, F, A>
 where
     C: PixelColor,
-    F: Font,
+    F: Font + Copy,
     A: TextAlignment,
 {
     pub text_style: TextStyle<C, F>,
@@ -19,7 +19,7 @@ where
 impl<C, F, A> TextBoxStyle<C, F, A>
 where
     C: PixelColor,
-    F: Font,
+    F: Font + Copy,
     A: TextAlignment,
 {
     /// Creates a textbox style with transparent background.
@@ -34,9 +34,61 @@ where
 pub struct StyledTextBox<'a, C, F, A>
 where
     C: PixelColor,
-    F: Font,
+    F: Font + Copy,
     A: TextAlignment,
 {
     pub text_box: TextBox<'a>,
     pub style: TextBoxStyle<C, F, A>,
+}
+
+impl<C, F, A> Transform for StyledTextBox<'_, C, F, A>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    A: TextAlignment,
+{
+    #[inline]
+    #[must_use]
+    fn translate(&self, by: Point) -> Self {
+        Self {
+            text_box: self.text_box.translate(by),
+            style: self.style,
+        }
+    }
+
+    #[inline]
+    fn translate_mut(&mut self, by: Point) -> &mut Self {
+        self.text_box.bounds.translate_mut(by);
+
+        self
+    }
+}
+
+impl<C, F, A> Dimensions for StyledTextBox<'_, C, F, A>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    A: TextAlignment,
+{
+    #[inline]
+    #[must_use]
+    fn top_left(&self) -> Point {
+        self.text_box.bounds.top_left
+    }
+
+    #[inline]
+    #[must_use]
+    fn bottom_right(&self) -> Point {
+        self.text_box.bounds.bottom_right
+    }
+
+    #[inline]
+    #[must_use]
+    fn size(&self) -> Size {
+        // TODO: remove if fixed in embedded-graphics
+        let width = (self.bottom_right().x - self.top_left().x) as u32 + 1;
+        let height = (self.bottom_right().y - self.top_left().y) as u32 + 1;
+
+        Size::new(width, height)
+    }
 }
