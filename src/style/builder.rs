@@ -1,4 +1,4 @@
-use crate::{alignment::LeftAligned, style::TextBoxStyle, TextAlignment};
+use crate::{alignment::LeftAligned, alignment::TextAlignment, style::TextBoxStyle};
 use embedded_graphics::{prelude::*, style::TextStyleBuilder};
 
 pub struct TextBoxStyleBuilder<C, F, A>

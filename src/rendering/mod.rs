@@ -1,5 +1,10 @@
 //! Pixel iterators used for text rendering
-use embedded_graphics::{prelude::*, style::TextStyle};
+use crate::{
+    alignment::TextAlignment,
+    parser::Parser,
+    style::{StyledTextBox, TextBoxStyle},
+};
+use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
 
 /// Pixel iterator to render a styled character
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -127,6 +132,33 @@ where
             }
         } else {
             None
+        }
+    }
+}
+
+/// Pixel iterator for styled text.
+pub struct StyledFramedTextIterator<'a, C, F, A>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    A: TextAlignment,
+{
+    pub parser: Parser<'a>,
+    pub bounds: Rectangle,
+    pub style: TextBoxStyle<C, F, A>,
+}
+
+impl<'a, C, F, A> StyledFramedTextIterator<'a, C, F, A>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    A: TextAlignment,
+{
+    pub fn new(styled: &'a StyledTextBox<'a, C, F, A>) -> Self {
+        Self {
+            parser: Parser::parse(styled.text_box.text),
+            bounds: styled.text_box.bounds,
+            style: styled.style,
         }
     }
 }

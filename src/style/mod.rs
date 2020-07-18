@@ -2,7 +2,7 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 
 pub mod builder;
 
-use crate::{TextAlignment, TextBox};
+use crate::{alignment::TextAlignment, rendering::StyledFramedTextIterator, TextBox};
 pub use builder::TextBoxStyleBuilder;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -39,6 +39,18 @@ where
 {
     pub text_box: TextBox<'a>,
     pub style: TextBoxStyle<C, F, A>,
+}
+
+impl<'a, C, F, A> Drawable<C> for &'a StyledTextBox<'a, C, F, A>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    A: TextAlignment,
+    StyledFramedTextIterator<'a, C, F, A>: Iterator<Item = Pixel<C>>,
+{
+    fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
+        display.draw_iter(A::into_pixel_iterator(self))
+    }
 }
 
 impl<C, F, A> Transform for StyledTextBox<'_, C, F, A>

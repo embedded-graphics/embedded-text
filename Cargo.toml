@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 embedded-graphics = "0.6.2"
+
+[dev-dependencies]
+embedded-graphics-simulator = "0.2.0"

@@ -15,10 +15,8 @@ pub mod rendering;
 /// Textbox styling
 pub mod style;
 
+use alignment::TextAlignment;
 use style::{StyledTextBox, TextBoxStyle};
-
-/// Text alignment
-pub trait TextAlignment {}
 
 /// A piece of text with an associated area on the display
 pub struct TextBox<'a> {
@@ -40,7 +38,7 @@ impl<'a> TextBox<'a> {
     pub fn into_styled<C, F, A>(self, style: TextBoxStyle<C, F, A>) -> StyledTextBox<'a, C, F, A>
     where
         C: PixelColor,
-        F: Font,
+        F: Font + Copy,
         A: TextAlignment,
     {
         StyledTextBox {

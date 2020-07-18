@@ -1,17 +1,25 @@
-use crate::TextAlignment;
+use crate::{rendering::StyledFramedTextIterator, StyledTextBox};
+use embedded_graphics::prelude::*;
 
-#[derive(Copy, Clone, Debug)]
-pub struct LeftAligned;
-impl TextAlignment for LeftAligned {}
+pub mod center;
+pub mod justified;
+pub mod left;
+pub mod right;
 
-#[derive(Copy, Clone, Debug)]
-pub struct RightAligned;
-impl TextAlignment for RightAligned {}
+/// Text alignment
+pub trait TextAlignment: Copy {
+    fn into_pixel_iterator<'a, C, F>(
+        text_box: &'a StyledTextBox<'a, C, F, Self>,
+    ) -> StyledFramedTextIterator<'a, C, F, Self>
+    where
+        C: PixelColor,
+        F: Font + Copy,
+    {
+        StyledFramedTextIterator::new(text_box)
+    }
+}
 
-#[derive(Copy, Clone, Debug)]
-pub struct CenterAligned;
-impl TextAlignment for CenterAligned {}
-
-#[derive(Copy, Clone, Debug)]
-pub struct Justified;
-impl TextAlignment for Justified {}
+pub use center::CenterAligned;
+pub use justified::Justified;
+pub use left::LeftAligned;
+pub use right::RightAligned;
