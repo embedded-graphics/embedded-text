@@ -2,8 +2,21 @@ use crate::{alignment::TextAlignment, rendering::StyledFramedTextIterator};
 use embedded_graphics::prelude::*;
 
 #[derive(Copy, Clone, Debug)]
+pub enum LeftAlignedState {
+    StartNewLine,
+}
+
+impl Default for LeftAlignedState {
+    fn default() -> Self {
+        Self::StartNewLine
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct LeftAligned;
-impl TextAlignment for LeftAligned {}
+impl TextAlignment for LeftAligned {
+    type IteratorState = LeftAlignedState;
+}
 
 impl<C, F> Iterator for StyledFramedTextIterator<'_, C, F, LeftAligned>
 where

@@ -8,6 +8,8 @@ pub mod right;
 
 /// Text alignment
 pub trait TextAlignment: Copy {
+    type IteratorState: Default;
+
     fn into_pixel_iterator<'a, C, F>(
         text_box: &'a StyledTextBox<'a, C, F, Self>,
     ) -> StyledFramedTextIterator<'a, C, F, Self>

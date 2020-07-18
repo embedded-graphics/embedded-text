@@ -143,9 +143,13 @@ where
     F: Font + Copy,
     A: TextAlignment,
 {
-    pub parser: Parser<'a>,
-    pub bounds: Rectangle,
-    pub style: TextBoxStyle<C, F, A>,
+    parser: Parser<'a>,
+    bounds: Rectangle,
+    style: TextBoxStyle<C, F, A>,
+
+    char_pos: Point,
+
+    state: A::IteratorState,
 }
 
 impl<'a, C, F, A> StyledFramedTextIterator<'a, C, F, A>
@@ -159,6 +163,8 @@ where
             parser: Parser::parse(styled.text_box.text),
             bounds: styled.text_box.bounds,
             style: styled.style,
+            char_pos: styled.text_box.bounds.top_left,
+            state: A::IteratorState::default(),
         }
     }
 }
