@@ -3,3 +3,6 @@
 
 /// Parse text into smaller units
 pub mod parser;
+
+/// Helpers to render text
+pub mod rendering;
