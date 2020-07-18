@@ -92,7 +92,7 @@ where
 
                                 if n != 0 {
                                     self.state = LeftAlignedState::DrawWhitespace(
-                                        n,
+                                        n - 1,
                                         EmptySpaceIterator::new(
                                             self.char_pos,
                                             width,
@@ -133,17 +133,18 @@ where
                     }
                 }
 
-                LeftAlignedState::DrawWhitespace(n, ref mut iterator) => {
+                LeftAlignedState::DrawWhitespace(n, mut iterator) => {
                     let pixel = iterator.next();
                     if pixel.is_some() {
+                        self.state = LeftAlignedState::DrawWhitespace(n, iterator);
                         break pixel;
                     }
 
                     let width = F::char_width(' ');
+                    self.char_pos.x += width as i32;
                     if n == 0 {
                         self.state = LeftAlignedState::NewWord;
                     } else {
-                        self.char_pos.x += width as i32;
                         // word wrapping, also applied for whitespace sequences
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
                             self.char_pos.x = self.bounds.top_left.x;
