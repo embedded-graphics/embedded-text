@@ -2,12 +2,13 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Windo
 
 use embedded_graphics::{fonts::Font6x8, pixelcolor::Rgb565, prelude::*, primitives::Rectangle};
 
-use embedded_text::{style::TextBoxStyleBuilder, TextBox};
+use embedded_text::{alignment::*, style::TextBoxStyleBuilder, TextBox};
 
 fn main() -> Result<(), core::convert::Infallible> {
     let mut display: SimulatorDisplay<Rgb565> = SimulatorDisplay::new(Size::new(129, 129));
 
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+        .alignment(CenterAligned)
         .text_color(Rgb565::RED)
         .background_color(Rgb565::GREEN)
         .build();
