@@ -10,6 +10,7 @@ pub enum Token<'a> {
 }
 
 /// The parser struct
+#[derive(Clone)]
 pub struct Parser<'a> {
     text: &'a str,
     inner: CharIndices<'a>,

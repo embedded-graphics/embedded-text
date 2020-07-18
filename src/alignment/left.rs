@@ -10,7 +10,7 @@ use embedded_graphics::prelude::*;
 
 use core::str::Chars;
 
-#[derive(Clone)]
+#[derive(Debug)]
 pub enum LeftAlignedState<'a, C, F>
 where
     C: PixelColor,
@@ -63,10 +63,7 @@ where
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                let mut width = 0;
-                                for c in w.chars() {
-                                    width += F::char_width(c);
-                                }
+                                let width = w.chars().map(F::char_width).sum::<u32>();
                                 if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
                                     if self.char_pos.x != self.bounds.top_left.x {
                                         self.char_pos.x = self.bounds.top_left.x;

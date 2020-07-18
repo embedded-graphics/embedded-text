@@ -6,13 +6,13 @@ use embedded_graphics::{
     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
 };
 
-use embedded_text::{alignment::RightAligned, style::TextBoxStyleBuilder, TextBox};
+use embedded_text::{alignment::CenterAligned, style::TextBoxStyleBuilder, TextBox};
 
 fn main() -> Result<(), core::convert::Infallible> {
     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
 
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-        .alignment(RightAligned)
+        .alignment(CenterAligned)
         .text_color(BinaryColor::On)
         .build();
 
@@ -28,6 +28,6 @@ fn main() -> Result<(), core::convert::Infallible> {
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
-    Window::new("Hello right aligned TextBox", &output_settings).show_static(&display);
+    Window::new("Hello center aligned TextBox", &output_settings).show_static(&display);
     Ok(())
 }

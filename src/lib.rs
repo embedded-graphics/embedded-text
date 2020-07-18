@@ -1,5 +1,5 @@
 //! This crate implements rendering text in a given area for embedded-graphics
-#![cfg_attr(not(test), no_std)]
+//#![cfg_attr(not(test), no_std)]
 
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 
@@ -14,6 +14,9 @@ pub mod rendering;
 
 /// Textbox styling
 pub mod style;
+
+/// Helpers
+pub mod utils;
 
 use alignment::TextAlignment;
 use style::{StyledTextBox, TextBoxStyle};
@@ -82,10 +85,6 @@ impl Dimensions for TextBox<'_> {
     #[inline]
     #[must_use]
     fn size(&self) -> Size {
-        // TODO: remove if fixed in embedded-graphics
-        let width = (self.bottom_right().x - self.top_left().x) as u32 + 1;
-        let height = (self.bottom_right().y - self.top_left().y) as u32 + 1;
-
-        Size::new(width, height)
+        crate::utils::rect_ext::RectExt::size(self.bounds)
     }
 }
