@@ -64,28 +64,42 @@ where
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                // TODO assume fits for now
+                                let mut width = 0;
+                                for c in w.chars() {
+                                    width += F::char_width(c);
+                                }
+                                if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
+                                    if self.char_pos.x != self.bounds.top_left.x {
+                                        self.char_pos.x = self.bounds.top_left.x;
+                                        self.char_pos.y += F::CHARACTER_SIZE.height as i32;
+                                    }
+                                }
                                 // if not, wrap
                                 // update state
                                 self.state = LeftAlignedState::DrawWord(w.chars());
                             }
-                            Token::Whitespace(n) => {
+                            Token::Whitespace(mut n) => {
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::char_width(' ');
                                 if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
                                     self.char_pos.x = self.bounds.top_left.x;
                                     self.char_pos.y += F::CHARACTER_SIZE.height as i32;
+
+                                    // eat a space on the end of line
+                                    n -= 1;
                                 }
 
-                                self.state = LeftAlignedState::DrawWhitespace(
-                                    n,
-                                    EmptySpaceIterator::new(
-                                        self.char_pos,
-                                        width,
-                                        self.style.text_style,
-                                    ),
-                                );
+                                if n != 0 {
+                                    self.state = LeftAlignedState::DrawWhitespace(
+                                        n,
+                                        EmptySpaceIterator::new(
+                                            self.char_pos,
+                                            width,
+                                            self.style.text_style,
+                                        ),
+                                    );
+                                }
                             }
 
                             Token::NewLine => {
@@ -127,9 +141,9 @@ where
 
                     let width = F::char_width(' ');
                     if n == 0 {
-                        self.char_pos.x += width as i32;
                         self.state = LeftAlignedState::NewWord;
                     } else {
+                        self.char_pos.x += width as i32;
                         // word wrapping, also applied for whitespace sequences
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
                             self.char_pos.x = self.bounds.top_left.x;
