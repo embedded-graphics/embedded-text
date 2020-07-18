@@ -13,7 +13,7 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    character: char,
+    pub character: char,
     style: TextStyle<C, F>,
     pos: Point,
     char_walk: Point,
@@ -87,6 +87,7 @@ where
     style: TextStyle<C, F>,
     pos: Point,
     char_walk: Point,
+    walk_max_x: i32,
 }
 
 impl<C, F> EmptySpaceIterator<C, F>
@@ -94,11 +95,12 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    pub fn new(pos: Point, style: TextStyle<C, F>) -> Self {
+    pub fn new(pos: Point, width: u32, style: TextStyle<C, F>) -> Self {
         Self {
             style,
             pos,
             char_walk: Point::zero(),
+            walk_max_x: width as i32 - 1,
         }
     }
 }
@@ -111,7 +113,7 @@ where
     type Item = Pixel<C>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if F::CHARACTER_SPACING == 0 {
+        if self.walk_max_x <= 0 {
             None
         } else if let Some(color) = self.style.background_color {
             if self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
@@ -120,7 +122,7 @@ where
             } else {
                 let p = self.pos + self.char_walk;
 
-                if self.char_walk.x < F::CHARACTER_SPACING as i32 - 1 {
+                if self.char_walk.x < self.walk_max_x {
                     self.char_walk.x += 1;
                 } else {
                     self.char_walk.x = 0;
