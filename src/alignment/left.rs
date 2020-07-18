@@ -1,12 +1,18 @@
-use crate::{alignment::TextAlignment, rendering::StyledFramedTextIterator};
+use crate::{
+    alignment::TextAlignment,
+    rendering::{StateFactory, StyledFramedTextIterator},
+    style::StyledTextBox,
+};
 use embedded_graphics::prelude::*;
 
-#[derive(Copy, Clone, Debug)]
-pub enum LeftAlignedState {
+use core::str::Chars;
+
+pub enum LeftAlignedState<'a> {
     StartNewLine,
+    DrawWord(Chars<'a>),
 }
 
-impl Default for LeftAlignedState {
+impl Default for LeftAlignedState<'_> {
     fn default() -> Self {
         Self::StartNewLine
     }
@@ -14,8 +20,14 @@ impl Default for LeftAlignedState {
 
 #[derive(Copy, Clone, Debug)]
 pub struct LeftAligned;
-impl TextAlignment for LeftAligned {
-    type IteratorState = LeftAlignedState;
+impl TextAlignment for LeftAligned {}
+
+impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, LeftAligned>
+where
+    C: PixelColor,
+    F: Font + Copy,
+{
+    type PixelIteratorState = LeftAlignedState<'a>;
 }
 
 impl<C, F> Iterator for StyledFramedTextIterator<'_, C, F, LeftAligned>

@@ -136,20 +136,25 @@ where
     }
 }
 
+pub trait StateFactory {
+    type PixelIteratorState: Default;
+}
+
 /// Pixel iterator for styled text.
 pub struct StyledFramedTextIterator<'a, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
     A: TextAlignment,
+    StyledTextBox<'a, C, F, A>: StateFactory,
 {
-    parser: Parser<'a>,
-    bounds: Rectangle,
-    style: TextBoxStyle<C, F, A>,
+    pub parser: Parser<'a>,
+    pub bounds: Rectangle,
+    pub style: TextBoxStyle<C, F, A>,
 
-    char_pos: Point,
+    pub char_pos: Point,
 
-    state: A::IteratorState,
+    pub state: <StyledTextBox<'a, C, F, A> as StateFactory>::PixelIteratorState,
 }
 
 impl<'a, C, F, A> StyledFramedTextIterator<'a, C, F, A>
@@ -157,6 +162,7 @@ where
     C: PixelColor,
     F: Font + Copy,
     A: TextAlignment,
+    StyledTextBox<'a, C, F, A>: StateFactory,
 {
     pub fn new(styled: &'a StyledTextBox<'a, C, F, A>) -> Self {
         Self {
@@ -164,7 +170,7 @@ where
             bounds: styled.text_box.bounds,
             style: styled.style,
             char_pos: styled.text_box.bounds.top_left,
-            state: A::IteratorState::default(),
+            state: <StyledTextBox<'a, C, F, A> as StateFactory>::PixelIteratorState::default(),
         }
     }
 }

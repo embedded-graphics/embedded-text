@@ -1,4 +1,7 @@
-use crate::{rendering::StyledFramedTextIterator, StyledTextBox};
+use crate::{
+    rendering::{StateFactory, StyledFramedTextIterator},
+    StyledTextBox,
+};
 use embedded_graphics::prelude::*;
 
 pub mod center;
@@ -8,14 +11,13 @@ pub mod right;
 
 /// Text alignment
 pub trait TextAlignment: Copy {
-    type IteratorState: Default;
-
     fn into_pixel_iterator<'a, C, F>(
         text_box: &'a StyledTextBox<'a, C, F, Self>,
     ) -> StyledFramedTextIterator<'a, C, F, Self>
     where
         C: PixelColor,
         F: Font + Copy,
+        StyledTextBox<'a, C, F, Self>: StateFactory,
     {
         StyledFramedTextIterator::new(text_box)
     }

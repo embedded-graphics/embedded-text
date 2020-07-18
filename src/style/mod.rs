@@ -2,7 +2,11 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 
 pub mod builder;
 
-use crate::{alignment::TextAlignment, rendering::StyledFramedTextIterator, TextBox};
+use crate::{
+    alignment::TextAlignment,
+    rendering::{StateFactory, StyledFramedTextIterator},
+    TextBox,
+};
 pub use builder::TextBoxStyleBuilder;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -47,6 +51,7 @@ where
     F: Font + Copy,
     A: TextAlignment,
     StyledFramedTextIterator<'a, C, F, A>: Iterator<Item = Pixel<C>>,
+    StyledTextBox<'a, C, F, A>: StateFactory,
 {
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
         display.draw_iter(A::into_pixel_iterator(self))
