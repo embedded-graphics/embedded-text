@@ -17,6 +17,7 @@ where
     F: Font + Copy,
 {
     NextWord,
+    LineBreak(Chars<'a>),
     DrawWord(Chars<'a>),
     DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>),
     DrawWhitespace(u32, EmptySpaceIterator<C, F>),
@@ -58,6 +59,19 @@ where
             }
 
             match &mut self.state {
+                LeftAlignedState::LineBreak(ref remaining) => {
+                    self.char_pos = Point::new(
+                        self.bounds.top_left.x,
+                        self.char_pos.y + F::CHARACTER_SIZE.height as i32,
+                    );
+
+                    if remaining.clone().next().is_some() {
+                        self.state = LeftAlignedState::DrawWord(remaining.clone());
+                    } else {
+                        self.state = LeftAlignedState::NextWord;
+                    }
+                }
+
                 LeftAlignedState::NextWord => {
                     if let Some(token) = self.parser.next() {
                         match token {
@@ -65,28 +79,18 @@ where
                                 // measure w to see if it fits in current line
                                 let width = w.chars().map(F::char_width).sum::<u32>();
                                 if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                                    if self.char_pos.x != self.bounds.top_left.x {
-                                        self.char_pos.x = self.bounds.top_left.x;
-                                        self.char_pos.y += F::CHARACTER_SIZE.height as i32;
-                                    }
+                                    self.state = LeftAlignedState::LineBreak(w.chars());
+                                } else {
+                                    self.state = LeftAlignedState::DrawWord(w.chars());
                                 }
-                                // if not, wrap
-                                // update state
-                                self.state = LeftAlignedState::DrawWord(w.chars());
                             }
-                            Token::Whitespace(mut n) => {
+                            Token::Whitespace(n) => {
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::char_width(' ');
                                 if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                                    self.char_pos.x = self.bounds.top_left.x;
-                                    self.char_pos.y += F::CHARACTER_SIZE.height as i32;
-
-                                    // eat a space on the end of line
-                                    n -= 1;
-                                }
-
-                                if n != 0 {
+                                    self.state = LeftAlignedState::NextWord;
+                                } else if n != 0 {
                                     self.state = LeftAlignedState::DrawWhitespace(
                                         n - 1,
                                         EmptySpaceIterator::new(
@@ -99,10 +103,7 @@ where
                             }
 
                             Token::NewLine => {
-                                self.char_pos = Point::new(
-                                    self.bounds.top_left.x,
-                                    self.char_pos.y + F::CHARACTER_SIZE.height as i32,
-                                );
+                                self.state = LeftAlignedState::LineBreak("".chars());
                             }
                         }
                     } else {
@@ -142,8 +143,12 @@ where
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            self.char_pos.x = self.bounds.top_left.x;
-                            self.char_pos.y += F::CHARACTER_SIZE.height as i32;
+                            // duplicate line break logic because LineBreak can't handle
+                            // remaining whitespaces
+                            self.char_pos = Point::new(
+                                self.bounds.top_left.x,
+                                self.char_pos.y + F::CHARACTER_SIZE.height as i32,
+                            );
                         }
 
                         self.state = LeftAlignedState::DrawWhitespace(

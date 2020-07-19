@@ -19,6 +19,7 @@ where
 {
     NextWord,
     LineBreak(Chars<'a>),
+    MeasureLine(Chars<'a>),
     DrawWord(Chars<'a>),
     DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>),
     DrawWhitespace(u32, EmptySpaceIterator<C, F>),
@@ -30,7 +31,7 @@ where
     F: Font + Copy,
 {
     fn default() -> Self {
-        Self::LineBreak("".chars())
+        Self::MeasureLine("".chars())
     }
 }
 
@@ -62,6 +63,14 @@ where
             let max_line_width = RectExt::size(self.bounds).width;
             match &mut self.state {
                 JustifiedState::LineBreak(ref remaining) => {
+                    self.char_pos = Point::new(
+                        self.bounds.top_left.x,
+                        self.char_pos.y + F::CHARACTER_SIZE.height as i32,
+                    );
+                    self.state = JustifiedState::MeasureLine(remaining.clone());
+                }
+
+                JustifiedState::MeasureLine(ref remaining) => {
                     // measure row
                     let copy = remaining.clone();
 
@@ -128,23 +137,13 @@ where
                 }
 
                 JustifiedState::NextWord => {
-                    let mut lookahead = self.parser.clone();
-                    let mut consume = true;
-                    if let Some(token) = lookahead.next() {
+                    if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
                                 let width = w.chars().map(F::char_width).sum::<u32>();
                                 if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                                    self.char_pos.x = self.bounds.top_left.x;
-                                    self.char_pos.y += F::CHARACTER_SIZE.height as i32;
-
-                                    if width < max_line_width {
-                                        consume = false;
-                                        self.state = JustifiedState::LineBreak("".chars());
-                                    } else {
-                                        self.state = JustifiedState::LineBreak(w.chars());
-                                    }
+                                    self.state = JustifiedState::LineBreak(w.chars());
                                 } else {
                                     self.state = JustifiedState::DrawWord(w.chars());
                                 }
@@ -153,6 +152,7 @@ where
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::char_width(' ');
+                                let mut lookahead = self.parser.clone();
                                 if let Some(next) = lookahead.next() {
                                     // only render whitespace if next is word and next doesn't wrap
                                     match next {
@@ -165,7 +165,7 @@ where
                                                     - width as i32
                                                     + 1
                                             {
-                                                self.state = JustifiedState::LineBreak("".chars());
+                                                self.state = JustifiedState::NextWord;
                                             } else if n != 0 {
                                                 self.state = JustifiedState::DrawWhitespace(
                                                     n - 1,
@@ -186,16 +186,8 @@ where
                             }
 
                             Token::NewLine => {
-                                self.char_pos = Point::new(
-                                    self.bounds.top_left.x,
-                                    self.char_pos.y + F::CHARACTER_SIZE.height as i32,
-                                );
                                 self.state = JustifiedState::LineBreak("".chars());
                             }
-                        }
-
-                        if consume {
-                            self.parser.next();
                         }
                     } else {
                         break None;
@@ -210,8 +202,6 @@ where
 
                         let width = F::char_width(c);
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            self.char_pos.x = self.bounds.top_left.x;
-                            self.char_pos.y += F::CHARACTER_SIZE.height as i32;
                             self.state = JustifiedState::LineBreak(chars_iterator.clone())
                         } else {
                             self.state = JustifiedState::DrawCharacter(
@@ -241,8 +231,6 @@ where
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            self.char_pos.x = self.bounds.top_left.x;
-                            self.char_pos.y += F::CHARACTER_SIZE.height as i32;
                             self.state = JustifiedState::LineBreak("".chars());
                         } else {
                             self.state = JustifiedState::DrawWhitespace(
