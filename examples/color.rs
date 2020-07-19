@@ -8,7 +8,7 @@ fn main() -> Result<(), core::convert::Infallible> {
     let mut display: SimulatorDisplay<Rgb565> = SimulatorDisplay::new(Size::new(129, 129));
 
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-        .alignment(CenterAligned)
+        .alignment(Justified)
         .text_color(Rgb565::RED)
         .background_color(Rgb565::GREEN)
         .build();
