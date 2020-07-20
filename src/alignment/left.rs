@@ -135,15 +135,18 @@ where
                         break pixel;
                     }
 
-                    let width = F::char_width(' ');
-                    self.cursor.position.x += width as i32;
                     self.state = if n == 0 {
+                        // no more spaces to draw
+                        self.cursor.advance_char(' ');
                         LeftAlignedState::NextWord
                     } else {
                         // word wrapping, also applied for whitespace sequences
-                        if !self.cursor.fits_in_line(width) {
-                            // duplicate line break logic because LineBreak can't handle
-                            // remaining whitespaces
+                        let width = F::char_width(' ');
+                        if self.cursor.fits_in_line(width) {
+                            self.cursor.advance(width);
+                        } else {
+                            // duplicate line break because LineBreak state can't handle whitespaces
+                            // carried-over
                             self.cursor.new_line();
                         }
 
@@ -163,7 +166,7 @@ where
                         break pixel;
                     }
 
-                    self.cursor.position.x += F::char_width(iterator.character) as i32;
+                    self.cursor.advance_char(iterator.character);
                     self.state = LeftAlignedState::DrawWord(chars_iterator.clone());
                 }
             };

@@ -157,6 +157,14 @@ impl<F: Font> Cursor<F> {
     pub fn fits_in_line(&self, width: u32) -> bool {
         width as i32 <= self.bounds.bottom_right.x - self.position.x + 1
     }
+
+    pub fn advance_char(&mut self, c: char) {
+        self.advance(F::char_width(c));
+    }
+
+    pub fn advance(&mut self, by: u32) {
+        self.position.x += by as i32;
+    }
 }
 
 pub trait StateFactory {

@@ -129,6 +129,7 @@ where
                                     self.state = RightAlignedState::LineBreak(w.chars());
                                 }
                             }
+
                             Token::Whitespace(n) => {
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
@@ -185,22 +186,28 @@ where
                         break pixel;
                     }
 
-                    let width = F::char_width(' ');
-                    self.cursor.position.x += width as i32;
                     self.state = if n == 0 {
+                        // no more spaces to draw
+                        self.cursor.advance_char(' ');
                         RightAlignedState::NextWord
-                    } else if self.cursor.fits_in_line(width) {
-                        RightAlignedState::DrawWhitespace(
-                            n - 1,
-                            EmptySpaceIterator::new(
-                                self.cursor.position,
-                                width,
-                                self.style.text_style,
-                            ),
-                        )
                     } else {
-                        // word wrapping, also applied for whitespace sequences
-                        RightAlignedState::LineBreak("".chars())
+                        let width = F::char_width(' ');
+                        if self.cursor.fits_in_line(width) {
+                            // draw next space
+                            self.cursor.advance(width);
+                            RightAlignedState::DrawWhitespace(
+                                n - 1,
+                                EmptySpaceIterator::new(
+                                    self.cursor.position,
+                                    width,
+                                    self.style.text_style,
+                                ),
+                            )
+                        } else {
+                            // word wrapping, also applied for whitespace sequences
+                            // eat the spaces from the start of next line
+                            RightAlignedState::LineBreak("".chars())
+                        }
                     }
                 }
 
@@ -209,7 +216,7 @@ where
                         break pixel;
                     }
 
-                    self.cursor.position.x += F::char_width(iterator.character) as i32;
+                    self.cursor.advance_char(iterator.character);
                     self.state = RightAlignedState::DrawWord(chars_iterator.clone());
                 }
             }
