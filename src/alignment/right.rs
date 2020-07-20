@@ -188,21 +188,21 @@ where
 
                     let width = F::char_width(' ');
                     self.char_pos.x += width as i32;
-                    if n == 0 {
-                        self.state = RightAlignedState::NextWord;
+                    self.state = if n == 0 {
+                        RightAlignedState::NextWord
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            self.state = RightAlignedState::LineBreak("".chars());
+                            RightAlignedState::LineBreak("".chars())
                         } else {
-                            self.state = RightAlignedState::DrawWhitespace(
+                            RightAlignedState::DrawWhitespace(
                                 n - 1,
                                 EmptySpaceIterator::new(
                                     self.char_pos,
                                     width,
                                     self.style.text_style,
                                 ),
-                            );
+                            )
                         }
                     }
                 }
