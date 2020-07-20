@@ -17,7 +17,6 @@ where
     F: Font + Copy,
 {
     NextWord,
-    LineBreak(Chars<'a>),
     DrawWord(Chars<'a>),
     DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>),
     DrawWhitespace(u32, EmptySpaceIterator<C, F>),
@@ -59,25 +58,19 @@ where
             }
 
             match self.state {
-                LeftAlignedState::LineBreak(ref remaining) => {
-                    self.cursor.new_line();
-
-                    self.state = LeftAlignedState::DrawWord(remaining.clone());
-                }
-
                 LeftAlignedState::NextWord => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if self
+                                if !self
                                     .cursor
                                     .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
                                 {
-                                    self.state = LeftAlignedState::DrawWord(w.chars());
-                                } else {
-                                    self.state = LeftAlignedState::LineBreak(w.chars());
+                                    self.cursor.new_line();
                                 }
+
+                                self.state = LeftAlignedState::DrawWord(w.chars());
                             }
                             Token::Whitespace(n) => {
                                 // TODO character spacing!
@@ -98,7 +91,7 @@ where
                             }
 
                             Token::NewLine => {
-                                self.state = LeftAlignedState::LineBreak("".chars());
+                                self.cursor.new_line();
                             }
                         }
                     } else {
@@ -108,25 +101,25 @@ where
 
                 LeftAlignedState::DrawWord(ref mut chars_iterator) => {
                     let mut copy = chars_iterator.clone();
-                    self.state = if let Some(c) = copy.next() {
+                    if let Some(c) = copy.next() {
                         // TODO character spacing!
                         let width = F::char_width(c);
 
                         if self.cursor.fits_in_line(width) {
-                            LeftAlignedState::DrawCharacter(
+                            self.state = LeftAlignedState::DrawCharacter(
                                 copy,
                                 StyledCharacterIterator::new(
                                     c,
                                     self.cursor.position,
                                     self.style.text_style,
                                 ),
-                            )
+                            );
                         } else {
                             // word wrapping
-                            LeftAlignedState::LineBreak(chars_iterator.clone())
+                            self.cursor.new_line();
                         }
                     } else {
-                        LeftAlignedState::NextWord
+                        self.state = LeftAlignedState::NextWord;
                     }
                 }
 
