@@ -56,21 +56,18 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.char_pos.y > self.bounds.bottom_right.y {
+            if !self.cursor.in_display_area() {
                 break None;
             }
 
             match self.state {
                 CenterAlignedState::LineBreak(ref remaining) => {
-                    self.char_pos = Point::new(
-                        self.bounds.top_left.x,
-                        self.char_pos.y + F::CHARACTER_SIZE.height as i32,
-                    );
+                    self.cursor.new_line();
                     self.state = CenterAlignedState::MeasureLine(remaining.clone());
                 }
 
                 CenterAlignedState::MeasureLine(ref remaining) => {
-                    let max_line_width = RectExt::size(self.bounds).width;
+                    let max_line_width = RectExt::size(self.cursor.bounds).width;
 
                     // initial width is the width of the characters carried over to this row
                     let (mut total_width, fits) = F::max_fitting(remaining.clone(), max_line_width);
@@ -112,7 +109,7 @@ where
                         }
 
                         // advance pos.x
-                        self.char_pos.x += (max_line_width - total_width) as i32 / 2;
+                        self.cursor.position.x += (max_line_width - total_width) as i32 / 2;
                     }
 
                     self.state = CenterAlignedState::DrawWord(remaining.clone());
@@ -123,11 +120,13 @@ where
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                let width = w.chars().map(F::char_width).sum::<u32>();
-                                if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                                    self.state = CenterAlignedState::LineBreak(w.chars());
-                                } else {
+                                if self
+                                    .cursor
+                                    .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
+                                {
                                     self.state = CenterAlignedState::DrawWord(w.chars());
+                                } else {
+                                    self.state = CenterAlignedState::LineBreak(w.chars());
                                 }
                             }
                             Token::Whitespace(n) => {
@@ -139,16 +138,13 @@ where
                                     // only render whitespace if next is word and next doesn't wrap
                                     let n_width = w.chars().map(F::char_width).sum::<u32>();
 
-                                    if self.char_pos.x
-                                        > self.bounds.bottom_right.x - n_width as i32 - width as i32
-                                            + 1
-                                    {
+                                    if !self.cursor.fits_in_line(n_width + width) {
                                         self.state = CenterAlignedState::NextWord;
                                     } else if n != 0 {
                                         self.state = CenterAlignedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
-                                                self.char_pos,
+                                                self.cursor.position,
                                                 width,
                                                 self.style.text_style,
                                             ),
@@ -172,20 +168,18 @@ where
                     let mut copy = chars_iterator.clone();
                     self.state = if let Some(c) = copy.next() {
                         // TODO character spacing!
-                        let width = F::char_width(c);
-
-                        if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            // word wrapping
-                            CenterAlignedState::LineBreak(chars_iterator.clone())
-                        } else {
+                        if self.cursor.fits_in_line(F::char_width(c)) {
                             CenterAlignedState::DrawCharacter(
                                 copy,
                                 StyledCharacterIterator::new(
                                     c,
-                                    self.char_pos,
+                                    self.cursor.position,
                                     self.style.text_style,
                                 ),
                             )
+                        } else {
+                            // word wrapping
+                            CenterAlignedState::LineBreak(chars_iterator.clone())
                         }
                     } else {
                         CenterAlignedState::NextWord
@@ -198,23 +192,21 @@ where
                     }
 
                     let width = F::char_width(' ');
-                    self.char_pos.x += width as i32;
+                    self.cursor.position.x += width as i32;
                     self.state = if n == 0 {
                         CenterAlignedState::NextWord
+                    } else if self.cursor.fits_in_line(width) {
+                        CenterAlignedState::DrawWhitespace(
+                            n - 1,
+                            EmptySpaceIterator::new(
+                                self.cursor.position,
+                                width,
+                                self.style.text_style,
+                            ),
+                        )
                     } else {
                         // word wrapping, also applied for whitespace sequences
-                        if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            CenterAlignedState::LineBreak("".chars())
-                        } else {
-                            CenterAlignedState::DrawWhitespace(
-                                n - 1,
-                                EmptySpaceIterator::new(
-                                    self.char_pos,
-                                    width,
-                                    self.style.text_style,
-                                ),
-                            )
-                        }
+                        CenterAlignedState::LineBreak("".chars())
                     }
                 }
 
@@ -223,7 +215,7 @@ where
                         break pixel;
                     }
 
-                    self.char_pos.x += F::char_width(iterator.character) as i32;
+                    self.cursor.position.x += F::char_width(iterator.character) as i32;
                     self.state = CenterAlignedState::DrawWord(chars_iterator.clone());
                 }
             }

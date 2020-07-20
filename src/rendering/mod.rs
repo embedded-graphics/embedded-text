@@ -4,6 +4,7 @@ use crate::{
     parser::Parser,
     style::{StyledTextBox, TextBoxStyle},
 };
+use core::marker::PhantomData;
 use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
 
 /// Pixel iterator to render a styled character
@@ -135,6 +136,29 @@ where
     }
 }
 
+pub struct Cursor<F: Font> {
+    _marker: PhantomData<F>,
+    pub bounds: Rectangle,
+    pub position: Point,
+}
+
+impl<F: Font> Cursor<F> {
+    pub fn new_line(&mut self) {
+        self.position = Point::new(
+            self.bounds.top_left.x,
+            self.position.y + F::CHARACTER_SIZE.height as i32,
+        );
+    }
+
+    pub fn in_display_area(&self) -> bool {
+        self.position.y < self.bounds.bottom_right.y
+    }
+
+    pub fn fits_in_line(&self, width: u32) -> bool {
+        width as i32 <= self.bounds.bottom_right.x - self.position.x + 1
+    }
+}
+
 pub trait StateFactory {
     type PixelIteratorState: Default;
 }
@@ -148,10 +172,8 @@ where
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
     pub parser: Parser<'a>,
-    pub bounds: Rectangle,
     pub style: TextBoxStyle<C, F, A>,
-
-    pub char_pos: Point,
+    pub cursor: Cursor<F>,
 
     pub state: <StyledTextBox<'a, C, F, A> as StateFactory>::PixelIteratorState,
 }
@@ -166,9 +188,12 @@ where
     pub fn new(styled: &'a StyledTextBox<'a, C, F, A>) -> Self {
         Self {
             parser: Parser::parse(styled.text_box.text),
-            bounds: styled.text_box.bounds,
             style: styled.style,
-            char_pos: styled.text_box.bounds.top_left,
+            cursor: Cursor {
+                _marker: PhantomData,
+                bounds: styled.text_box.bounds,
+                position: styled.text_box.bounds.top_left,
+            },
             state: <StyledTextBox<'a, C, F, A> as StateFactory>::PixelIteratorState::default(),
         }
     }
