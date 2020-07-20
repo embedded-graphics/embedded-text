@@ -28,6 +28,6 @@ fn main() -> Result<(), core::convert::Infallible> {
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
-    Window::new("Hello center aligned TextBox", &output_settings).show_static(&display);
+    Window::new("Hello fully justified TextBox", &output_settings).show_static(&display);
     Ok(())
 }

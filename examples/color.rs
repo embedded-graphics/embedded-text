@@ -23,6 +23,6 @@ fn main() -> Result<(), core::convert::Infallible> {
     .unwrap();
 
     let output_settings = OutputSettingsBuilder::new().build();
-    Window::new("Hello TextBox", &output_settings).show_static(&display);
+    Window::new("Hello TextBox with text background color", &output_settings).show_static(&display);
     Ok(())
 }
