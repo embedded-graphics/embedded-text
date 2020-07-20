@@ -65,7 +65,7 @@ where
 {
     #[inline]
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
-        display.draw_iter(A::into_pixel_iterator(self))
+        display.draw_iter(StyledTextBoxIterator::new(self))
     }
 }
 

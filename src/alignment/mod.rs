@@ -1,29 +1,17 @@
-use crate::{
-    rendering::{StateFactory, StyledTextBoxIterator},
-    StyledTextBox,
-};
-use embedded_graphics::prelude::*;
-
+/// Center aligned text rendering
 pub mod center;
+
+/// Fully justified text rendering
 pub mod justified;
+
+/// Left aligned text rendering
 pub mod left;
+
+/// Right aligned text rendering
 pub mod right;
 
 /// Text alignment
-pub trait TextAlignment: Copy {
-    #[inline]
-    #[must_use]
-    fn into_pixel_iterator<'a, C, F>(
-        text_box: &'a StyledTextBox<'a, C, F, Self>,
-    ) -> StyledTextBoxIterator<'a, C, F, Self>
-    where
-        C: PixelColor,
-        F: Font + Copy,
-        StyledTextBox<'a, C, F, Self>: StateFactory,
-    {
-        StyledTextBoxIterator::new(text_box)
-    }
-}
+pub trait TextAlignment: Copy {}
 
 pub use center::CenterAligned;
 pub use justified::Justified;
