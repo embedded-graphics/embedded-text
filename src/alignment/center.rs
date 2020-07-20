@@ -23,18 +23,6 @@ where
     DrawWhitespace(u32, EmptySpaceIterator<C, F>),
 }
 
-impl<C, F> Default for CenterAlignedState<'_, C, F>
-where
-    C: PixelColor,
-    F: Font + Copy,
-{
-    #[inline]
-    #[must_use]
-    fn default() -> Self {
-        Self::MeasureLine("".chars())
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
 pub struct CenterAligned;
 impl TextAlignment for CenterAligned {}
@@ -45,6 +33,12 @@ where
     F: Font + Copy,
 {
     type PixelIteratorState = CenterAlignedState<'a, C, F>;
+
+    #[inline]
+    #[must_use]
+    fn create_state() -> Self::PixelIteratorState {
+        CenterAlignedState::MeasureLine("".chars())
+    }
 }
 
 impl<C, F> Iterator for StyledTextBoxIterator<'_, C, F, CenterAligned>

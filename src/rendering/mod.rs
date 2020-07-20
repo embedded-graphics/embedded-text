@@ -196,7 +196,10 @@ impl<F: Font> Cursor<F> {
 /// This trait is used to associate a state type to a horizontal alignment option.
 pub trait StateFactory {
     /// The type of the state variable used for rendering.
-    type PixelIteratorState: Default;
+    type PixelIteratorState;
+
+    /// Creates a new state variable.
+    fn create_state() -> Self::PixelIteratorState;
 }
 
 /// Pixel iterator for styled text.
@@ -239,7 +242,7 @@ where
                 bounds: styled.text_box.bounds,
                 position: styled.text_box.bounds.top_left,
             },
-            state: <StyledTextBox<'a, C, F, A> as StateFactory>::PixelIteratorState::default(),
+            state: <StyledTextBox<'a, C, F, A> as StateFactory>::create_state(),
         }
     }
 }

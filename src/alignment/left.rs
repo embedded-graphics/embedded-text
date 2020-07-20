@@ -20,18 +20,6 @@ where
     DrawWhitespace(u32, EmptySpaceIterator<C, F>),
 }
 
-impl<C, F> Default for LeftAlignedState<'_, C, F>
-where
-    C: PixelColor,
-    F: Font + Copy,
-{
-    #[inline]
-    #[must_use]
-    fn default() -> Self {
-        Self::NextWord
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
 pub struct LeftAligned;
 impl TextAlignment for LeftAligned {}
@@ -42,6 +30,12 @@ where
     F: Font + Copy,
 {
     type PixelIteratorState = LeftAlignedState<'a, C, F>;
+
+    #[inline]
+    #[must_use]
+    fn create_state() -> Self::PixelIteratorState {
+        LeftAlignedState::NextWord
+    }
 }
 
 impl<C, F> Iterator for StyledTextBoxIterator<'_, C, F, LeftAligned>

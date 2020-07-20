@@ -64,18 +64,6 @@ where
     DrawWhitespace(u32, EmptySpaceIterator<C, F>, SpaceInfo),
 }
 
-impl<C, F> Default for JustifiedState<'_, C, F>
-where
-    C: PixelColor,
-    F: Font + Copy,
-{
-    #[inline]
-    #[must_use]
-    fn default() -> Self {
-        Self::MeasureLine("".chars())
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
 pub struct Justified;
 impl TextAlignment for Justified {}
@@ -86,6 +74,12 @@ where
     F: Font + Copy,
 {
     type PixelIteratorState = JustifiedState<'a, C, F>;
+
+    #[inline]
+    #[must_use]
+    fn create_state() -> Self::PixelIteratorState {
+        JustifiedState::MeasureLine("".chars())
+    }
 }
 
 impl<C, F> Iterator for StyledTextBoxIterator<'_, C, F, Justified>
