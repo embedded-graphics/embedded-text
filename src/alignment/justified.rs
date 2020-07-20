@@ -19,10 +19,14 @@ pub struct SpaceInfo {
 }
 
 impl SpaceInfo {
+    #[inline]
+    #[must_use]
     fn default<F: Font>() -> Self {
         SpaceInfo::new(F::char_width(' '), 0)
     }
 
+    #[inline]
+    #[must_use]
     fn new(space_width: u32, extra_pixel_count: u32) -> Self {
         SpaceInfo {
             space_width: space_width + 1,
@@ -31,6 +35,7 @@ impl SpaceInfo {
         }
     }
 
+    #[inline]
     fn space_width(&mut self) -> u32 {
         if self.space_count == 0 {
             self.remaining_space_width
@@ -40,6 +45,7 @@ impl SpaceInfo {
         }
     }
 
+    #[inline]
     fn peek_space_width(&self, whitespace_count: u32) -> u32 {
         let above_limit = whitespace_count.saturating_sub(self.space_count);
         self.space_width * self.space_count + above_limit * self.remaining_space_width
@@ -65,6 +71,8 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
+    #[inline]
+    #[must_use]
     fn default() -> Self {
         Self::MeasureLine("".chars())
     }
@@ -89,6 +97,7 @@ where
 {
     type Item = Pixel<C>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if !self.cursor.in_display_area() {

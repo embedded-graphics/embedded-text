@@ -20,6 +20,8 @@ where
     F: Font + Copy,
 {
     /// Creates a new text style builder with a given font.
+    #[inline]
+    #[must_use]
     pub fn new(font: F) -> Self {
         Self {
             text_style_builder: TextStyleBuilder::new(font),
@@ -35,6 +37,8 @@ where
     A: TextAlignment,
 {
     /// Sets the text color.
+    #[inline]
+    #[must_use]
     pub fn text_color(self, text_color: C) -> Self {
         Self {
             text_style_builder: self.text_style_builder.text_color(text_color),
@@ -43,6 +47,8 @@ where
     }
 
     /// Sets the background color.
+    #[inline]
+    #[must_use]
     pub fn background_color(self, background_color: C) -> Self {
         Self {
             text_style_builder: self.text_style_builder.background_color(background_color),
@@ -51,6 +57,8 @@ where
     }
 
     /// Apply settings from an existing text style object
+    #[inline]
+    #[must_use]
     pub fn text_style(self, text_style: TextStyle<C, F>) -> Self {
         let mut text_style_builder = self.text_style_builder;
 
@@ -69,6 +77,8 @@ where
     }
 
     /// Sets the text alignment.
+    #[inline]
+    #[must_use]
     pub fn alignment<AA: TextAlignment>(self, alignment: AA) -> TextBoxStyleBuilder<C, F, AA> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
@@ -77,6 +87,8 @@ where
     }
 
     /// Builds the text style.
+    #[inline]
+    #[must_use]
     pub fn build(self) -> TextBoxStyle<C, F, A> {
         TextBoxStyle {
             text_style: self.text_style_builder.build(),

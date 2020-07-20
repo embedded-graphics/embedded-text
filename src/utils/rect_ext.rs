@@ -1,10 +1,15 @@
+//! Extends the embedded-graphics `Rectangle` struct with some helper methods.
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 
+/// Helper methods for the embedded-graphics `Rectangle` struct.
 pub trait RectExt {
+    /// Returns the (correct) size of a `Rectangle`.
     fn size(self) -> Size;
 }
 
 impl RectExt for Rectangle {
+    #[inline]
+    #[must_use]
     fn size(self) -> Size {
         // TODO: remove if fixed in embedded-graphics
         let width = (self.bottom_right.x - self.top_left.x) as u32 + 1;

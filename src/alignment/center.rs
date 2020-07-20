@@ -30,6 +30,8 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
+    #[inline]
+    #[must_use]
     fn default() -> Self {
         Self::MeasureLine("".chars())
     }
@@ -54,6 +56,7 @@ where
 {
     type Item = Pixel<C>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if !self.cursor.in_display_area() {

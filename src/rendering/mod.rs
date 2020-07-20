@@ -27,6 +27,8 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
+    #[inline]
+    #[must_use]
     pub fn new(character: char, pos: Point, style: TextStyle<C, F>) -> Self {
         Self {
             character,
@@ -45,6 +47,7 @@ where
 {
     type Item = Pixel<C>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
@@ -94,6 +97,8 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
+    #[inline]
+    #[must_use]
     pub fn new(pos: Point, width: u32, style: TextStyle<C, F>) -> Self {
         Self {
             _font: PhantomData,
@@ -112,11 +117,10 @@ where
 {
     type Item = Pixel<C>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(color) = self.color {
-            if self.walk_max_x < 0 {
-                None
-            } else if self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
+            if self.walk_max_x < 0 || self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
                 // Done with filling this space
                 None
             } else {
@@ -145,6 +149,7 @@ pub struct Cursor<F: Font> {
 }
 
 impl<F: Font> Cursor<F> {
+    #[inline]
     pub fn new_line(&mut self) {
         self.position = Point::new(
             self.bounds.top_left.x,
@@ -152,18 +157,22 @@ impl<F: Font> Cursor<F> {
         );
     }
 
+    #[inline]
     pub fn in_display_area(&self) -> bool {
         self.position.y < self.bounds.bottom_right.y
     }
 
+    #[inline]
     pub fn fits_in_line(&self, width: u32) -> bool {
         width as i32 <= self.bounds.bottom_right.x - self.position.x + 1
     }
 
+    #[inline]
     pub fn advance_char(&mut self, c: char) {
         self.advance(F::char_width(c));
     }
 
+    #[inline]
     pub fn advance(&mut self, by: u32) {
         self.position.x += by as i32;
     }
@@ -183,8 +192,8 @@ where
 {
     pub parser: Parser<'a>,
     pub style: TextBoxStyle<C, F, A>,
-    pub cursor: Cursor<F>,
 
+    pub cursor: Cursor<F>,
     pub state: <StyledTextBox<'a, C, F, A> as StateFactory>::PixelIteratorState,
 }
 
@@ -195,6 +204,8 @@ where
     A: TextAlignment,
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
+    #[inline]
+    #[must_use]
     pub fn new(styled: &'a StyledTextBox<'a, C, F, A>) -> Self {
         Self {
             parser: Parser::parse(styled.text_box.text),

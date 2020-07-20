@@ -9,6 +9,7 @@ use crate::{
 };
 pub use builder::TextBoxStyleBuilder;
 
+/// Styling options of a [`TextBox`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct TextBoxStyle<C, F, A>
 where
@@ -27,6 +28,7 @@ where
     A: TextAlignment,
 {
     /// Creates a textbox style with transparent background.
+    #[inline]
     pub fn new(font: F, text_color: C, alignment: A) -> Self {
         Self {
             text_style: TextStyle::new(font, text_color),
@@ -35,6 +37,7 @@ where
     }
 }
 
+/// A styled [`TextBox`] struct.
 pub struct StyledTextBox<'a, C, F, A>
 where
     C: PixelColor,
@@ -53,6 +56,7 @@ where
     StyledFramedTextIterator<'a, C, F, A>: Iterator<Item = Pixel<C>>,
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
+    #[inline]
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
         display.draw_iter(A::into_pixel_iterator(self))
     }
