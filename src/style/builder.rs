@@ -1,5 +1,8 @@
 use crate::{alignment::LeftAligned, alignment::TextAlignment, style::TextBoxStyle};
-use embedded_graphics::{prelude::*, style::TextStyleBuilder};
+use embedded_graphics::{
+    prelude::*,
+    style::{TextStyle, TextStyleBuilder},
+};
 
 pub struct TextBoxStyleBuilder<C, F, A>
 where
@@ -43,6 +46,24 @@ where
     pub fn background_color(self, background_color: C) -> Self {
         Self {
             text_style_builder: self.text_style_builder.background_color(background_color),
+            ..self
+        }
+    }
+
+    /// Apply settings from an existing text style object
+    pub fn text_style(self, text_style: TextStyle<C, F>) -> Self {
+        let mut text_style_builder = self.text_style_builder;
+
+        if let Some(color) = text_style.background_color {
+            text_style_builder = text_style_builder.background_color(color);
+        }
+
+        if let Some(color) = text_style.text_color {
+            text_style_builder = text_style_builder.text_color(color);
+        }
+
+        Self {
+            text_style_builder,
             ..self
         }
     }
