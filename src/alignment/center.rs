@@ -60,7 +60,7 @@ where
                 break None;
             }
 
-            match &mut self.state {
+            match self.state {
                 CenterAlignedState::LineBreak(ref remaining) => {
                     self.char_pos = Point::new(
                         self.bounds.top_left.x,
@@ -193,14 +193,13 @@ where
                 }
 
                 CenterAlignedState::DrawWhitespace(n, ref mut iterator) => {
-                    let pixel = iterator.next();
-                    if pixel.is_some() {
+                    if let pixel @ Some(_) = iterator.next() {
                         break pixel;
                     }
 
                     let width = F::char_width(' ');
                     self.char_pos.x += width as i32;
-                    if *n == 0 {
+                    if n == 0 {
                         self.state = CenterAlignedState::NextWord;
                     } else {
                         // word wrapping, also applied for whitespace sequences
@@ -208,7 +207,7 @@ where
                             self.state = CenterAlignedState::LineBreak("".chars());
                         } else {
                             self.state = CenterAlignedState::DrawWhitespace(
-                                *n - 1,
+                                n - 1,
                                 EmptySpaceIterator::new(
                                     self.char_pos,
                                     width,
@@ -219,7 +218,7 @@ where
                     }
                 }
 
-                CenterAlignedState::DrawCharacter(chars_iterator, ref mut iterator) => {
+                CenterAlignedState::DrawCharacter(ref chars_iterator, ref mut iterator) => {
                     if let pixel @ Some(_) = iterator.next() {
                         break pixel;
                     }

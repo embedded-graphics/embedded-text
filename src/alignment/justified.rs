@@ -95,7 +95,7 @@ where
                 break None;
             }
 
-            match &mut self.state {
+            match self.state {
                 JustifiedState::LineBreak(ref remaining) => {
                     self.char_pos = Point::new(
                         self.bounds.top_left.x,
@@ -184,7 +184,7 @@ where
                                 if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
                                     self.state = JustifiedState::LineBreak(w.chars());
                                 } else {
-                                    self.state = JustifiedState::DrawWord(w.chars(), *space_info);
+                                    self.state = JustifiedState::DrawWord(w.chars(), space_info);
                                 }
                             }
                             Token::Whitespace(n) => {
@@ -200,7 +200,7 @@ where
                                         > self.bounds.bottom_right.x - n_width as i32 - width as i32
                                             + 1
                                     {
-                                        self.state = JustifiedState::NextWord(*space_info);
+                                        self.state = JustifiedState::NextWord(space_info);
                                     } else if n != 0 {
                                         self.state = JustifiedState::DrawWhitespace(
                                             n - 1,
@@ -209,7 +209,7 @@ where
                                                 width,
                                                 self.style.text_style,
                                             ),
-                                            *space_info,
+                                            space_info,
                                         );
                                     }
                                 } else {
@@ -243,49 +243,48 @@ where
                                     self.char_pos,
                                     self.style.text_style,
                                 ),
-                                *space_info,
+                                space_info,
                             )
                         }
                     } else {
-                        JustifiedState::NextWord(*space_info)
+                        JustifiedState::NextWord(space_info)
                     }
                 }
 
-                JustifiedState::DrawWhitespace(n, ref mut iterator, space_info) => {
-                    let pixel = iterator.next();
-                    if pixel.is_some() {
+                JustifiedState::DrawWhitespace(n, ref mut iterator, mut space_info) => {
+                    if let pixel @ Some(_) = iterator.next() {
                         break pixel;
                     }
 
                     let width = space_info.space_width();
                     self.char_pos.x += width as i32;
-                    if *n == 0 {
-                        self.state = JustifiedState::NextWord(*space_info);
+                    self.state = if n == 0 {
+                        JustifiedState::NextWord(space_info)
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            self.state = JustifiedState::LineBreak("".chars());
+                            JustifiedState::LineBreak("".chars())
                         } else {
-                            self.state = JustifiedState::DrawWhitespace(
-                                *n - 1,
+                            JustifiedState::DrawWhitespace(
+                                n - 1,
                                 EmptySpaceIterator::new(
                                     self.char_pos,
                                     width,
                                     self.style.text_style,
                                 ),
-                                *space_info,
-                            );
+                                space_info,
+                            )
                         }
                     }
                 }
 
-                JustifiedState::DrawCharacter(chars_iterator, ref mut iterator, space_info) => {
+                JustifiedState::DrawCharacter(ref chars_iterator, ref mut iterator, space_info) => {
                     if let pixel @ Some(_) = iterator.next() {
                         break pixel;
                     }
 
                     self.char_pos.x += F::char_width(iterator.character) as i32;
-                    self.state = JustifiedState::DrawWord(chars_iterator.clone(), *space_info);
+                    self.state = JustifiedState::DrawWord(chars_iterator.clone(), space_info);
                 }
             }
         }
