@@ -88,8 +88,7 @@ where
                     let has_remaining = total_width > 0;
                     let mut last_whitespace_width = 0;
 
-                    let mut parser = self.parser.clone();
-                    while let Some(token) = parser.next() {
+                    for token in self.parser.clone() {
                         if total_width >= max_line_width {
                             break;
                         }
@@ -148,35 +147,27 @@ where
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::char_width(' ');
                                 let mut lookahead = self.parser.clone();
-                                if let Some(next) = lookahead.next() {
+                                if let Some(Token::Word(w)) = lookahead.next() {
                                     // only render whitespace if next is word and next doesn't wrap
-                                    match next {
-                                        Token::Word(w) => {
-                                            let n_width = w.chars().map(F::char_width).sum::<u32>();
+                                    let n_width = w.chars().map(F::char_width).sum::<u32>();
 
-                                            if self.char_pos.x
-                                                > self.bounds.bottom_right.x
-                                                    - n_width as i32
-                                                    - width as i32
-                                                    + 1
-                                            {
-                                                self.state = CenterAlignedState::NextWord;
-                                            } else if n != 0 {
-                                                self.state = CenterAlignedState::DrawWhitespace(
-                                                    n - 1,
-                                                    EmptySpaceIterator::new(
-                                                        self.char_pos,
-                                                        width,
-                                                        self.style.text_style,
-                                                    ),
-                                                );
-                                            }
-                                        }
-
-                                        _ => {
-                                            // don't render
-                                        }
+                                    if self.char_pos.x
+                                        > self.bounds.bottom_right.x - n_width as i32 - width as i32
+                                            + 1
+                                    {
+                                        self.state = CenterAlignedState::NextWord;
+                                    } else if n != 0 {
+                                        self.state = CenterAlignedState::DrawWhitespace(
+                                            n - 1,
+                                            EmptySpaceIterator::new(
+                                                self.char_pos,
+                                                width,
+                                                self.style.text_style,
+                                            ),
+                                        );
                                     }
+                                } else {
+                                    // don't render
                                 }
                             }
 

@@ -38,8 +38,7 @@ impl<'a> Iterator for Parser<'a> {
                 '\n' => Some(Token::NewLine),
                 c if c.is_whitespace() => {
                     let mut n = 1;
-                    let mut lookahead = self.inner.clone();
-                    while let Some((_, c)) = lookahead.next() {
+                    for (_, c) in self.inner.clone() {
                         if c.is_whitespace() {
                             self.inner.next();
                             n += 1;
@@ -50,9 +49,8 @@ impl<'a> Iterator for Parser<'a> {
                     Some(Token::Whitespace(n))
                 }
                 _ => {
-                    let mut lookahead = self.inner.clone();
                     let mut end = idx;
-                    while let Some((idx, c)) = lookahead.next() {
+                    for (idx, c) in self.inner.clone() {
                         if c.is_whitespace() {
                             break;
                         } else {

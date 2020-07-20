@@ -88,8 +88,7 @@ where
                     let has_remaining = total_width > 0;
                     let mut last_whitespace_width = 0;
 
-                    let mut parser = self.parser.clone();
-                    while let Some(token) = parser.next() {
+                    for token in self.parser.clone() {
                         if total_width >= max_line_width {
                             break;
                         }
