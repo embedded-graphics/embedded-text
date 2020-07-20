@@ -11,18 +11,49 @@ use embedded_graphics::prelude::*;
 
 use core::str::Chars;
 
+#[derive(Copy, Clone, Debug)]
+pub struct SpaceInfo {
+    pub space_width: u32,
+    pub space_count: u32,
+    pub remaining_space_width: u32,
+}
+
+impl SpaceInfo {
+    fn new(space_width: u32, extra_pixel_count: u32) -> Self {
+        SpaceInfo {
+            space_width: space_width + 1,
+            space_count: extra_pixel_count,
+            remaining_space_width: space_width,
+        }
+    }
+
+    fn space_width(&mut self) -> u32 {
+        if self.space_count == 0 {
+            self.remaining_space_width
+        } else {
+            self.space_count -= 1;
+            self.space_width
+        }
+    }
+
+    fn peek_space_width(&self, whitespace_count: u32) -> u32 {
+        let above_limit = whitespace_count.saturating_sub(self.space_count);
+        self.space_width * self.space_count + above_limit * self.remaining_space_width
+    }
+}
+
 #[derive(Debug)]
 pub enum JustifiedState<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
-    NextWord,
+    NextWord(SpaceInfo),
     LineBreak(Chars<'a>),
     MeasureLine(Chars<'a>),
-    DrawWord(Chars<'a>),
-    DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>),
-    DrawWhitespace(u32, EmptySpaceIterator<C, F>),
+    DrawWord(Chars<'a>, SpaceInfo),
+    DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>, SpaceInfo),
+    DrawWhitespace(u32, EmptySpaceIterator<C, F>, SpaceInfo),
 }
 
 impl<C, F> Default for JustifiedState<'_, C, F>
@@ -89,6 +120,7 @@ where
                     let mut last_whitespace_width = 0;
                     let mut last_whitespace_count = 0;
                     let mut total_whitespace_count = 0;
+                    let mut total_whitespace_width = 0;
 
                     let mut parser = self.parser.clone();
                     let mut stretch_line = true;
@@ -102,8 +134,8 @@ where
                                 break;
                             }
 
-                            Token::Whitespace(n) if total_width == 0 => {
-                                total_width = (n * F::char_width(' ')).min(max_line_width);
+                            Token::Whitespace(_) if total_width == 0 => {
+                                // eat spaces at the start of line
                             }
 
                             Token::Whitespace(n) => {
@@ -114,11 +146,15 @@ where
 
                             Token::Word(w) => {
                                 let word_width = w.chars().map(F::char_width).sum::<u32>();
-                                if last_whitespace_width + word_width + total_width
+                                if last_whitespace_width
+                                    + total_whitespace_width
+                                    + word_width
+                                    + total_width
                                     <= max_line_width
                                 {
-                                    total_width += last_whitespace_width + word_width;
+                                    total_width += word_width;
                                     total_whitespace_count += last_whitespace_count;
+                                    total_whitespace_width += last_whitespace_width;
 
                                     last_whitespace_width = 0;
                                     last_whitespace_count = 0;
@@ -129,14 +165,26 @@ where
                         }
                     }
 
-                    if has_remaining {
-                        self.state = JustifiedState::DrawWord(remaining.clone());
+                    let font_space_width = F::char_width(' ');
+                    let space_info = if stretch_line && total_whitespace_count != 0 {
+                        let total_space_width = max_line_width - total_width;
+                        let space_width =
+                            (total_space_width / total_whitespace_count).max(font_space_width);
+                        let extra_pixels = total_space_width - space_width * total_whitespace_count;
+
+                        SpaceInfo::new(space_width, extra_pixels)
                     } else {
-                        self.state = JustifiedState::NextWord;
+                        SpaceInfo::new(font_space_width, 0)
+                    };
+
+                    if has_remaining {
+                        self.state = JustifiedState::DrawWord(remaining.clone(), space_info);
+                    } else {
+                        self.state = JustifiedState::NextWord(space_info);
                     }
                 }
 
-                JustifiedState::NextWord => {
+                JustifiedState::NextWord(space_info) => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
@@ -145,13 +193,13 @@ where
                                 if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
                                     self.state = JustifiedState::LineBreak(w.chars());
                                 } else {
-                                    self.state = JustifiedState::DrawWord(w.chars());
+                                    self.state = JustifiedState::DrawWord(w.chars(), *space_info);
                                 }
                             }
                             Token::Whitespace(n) => {
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
-                                let width = F::char_width(' ');
+                                let width = space_info.peek_space_width(n);
                                 let mut lookahead = self.parser.clone();
                                 if let Some(next) = lookahead.next() {
                                     // only render whitespace if next is word and next doesn't wrap
@@ -165,7 +213,7 @@ where
                                                     - width as i32
                                                     + 1
                                             {
-                                                self.state = JustifiedState::NextWord;
+                                                self.state = JustifiedState::NextWord(*space_info);
                                             } else if n != 0 {
                                                 self.state = JustifiedState::DrawWhitespace(
                                                     n - 1,
@@ -174,6 +222,7 @@ where
                                                         width,
                                                         self.style.text_style,
                                                     ),
+                                                    *space_info,
                                                 );
                                             }
                                         }
@@ -194,7 +243,7 @@ where
                     }
                 }
 
-                JustifiedState::DrawWord(ref mut chars_iterator) => {
+                JustifiedState::DrawWord(ref mut chars_iterator, space_info) => {
                     let mut copy = chars_iterator.clone();
                     if let Some(c) = copy.next() {
                         // TODO character spacing!
@@ -211,23 +260,24 @@ where
                                     self.char_pos,
                                     self.style.text_style,
                                 ),
+                                *space_info,
                             );
                         }
                     } else {
-                        self.state = JustifiedState::NextWord;
+                        self.state = JustifiedState::NextWord(*space_info);
                     }
                 }
 
-                JustifiedState::DrawWhitespace(n, ref mut iterator) => {
+                JustifiedState::DrawWhitespace(n, ref mut iterator, space_info) => {
                     let pixel = iterator.next();
                     if pixel.is_some() {
                         break pixel;
                     }
 
-                    let width = F::char_width(' ');
+                    let width = space_info.space_width();
                     self.char_pos.x += width as i32;
                     if *n == 0 {
-                        self.state = JustifiedState::NextWord;
+                        self.state = JustifiedState::NextWord(*space_info);
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
@@ -240,19 +290,20 @@ where
                                     width,
                                     self.style.text_style,
                                 ),
+                                *space_info,
                             );
                         }
                     }
                 }
 
-                JustifiedState::DrawCharacter(chars_iterator, ref mut iterator) => {
+                JustifiedState::DrawCharacter(chars_iterator, ref mut iterator, space_info) => {
                     let pixel = iterator.next();
                     if pixel.is_some() {
                         break pixel;
                     }
 
                     self.char_pos.x += F::char_width(iterator.character) as i32;
-                    self.state = JustifiedState::DrawWord(chars_iterator.clone());
+                    self.state = JustifiedState::DrawWord(chars_iterator.clone(), *space_info);
                 }
             }
         }
