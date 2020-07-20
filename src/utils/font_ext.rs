@@ -2,14 +2,14 @@ use core::str::Chars;
 use embedded_graphics::fonts::Font;
 
 pub trait FontExt {
-    fn max_fitting<'a>(iter: Chars<'a>, max_width: u32) -> (u32, bool);
+    fn max_fitting(iter: Chars<'_>, max_width: u32) -> (u32, bool);
 }
 
 impl<F> FontExt for F
 where
     F: Font,
 {
-    fn max_fitting<'a>(iter: Chars<'a>, max_width: u32) -> (u32, bool) {
+    fn max_fitting(iter: Chars<'_>, max_width: u32) -> (u32, bool) {
         let mut total_width = 0;
         let mut fits = true;
         for c in iter {
