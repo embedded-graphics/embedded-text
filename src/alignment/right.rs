@@ -159,25 +159,25 @@ where
 
                 RightAlignedState::DrawWord(ref mut chars_iterator) => {
                     let mut copy = chars_iterator.clone();
-                    if let Some(c) = copy.next() {
+                    self.state = if let Some(c) = copy.next() {
                         // TODO character spacing!
-                        // word wrapping
-
                         let width = F::char_width(c);
+
                         if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            self.state = RightAlignedState::LineBreak(chars_iterator.clone())
+                            // word wrapping
+                            RightAlignedState::LineBreak(chars_iterator.clone())
                         } else {
-                            self.state = RightAlignedState::DrawCharacter(
+                            RightAlignedState::DrawCharacter(
                                 copy,
                                 StyledCharacterIterator::new(
                                     c,
                                     self.char_pos,
                                     self.style.text_style,
                                 ),
-                            );
+                            )
                         }
                     } else {
-                        self.state = RightAlignedState::NextWord;
+                        RightAlignedState::NextWord
                     }
                 }
 

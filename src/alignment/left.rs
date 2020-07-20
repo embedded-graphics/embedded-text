@@ -108,21 +108,26 @@ where
                 }
 
                 LeftAlignedState::DrawWord(ref mut chars_iterator) => {
-                    if let Some(c) = chars_iterator.next() {
+                    let mut copy = chars_iterator.clone();
+                    self.state = if let Some(c) = copy.next() {
                         // TODO character spacing!
-                        // word wrapping
                         let width = F::char_width(c);
-                        if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
-                            self.char_pos.x = self.bounds.top_left.x;
-                            self.char_pos.y += F::CHARACTER_SIZE.height as i32;
-                        }
 
-                        self.state = LeftAlignedState::DrawCharacter(
-                            chars_iterator.clone(),
-                            StyledCharacterIterator::new(c, self.char_pos, self.style.text_style),
-                        );
+                        if self.char_pos.x > self.bounds.bottom_right.x - width as i32 + 1 {
+                            // word wrapping
+                            LeftAlignedState::LineBreak(chars_iterator.clone())
+                        } else {
+                            LeftAlignedState::DrawCharacter(
+                                copy,
+                                StyledCharacterIterator::new(
+                                    c,
+                                    self.char_pos,
+                                    self.style.text_style,
+                                ),
+                            )
+                        }
                     } else {
-                        self.state = LeftAlignedState::NextWord;
+                        LeftAlignedState::NextWord
                     }
                 }
 
