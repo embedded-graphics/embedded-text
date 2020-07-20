@@ -36,25 +36,32 @@ impl<'a> Iterator for Parser<'a> {
             '\n' => Token::NewLine,
 
             c if c.is_whitespace() => {
-                for (possible_end, c) in self.inner.clone() {
+                let mut len = 1;
+                for (_, c) in self.inner.clone() {
                     if c.is_whitespace() {
+                        // consume the whitespace
                         self.inner.next();
+                        len += 1;
                     } else {
-                        return Token::Whitespace((possible_end - start) as u32);
+                        break;
                     }
                 }
-                Token::Whitespace(string[0..].len() as u32)
+                Token::Whitespace(len)
             }
 
             _ => {
                 for (possible_end, c) in self.inner.clone() {
                     if c.is_whitespace() {
-                        return Token::Word(&string[0..possible_end - start]);
+                        return Token::Word(unsafe {
+                            // don't worry
+                            string.get_unchecked(0..possible_end - start)
+                        });
                     } else {
+                        // consume the character
                         self.inner.next();
                     }
                 }
-                Token::Word(&string[0..])
+                Token::Word(&string)
             }
         })
     }
