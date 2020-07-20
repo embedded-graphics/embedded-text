@@ -49,19 +49,15 @@ where
                 // Done with this char, move on to the next one
                 break None;
             } else {
-                let color = if F::character_pixel(
-                    self.character,
-                    self.char_walk.x as u32,
-                    self.char_walk.y as u32,
-                ) {
+                let pos = self.char_walk;
+
+                let color = if F::character_pixel(self.character, pos.x as u32, pos.y as u32) {
                     self.style.text_color.or(self.style.background_color)
                 } else {
                     self.style.background_color
                 };
 
-                let p = self.pos + self.char_walk;
-
-                if self.char_walk.x < self.max_x {
+                if pos.x < self.max_x {
                     self.char_walk.x += 1;
                 } else {
                     self.char_walk.x = 0;
@@ -70,6 +66,7 @@ where
 
                 // Skip to next point if pixel is transparent
                 if let Some(color) = color {
+                    let p = self.pos + pos;
                     break Some(Pixel(p, color));
                 }
             }

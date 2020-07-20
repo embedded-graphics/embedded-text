@@ -5,7 +5,7 @@ use crate::{
         EmptySpaceIterator, StateFactory, StyledCharacterIterator, StyledFramedTextIterator,
     },
     style::StyledTextBox,
-    utils::rect_ext::RectExt,
+    utils::{font_ext::FontExt, rect_ext::RectExt},
 };
 use embedded_graphics::prelude::*;
 
@@ -19,6 +19,10 @@ pub struct SpaceInfo {
 }
 
 impl SpaceInfo {
+    fn default<F: Font>() -> Self {
+        SpaceInfo::new(F::char_width(' '), 0)
+    }
+
     fn new(space_width: u32, extra_pixel_count: u32) -> Self {
         SpaceInfo {
             space_width: space_width + 1,
@@ -91,7 +95,6 @@ where
                 break None;
             }
 
-            let max_line_width = RectExt::size(self.bounds).width;
             match &mut self.state {
                 JustifiedState::LineBreak(ref remaining) => {
                     self.char_pos = Point::new(
@@ -102,84 +105,73 @@ where
                 }
 
                 JustifiedState::MeasureLine(ref remaining) => {
-                    // measure row
-                    let copy = remaining.clone();
+                    let max_line_width = RectExt::size(self.bounds).width;
 
-                    let mut total_width = 0;
+                    // initial width is the width of the characters carried over to this row
+                    let (mut total_width, fits) = F::max_fitting(remaining.clone(), max_line_width);
 
-                    for c in copy {
-                        let width = F::char_width(c);
-                        if total_width + width < max_line_width {
-                            total_width += width;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    let has_remaining = total_width > 0;
-                    let mut last_whitespace_width = 0;
-                    let mut last_whitespace_count = 0;
                     let mut total_whitespace_count = 0;
-                    let mut total_whitespace_width = 0;
-
                     let mut stretch_line = true;
-                    for token in self.parser.clone() {
-                        if total_width >= max_line_width {
-                            break;
-                        }
-                        match token {
-                            Token::NewLine => {
-                                stretch_line = false;
+
+                    // in some rare cases, the carried over text may not fit into a single line
+                    if fits {
+                        let mut last_whitespace_width = 0;
+                        let mut last_whitespace_count = 0;
+                        let mut total_whitespace_width = 0;
+
+                        for token in self.parser.clone() {
+                            if total_width >= max_line_width {
                                 break;
                             }
-
-                            Token::Whitespace(_) if total_width == 0 => {
-                                // eat spaces at the start of line
-                            }
-
-                            Token::Whitespace(n) => {
-                                last_whitespace_count = n;
-                                last_whitespace_width =
-                                    (n * F::char_width(' ')).min(max_line_width - total_width);
-                            }
-
-                            Token::Word(w) => {
-                                let word_width = w.chars().map(F::char_width).sum::<u32>();
-                                if last_whitespace_width
-                                    + total_whitespace_width
-                                    + word_width
-                                    + total_width
-                                    <= max_line_width
-                                {
-                                    total_width += word_width;
-                                    total_whitespace_count += last_whitespace_count;
-                                    total_whitespace_width += last_whitespace_width;
-
-                                    last_whitespace_width = 0;
-                                    last_whitespace_count = 0;
-                                } else {
+                            match token {
+                                Token::NewLine => {
+                                    stretch_line = false;
                                     break;
+                                }
+
+                                Token::Whitespace(_) if total_width == 0 => {
+                                    // eat spaces at the start of line
+                                }
+
+                                Token::Whitespace(n) => {
+                                    last_whitespace_count = n;
+                                    last_whitespace_width =
+                                        (n * F::char_width(' ')).min(max_line_width - total_width);
+                                }
+
+                                Token::Word(w) => {
+                                    let word_width = w.chars().map(F::char_width).sum::<u32>();
+                                    let new_total_width = total_width + word_width;
+                                    let new_whitespace_width =
+                                        total_whitespace_width + last_whitespace_width;
+                                    if new_whitespace_width + new_total_width <= max_line_width {
+                                        total_width = new_total_width;
+                                        total_whitespace_width = new_whitespace_width;
+                                        total_whitespace_count += last_whitespace_count;
+
+                                        last_whitespace_count = 0;
+                                        last_whitespace_width = 0;
+                                    } else {
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
 
-                    let font_space_width = F::char_width(' ');
-                    let space_info = if stretch_line && total_whitespace_count != 0 {
+                    let chars = remaining.clone();
+                    if stretch_line && total_whitespace_count != 0 {
                         let total_space_width = max_line_width - total_width;
                         let space_width =
-                            (total_space_width / total_whitespace_count).max(font_space_width);
+                            (total_space_width / total_whitespace_count).max(F::char_width(' '));
                         let extra_pixels = total_space_width - space_width * total_whitespace_count;
 
-                        SpaceInfo::new(space_width, extra_pixels)
+                        self.state = JustifiedState::DrawWord(
+                            chars,
+                            SpaceInfo::new(space_width, extra_pixels),
+                        );
                     } else {
-                        SpaceInfo::new(font_space_width, 0)
-                    };
-
-                    if has_remaining {
-                        self.state = JustifiedState::DrawWord(remaining.clone(), space_info);
-                    } else {
-                        self.state = JustifiedState::NextWord(space_info);
+                        self.state = JustifiedState::DrawWord(chars, SpaceInfo::default::<F>());
                     }
                 }
 
@@ -288,8 +280,7 @@ where
                 }
 
                 JustifiedState::DrawCharacter(chars_iterator, ref mut iterator, space_info) => {
-                    let pixel = iterator.next();
-                    if pixel.is_some() {
+                    if let pixel @ Some(_) = iterator.next() {
                         break pixel;
                     }
 

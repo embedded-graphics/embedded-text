@@ -65,11 +65,7 @@ where
                         self.char_pos.y + F::CHARACTER_SIZE.height as i32,
                     );
 
-                    if remaining.clone().next().is_some() {
-                        self.state = LeftAlignedState::DrawWord(remaining.clone());
-                    } else {
-                        self.state = LeftAlignedState::NextWord;
-                    }
+                    self.state = LeftAlignedState::DrawWord(remaining.clone());
                 }
 
                 LeftAlignedState::NextWord => {
@@ -159,8 +155,7 @@ where
                 }
 
                 LeftAlignedState::DrawCharacter(chars_iterator, ref mut iterator) => {
-                    let pixel = iterator.next();
-                    if pixel.is_some() {
+                    if let pixel @ Some(_) = iterator.next() {
                         break pixel;
                     }
 

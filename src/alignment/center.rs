@@ -5,7 +5,7 @@ use crate::{
         EmptySpaceIterator, StateFactory, StyledCharacterIterator, StyledFramedTextIterator,
     },
     style::StyledTextBox,
-    utils::rect_ext::RectExt,
+    utils::{font_ext::FontExt, rect_ext::RectExt},
 };
 use embedded_graphics::prelude::*;
 
@@ -60,7 +60,6 @@ where
                 break None;
             }
 
-            let max_line_width = RectExt::size(self.bounds).width;
             match &mut self.state {
                 CenterAlignedState::LineBreak(ref remaining) => {
                     self.char_pos = Point::new(
@@ -71,63 +70,52 @@ where
                 }
 
                 CenterAlignedState::MeasureLine(ref remaining) => {
-                    // measure row
-                    let copy = remaining.clone();
+                    let max_line_width = RectExt::size(self.bounds).width;
 
-                    let mut total_width = 0;
+                    // initial width is the width of the characters carried over to this row
+                    let (mut total_width, fits) = F::max_fitting(remaining.clone(), max_line_width);
 
-                    for c in copy {
-                        let width = F::char_width(c);
-                        if total_width + width < max_line_width {
-                            total_width += width;
-                        } else {
-                            break;
-                        }
-                    }
+                    // in some rare cases, the carried over text may not fit into a single line
+                    if fits {
+                        let mut last_whitespace_width = 0;
 
-                    let has_remaining = total_width > 0;
-                    let mut last_whitespace_width = 0;
-
-                    for token in self.parser.clone() {
-                        if total_width >= max_line_width {
-                            break;
-                        }
-                        match token {
-                            Token::NewLine => {
+                        for token in self.parser.clone() {
+                            if total_width >= max_line_width {
                                 break;
                             }
-
-                            Token::Whitespace(n) if total_width == 0 => {
-                                total_width = (n * F::char_width(' ')).min(max_line_width);
-                            }
-
-                            Token::Whitespace(n) => {
-                                last_whitespace_width =
-                                    (n * F::char_width(' ')).min(max_line_width - total_width);
-                            }
-
-                            Token::Word(w) => {
-                                let word_width = w.chars().map(F::char_width).sum::<u32>();
-                                if last_whitespace_width + word_width + total_width
-                                    <= max_line_width
-                                {
-                                    total_width += last_whitespace_width + word_width;
-                                    last_whitespace_width = 0;
-                                } else {
+                            match token {
+                                Token::NewLine => {
                                     break;
+                                }
+
+                                Token::Whitespace(n) if total_width == 0 => {
+                                    total_width = (n * F::char_width(' ')).min(max_line_width);
+                                }
+
+                                Token::Whitespace(n) => {
+                                    last_whitespace_width =
+                                        (n * F::char_width(' ')).min(max_line_width - total_width);
+                                }
+
+                                Token::Word(w) => {
+                                    let word_width = w.chars().map(F::char_width).sum::<u32>();
+                                    let line_width =
+                                        total_width + word_width + last_whitespace_width;
+                                    if line_width <= max_line_width {
+                                        total_width = line_width;
+                                        last_whitespace_width = 0;
+                                    } else {
+                                        break;
+                                    }
                                 }
                             }
                         }
+
+                        // advance pos.x
+                        self.char_pos.x += (max_line_width - total_width) as i32 / 2;
                     }
 
-                    // advance pos.x
-                    self.char_pos.x += (max_line_width - total_width) as i32 / 2;
-
-                    if has_remaining {
-                        self.state = CenterAlignedState::DrawWord(remaining.clone());
-                    } else {
-                        self.state = CenterAlignedState::NextWord;
-                    }
+                    self.state = CenterAlignedState::DrawWord(remaining.clone());
                 }
 
                 CenterAlignedState::NextWord => {
@@ -232,8 +220,7 @@ where
                 }
 
                 CenterAlignedState::DrawCharacter(chars_iterator, ref mut iterator) => {
-                    let pixel = iterator.next();
-                    if pixel.is_some() {
+                    if let pixel @ Some(_) = iterator.next() {
                         break pixel;
                     }
 

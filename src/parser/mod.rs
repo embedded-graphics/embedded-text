@@ -33,38 +33,34 @@ impl<'a> Iterator for Parser<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((idx, c)) = self.inner.next() {
-            match c {
-                '\n' => Some(Token::NewLine),
-                c if c.is_whitespace() => {
-                    let mut n = 1;
-                    for (_, c) in self.inner.clone() {
-                        if c.is_whitespace() {
-                            self.inner.next();
-                            n += 1;
-                        } else {
-                            break;
-                        }
+        self.inner.next().map(|(idx, c)| match c {
+            '\n' => Token::NewLine,
+            c if c.is_whitespace() => {
+                let mut n = 1;
+                for (_, c) in self.inner.clone() {
+                    if c.is_whitespace() {
+                        self.inner.next();
+                        n += 1;
+                    } else {
+                        break;
                     }
-                    Some(Token::Whitespace(n))
                 }
-                _ => {
-                    let mut end = idx;
-                    for (idx, c) in self.inner.clone() {
-                        if c.is_whitespace() {
-                            break;
-                        } else {
-                            end = idx;
-                            self.inner.next();
-                        }
-                    }
-
-                    Some(Token::Word(&self.text[idx..=end]))
-                }
+                Token::Whitespace(n)
             }
-        } else {
-            None
-        }
+            _ => {
+                let mut end = idx;
+                for (idx, c) in self.inner.clone() {
+                    if c.is_whitespace() {
+                        break;
+                    } else {
+                        end = idx;
+                        self.inner.next();
+                    }
+                }
+
+                Token::Word(&self.text[idx..=end])
+            }
+        })
     }
 }
 
