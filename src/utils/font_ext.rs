@@ -1,8 +1,10 @@
 use core::str::Chars;
-use embedded_graphics::fonts::Font;
+use embedded_graphics::{fonts::Font, geometry::Point};
 
 pub trait FontExt {
     fn max_fitting(iter: Chars<'_>, max_width: u32) -> (u32, bool);
+
+    fn character_point(c: char, p: Point) -> bool;
 }
 
 impl<F> FontExt for F
@@ -24,5 +26,9 @@ where
         }
 
         (total_width, fits)
+    }
+
+    fn character_point(c: char, p: Point) -> bool {
+        Self::character_pixel(c, p.x as u32, p.y as u32)
     }
 }

@@ -3,6 +3,7 @@ use crate::{
     alignment::TextAlignment,
     parser::Parser,
     style::{StyledTextBox, TextBoxStyle},
+    utils::font_ext::FontExt,
 };
 use core::marker::PhantomData;
 use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
@@ -49,27 +50,26 @@ where
             if self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
                 // Done with this char, move on to the next one
                 break None;
+            }
+            let pos = self.char_walk;
+
+            if pos.x < self.max_x {
+                self.char_walk.x += 1;
             } else {
-                let pos = self.char_walk;
+                self.char_walk.x = 0;
+                self.char_walk.y += 1;
+            }
 
-                let color = if F::character_pixel(self.character, pos.x as u32, pos.y as u32) {
-                    self.style.text_color.or(self.style.background_color)
-                } else {
-                    self.style.background_color
-                };
+            let color = if F::character_point(self.character, pos) {
+                self.style.text_color.or(self.style.background_color)
+            } else {
+                self.style.background_color
+            };
 
-                if pos.x < self.max_x {
-                    self.char_walk.x += 1;
-                } else {
-                    self.char_walk.x = 0;
-                    self.char_walk.y += 1;
-                }
-
-                // Skip to next point if pixel is transparent
-                if let Some(color) = color {
-                    let p = self.pos + pos;
-                    break Some(Pixel(p, color));
-                }
+            // Skip to next point if pixel is transparent
+            if let Some(color) = color {
+                let p = self.pos + pos;
+                break Some(Pixel(p, color));
             }
         }
     }
@@ -82,7 +82,8 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    style: TextStyle<C, F>,
+    _font: PhantomData<F>,
+    color: Option<C>,
     pos: Point,
     char_walk: Point,
     walk_max_x: i32,
@@ -95,7 +96,8 @@ where
 {
     pub fn new(pos: Point, width: u32, style: TextStyle<C, F>) -> Self {
         Self {
-            style,
+            _font: PhantomData,
+            color: style.background_color,
             pos,
             char_walk: Point::zero(),
             walk_max_x: width as i32 - 1,
@@ -111,10 +113,10 @@ where
     type Item = Pixel<C>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.walk_max_x <= 0 {
-            None
-        } else if let Some(color) = self.style.background_color {
-            if self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
+        if let Some(color) = self.color {
+            if self.walk_max_x < 0 {
+                None
+            } else if self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
                 // Done with filling this space
                 None
             } else {

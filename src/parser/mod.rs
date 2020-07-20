@@ -12,7 +12,6 @@ pub enum Token<'a> {
 /// The parser struct
 #[derive(Clone)]
 pub struct Parser<'a> {
-    text: &'a str,
     inner: CharIndices<'a>,
 }
 
@@ -22,7 +21,6 @@ impl<'a> Parser<'a> {
     #[must_use]
     pub fn parse(text: &'a str) -> Self {
         Self {
-            text,
             inner: text.char_indices(),
         }
     }
@@ -33,32 +31,30 @@ impl<'a> Iterator for Parser<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(idx, c)| match c {
+        let string = self.inner.as_str();
+        self.inner.next().map(|(start, c)| match c {
             '\n' => Token::NewLine,
-            c if c.is_whitespace() => {
-                let mut n = 1;
-                for (_, c) in self.inner.clone() {
-                    if c.is_whitespace() {
-                        self.inner.next();
-                        n += 1;
-                    } else {
-                        break;
-                    }
-                }
-                Token::Whitespace(n)
-            }
-            _ => {
-                let mut end = idx;
-                for (idx, c) in self.inner.clone() {
-                    if c.is_whitespace() {
-                        break;
-                    } else {
-                        end = idx;
-                        self.inner.next();
-                    }
-                }
 
-                Token::Word(&self.text[idx..=end])
+            c if c.is_whitespace() => {
+                for (possible_end, c) in self.inner.clone() {
+                    if c.is_whitespace() {
+                        self.inner.next();
+                    } else {
+                        return Token::Whitespace((possible_end - start) as u32);
+                    }
+                }
+                Token::Whitespace(string[0..].len() as u32)
+            }
+
+            _ => {
+                for (possible_end, c) in self.inner.clone() {
+                    if c.is_whitespace() {
+                        return Token::Word(&string[0..possible_end - start]);
+                    } else {
+                        self.inner.next();
+                    }
+                }
+                Token::Word(&string[0..])
             }
         })
     }
@@ -91,6 +87,17 @@ mod test {
                 Token::NewLine,
                 Token::Word("elit"),
             ]
+        );
+    }
+
+    #[test]
+    fn parse_multibyte_last() {
+        // (At least) for now, \r is considered a whitespace
+        let text = "test😅";
+
+        assert_eq!(
+            Parser::parse(text).collect::<Vec<Token>>(),
+            vec![Token::Word("test😅"),]
         );
     }
 }
