@@ -2,6 +2,7 @@
 use core::str::Chars;
 use embedded_graphics::{fonts::Font, geometry::Point};
 
+/// `Font` extensions
 pub trait FontExt {
     /// Measures a sequence of characters in a line with a determinate maximum width.
     ///

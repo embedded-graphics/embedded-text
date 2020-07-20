@@ -26,7 +26,10 @@ use style::{StyledTextBox, TextBoxStyle};
 
 /// A piece of text with an associated area on the display
 pub struct TextBox<'a> {
+    /// The text to be displayed in this `TextBox`
     pub text: &'a str,
+
+    /// The bounding box of this `TextBox`
     pub bounds: Rectangle,
 }
 

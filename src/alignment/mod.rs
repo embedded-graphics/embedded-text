@@ -1,5 +1,5 @@
 use crate::{
-    rendering::{StateFactory, StyledFramedTextIterator},
+    rendering::{StateFactory, StyledTextBoxIterator},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
@@ -15,13 +15,13 @@ pub trait TextAlignment: Copy {
     #[must_use]
     fn into_pixel_iterator<'a, C, F>(
         text_box: &'a StyledTextBox<'a, C, F, Self>,
-    ) -> StyledFramedTextIterator<'a, C, F, Self>
+    ) -> StyledTextBoxIterator<'a, C, F, Self>
     where
         C: PixelColor,
         F: Font + Copy,
         StyledTextBox<'a, C, F, Self>: StateFactory,
     {
-        StyledFramedTextIterator::new(text_box)
+        StyledTextBoxIterator::new(text_box)
     }
 }
 

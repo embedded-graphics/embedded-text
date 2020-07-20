@@ -1,10 +1,11 @@
 use embedded_graphics::{prelude::*, style::TextStyle};
 
+/// Textbox style builder
 pub mod builder;
 
 use crate::{
     alignment::TextAlignment,
-    rendering::{StateFactory, StyledFramedTextIterator},
+    rendering::{StateFactory, StyledTextBoxIterator},
     TextBox,
 };
 pub use builder::TextBoxStyleBuilder;
@@ -17,7 +18,10 @@ where
     F: Font + Copy,
     A: TextAlignment,
 {
+    /// Style properties for text.
     pub text_style: TextStyle<C, F>,
+
+    /// Horizontal alignment
     pub alignment: A,
 }
 
@@ -44,7 +48,10 @@ where
     F: Font + Copy,
     A: TextAlignment,
 {
+    /// A [`TextBox`] that has an associated [`TextBoxStyle`]
     pub text_box: TextBox<'a>,
+
+    /// The style of the [`TextBox`]
     pub style: TextBoxStyle<C, F, A>,
 }
 
@@ -53,7 +60,7 @@ where
     C: PixelColor,
     F: Font + Copy,
     A: TextAlignment,
-    StyledFramedTextIterator<'a, C, F, A>: Iterator<Item = Pixel<C>>,
+    StyledTextBoxIterator<'a, C, F, A>: Iterator<Item = Pixel<C>>,
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
     #[inline]

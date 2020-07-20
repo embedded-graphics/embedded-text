@@ -4,6 +4,7 @@ use embedded_graphics::{
     style::{TextStyle, TextStyleBuilder},
 };
 
+/// Textbox style builder.
 pub struct TextBoxStyleBuilder<C, F, A>
 where
     C: PixelColor,
@@ -19,7 +20,7 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// Creates a new text style builder with a given font.
+    /// Creates a new textbox style builder with a given font.
     #[inline]
     #[must_use]
     pub fn new(font: F) -> Self {
@@ -56,7 +57,7 @@ where
         }
     }
 
-    /// Apply settings from an existing text style object
+    /// Copies properties from an existing text style object.
     #[inline]
     #[must_use]
     pub fn text_style(self, text_style: TextStyle<C, F>) -> Self {

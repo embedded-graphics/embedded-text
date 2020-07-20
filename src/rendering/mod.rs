@@ -15,6 +15,7 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
+    /// The character to draw.
     pub character: char,
     style: TextStyle<C, F>,
     pos: Point,
@@ -27,6 +28,7 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
+    /// Creates a new pixel iterator to draw the given character.
     #[inline]
     #[must_use]
     pub fn new(character: char, pos: Point, style: TextStyle<C, F>) -> Self {
@@ -97,6 +99,7 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
+    /// Creates a new pixel iterator to draw empty spaces.
     #[inline]
     #[must_use]
     pub fn new(pos: Point, width: u32, style: TextStyle<C, F>) -> Self {
@@ -142,13 +145,19 @@ where
     }
 }
 
+/// Internal structure that keeps track of rendering a [`TextBox`].
 pub struct Cursor<F: Font> {
     _marker: PhantomData<F>,
+
+    /// Bounding box of the [`TextBox`]
     pub bounds: Rectangle,
+
+    /// Current cursor position
     pub position: Point,
 }
 
 impl<F: Font> Cursor<F> {
+    /// Starts a new line.
     #[inline]
     pub fn new_line(&mut self) {
         self.position = Point::new(
@@ -157,53 +166,68 @@ impl<F: Font> Cursor<F> {
         );
     }
 
+    /// Returns whether the cursor is in the bounding box.
+    ///
+    /// Note: Only vertical overrun is checked.
     #[inline]
     pub fn in_display_area(&self) -> bool {
         self.position.y < self.bounds.bottom_right.y
     }
 
+    /// Returns whether the current line has enough space to also include an object of given width.
     #[inline]
     pub fn fits_in_line(&self, width: u32) -> bool {
         width as i32 <= self.bounds.bottom_right.x - self.position.x + 1
     }
 
+    /// Advances the cursor by a given character.
     #[inline]
     pub fn advance_char(&mut self, c: char) {
         self.advance(F::char_width(c));
     }
 
+    /// Advances the cursor by a given amount.
     #[inline]
     pub fn advance(&mut self, by: u32) {
         self.position.x += by as i32;
     }
 }
 
+/// This trait is used to associate a state type to a horizontal alignment option.
 pub trait StateFactory {
+    /// The type of the state variable used for rendering.
     type PixelIteratorState: Default;
 }
 
 /// Pixel iterator for styled text.
-pub struct StyledFramedTextIterator<'a, C, F, A>
+pub struct StyledTextBoxIterator<'a, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
     A: TextAlignment,
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
+    /// Parser to process the text during rendering
     pub parser: Parser<'a>,
+
+    /// Style used for rendering
     pub style: TextBoxStyle<C, F, A>,
 
+    /// Position information
     pub cursor: Cursor<F>,
+
+    /// State information used by the rendering algorithms
     pub state: <StyledTextBox<'a, C, F, A> as StateFactory>::PixelIteratorState,
 }
 
-impl<'a, C, F, A> StyledFramedTextIterator<'a, C, F, A>
+impl<'a, C, F, A> StyledTextBoxIterator<'a, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
     A: TextAlignment,
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
+    /// Creates a new pixel iterator to render the styled [`TextBox`]
     #[inline]
     #[must_use]
     pub fn new(styled: &'a StyledTextBox<'a, C, F, A>) -> Self {

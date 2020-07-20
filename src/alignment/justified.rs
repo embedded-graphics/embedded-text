@@ -1,9 +1,7 @@
 use crate::{
     alignment::TextAlignment,
     parser::Token,
-    rendering::{
-        EmptySpaceIterator, StateFactory, StyledCharacterIterator, StyledFramedTextIterator,
-    },
+    rendering::{EmptySpaceIterator, StateFactory, StyledCharacterIterator, StyledTextBoxIterator},
     style::StyledTextBox,
     utils::{font_ext::FontExt, rect_ext::RectExt},
 };
@@ -90,7 +88,7 @@ where
     type PixelIteratorState = JustifiedState<'a, C, F>;
 }
 
-impl<C, F> Iterator for StyledFramedTextIterator<'_, C, F, Justified>
+impl<C, F> Iterator for StyledTextBoxIterator<'_, C, F, Justified>
 where
     C: PixelColor,
     F: Font + Copy,

@@ -4,8 +4,13 @@ use core::str::CharIndices;
 /// A text token
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token<'a> {
+    /// A newline character
     NewLine,
+
+    /// n whitespace characters
     Whitespace(u32),
+
+    /// A word (a sequence of non-whitespace characters)
     Word(&'a str),
 }
 
