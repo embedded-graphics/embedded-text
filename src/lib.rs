@@ -1,6 +1,7 @@
 //! This crate implements rendering text in a given area for embedded-graphics
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
+#![deny(missing_docs)]
 #![warn(clippy::all)]
 
 use embedded_graphics::{prelude::*, primitives::Rectangle};
