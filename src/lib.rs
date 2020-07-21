@@ -53,7 +53,7 @@
 //! ## Development setup
 //!
 //! ### Minimum supported Rust version
-//! The minimum supported Rust version for embedded-layout is 1.40.0 or greater. However, the documentation uses the `intra-crate links` feature which requires nightly Rust. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
+//! The minimum supported Rust version for embedded-text is 1.40.0 or greater. However, the documentation uses the `intra-crate links` feature which requires nightly Rust. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
 //!
 //! ### Installation
 //!
