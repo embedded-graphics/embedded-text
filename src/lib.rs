@@ -13,7 +13,7 @@
 //! The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
 //! `SDL2`. See the [simulator README] for more information.
 //!
-//! ![embedded-text example](assets/example.png)
+//! ![embedded-text example with center aligned text](assets/center.png)
 //!
 //! ```rust,no_run
 //! use embedded_graphics_simulator::{
