@@ -1,4 +1,71 @@
-//! This crate implements rendering text in a given area for embedded-graphics
+//! TextBox for embedded-graphics
+//!
+//! This crate provides a configurable `TextBox` to render multiline text using [embedded-graphics].
+//!
+//! `TextBox` supports the common text alignments:
+//!  - `LeftAligned`
+//!  - `RightAligned`
+//!  - `CenterAligned`
+//!  - `Justified`
+//!
+//! ## Example
+//!
+//! The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
+//! `SDL2`. See the [simulator README] for more information.
+//!
+//! ![embedded-text example](assets/example.png)
+//!
+//! ```rust,no_run
+//! use embedded_graphics_simulator::{
+//!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
+//! };
+//!
+//! use embedded_graphics::{
+//!     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
+//! };
+//!
+//! use embedded_text::{alignment::CenterAligned, style::TextBoxStyleBuilder, TextBox};
+//!
+//! fn main() -> Result<(), core::convert::Infallible> {
+//!     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
+//!
+//!     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+//!         .alignment(CenterAligned)
+//!         .text_color(BinaryColor::On)
+//!         .build();
+//!
+//!     TextBox::new(
+//!         "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
+//!         Rectangle::new(Point::zero(), Point::new(128, 128)),
+//!     )
+//!     .into_styled(textbox_style)
+//!     // align text to the display
+//!     .draw(&mut display)
+//!     .unwrap();
+//!
+//!     let output_settings = OutputSettingsBuilder::new()
+//!         .theme(BinaryColorTheme::OledBlue)
+//!         .build();
+//!     Window::new("Hello center aligned TextBox", &output_settings).show_static(&display);
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Development setup
+//!
+//! ### Minimum supported Rust version
+//! The minimum supported Rust version for embedded-layout is 1.40.0 or greater. However, the documentation uses the `intra-crate links` feature which requires nightly Rust. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
+//!
+//! ### Installation
+//!
+//! For setup in general, follow the installation instructions for [`embedded-graphics`].
+//!
+//! To install SDL2 on Windows, see https://github.com/Rust-SDL2/rust-sdl2#windows-msvc
+//!
+//! [embedded-graphics]: https://github.com/jamwaffles/embedded-graphics/
+//! [the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
+//! [simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
+
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
 #![deny(missing_docs)]

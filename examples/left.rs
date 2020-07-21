@@ -16,7 +16,7 @@ fn main() -> Result<(), core::convert::Infallible> {
         .build();
 
     TextBox::new(
-        "Hello, World!\nThis is some longer text to demonstrate a TextBox, also with a verymuchultramegahyperlong word.\nHow    does    weird  spaces behave?\nAlso test word wrapping\n ",
+        "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
         Rectangle::new(Point::zero(), Point::new(128, 128)),
     )
     .into_styled(textbox_style)
