@@ -5,7 +5,7 @@ license = "MIT"
 description = "TextBox for embedded-graphics"
 repository = "https://github.com/bugadani/embedded-text"
 authors = ["Dániel Buga <bugadani@gmail.com>"]
-keywords = ["embedded-graphics", "textbox", "text rendering"]
+keywords = ["embedded-graphics", "textbox", "text"]
 categories = ["no-std", "embedded", "graphics"]
 edition = "2018"
 
