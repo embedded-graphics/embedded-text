@@ -18,7 +18,6 @@ fn main() -> Result<(), core::convert::Infallible> {
         Rectangle::new(Point::zero(), Point::new(128, 128)),
     )
     .into_styled(textbox_style)
-    // align text to the display
     .draw(&mut display)
     .unwrap();
 
