@@ -1,8 +1,18 @@
 [package]
 name = "embedded-text"
-version = "0.1.0"
+version = "0.0.1"
+license = "MIT"
+description = "TextBox for embedded-graphics"
+repository = "https://github.com/bugadani/embedded-text"
 authors = ["Dániel Buga <bugadani@gmail.com>"]
+keywords = ["embedded-graphics", "textbox", "text rendering"]
+categories = ["no-std", "embedded", "graphics"]
 edition = "2018"
+
+exclude = [
+    ".gitignore",
+    ".github/",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
