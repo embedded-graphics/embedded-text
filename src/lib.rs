@@ -57,7 +57,7 @@
 //!
 //! ### Installation
 //!
-//! For setup in general, follow the installation instructions for [`embedded-graphics`].
+//! For setup in general, follow the installation instructions for [embedded-graphics].
 //!
 //! To install SDL2 on Windows, see https://github.com/Rust-SDL2/rust-sdl2#windows-msvc
 //!
