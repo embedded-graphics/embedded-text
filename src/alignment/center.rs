@@ -1,3 +1,4 @@
+//! Center aligned text
 use crate::{
     alignment::TextAlignment,
     parser::Token,
@@ -9,23 +10,36 @@ use embedded_graphics::prelude::*;
 
 use core::str::Chars;
 
+/// Marks text to be rendered center aligned
+#[derive(Copy, Clone, Debug)]
+pub struct CenterAligned;
+impl TextAlignment for CenterAligned {}
+
+/// State variable used by the center aligned text renderer
 #[derive(Debug)]
 pub enum CenterAlignedState<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
+    /// This state processes the next token in the text.
     NextWord,
+
+    /// This state handles a line break after a newline character or word wrapping.
     LineBreak(Chars<'a>),
+
+    /// This state measures the next line to calculate the position of the first word.
     MeasureLine(Chars<'a>),
+
+    /// This state processes the next character in a word.
     DrawWord(Chars<'a>),
+
+    /// This state renders a character, then passes the rest of the character iterator to DrawWord.
     DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>),
+
+    /// This state renders whitespace.
     DrawWhitespace(u32, EmptySpaceIterator<C, F>),
 }
-
-#[derive(Copy, Clone, Debug)]
-pub struct CenterAligned;
-impl TextAlignment for CenterAligned {}
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, CenterAligned>
 where

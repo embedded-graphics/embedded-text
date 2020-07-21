@@ -1,3 +1,4 @@
+//! Fully justified text
 use crate::{
     alignment::TextAlignment,
     parser::Token,
@@ -9,10 +10,28 @@ use embedded_graphics::prelude::*;
 
 use core::str::Chars;
 
+/// Marks text to be rendered fully justified
+#[derive(Copy, Clone, Debug)]
+pub struct Justified;
+impl TextAlignment for Justified {}
+
+/// Internal state information used to store width of whitespace characters when rendering fully
+/// justified text.
+///
+/// The fully justified renderer works by calculating the width of whitespace characters for the
+/// current line. Due to integer arithmetic, there can be remainder pixels when a single space
+/// width is used. This struct stores two width values so the whole line will always (at least if
+/// there's a space in the line) take up all available space.
 #[derive(Copy, Clone, Debug)]
 pub struct SpaceInfo {
+    /// The width of the first space_count whitespace characters
     pub space_width: u32,
+
+    /// Stores how many characters are rendered using the space_width width. This field changes
+    /// during rendering
     pub space_count: u32,
+
+    /// Width of space characters after space_count number of spaces have been rendered
     pub remaining_space_width: u32,
 }
 
@@ -50,23 +69,31 @@ impl SpaceInfo {
     }
 }
 
+/// State variable used by the fully justified text renderer
 #[derive(Debug)]
 pub enum JustifiedState<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
+    /// This state processes the next token in the text.
     NextWord(SpaceInfo),
+
+    /// This state handles a line break after a newline character or word wrapping.
     LineBreak(Chars<'a>),
+
+    /// This state measures the next line to calculate the position of the first word.
     MeasureLine(Chars<'a>),
+
+    /// This state processes the next character in a word.
     DrawWord(Chars<'a>, SpaceInfo),
+
+    /// This state renders a character, then passes the rest of the character iterator to DrawWord.
     DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>, SpaceInfo),
+
+    /// This state renders whitespace.
     DrawWhitespace(u32, EmptySpaceIterator<C, F>, SpaceInfo),
 }
-
-#[derive(Copy, Clone, Debug)]
-pub struct Justified;
-impl TextAlignment for Justified {}
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, Justified>
 where
