@@ -72,7 +72,10 @@ where
 mod test {
     use super::EmptySpaceIterator;
     use embedded_graphics::{
-        fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, style::TextStyleBuilder,
+        fonts::{Font6x6, Font6x8},
+        pixelcolor::BinaryColor,
+        prelude::*,
+        style::TextStyleBuilder,
     };
 
     #[test]
@@ -91,5 +94,28 @@ mod test {
             .build();
 
         assert_eq!(0, EmptySpaceIterator::new(10, Point::zero(), style).count());
+    }
+
+    #[test]
+    fn minimal_number_of_pixels_returned() {
+        let style = TextStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        assert_eq!(
+            80,
+            EmptySpaceIterator::new(10, Point::zero(), style).count()
+        );
+
+        let style = TextStyleBuilder::new(Font6x6)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        assert_eq!(
+            60,
+            EmptySpaceIterator::new(10, Point::zero(), style).count()
+        );
     }
 }
