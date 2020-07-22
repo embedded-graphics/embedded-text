@@ -288,22 +288,24 @@ where
                         break pixel;
                     }
 
-                    let width = space_info.space_width();
-                    let pos = self.cursor.position;
                     self.state = if n == 0 {
                         // no more spaces to draw
                         JustifiedState::NextWord(false, space_info)
-                    } else if self.cursor.advance(width) {
-                        // draw next space
-                        JustifiedState::DrawWhitespace(
-                            n - 1,
-                            EmptySpaceIterator::new(width, pos, self.style.text_style),
-                            space_info,
-                        )
                     } else {
-                        // word wrapping, also applied for whitespace sequences
-                        // eat the spaces from the start of next line
-                        JustifiedState::LineBreak("".chars())
+                        let width = space_info.space_width();
+                        let pos = self.cursor.position;
+                        if self.cursor.advance(width) {
+                            // draw next space
+                            JustifiedState::DrawWhitespace(
+                                n - 1,
+                                EmptySpaceIterator::new(width, pos, self.style.text_style),
+                                space_info,
+                            )
+                        } else {
+                            // word wrapping, also applied for whitespace sequences
+                            // eat the spaces from the start of next line
+                            JustifiedState::LineBreak("".chars())
+                        }
                     }
                 }
 
