@@ -83,26 +83,27 @@ mod test {
     };
 
     #[test]
-    #[rustfmt::skip]
     fn transparent_char() {
         let mut display = MockDisplay::new();
         let style = TextStyleBuilder::new(Font6x8)
             .background_color(BinaryColor::On)
             .build();
 
-        StyledCharacterIterator::new('A', Point::zero(), style).draw(&mut display).unwrap();
+        StyledCharacterIterator::new('A', Point::zero(), style)
+            .draw(&mut display)
+            .unwrap();
 
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "#   ##",
-                " ### #",
-                " ### #",
-                "     #",
-                " ### #",
-                " ### #",
-                " ### #",
-                "######"
+                "#   ##   ",
+                " ### #   ",
+                " ### #   ",
+                "     #   ",
+                " ### #   ",
+                " ### #   ",
+                " ### #   ",
+                "######   "
             ])
         );
     }
