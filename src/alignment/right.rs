@@ -120,11 +120,9 @@ where
                                 }
                             }
                         }
-
-                        // advance pos.x
-                        self.cursor.position.x += (max_line_width - total_width) as i32;
                     }
 
+                    self.cursor.advance(max_line_width - total_width);
                     self.state = RightAlignedState::DrawWord(remaining.clone());
                 }
 
