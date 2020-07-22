@@ -225,7 +225,6 @@ where
                             }
 
                             Token::Whitespace(n) => {
-                                // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
                                 let mut lookahead = self.parser.clone();
                                 if let Some(Token::Word(w)) = lookahead.next() {
@@ -266,7 +265,6 @@ where
                 JustifiedState::DrawWord(ref mut chars_iterator, space_info) => {
                     let mut copy = chars_iterator.clone();
                     self.state = if let Some(c) = copy.next() {
-                        // TODO character spacing!
                         let current_pos = self.cursor.position;
 
                         if self.cursor.advance_char(c) {
