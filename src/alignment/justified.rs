@@ -80,7 +80,7 @@ where
     F: Font + Copy,
 {
     /// This state processes the next token in the text.
-    NextWord(SpaceInfo),
+    NextWord(bool, SpaceInfo),
 
     /// This state handles a line break after a newline character or word wrapping.
     LineBreak(Chars<'a>),
@@ -190,7 +190,6 @@ where
                         }
                     }
 
-                    let chars = remaining.clone();
                     let space_info = if stretch_line && total_whitespace_count != 0 {
                         let total_space_width = max_line_width - total_width;
                         let space_width =
@@ -201,17 +200,22 @@ where
                         SpaceInfo::default::<F>()
                     };
 
-                    self.state = JustifiedState::DrawWord(chars, space_info);
+                    self.state = if remaining.clone().next().is_none() {
+                        JustifiedState::NextWord(true, space_info)
+                    } else {
+                        JustifiedState::DrawWord(remaining.clone(), space_info)
+                    }
                 }
 
-                JustifiedState::NextWord(space_info) => {
+                JustifiedState::NextWord(first_word, space_info) => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if self
-                                    .cursor
-                                    .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
+                                if first_word
+                                    || self
+                                        .cursor
+                                        .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
                                 {
                                     self.state = JustifiedState::DrawWord(w.chars(), space_info);
                                 } else {
@@ -228,8 +232,8 @@ where
                                     // only render whitespace if next is word and next doesn't wrap
                                     let n_width = w.chars().map(F::char_width).sum::<u32>();
 
-                                    if self.cursor.fits_in_line(width + n_width) {
-                                        self.state = JustifiedState::DrawWhitespace(
+                                    self.state = if self.cursor.fits_in_line(width + n_width) {
+                                        JustifiedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
                                                 width,
@@ -237,9 +241,9 @@ where
                                                 self.style.text_style,
                                             ),
                                             space_info,
-                                        );
+                                        )
                                     } else {
-                                        self.state = JustifiedState::NextWord(space_info);
+                                        JustifiedState::NextWord(first_word, space_info)
                                     }
                                 } else {
                                     // don't render
@@ -272,7 +276,7 @@ where
                             JustifiedState::LineBreak(chars_iterator.clone())
                         }
                     } else {
-                        JustifiedState::NextWord(space_info)
+                        JustifiedState::NextWord(false, space_info)
                     }
                 }
 
@@ -285,7 +289,7 @@ where
                     self.state = if n == 0 {
                         // no more spaces to draw
                         self.cursor.advance(width);
-                        JustifiedState::NextWord(space_info)
+                        JustifiedState::NextWord(false, space_info)
                     } else if self.cursor.advance(width) {
                         // draw next space
                         JustifiedState::DrawWhitespace(

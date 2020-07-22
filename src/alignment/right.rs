@@ -26,7 +26,7 @@ where
     F: Font + Copy,
 {
     /// This state processes the next token in the text.
-    NextWord,
+    NextWord(bool),
 
     /// This state handles a line break after a newline character or word wrapping.
     LineBreak(Chars<'a>),
@@ -88,7 +88,7 @@ where
                     // in some rare cases, the carried over text may not fit into a single line
                     if fits {
                         let mut last_whitespace_width = 0;
-
+                        let mut first_word = true;
                         for token in self.parser.clone() {
                             if total_width >= max_line_width {
                                 break;
@@ -114,7 +114,12 @@ where
                                     {
                                         total_width += last_whitespace_width + word_width;
                                         last_whitespace_width = 0;
+                                        first_word = false;
                                     } else {
+                                        if first_word {
+                                            total_width =
+                                                F::max_fitting(w.chars(), max_line_width).0;
+                                        }
                                         break;
                                     }
                                 }
@@ -123,17 +128,22 @@ where
                     }
 
                     self.cursor.advance(max_line_width - total_width);
-                    self.state = RightAlignedState::DrawWord(remaining.clone());
+                    self.state = if remaining.clone().next().is_none() {
+                        RightAlignedState::NextWord(true)
+                    } else {
+                        RightAlignedState::DrawWord(remaining.clone())
+                    }
                 }
 
-                RightAlignedState::NextWord => {
+                RightAlignedState::NextWord(first_word) => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if self
-                                    .cursor
-                                    .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
+                                if first_word
+                                    || self
+                                        .cursor
+                                        .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
                                 {
                                     self.state = RightAlignedState::DrawWord(w.chars());
                                 } else {
@@ -145,17 +155,17 @@ where
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::char_width(' ');
-                                if self.cursor.fits_in_line(width) {
-                                    self.state = RightAlignedState::DrawWhitespace(
+                                self.state = if self.cursor.fits_in_line(width) {
+                                    RightAlignedState::DrawWhitespace(
                                         n - 1,
                                         EmptySpaceIterator::new(
                                             width,
                                             self.cursor.position,
                                             self.style.text_style,
                                         ),
-                                    );
+                                    )
                                 } else {
-                                    self.state = RightAlignedState::NextWord;
+                                    RightAlignedState::NextWord(first_word)
                                 }
                             }
 
@@ -184,7 +194,7 @@ where
                             RightAlignedState::LineBreak(chars_iterator.clone())
                         }
                     } else {
-                        RightAlignedState::NextWord
+                        RightAlignedState::NextWord(false)
                     }
                 }
 
@@ -196,7 +206,7 @@ where
                     self.state = if n == 0 {
                         // no more spaces to draw
                         self.cursor.advance_char(' ');
-                        RightAlignedState::NextWord
+                        RightAlignedState::NextWord(false)
                     } else {
                         let width = F::char_width(' ');
                         if self.cursor.advance(width) {

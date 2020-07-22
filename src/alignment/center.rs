@@ -26,7 +26,7 @@ where
     F: Font + Copy,
 {
     /// This state processes the next token in the text.
-    NextWord,
+    NextWord(bool),
 
     /// This state handles a line break after a newline character or word wrapping.
     LineBreak(Chars<'a>),
@@ -88,6 +88,7 @@ where
                     // in some rare cases, the carried over text may not fit into a single line
                     if fits {
                         let mut last_whitespace_width = 0;
+                        let mut first_word = true;
 
                         for token in self.parser.clone() {
                             if total_width >= max_line_width {
@@ -114,7 +115,12 @@ where
                                     if line_width <= max_line_width {
                                         total_width = line_width;
                                         last_whitespace_width = 0;
+                                        first_word = false;
                                     } else {
+                                        if first_word {
+                                            total_width =
+                                                F::max_fitting(w.chars(), max_line_width).0;
+                                        }
                                         break;
                                     }
                                 }
@@ -123,17 +129,22 @@ where
                     }
 
                     self.cursor.advance((max_line_width - total_width + 1) / 2);
-                    self.state = CenterAlignedState::DrawWord(remaining.clone());
+                    self.state = if remaining.clone().next().is_none() {
+                        CenterAlignedState::NextWord(true)
+                    } else {
+                        CenterAlignedState::DrawWord(remaining.clone())
+                    }
                 }
 
-                CenterAlignedState::NextWord => {
+                CenterAlignedState::NextWord(first_word) => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if self
-                                    .cursor
-                                    .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
+                                if first_word
+                                    || self
+                                        .cursor
+                                        .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
                                 {
                                     self.state = CenterAlignedState::DrawWord(w.chars());
                                 } else {
@@ -150,17 +161,17 @@ where
                                     // only render whitespace if next is word and next doesn't wrap
                                     let n_width = w.chars().map(F::char_width).sum::<u32>();
 
-                                    if self.cursor.fits_in_line(n_width + width) {
-                                        self.state = CenterAlignedState::DrawWhitespace(
+                                    self.state = if self.cursor.fits_in_line(n_width + width) {
+                                        CenterAlignedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
                                                 width,
                                                 self.cursor.position,
                                                 self.style.text_style,
                                             ),
-                                        );
+                                        )
                                     } else {
-                                        self.state = CenterAlignedState::NextWord;
+                                        CenterAlignedState::NextWord(first_word)
                                     }
                                 } else {
                                     // don't render
@@ -192,7 +203,7 @@ where
                             CenterAlignedState::LineBreak(chars_iterator.clone())
                         }
                     } else {
-                        CenterAlignedState::NextWord
+                        CenterAlignedState::NextWord(false)
                     }
                 }
 
@@ -204,7 +215,7 @@ where
                     self.state = if n == 0 {
                         // no more spaces to draw
                         self.cursor.advance_char(' ');
-                        CenterAlignedState::NextWord
+                        CenterAlignedState::NextWord(false)
                     } else {
                         let width = F::char_width(' ');
                         if self.cursor.advance(width) {
