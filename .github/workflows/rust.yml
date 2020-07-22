@@ -58,7 +58,9 @@ jobs:
         EG_SIMULATOR_DUMP="./target/screenshots/right.png" cargo run --example right
         EG_SIMULATOR_DUMP="./target/screenshots/center.png" cargo run --example center
         EG_SIMULATOR_DUMP="./target/screenshots/justified.png" cargo run --example justified
+        EG_SIMULATOR_DUMP="./target/screenshots/variable_width.png" cargo run --example variable_width
         compare -metric AE ./assets/left.png ./target/screenshots/left.png result.png
         compare -metric AE ./assets/right.png ./target/screenshots/right.png result.png
         compare -metric AE ./assets/center.png ./target/screenshots/center.png result.png
         compare -metric AE ./assets/justified.png ./target/screenshots/justified.png result.png
+        compare -metric AE ./assets/variable_width.png ./target/screenshots/variable_width.png result.png

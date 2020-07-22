@@ -99,16 +99,18 @@ where
                                 }
 
                                 Token::Whitespace(n) if total_width == 0 => {
-                                    total_width = (n * F::char_width(' ')).min(max_line_width);
+                                    total_width =
+                                        (n * F::total_char_width(' ')).min(max_line_width);
                                 }
 
                                 Token::Whitespace(n) => {
-                                    last_whitespace_width =
-                                        (n * F::char_width(' ')).min(max_line_width - total_width);
+                                    last_whitespace_width = (n * F::total_char_width(' '))
+                                        .min(max_line_width - total_width);
                                 }
 
                                 Token::Word(w) => {
-                                    let word_width = w.chars().map(F::char_width).sum::<u32>();
+                                    let word_width =
+                                        w.chars().map(F::total_char_width).sum::<u32>();
                                     if last_whitespace_width + word_width + total_width
                                         <= max_line_width
                                     {
@@ -141,9 +143,9 @@ where
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
                                 if first_word
-                                    || self
-                                        .cursor
-                                        .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
+                                    || self.cursor.fits_in_line(
+                                        w.chars().map(F::total_char_width).sum::<u32>(),
+                                    )
                                 {
                                     self.state = RightAlignedState::DrawWord(w.chars());
                                 } else {
@@ -152,9 +154,8 @@ where
                             }
 
                             Token::Whitespace(n) => {
-                                // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
-                                let width = F::char_width(' ');
+                                let width = F::total_char_width(' ');
                                 let pos = self.cursor.position;
                                 self.state = if self.cursor.advance(width) {
                                     RightAlignedState::DrawWhitespace(
@@ -178,7 +179,6 @@ where
                 RightAlignedState::DrawWord(ref mut chars_iterator) => {
                     let mut copy = chars_iterator.clone();
                     self.state = if let Some(c) = copy.next() {
-                        // TODO character spacing!
                         let current_pos = self.cursor.position;
 
                         if self.cursor.advance_char(c) {
@@ -204,7 +204,7 @@ where
                         // no more spaces to draw
                         RightAlignedState::NextWord(false)
                     } else {
-                        let width = F::char_width(' ');
+                        let width = F::total_char_width(' ');
                         let pos = self.cursor.position;
                         if self.cursor.advance(width) {
                             // draw next space

@@ -7,6 +7,7 @@ use crate::{
         StyledTextBoxIterator,
     },
     style::StyledTextBox,
+    utils::font_ext::FontExt,
 };
 use embedded_graphics::prelude::*;
 
@@ -73,7 +74,7 @@ where
                                 // measure w to see if it fits in current line
                                 if !self
                                     .cursor
-                                    .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
+                                    .fits_in_line(w.chars().map(F::total_char_width).sum::<u32>())
                                     && !self.cursor.is_start_of_line()
                                 {
                                     self.cursor.carriage_return();
@@ -83,9 +84,8 @@ where
                                 self.state = LeftAlignedState::DrawWord(w.chars());
                             }
                             Token::Whitespace(n) => {
-                                // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
-                                let width = F::char_width(' ');
+                                let width = F::total_char_width(' ');
                                 let pos = self.cursor.position;
                                 self.state = if self.cursor.advance(width) {
                                     LeftAlignedState::DrawWhitespace(
@@ -110,7 +110,6 @@ where
                 LeftAlignedState::DrawWord(ref mut chars_iterator) => {
                     let mut copy = chars_iterator.clone();
                     if let Some(c) = copy.next() {
-                        // TODO character spacing!
                         let current_pos = self.cursor.position;
 
                         if self.cursor.advance_char(c) {
@@ -138,7 +137,7 @@ where
                         LeftAlignedState::NextWord
                     } else {
                         // word wrapping, also applied for whitespace sequences
-                        let width = F::char_width(' ');
+                        let width = F::total_char_width(' ');
 
                         // use the current position, except if wrapping
                         let mut pos = self.cursor.position;

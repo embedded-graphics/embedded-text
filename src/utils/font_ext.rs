@@ -12,6 +12,9 @@ pub trait FontExt {
 
     /// Returns the value of a pixel in a character in the font.
     fn character_point(c: char, p: Point) -> bool;
+
+    /// Returns the total width of the character plus the character spacing
+    fn total_char_width(c: char) -> u32;
 }
 
 impl<F> FontExt for F
@@ -38,6 +41,11 @@ where
     #[must_use]
     fn character_point(c: char, p: Point) -> bool {
         Self::character_pixel(c, p.x as u32, p.y as u32)
+    }
+
+    #[inline]
+    fn total_char_width(c: char) -> u32 {
+        F::char_width(c) + F::CHARACTER_SPACING
     }
 }
 
