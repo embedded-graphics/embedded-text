@@ -137,7 +137,7 @@ where
                     let (mut total_width, fits) = F::max_fitting(remaining.clone(), max_line_width);
 
                     let mut total_whitespace_count = 0;
-                    let mut stretch_line = true;
+                    let mut stretch_line = false;
 
                     // in some rare cases, the carried over text may not fit into a single line
                     if fits {
@@ -151,7 +151,6 @@ where
                             }
                             match token {
                                 Token::NewLine => {
-                                    stretch_line = false;
                                     break;
                                 }
 
@@ -173,6 +172,7 @@ where
 
                                     if new_whitespace_width + new_total_width > max_line_width {
                                         // including the word would wrap the line, stop here instead
+                                        stretch_line = true;
                                         break;
                                     }
 
