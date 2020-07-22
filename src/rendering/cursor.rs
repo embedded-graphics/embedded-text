@@ -28,16 +28,13 @@ impl<F: Font> Cursor<F> {
     /// Starts a new line.
     #[inline]
     pub fn new_line(&mut self) {
-        self.position = Point::new(
-            self.position.x,
-            self.position.y + F::CHARACTER_SIZE.height as i32,
-        );
+        self.position.y += F::CHARACTER_SIZE.height as i32;
     }
 
     /// Moves the cursor back to the start of the line.
     #[inline]
     pub fn carriage_return(&mut self) {
-        self.position = Point::new(self.bounds.top_left.x, self.position.y);
+        self.position.x = self.bounds.top_left.x;
     }
 
     /// Returns whether the cursor is in the bounding box.
