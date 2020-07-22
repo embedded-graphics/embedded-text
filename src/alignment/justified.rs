@@ -207,7 +207,7 @@ where
                     }
                 }
 
-                JustifiedState::NextWord(first_word, ref mut space_info) => {
+                JustifiedState::NextWord(first_word, mut space_info) => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
@@ -217,7 +217,7 @@ where
                                         .cursor
                                         .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
                                 {
-                                    self.state = JustifiedState::DrawWord(w.chars(), *space_info);
+                                    self.state = JustifiedState::DrawWord(w.chars(), space_info);
                                 } else {
                                     self.state = JustifiedState::LineBreak(w.chars());
                                 }
@@ -229,12 +229,13 @@ where
                                 let mut lookahead = self.parser.clone();
                                 if let Some(Token::Word(w)) = lookahead.next() {
                                     // only render whitespace if next is word and next doesn't wrap
-                                    let n_width = w.chars().map(F::char_width).sum::<u32>();
+                                    let n_width = w.chars().map(F::char_width).sum::<u32>()
+                                        + space_info.peek_space_width(n);
 
                                     let pos = self.cursor.position;
-                                    let width = space_info.peek_space_width(n);
-                                    self.state = if self.cursor.fits_in_line(width + n_width) {
-                                        self.cursor.advance(space_info.space_width());
+                                    self.state = if self.cursor.fits_in_line(n_width) {
+                                        let width = space_info.space_width();
+                                        self.cursor.advance(width);
                                         JustifiedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
@@ -242,10 +243,10 @@ where
                                                 pos,
                                                 self.style.text_style,
                                             ),
-                                            *space_info,
+                                            space_info,
                                         )
                                     } else {
-                                        JustifiedState::NextWord(first_word, *space_info)
+                                        JustifiedState::NextWord(first_word, space_info)
                                     }
                                 } else {
                                     // don't render
