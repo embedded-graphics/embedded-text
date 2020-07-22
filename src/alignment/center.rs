@@ -161,12 +161,14 @@ where
                                     // only render whitespace if next is word and next doesn't wrap
                                     let n_width = w.chars().map(F::char_width).sum::<u32>();
 
+                                    let pos = self.cursor.position;
                                     self.state = if self.cursor.fits_in_line(n_width + width) {
+                                        self.cursor.advance(width);
                                         CenterAlignedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
                                                 width,
-                                                self.cursor.position,
+                                                pos,
                                                 self.style.text_style,
                                             ),
                                         )
@@ -214,19 +216,16 @@ where
 
                     self.state = if n == 0 {
                         // no more spaces to draw
-                        self.cursor.advance_char(' ');
                         CenterAlignedState::NextWord(false)
                     } else {
                         let width = F::char_width(' ');
+
+                        let pos = self.cursor.position;
                         if self.cursor.advance(width) {
                             // draw next space
                             CenterAlignedState::DrawWhitespace(
                                 n - 1,
-                                EmptySpaceIterator::new(
-                                    width,
-                                    self.cursor.position,
-                                    self.style.text_style,
-                                ),
+                                EmptySpaceIterator::new(width, pos, self.style.text_style),
                             )
                         } else {
                             // word wrapping, also applied for whitespace sequences

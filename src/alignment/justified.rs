@@ -232,12 +232,14 @@ where
                                     // only render whitespace if next is word and next doesn't wrap
                                     let n_width = w.chars().map(F::char_width).sum::<u32>();
 
+                                    let pos = self.cursor.position;
                                     self.state = if self.cursor.fits_in_line(width + n_width) {
+                                        self.cursor.advance(width);
                                         JustifiedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
                                                 width,
-                                                self.cursor.position,
+                                                pos,
                                                 self.style.text_style,
                                             ),
                                             space_info,
@@ -286,19 +288,15 @@ where
                     }
 
                     let width = space_info.space_width();
+                    let pos = self.cursor.position;
                     self.state = if n == 0 {
                         // no more spaces to draw
-                        self.cursor.advance(width);
                         JustifiedState::NextWord(false, space_info)
                     } else if self.cursor.advance(width) {
                         // draw next space
                         JustifiedState::DrawWhitespace(
                             n - 1,
-                            EmptySpaceIterator::new(
-                                width,
-                                self.cursor.position,
-                                self.style.text_style,
-                            ),
+                            EmptySpaceIterator::new(width, pos, self.style.text_style),
                             space_info,
                         )
                     } else {

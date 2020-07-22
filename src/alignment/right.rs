@@ -155,14 +155,11 @@ where
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::char_width(' ');
-                                self.state = if self.cursor.fits_in_line(width) {
+                                let pos = self.cursor.position;
+                                self.state = if self.cursor.advance(width) {
                                     RightAlignedState::DrawWhitespace(
                                         n - 1,
-                                        EmptySpaceIterator::new(
-                                            width,
-                                            self.cursor.position,
-                                            self.style.text_style,
-                                        ),
+                                        EmptySpaceIterator::new(width, pos, self.style.text_style),
                                     )
                                 } else {
                                     RightAlignedState::NextWord(first_word)
@@ -205,19 +202,15 @@ where
 
                     self.state = if n == 0 {
                         // no more spaces to draw
-                        self.cursor.advance_char(' ');
                         RightAlignedState::NextWord(false)
                     } else {
                         let width = F::char_width(' ');
+                        let pos = self.cursor.position;
                         if self.cursor.advance(width) {
                             // draw next space
                             RightAlignedState::DrawWhitespace(
                                 n - 1,
-                                EmptySpaceIterator::new(
-                                    width,
-                                    self.cursor.position,
-                                    self.style.text_style,
-                                ),
+                                EmptySpaceIterator::new(width, pos, self.style.text_style),
                             )
                         } else {
                             // word wrapping, also applied for whitespace sequences
