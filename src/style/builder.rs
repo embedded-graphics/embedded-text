@@ -97,3 +97,33 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::TextBoxStyleBuilder;
+    use embedded_graphics::{
+        fonts::Font6x8,
+        pixelcolor::BinaryColor,
+        style::{TextStyle, TextStyleBuilder},
+    };
+
+    #[test]
+    fn test_text_style_copy() {
+        let text_styles: [TextStyle<_, _>; 2] = [
+            TextStyleBuilder::new(Font6x8)
+                .text_color(BinaryColor::On)
+                .build(),
+            TextStyleBuilder::new(Font6x8)
+                .background_color(BinaryColor::On)
+                .build(),
+        ];
+
+        for &text_style in text_styles.iter() {
+            let style = TextBoxStyleBuilder::new(Font6x8)
+                .text_style(text_style)
+                .build();
+
+            assert_eq!(style.text_style, text_style);
+        }
+    }
+}
