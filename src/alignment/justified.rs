@@ -191,19 +191,17 @@ where
                     }
 
                     let chars = remaining.clone();
-                    if stretch_line && total_whitespace_count != 0 {
+                    let space_info = if stretch_line && total_whitespace_count != 0 {
                         let total_space_width = max_line_width - total_width;
                         let space_width =
                             (total_space_width / total_whitespace_count).max(F::char_width(' '));
                         let extra_pixels = total_space_width - space_width * total_whitespace_count;
-
-                        self.state = JustifiedState::DrawWord(
-                            chars,
-                            SpaceInfo::new(space_width, extra_pixels),
-                        );
+                        SpaceInfo::new(space_width, extra_pixels)
                     } else {
-                        self.state = JustifiedState::DrawWord(chars, SpaceInfo::default::<F>());
-                    }
+                        SpaceInfo::default::<F>()
+                    };
+
+                    self.state = JustifiedState::DrawWord(chars, space_info);
                 }
 
                 JustifiedState::NextWord(space_info) => {
