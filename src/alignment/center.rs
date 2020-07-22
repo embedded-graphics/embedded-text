@@ -2,7 +2,10 @@
 use crate::{
     alignment::TextAlignment,
     parser::Token,
-    rendering::{EmptySpaceIterator, StateFactory, StyledCharacterIterator, StyledTextBoxIterator},
+    rendering::{
+        character::StyledCharacterIterator, whitespace::EmptySpaceIterator, StateFactory,
+        StyledTextBoxIterator,
+    },
     style::StyledTextBox,
     utils::{font_ext::FontExt, rect_ext::RectExt},
 };
