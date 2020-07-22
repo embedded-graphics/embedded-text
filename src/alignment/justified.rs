@@ -42,7 +42,7 @@ impl SpaceInfo {
     #[inline]
     #[must_use]
     fn default<F: Font>() -> Self {
-        SpaceInfo::new(F::char_width(' '), 0)
+        SpaceInfo::new(F::total_char_width(' '), 0)
     }
 
     #[inline]
@@ -163,12 +163,13 @@ where
 
                                 Token::Whitespace(n) => {
                                     last_whitespace_count = n;
-                                    last_whitespace_width =
-                                        (n * F::char_width(' ')).min(max_line_width - total_width);
+                                    last_whitespace_width = (n * F::total_char_width(' '))
+                                        .min(max_line_width - total_width);
                                 }
 
                                 Token::Word(w) => {
-                                    let word_width = w.chars().map(F::char_width).sum::<u32>();
+                                    let word_width =
+                                        w.chars().map(F::total_char_width).sum::<u32>();
                                     let new_total_width = total_width + word_width;
                                     let new_whitespace_width =
                                         total_whitespace_width + last_whitespace_width;
@@ -192,8 +193,8 @@ where
 
                     let space_info = if stretch_line && total_whitespace_count != 0 {
                         let total_space_width = max_line_width - total_width;
-                        let space_width =
-                            (total_space_width / total_whitespace_count).max(F::char_width(' '));
+                        let space_width = (total_space_width / total_whitespace_count)
+                            .max(F::total_char_width(' '));
                         let extra_pixels = total_space_width - space_width * total_whitespace_count;
                         SpaceInfo::new(space_width, extra_pixels)
                     } else {
@@ -213,9 +214,9 @@ where
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
                                 if first_word
-                                    || self
-                                        .cursor
-                                        .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
+                                    || self.cursor.fits_in_line(
+                                        w.chars().map(F::total_char_width).sum::<u32>(),
+                                    )
                                 {
                                     self.state = JustifiedState::DrawWord(w.chars(), space_info);
                                 } else {
@@ -229,7 +230,7 @@ where
                                 let mut lookahead = self.parser.clone();
                                 if let Some(Token::Word(w)) = lookahead.next() {
                                     // only render whitespace if next is word and next doesn't wrap
-                                    let n_width = w.chars().map(F::char_width).sum::<u32>()
+                                    let n_width = w.chars().map(F::total_char_width).sum::<u32>()
                                         + space_info.peek_space_width(n);
 
                                     let pos = self.cursor.position;

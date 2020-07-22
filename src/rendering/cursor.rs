@@ -1,4 +1,5 @@
 //! Cursor to track rendering position
+use crate::utils::font_ext::FontExt;
 use core::marker::PhantomData;
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 
@@ -60,7 +61,7 @@ impl<F: Font> Cursor<F> {
     /// Advances the cursor by a given character.
     #[inline]
     pub fn advance_char(&mut self, c: char) -> bool {
-        self.advance(F::char_width(c))
+        self.advance(F::total_char_width(c))
     }
 
     /// Advances the cursor by a given amount.
