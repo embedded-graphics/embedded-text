@@ -169,3 +169,42 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use embedded_graphics::{
+        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        primitives::Rectangle,
+    };
+
+    use crate::{alignment::LeftAligned, style::TextBoxStyleBuilder, TextBox};
+
+    #[test]
+    fn simple_render() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 54)))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "......................#.",
+                "......................#.",
+                "#...#..###..#.##...##.#.",
+                "#...#.#...#.##..#.#..##.",
+                "#.#.#.#...#.#.....#...#.",
+                "#.#.#.#...#.#.....#...#.",
+                ".#.#...###..#......####.",
+                "........................",
+            ])
+        );
+    }
+}
