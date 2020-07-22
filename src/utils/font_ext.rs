@@ -24,7 +24,7 @@ where
         let mut total_width = 0;
         for c in iter {
             let new_width = total_width + F::char_width(c);
-            if new_width < max_width {
+            if new_width <= max_width {
                 total_width = new_width;
             } else {
                 return (total_width, false);
@@ -38,5 +38,37 @@ where
     #[must_use]
     fn character_point(c: char, p: Point) -> bool {
         Self::character_pixel(c, p.x as u32, p.y as u32)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use embedded_graphics::fonts::Font6x8;
+
+    #[test]
+    fn test_max_fitting_empty() {
+        assert_eq!(Font6x8::max_fitting("".chars(), 54), (0, true))
+    }
+
+    #[test]
+    fn test_max_fitting_exact() {
+        assert_eq!(Font6x8::max_fitting("somereall".chars(), 54), (54, true))
+    }
+
+    #[test]
+    fn test_max_fitting_long_exact() {
+        assert_eq!(
+            Font6x8::max_fitting("somereallylongword".chars(), 54),
+            (54, false)
+        )
+    }
+
+    #[test]
+    fn test_max_fitting_long() {
+        assert_eq!(
+            Font6x8::max_fitting("somereallylongword".chars(), 55),
+            (54, false)
+        )
     }
 }
