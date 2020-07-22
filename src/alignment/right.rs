@@ -153,7 +153,7 @@ where
                                             self.style.text_style,
                                         ),
                                     );
-                                } else if n != 0 {
+                                } else {
                                     self.state = RightAlignedState::NextWord;
                                 }
                             }
@@ -171,16 +171,12 @@ where
                     let mut copy = chars_iterator.clone();
                     self.state = if let Some(c) = copy.next() {
                         // TODO character spacing!
-                        let width = F::char_width(c);
+                        let current_pos = self.cursor.position;
 
-                        if self.cursor.fits_in_line(width) {
+                        if self.cursor.advance_char(c) {
                             RightAlignedState::DrawCharacter(
                                 copy,
-                                StyledCharacterIterator::new(
-                                    c,
-                                    self.cursor.position,
-                                    self.style.text_style,
-                                ),
+                                StyledCharacterIterator::new(c, current_pos, self.style.text_style),
                             )
                         } else {
                             // word wrapping
@@ -225,7 +221,6 @@ where
                         break pixel;
                     }
 
-                    self.cursor.advance_char(iterator.character);
                     self.state = RightAlignedState::DrawWord(chars_iterator.clone());
                 }
             }

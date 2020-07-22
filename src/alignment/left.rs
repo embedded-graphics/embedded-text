@@ -82,9 +82,7 @@ where
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::char_width(' ');
-                                if !self.cursor.fits_in_line(width) {
-                                    self.state = LeftAlignedState::NextWord;
-                                } else if n != 0 {
+                                if self.cursor.fits_in_line(width) {
                                     self.state = LeftAlignedState::DrawWhitespace(
                                         n - 1,
                                         EmptySpaceIterator::new(
@@ -93,6 +91,8 @@ where
                                             self.style.text_style,
                                         ),
                                     );
+                                } else {
+                                    self.state = LeftAlignedState::NextWord;
                                 }
                             }
 
@@ -110,16 +110,12 @@ where
                     let mut copy = chars_iterator.clone();
                     if let Some(c) = copy.next() {
                         // TODO character spacing!
-                        let width = F::char_width(c);
+                        let current_pos = self.cursor.position;
 
-                        if self.cursor.fits_in_line(width) {
+                        if self.cursor.advance_char(c) {
                             self.state = LeftAlignedState::DrawCharacter(
                                 copy,
-                                StyledCharacterIterator::new(
-                                    c,
-                                    self.cursor.position,
-                                    self.style.text_style,
-                                ),
+                                StyledCharacterIterator::new(c, current_pos, self.style.text_style),
                             );
                         } else {
                             // word wrapping
@@ -164,7 +160,6 @@ where
                         break pixel;
                     }
 
-                    self.cursor.advance_char(iterator.character);
                     self.state = LeftAlignedState::DrawWord(chars_iterator.clone());
                 }
             };

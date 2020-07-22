@@ -227,9 +227,7 @@ where
                                     // only render whitespace if next is word and next doesn't wrap
                                     let n_width = w.chars().map(F::char_width).sum::<u32>();
 
-                                    if !self.cursor.fits_in_line(width + n_width) {
-                                        self.state = JustifiedState::NextWord(space_info);
-                                    } else if n != 0 {
+                                    if self.cursor.fits_in_line(width + n_width) {
                                         self.state = JustifiedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
@@ -239,6 +237,8 @@ where
                                             ),
                                             space_info,
                                         );
+                                    } else {
+                                        self.state = JustifiedState::NextWord(space_info);
                                     }
                                 } else {
                                     // don't render
@@ -258,16 +258,12 @@ where
                     let mut copy = chars_iterator.clone();
                     self.state = if let Some(c) = copy.next() {
                         // TODO character spacing!
-                        let width = F::char_width(c);
+                        let current_pos = self.cursor.position;
 
-                        if self.cursor.fits_in_line(width) {
+                        if self.cursor.advance_char(c) {
                             JustifiedState::DrawCharacter(
                                 copy,
-                                StyledCharacterIterator::new(
-                                    c,
-                                    self.cursor.position,
-                                    self.style.text_style,
-                                ),
+                                StyledCharacterIterator::new(c, current_pos, self.style.text_style),
                                 space_info,
                             )
                         } else {
@@ -312,7 +308,6 @@ where
                         break pixel;
                     }
 
-                    self.cursor.advance_char(iterator.character);
                     self.state = JustifiedState::DrawWord(chars_iterator.clone(), space_info);
                 }
             }
