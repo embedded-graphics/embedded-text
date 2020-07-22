@@ -1,0 +1,31 @@
+use embedded_graphics_simulator::{
+    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
+};
+
+use embedded_graphics::{
+    fonts::Font6x6, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
+};
+
+use embedded_text::{style::TextBoxStyleBuilder, TextBox};
+
+fn main() -> Result<(), core::convert::Infallible> {
+    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
+
+    let textbox_style = TextBoxStyleBuilder::new(Font6x6)
+        .text_color(BinaryColor::On)
+        .build();
+
+    TextBox::new(
+        "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
+        Rectangle::new(Point::zero(), Point::new(128, 128)),
+    )
+    .into_styled(textbox_style)
+    .draw(&mut display)
+    .unwrap();
+
+    let output_settings = OutputSettingsBuilder::new()
+        .theme(BinaryColorTheme::OledBlue)
+        .build();
+    Window::new("Hello TextBox", &output_settings).show_static(&display);
+    Ok(())
+}
