@@ -71,6 +71,7 @@ where
 
             match self.state {
                 CenterAlignedState::LineBreak(ref remaining) => {
+                    self.cursor.carriage_return();
                     self.cursor.new_line();
                     self.state = CenterAlignedState::MeasureLine(remaining.clone());
                 }

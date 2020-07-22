@@ -125,6 +125,7 @@ where
 
             match self.state {
                 JustifiedState::LineBreak(ref remaining) => {
+                    self.cursor.carriage_return();
                     self.cursor.new_line();
                     self.state = JustifiedState::MeasureLine(remaining.clone());
                 }

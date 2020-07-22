@@ -1,4 +1,8 @@
 //! Pixel iterators used for text rendering
+
+/// Cursor to track rendering position
+pub mod cursor;
+
 use crate::{
     alignment::TextAlignment,
     parser::Parser,
@@ -6,7 +10,8 @@ use crate::{
     utils::font_ext::FontExt,
 };
 use core::marker::PhantomData;
-use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
+use cursor::Cursor;
+use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Pixel iterator to render a styled character
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -145,54 +150,6 @@ where
     }
 }
 
-/// Internal structure that keeps track of rendering a [`TextBox`].
-pub struct Cursor<F: Font> {
-    _marker: PhantomData<F>,
-
-    /// Bounding box of the [`TextBox`]
-    pub bounds: Rectangle,
-
-    /// Current cursor position
-    pub position: Point,
-}
-
-impl<F: Font> Cursor<F> {
-    /// Starts a new line.
-    #[inline]
-    pub fn new_line(&mut self) {
-        self.position = Point::new(
-            self.bounds.top_left.x,
-            self.position.y + F::CHARACTER_SIZE.height as i32,
-        );
-    }
-
-    /// Returns whether the cursor is in the bounding box.
-    ///
-    /// Note: Only vertical overrun is checked.
-    #[inline]
-    pub fn in_display_area(&self) -> bool {
-        self.position.y < self.bounds.bottom_right.y
-    }
-
-    /// Returns whether the current line has enough space to also include an object of given width.
-    #[inline]
-    pub fn fits_in_line(&self, width: u32) -> bool {
-        width as i32 <= self.bounds.bottom_right.x - self.position.x + 1
-    }
-
-    /// Advances the cursor by a given character.
-    #[inline]
-    pub fn advance_char(&mut self, c: char) {
-        self.advance(F::char_width(c));
-    }
-
-    /// Advances the cursor by a given amount.
-    #[inline]
-    pub fn advance(&mut self, by: u32) {
-        self.position.x += by as i32;
-    }
-}
-
 /// This trait is used to associate a state type to a horizontal alignment option.
 pub trait StateFactory {
     /// The type of the state variable used for rendering.
@@ -237,11 +194,7 @@ where
         Self {
             parser: Parser::parse(styled.text_box.text),
             style: styled.style,
-            cursor: Cursor {
-                _marker: PhantomData,
-                bounds: styled.text_box.bounds,
-                position: styled.text_box.bounds.top_left,
-            },
+            cursor: Cursor::new(styled.text_box.bounds),
             state: <StyledTextBox<'a, C, F, A> as StateFactory>::create_state(),
         }
     }

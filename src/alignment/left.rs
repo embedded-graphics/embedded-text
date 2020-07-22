@@ -72,6 +72,7 @@ where
                                     .cursor
                                     .fits_in_line(w.chars().map(F::char_width).sum::<u32>())
                                 {
+                                    self.cursor.carriage_return();
                                     self.cursor.new_line();
                                 }
 
@@ -96,6 +97,7 @@ where
                             }
 
                             Token::NewLine => {
+                                self.cursor.carriage_return();
                                 self.cursor.new_line();
                             }
                         }
@@ -121,6 +123,7 @@ where
                             );
                         } else {
                             // word wrapping
+                            self.cursor.carriage_return();
                             self.cursor.new_line();
                         }
                     } else {
@@ -143,8 +146,7 @@ where
                         if self.cursor.fits_in_line(width) {
                             self.cursor.advance(width);
                         } else {
-                            // duplicate line break because LineBreak state can't handle whitespaces
-                            // carried-over
+                            self.cursor.carriage_return();
                             self.cursor.new_line();
                         }
 
