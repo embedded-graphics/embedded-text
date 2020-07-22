@@ -68,3 +68,29 @@ impl<F: Font> Cursor<F> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use embedded_graphics::fonts::Font6x8;
+
+    #[test]
+    fn fits_in_line() {
+        // 6px width
+        let cursor: Cursor<Font6x8> = Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)));
+
+        assert!(cursor.fits_in_line(6));
+        assert!(!cursor.fits_in_line(7));
+    }
+
+    #[test]
+    fn advance_moves_position() {
+        // 6px width
+        let mut cursor: Cursor<Font6x8> =
+            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)));
+
+        assert!(cursor.fits_in_line(1));
+        assert!(cursor.advance_char('a'));
+        assert!(!cursor.fits_in_line(1));
+    }
+}
