@@ -143,9 +143,7 @@ where
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         let width = F::char_width(' ');
-                        if self.cursor.fits_in_line(width) {
-                            self.cursor.advance(width);
-                        } else {
+                        if !self.cursor.advance(width) {
                             self.cursor.carriage_return();
                             self.cursor.new_line();
                         }

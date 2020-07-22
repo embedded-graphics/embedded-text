@@ -207,9 +207,8 @@ where
                         CenterAlignedState::NextWord
                     } else {
                         let width = F::char_width(' ');
-                        if self.cursor.fits_in_line(width) {
+                        if self.cursor.advance(width) {
                             // draw next space
-                            self.cursor.advance(width);
                             CenterAlignedState::DrawWhitespace(
                                 n - 1,
                                 EmptySpaceIterator::new(

@@ -289,9 +289,8 @@ where
                         // no more spaces to draw
                         self.cursor.advance(width);
                         JustifiedState::NextWord(space_info)
-                    } else if self.cursor.fits_in_line(width) {
+                    } else if self.cursor.advance(width) {
                         // draw next space
-                        self.cursor.advance(width);
                         JustifiedState::DrawWhitespace(
                             n - 1,
                             EmptySpaceIterator::new(

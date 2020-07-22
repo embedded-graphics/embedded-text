@@ -56,13 +56,18 @@ impl<F: Font> Cursor<F> {
 
     /// Advances the cursor by a given character.
     #[inline]
-    pub fn advance_char(&mut self, c: char) {
-        self.advance(F::char_width(c));
+    pub fn advance_char(&mut self, c: char) -> bool {
+        self.advance(F::char_width(c))
     }
 
     /// Advances the cursor by a given amount.
     #[inline]
-    pub fn advance(&mut self, by: u32) {
-        self.position.x += by as i32;
+    pub fn advance(&mut self, by: u32) -> bool {
+        if self.fits_in_line(by) {
+            self.position.x += by as i32;
+            true
+        } else {
+            false
+        }
     }
 }
