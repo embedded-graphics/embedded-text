@@ -67,3 +67,29 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::EmptySpaceIterator;
+    use embedded_graphics::{
+        fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, style::TextStyleBuilder,
+    };
+
+    #[test]
+    fn zero_width_does_not_render_anything() {
+        let style = TextStyleBuilder::new(Font6x8)
+            .background_color(BinaryColor::On)
+            .build();
+
+        assert_eq!(0, EmptySpaceIterator::new(0, Point::zero(), style).count());
+    }
+
+    #[test]
+    fn transparent_background_does_not_render_anything() {
+        let style = TextStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .build();
+
+        assert_eq!(0, EmptySpaceIterator::new(10, Point::zero(), style).count());
+    }
+}
