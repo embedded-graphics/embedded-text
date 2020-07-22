@@ -54,7 +54,27 @@ where
     #[inline]
     #[must_use]
     fn measure_text(text: &str, max_width: u32) -> u32 {
-        let line_count = text.lines().map(|line| 1).sum::<u32>();
+        let line_count = text
+            .lines()
+            .map(|line| {
+                let mut current_rows = 1;
+                let mut total_width = 0;
+                for c in line.chars() {
+                    if c == '\r' {
+                        total_width = 0;
+                    } else {
+                        let new_width = F::total_char_width(c);
+                        if total_width + new_width <= max_width {
+                            total_width += new_width;
+                        } else {
+                            current_rows += 1;
+                            total_width = new_width;
+                        }
+                    }
+                }
+                current_rows
+            })
+            .sum::<u32>();
 
         line_count * F::CHARACTER_SIZE.height
     }
