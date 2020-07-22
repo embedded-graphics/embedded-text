@@ -6,6 +6,7 @@ pub mod builder;
 use crate::{
     alignment::TextAlignment,
     rendering::{StateFactory, StyledTextBoxIterator},
+    utils::rect_ext::RectExt,
     TextBox,
 };
 pub use builder::TextBoxStyleBuilder;
@@ -113,10 +114,6 @@ where
     #[inline]
     #[must_use]
     fn size(&self) -> Size {
-        // TODO: remove if fixed in embedded-graphics
-        let width = (self.bottom_right().x - self.top_left().x) as u32 + 1;
-        let height = (self.bottom_right().y - self.top_left().y) as u32 + 1;
-
-        Size::new(width, height)
+        RectExt::size(self.text_box.bounds)
     }
 }
