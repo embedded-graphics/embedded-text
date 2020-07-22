@@ -210,6 +210,46 @@ mod test {
     }
 
     #[test]
+    fn simple_word_wrapping() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new(
+            "word wrapping",
+            Rectangle::new(Point::zero(), Point::new(54, 54)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "......................#.......                  ",
+                "......................#.......                  ",
+                "#...#..###..#.##...##.#.......                  ",
+                "#...#.#...#.##..#.#..##.......                  ",
+                "#.#.#.#...#.#.....#...#.......                  ",
+                "#.#.#.#...#.#.....#...#.......                  ",
+                ".#.#...###..#......####.......                  ",
+                "..............................                  ",
+                "................................#...............",
+                "................................................",
+                "#...#.#.##...###..####..####...##...#.##...####.",
+                "#...#.##..#.....#.#...#.#...#...#...##..#.#...#.",
+                "#.#.#.#......####.#...#.#...#...#...#...#.#...#.",
+                "#.#.#.#.....#...#.####..####....#...#...#..####.",
+                ".#.#..#......####.#.....#......###..#...#.....#.",
+                "..................#.....#..................###.."
+            ])
+        );
+    }
+
+    #[test]
     fn word_longer_than_line_wraps_word() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
