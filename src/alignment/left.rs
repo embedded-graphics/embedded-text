@@ -89,8 +89,8 @@ where
                                     self.state = LeftAlignedState::DrawWhitespace(
                                         n - 1,
                                         EmptySpaceIterator::new(
-                                            self.cursor.position,
                                             width,
+                                            self.cursor.position,
                                             self.style.text_style,
                                         ),
                                     );
@@ -150,8 +150,8 @@ where
                         LeftAlignedState::DrawWhitespace(
                             n - 1,
                             EmptySpaceIterator::new(
-                                self.cursor.position,
                                 width,
+                                self.cursor.position,
                                 self.style.text_style,
                             ),
                         )

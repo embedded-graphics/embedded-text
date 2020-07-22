@@ -25,7 +25,7 @@ where
     /// Creates a new pixel iterator to draw empty spaces.
     #[inline]
     #[must_use]
-    pub fn new(pos: Point, width: u32, style: TextStyle<C, F>) -> Self {
+    pub fn new(width: u32, pos: Point, style: TextStyle<C, F>) -> Self {
         Self {
             _font: PhantomData,
             color: style.background_color,

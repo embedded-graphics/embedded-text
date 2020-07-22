@@ -155,8 +155,8 @@ where
                                         self.state = CenterAlignedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
-                                                self.cursor.position,
                                                 width,
+                                                self.cursor.position,
                                                 self.style.text_style,
                                             ),
                                         );
@@ -213,8 +213,8 @@ where
                             CenterAlignedState::DrawWhitespace(
                                 n - 1,
                                 EmptySpaceIterator::new(
-                                    self.cursor.position,
                                     width,
+                                    self.cursor.position,
                                     self.style.text_style,
                                 ),
                             )

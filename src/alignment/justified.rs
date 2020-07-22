@@ -234,8 +234,8 @@ where
                                         self.state = JustifiedState::DrawWhitespace(
                                             n - 1,
                                             EmptySpaceIterator::new(
-                                                self.cursor.position,
                                                 width,
+                                                self.cursor.position,
                                                 self.style.text_style,
                                             ),
                                             space_info,
@@ -293,8 +293,8 @@ where
                         JustifiedState::DrawWhitespace(
                             n - 1,
                             EmptySpaceIterator::new(
-                                self.cursor.position,
                                 width,
+                                self.cursor.position,
                                 self.style.text_style,
                             ),
                             space_info,
