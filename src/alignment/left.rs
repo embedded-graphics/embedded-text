@@ -86,17 +86,14 @@ where
                                 // TODO character spacing!
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::char_width(' ');
-                                if self.cursor.fits_in_line(width) {
-                                    self.state = LeftAlignedState::DrawWhitespace(
+                                let pos = self.cursor.position;
+                                self.state = if self.cursor.advance(width) {
+                                    LeftAlignedState::DrawWhitespace(
                                         n - 1,
-                                        EmptySpaceIterator::new(
-                                            width,
-                                            self.cursor.position,
-                                            self.style.text_style,
-                                        ),
-                                    );
+                                        EmptySpaceIterator::new(width, pos, self.style.text_style),
+                                    )
                                 } else {
-                                    self.state = LeftAlignedState::NextWord;
+                                    LeftAlignedState::NextWord
                                 }
                             }
 
@@ -138,23 +135,23 @@ where
 
                     self.state = if n == 0 {
                         // no more spaces to draw
-                        self.cursor.advance_char(' ');
                         LeftAlignedState::NextWord
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         let width = F::char_width(' ');
+
+                        // use the current position, except if wrapping
+                        let mut pos = self.cursor.position;
                         if !self.cursor.advance(width) {
                             self.cursor.carriage_return();
                             self.cursor.new_line();
+                            pos = self.cursor.position;
+                            self.cursor.advance(width);
                         }
 
                         LeftAlignedState::DrawWhitespace(
                             n - 1,
-                            EmptySpaceIterator::new(
-                                width,
-                                self.cursor.position,
-                                self.style.text_style,
-                            ),
+                            EmptySpaceIterator::new(width, pos, self.style.text_style),
                         )
                     }
                 }
@@ -245,6 +242,46 @@ mod test {
                 "#.#.#.#.....#...#.####..####....#...#...#..####.",
                 ".#.#..#......####.#.....#......###..#...#.....#.",
                 "..................#.....#..................###.."
+            ])
+        );
+    }
+
+    #[test]
+    fn whitespace_word_wrapping() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new(
+            "word  wrap",
+            Rectangle::new(Point::zero(), Point::new(30, 54)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "......................#.......",
+                "......................#.......",
+                "#...#..###..#.##...##.#.......",
+                "#...#.#...#.##..#.#..##.......",
+                "#.#.#.#...#.#.....#...#.......",
+                "#.#.#.#...#.#.....#...#.......",
+                ".#.#...###..#......####.......",
+                "..............................",
+                "..............................",
+                "..............................",
+                "......#...#.#.##...###..####..",
+                "......#...#.##..#.....#.#...#.",
+                "......#.#.#.#......####.#...#.",
+                "......#.#.#.#.....#...#.####..",
+                ".......#.#..#......####.#.....",
+                "........................#....."
             ])
         );
     }
