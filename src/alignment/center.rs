@@ -146,11 +146,7 @@ where
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if first_word
-                                    || self.cursor.fits_in_line(
-                                        w.chars().map(F::total_char_width).sum::<u32>(),
-                                    )
-                                {
+                                if first_word || self.cursor.fits_in_line(F::str_width(w)) {
                                     self.state = CenterAlignedState::DrawWord(w.chars());
                                 } else {
                                     self.state = CenterAlignedState::LineBreak(w.chars());
@@ -163,7 +159,7 @@ where
                                 let mut lookahead = self.parser.clone();
                                 if let Some(Token::Word(w)) = lookahead.next() {
                                     // only render whitespace if next is word and next doesn't wrap
-                                    let n_width = w.chars().map(F::total_char_width).sum::<u32>();
+                                    let n_width = F::str_width(w);
 
                                     let pos = self.cursor.position;
                                     self.state = if self.cursor.fits_in_line(n_width + width) {

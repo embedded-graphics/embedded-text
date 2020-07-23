@@ -19,6 +19,9 @@ pub trait FontExt {
 
     /// Measures text height when rendered using a given width.
     fn measure_text(text: &str, max_width: u32) -> u32;
+
+    /// Measure text width
+    fn str_width(s: &str) -> u32;
 }
 
 /// Result of a `measure_line` function call.
@@ -127,6 +130,11 @@ where
             .sum::<u32>();
 
         line_count * F::CHARACTER_SIZE.height
+    }
+
+    #[inline]
+    fn str_width(s: &str) -> u32 {
+        s.chars().map(F::total_char_width).sum::<u32>()
     }
 }
 
