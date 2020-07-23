@@ -137,7 +137,8 @@ where
                     let max_line_width = RectExt::size(self.cursor.bounds).width;
 
                     // initial width is the width of the characters carried over to this row
-                    let (mut total_width, fits) = F::max_fitting(remaining.clone(), max_line_width);
+                    let (mut total_width, fits) =
+                        F::measure_line(remaining.clone(), max_line_width);
 
                     let mut total_whitespace_count = 0;
                     let mut stretch_line = false;
@@ -168,20 +169,18 @@ where
                                 }
 
                                 Token::Word(w) => {
-                                    let word_width =
-                                        w.chars().map(F::total_char_width).sum::<u32>();
-                                    let new_total_width = total_width + word_width;
-                                    let new_whitespace_width =
-                                        total_whitespace_width + last_whitespace_width;
-
-                                    if new_whitespace_width + new_total_width > max_line_width {
+                                    let (word_width, fits) = F::measure_line(
+                                        w.chars(),
+                                        max_line_width - total_width - total_whitespace_width,
+                                    );
+                                    if !fits {
                                         // including the word would wrap the line, stop here instead
                                         stretch_line = true;
                                         break;
                                     }
 
-                                    total_width = new_total_width;
-                                    total_whitespace_width = new_whitespace_width;
+                                    total_width += word_width;
+                                    total_whitespace_width += last_whitespace_width;
                                     total_whitespace_count += last_whitespace_count;
 
                                     last_whitespace_count = 0;

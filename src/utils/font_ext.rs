@@ -9,7 +9,7 @@ pub trait FontExt {
     ///
     /// Returns the width of the characters that fit into the given space and whether or not all of
     /// the input fits into the given space.
-    fn max_fitting(iter: Chars<'_>, max_width: u32) -> (u32, bool);
+    fn measure_line(iter: Chars<'_>, max_width: u32) -> (u32, bool);
 
     /// Returns the value of a pixel in a character in the font.
     fn character_point(c: char, p: Point) -> bool;
@@ -27,7 +27,7 @@ where
 {
     #[inline]
     #[must_use]
-    fn max_fitting(iter: Chars<'_>, max_width: u32) -> (u32, bool) {
+    fn measure_line(iter: Chars<'_>, max_width: u32) -> (u32, bool) {
         let mut total_width = 0;
         for c in iter {
             let new_width = total_width + F::total_char_width(c);
@@ -117,18 +117,18 @@ mod test {
 
     #[test]
     fn test_max_fitting_empty() {
-        assert_eq!(Font6x8::max_fitting("".chars(), 54), (0, true))
+        assert_eq!(Font6x8::measure_line("".chars(), 54), (0, true))
     }
 
     #[test]
     fn test_max_fitting_exact() {
-        assert_eq!(Font6x8::max_fitting("somereall".chars(), 54), (54, true))
+        assert_eq!(Font6x8::measure_line("somereall".chars(), 54), (54, true))
     }
 
     #[test]
     fn test_max_fitting_long_exact() {
         assert_eq!(
-            Font6x8::max_fitting("somereallylongword".chars(), 54),
+            Font6x8::measure_line("somereallylongword".chars(), 54),
             (54, false)
         )
     }
@@ -136,7 +136,7 @@ mod test {
     #[test]
     fn test_max_fitting_long() {
         assert_eq!(
-            Font6x8::max_fitting("somereallylongword".chars(), 55),
+            Font6x8::measure_line("somereallylongword".chars(), 55),
             (54, false)
         )
     }

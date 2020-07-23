@@ -83,7 +83,8 @@ where
                     let max_line_width = RectExt::size(self.cursor.bounds).width;
 
                     // initial width is the width of the characters carried over to this row
-                    let (mut total_width, fits) = F::max_fitting(remaining.clone(), max_line_width);
+                    let (mut total_width, fits) =
+                        F::measure_line(remaining.clone(), max_line_width);
 
                     // in some rare cases, the carried over text may not fit into a single line
                     if fits {
@@ -109,18 +110,18 @@ where
                                 }
 
                                 Token::Word(w) => {
-                                    let word_width =
-                                        w.chars().map(F::total_char_width).sum::<u32>();
-                                    if last_whitespace_width + word_width + total_width
-                                        <= max_line_width
-                                    {
+                                    let (word_width, fits) = F::measure_line(
+                                        w.chars(),
+                                        max_line_width - total_width - last_whitespace_width,
+                                    );
+                                    if fits {
                                         total_width += last_whitespace_width + word_width;
                                         last_whitespace_width = 0;
                                         first_word = false;
                                     } else {
                                         if first_word {
                                             total_width =
-                                                F::max_fitting(w.chars(), max_line_width).0;
+                                                F::measure_line(w.chars(), max_line_width).0;
                                         }
                                         break;
                                     }
