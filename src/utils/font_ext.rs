@@ -119,6 +119,7 @@ mod test {
             ("word\nnext", 50, 16),
             ("verylongword", 50, 16),
             ("some verylongword", 50, 24),
+            ("1 23456 12345 61234 561", 36, 40),
         ];
         for (text, width, expected_height) in data.iter() {
             assert_eq!(Font6x8::measure_text(text, *width), *expected_height);
