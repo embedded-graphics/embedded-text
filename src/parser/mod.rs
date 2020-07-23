@@ -42,15 +42,18 @@ impl<'a> Iterator for Parser<'a> {
 
             c if c.is_whitespace() => {
                 let mut len = 0;
-                for c in string.chars() {
+                for (idx, c) in string.char_indices() {
                     if c.is_whitespace() {
-                        // consume the whitespace
-                        self.inner.next();
                         len += 1;
                     } else {
-                        break;
+                        // consume the whitespaces
+                        self.inner = unsafe { string.get_unchecked(idx..) }.char_indices();
+                        return Token::Whitespace(len);
                     }
                 }
+
+                // consume all the text
+                self.inner = "".char_indices();
                 Token::Whitespace(len)
             }
 
