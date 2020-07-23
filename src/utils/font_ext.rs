@@ -142,7 +142,7 @@ mod test {
     }
 
     #[test]
-    fn test_height_empty() {
+    fn test_height() {
         let data = [
             ("", 0, 0),
             ("word", 50, 8),
@@ -152,7 +152,12 @@ mod test {
             ("1 23456 12345 61234 561", 36, 40),
         ];
         for (text, width, expected_height) in data.iter() {
-            assert_eq!(Font6x8::measure_text(text, *width), *expected_height);
+            let height = Font6x8::measure_text(text, *width);
+            assert_eq!(
+                height, *expected_height,
+                "Height of \"{}\" is {} but is expected to be {}",
+                text, height, expected_height
+            );
         }
     }
 }
