@@ -133,7 +133,7 @@ where
                     }
 
                     self.cursor.advance(max_line_width - total_width);
-                    self.state = if remaining.clone().next().is_none() {
+                    self.state = if remaining.as_str().is_empty() {
                         RightAlignedState::NextWord(true)
                     } else {
                         RightAlignedState::DrawWord(remaining.clone())

@@ -201,7 +201,7 @@ where
                         SpaceInfo::default::<F>()
                     };
 
-                    self.state = if remaining.clone().next().is_none() {
+                    self.state = if remaining.as_str().is_empty() {
                         JustifiedState::NextWord(true, space_info)
                     } else {
                         JustifiedState::DrawWord(remaining.clone(), space_info)

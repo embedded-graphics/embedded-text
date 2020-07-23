@@ -134,7 +134,7 @@ where
                     }
 
                     self.cursor.advance((max_line_width - total_width + 1) / 2);
-                    self.state = if remaining.clone().next().is_none() {
+                    self.state = if remaining.as_str().is_empty() {
                         CenterAlignedState::NextWord(true)
                     } else {
                         CenterAlignedState::DrawWord(remaining.clone())
