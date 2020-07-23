@@ -69,7 +69,7 @@
 //! [the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
 //! [simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
 
-//#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
 #![deny(clippy::cargo)]
 #![deny(missing_docs)]
