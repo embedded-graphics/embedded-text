@@ -83,11 +83,12 @@ where
                     let max_line_width = RectExt::size(self.cursor.bounds).width;
 
                     // initial width is the width of the characters carried over to this row
-                    let (mut total_width, fits) =
-                        F::measure_line(remaining.clone(), max_line_width);
+                    let measurement = F::measure_line(remaining.clone(), max_line_width);
+
+                    let mut total_width = measurement.width;
 
                     // in some rare cases, the carried over text may not fit into a single line
-                    if fits {
+                    if measurement.fits_line {
                         let mut last_whitespace_width = 0;
                         let mut first_word = true;
                         for token in self.parser.clone() {
@@ -110,18 +111,19 @@ where
                                 }
 
                                 Token::Word(w) => {
-                                    let (word_width, fits) = F::measure_line(
+                                    let word_measurement = F::measure_line(
                                         w.chars(),
                                         max_line_width - total_width - last_whitespace_width,
                                     );
-                                    if fits {
-                                        total_width += last_whitespace_width + word_width;
+                                    if word_measurement.fits_line {
+                                        total_width +=
+                                            last_whitespace_width + word_measurement.width;
                                         last_whitespace_width = 0;
                                         first_word = false;
                                     } else {
                                         if first_word {
                                             total_width =
-                                                F::measure_line(w.chars(), max_line_width).0;
+                                                F::measure_line(w.chars(), max_line_width).width;
                                         }
                                         break;
                                     }
