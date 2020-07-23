@@ -93,9 +93,6 @@ where
                         let mut first_word = true;
 
                         for token in self.parser.clone() {
-                            if total_width >= max_line_width {
-                                break;
-                            }
                             match token {
                                 Token::NewLine => {
                                     break;
@@ -129,6 +126,9 @@ where
                                         break;
                                     }
                                 }
+                            }
+                            if total_width >= max_line_width {
+                                break;
                             }
                         }
                     }

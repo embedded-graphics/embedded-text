@@ -151,9 +151,6 @@ where
                         let mut total_whitespace_width = 0;
 
                         for token in self.parser.clone() {
-                            if total_width >= max_line_width {
-                                break;
-                            }
                             match token {
                                 Token::NewLine => {
                                     break;
@@ -187,6 +184,9 @@ where
                                     last_whitespace_count = 0;
                                     last_whitespace_width = 0;
                                 }
+                            }
+                            if total_width >= max_line_width {
+                                break;
                             }
                         }
                     }
