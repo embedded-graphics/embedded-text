@@ -52,12 +52,6 @@ impl<F: Font> Cursor<F> {
         width <= self.space_in_line()
     }
 
-    /// Returns whether the cursor is in the start position in a line
-    #[inline]
-    pub fn is_start_of_line(&self) -> bool {
-        self.position.x == self.bounds.top_left.x
-    }
-
     /// Advances the cursor by a given character.
     #[inline]
     pub fn advance_char(&mut self, c: char) -> bool {

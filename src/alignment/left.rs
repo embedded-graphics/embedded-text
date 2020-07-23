@@ -26,7 +26,7 @@ where
     F: Font + Copy,
 {
     /// This state processes the next token in the text.
-    NextWord,
+    NextWord(bool),
 
     /// This state processes the next character in a word.
     DrawWord(Chars<'a>),
@@ -48,7 +48,7 @@ where
     #[inline]
     #[must_use]
     fn create_state() -> Self::PixelIteratorState {
-        LeftAlignedState::NextWord
+        LeftAlignedState::NextWord(true)
     }
 }
 
@@ -67,12 +67,12 @@ where
             }
 
             match self.state {
-                LeftAlignedState::NextWord => {
+                LeftAlignedState::NextWord(first_word) => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if !self.cursor.is_start_of_line()
+                                if !first_word
                                     && !self.cursor.fits_in_line(
                                         w.chars().map(F::total_char_width).sum::<u32>(),
                                     )
@@ -93,7 +93,7 @@ where
                                         EmptySpaceIterator::new(width, pos, self.style.text_style),
                                     )
                                 } else {
-                                    LeftAlignedState::NextWord
+                                    LeftAlignedState::NextWord(first_word)
                                 }
                             }
 
@@ -123,7 +123,7 @@ where
                             self.cursor.new_line();
                         }
                     } else {
-                        self.state = LeftAlignedState::NextWord;
+                        self.state = LeftAlignedState::NextWord(false);
                     }
                 }
 
@@ -134,7 +134,7 @@ where
 
                     self.state = if n == 0 {
                         // no more spaces to draw
-                        LeftAlignedState::NextWord
+                        LeftAlignedState::NextWord(false)
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         let width = F::total_char_width(' ');
