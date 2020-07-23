@@ -30,7 +30,7 @@ where
     fn max_fitting(iter: Chars<'_>, max_width: u32) -> (u32, bool) {
         let mut total_width = 0;
         for c in iter {
-            let new_width = total_width + F::char_width(c);
+            let new_width = total_width + F::total_char_width(c);
             if new_width <= max_width {
                 total_width = new_width;
             } else {
