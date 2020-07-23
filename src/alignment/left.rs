@@ -72,10 +72,10 @@ where
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if !self
-                                    .cursor
-                                    .fits_in_line(w.chars().map(F::total_char_width).sum::<u32>())
-                                    && !self.cursor.is_start_of_line()
+                                if !self.cursor.is_start_of_line()
+                                    && !self.cursor.fits_in_line(
+                                        w.chars().map(F::total_char_width).sum::<u32>(),
+                                    )
                                 {
                                     self.cursor.carriage_return();
                                     self.cursor.new_line();
