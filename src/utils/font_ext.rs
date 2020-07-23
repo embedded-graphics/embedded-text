@@ -1,4 +1,5 @@
 //! Extends font types with some helper methods.
+use crate::parser::{Parser, Token};
 use core::str::Chars;
 use embedded_graphics::{fonts::Font, geometry::Point};
 
@@ -59,17 +60,46 @@ where
             .map(|line| {
                 let mut current_rows = 1;
                 let mut total_width = 0;
-                for c in line.chars() {
-                    if c == '\r' {
-                        total_width = 0;
-                    } else {
-                        let new_width = F::total_char_width(c);
-                        if total_width + new_width <= max_width {
-                            total_width += new_width;
-                        } else {
-                            current_rows += 1;
-                            total_width = new_width;
+                for token in Parser::parse(line) {
+                    match token {
+                        Token::Word(w) => {
+                            let mut word_width = 0;
+                            for c in w.chars() {
+                                let width = F::total_char_width(c);
+                                if total_width + word_width + width <= max_width {
+                                    // letter fits, letter is added to word width
+                                    word_width += width;
+                                } else {
+                                    // letter (and word) doesn't fit this line, open a new one
+                                    current_rows += 1;
+                                    if total_width == 0 {
+                                        // first word gets a line break in current pos
+                                        word_width = width;
+                                        total_width = width;
+                                    } else {
+                                        // other words get wrapped
+                                        word_width += width;
+                                        total_width = 0;
+                                    }
+                                }
+                            }
+
+                            total_width += word_width;
                         }
+
+                        Token::Whitespace(n) => {
+                            let width = F::total_char_width(' ');
+                            for _ in 0..n {
+                                if total_width + width <= max_width {
+                                    total_width += width;
+                                } else {
+                                    current_rows += 1;
+                                    total_width = width;
+                                }
+                            }
+                        }
+
+                        _ => {}
                     }
                 }
                 current_rows
@@ -119,6 +149,7 @@ mod test {
             ("word\nnext", 50, 16),
             ("verylongword", 50, 16),
             ("some verylongword", 50, 24),
+            ("1 23456 12345 61234 561", 36, 40),
         ];
         for (text, width, expected_height) in data.iter() {
             assert_eq!(Font6x8::measure_text(text, *width), *expected_height);
