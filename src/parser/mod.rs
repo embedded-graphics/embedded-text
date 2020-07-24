@@ -15,7 +15,7 @@ pub enum Token<'a> {
 }
 
 /// The parser struct
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Parser<'a> {
     inner: CharIndices<'a>,
 }
@@ -28,6 +28,13 @@ impl<'a> Parser<'a> {
         Self {
             inner: text.char_indices(),
         }
+    }
+
+    /// Returns the next token without advancing
+    #[inline]
+    #[must_use]
+    pub fn peek(&self) -> Option<Token> {
+        self.clone().next()
     }
 }
 
@@ -43,7 +50,7 @@ impl<'a> Iterator for Parser<'a> {
             c if c.is_whitespace() => {
                 let mut len = 0;
                 for (idx, c) in string.char_indices() {
-                    if c.is_whitespace() {
+                    if c.is_whitespace() && c != '\n' {
                         len += 1;
                     } else {
                         // consume the whitespaces
