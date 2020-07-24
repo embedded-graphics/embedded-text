@@ -1,4 +1,4 @@
-# embedded-text
+# embedded-text [![crates.io](https://img.shields.io/crates/v/embedded_text.svg)](https://crates.io/crates/embedded_text) ![Rust](https://github.com/bugadani/embedded-text/workflows/Rust/badge.svg)
 
 TextBox for embedded-graphics
 
@@ -52,21 +52,21 @@ fn main() -> Result<(), core::convert::Infallible> {
 }
 ```
 
-### Development setup
+[embedded-graphics]: https://github.com/jamwaffles/embedded-graphics/
+[the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
+[simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
 
-#### Minimum supported Rust version
+## Development setup
+
+### Minimum supported Rust version
 The minimum supported Rust version for embedded-text is 1.40.0 or greater. However, the documentation uses the `intra-crate links` feature which requires nightly Rust. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
 
-#### Installation
+### Installation
 
 For setup in general, follow the installation instructions for [embedded-graphics].
 
 To install SDL2 on Windows, see https://github.com/Rust-SDL2/rust-sdl2#windows-msvc
 
-### Attribution
+## Attribution
 
 The example text is copied from https://www.lipsum.com
-
-[embedded-graphics]: https://github.com/jamwaffles/embedded-graphics/
-[the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
-[simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
