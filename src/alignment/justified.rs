@@ -169,8 +169,12 @@ where
                                 Token::Word(w) => {
                                     let word_measurement = F::measure_line(
                                         w.chars(),
-                                        max_line_width - total_width - total_whitespace_width,
+                                        max_line_width
+                                            - total_width
+                                            - total_whitespace_width
+                                            - last_whitespace_width,
                                     );
+
                                     if !word_measurement.fits_line {
                                         // including the word would wrap the line, stop here instead
                                         stretch_line = true;
@@ -185,7 +189,11 @@ where
                                     last_whitespace_width = 0;
                                 }
                             }
-                            if total_width >= max_line_width {
+
+                            if total_width + total_whitespace_width + last_whitespace_width
+                                >= max_line_width
+                            {
+                                stretch_line = true;
                                 break;
                             }
                         }
@@ -193,9 +201,8 @@ where
 
                     let space_info = if stretch_line && total_whitespace_count != 0 {
                         let total_space_width = max_line_width - total_width;
-                        let space_width = (total_space_width / total_whitespace_count)
-                            .max(F::total_char_width(' '));
-                        let extra_pixels = total_space_width - space_width * total_whitespace_count;
+                        let space_width = total_space_width / total_whitespace_count;
+                        let extra_pixels = total_space_width % total_whitespace_count;
                         SpaceInfo::new(space_width, extra_pixels)
                     } else {
                         SpaceInfo::default::<F>()
