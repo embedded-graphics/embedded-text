@@ -91,15 +91,15 @@ where
                     if measurement.fits_line {
                         let mut last_whitespace_width = 0;
                         let mut first_word = true;
+
                         for token in self.parser.clone() {
                             match token {
                                 Token::NewLine => {
                                     break;
                                 }
 
-                                Token::Whitespace(n) if total_width == 0 => {
-                                    total_width =
-                                        (n * F::total_char_width(' ')).min(max_line_width);
+                                Token::Whitespace(_) if total_width == 0 => {
+                                    // eat spaces at the start of line
                                 }
 
                                 Token::Whitespace(n) => {
@@ -143,13 +143,21 @@ where
                 RightAlignedState::NextWord(first_word) => {
                     if let Some(token) = self.parser.next() {
                         match token {
+                            Token::Word(w) if first_word => {
+                                self.state = RightAlignedState::DrawWord(w.chars());
+                            }
+
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if first_word || self.cursor.fits_in_line(F::str_width(w)) {
+                                if self.cursor.fits_in_line(F::str_width(w)) {
                                     self.state = RightAlignedState::DrawWord(w.chars());
                                 } else {
                                     self.state = RightAlignedState::LineBreak(w.chars());
                                 }
+                            }
+
+                            Token::Whitespace(_) if first_word => {
+                                // Ignore whitespace before first word in line
                             }
 
                             Token::Whitespace(n) => {

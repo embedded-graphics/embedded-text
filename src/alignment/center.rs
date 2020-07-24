@@ -98,9 +98,8 @@ where
                                     break;
                                 }
 
-                                Token::Whitespace(n) if total_width == 0 => {
-                                    total_width =
-                                        (n * F::total_char_width(' ')).min(max_line_width);
+                                Token::Whitespace(_) if total_width == 0 => {
+                                    // eat spaces at the start of line
                                 }
 
                                 Token::Whitespace(n) => {
@@ -144,13 +143,21 @@ where
                 CenterAlignedState::NextWord(first_word) => {
                     if let Some(token) = self.parser.next() {
                         match token {
+                            Token::Word(w) if first_word => {
+                                self.state = CenterAlignedState::DrawWord(w.chars());
+                            }
+
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if first_word || self.cursor.fits_in_line(F::str_width(w)) {
+                                if self.cursor.fits_in_line(F::str_width(w)) {
                                     self.state = CenterAlignedState::DrawWord(w.chars());
                                 } else {
                                     self.state = CenterAlignedState::LineBreak(w.chars());
                                 }
+                            }
+
+                            Token::Whitespace(_) if first_word => {
+                                // Ignore whitespace before first word in line
                             }
 
                             Token::Whitespace(n) => {

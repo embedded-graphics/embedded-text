@@ -211,13 +211,21 @@ where
                 JustifiedState::NextWord(first_word, mut space_info) => {
                     if let Some(token) = self.parser.next() {
                         match token {
+                            Token::Word(w) if first_word => {
+                                self.state = JustifiedState::DrawWord(w.chars(), space_info);
+                            }
+
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if first_word || self.cursor.fits_in_line(F::str_width(w)) {
+                                if self.cursor.fits_in_line(F::str_width(w)) {
                                     self.state = JustifiedState::DrawWord(w.chars(), space_info);
                                 } else {
                                     self.state = JustifiedState::LineBreak(w.chars());
                                 }
+                            }
+
+                            Token::Whitespace(_) if first_word => {
+                                // Ignore whitespace before first word in line
                             }
 
                             Token::Whitespace(n) => {
