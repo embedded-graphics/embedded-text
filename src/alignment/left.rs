@@ -79,6 +79,7 @@ where
 
                                 self.state = LeftAlignedState::DrawWord(w.chars());
                             }
+
                             Token::Whitespace(n) => {
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::total_char_width(' ');

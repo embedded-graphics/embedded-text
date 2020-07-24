@@ -162,14 +162,14 @@ where
 
                             Token::Whitespace(n) => {
                                 // word wrapping, also applied for whitespace sequences
-                                let width = F::total_char_width(' ');
                                 let mut lookahead = self.parser.clone();
                                 if let Some(Token::Word(w)) = lookahead.next() {
+                                    let width = F::total_char_width(' ');
                                     // only render whitespace if next is word and next doesn't wrap
-                                    let n_width = F::str_width(w);
+                                    let n_width = F::str_width(w) + n * width;
 
                                     let pos = self.cursor.position;
-                                    self.state = if self.cursor.fits_in_line(n_width + width) {
+                                    self.state = if self.cursor.fits_in_line(n_width) {
                                         self.cursor.advance(width);
                                         CenterAlignedState::DrawWhitespace(
                                             n - 1,
