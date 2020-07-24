@@ -49,13 +49,7 @@ impl<F: Font> Cursor<F> {
     /// Returns whether the current line has enough space to also include an object of given width.
     #[inline]
     pub fn fits_in_line(&self, width: u32) -> bool {
-        width as i32 <= self.bounds.bottom_right.x - self.position.x + 1
-    }
-
-    /// Returns whether the cursor is in the start position in a line
-    #[inline]
-    pub fn is_start_of_line(&self) -> bool {
-        self.position.x == self.bounds.top_left.x
+        width <= self.space_in_line()
     }
 
     /// Advances the cursor by a given character.
@@ -73,6 +67,12 @@ impl<F: Font> Cursor<F> {
         } else {
             false
         }
+    }
+
+    /// Returns the available space in the current line.
+    #[inline]
+    pub fn space_in_line(&self) -> u32 {
+        (self.bounds.bottom_right.x + 1).saturating_sub(self.position.x) as u32
     }
 }
 

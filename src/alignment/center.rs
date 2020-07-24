@@ -68,10 +68,6 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if !self.cursor.in_display_area() {
-                break None;
-            }
-
             match self.state {
                 CenterAlignedState::LineBreak(ref remaining) => {
                     self.cursor.carriage_return();
@@ -80,28 +76,29 @@ where
                 }
 
                 CenterAlignedState::MeasureLine(ref remaining) => {
+                    if !self.cursor.in_display_area() {
+                        break None;
+                    }
                     let max_line_width = RectExt::size(self.cursor.bounds).width;
 
                     // initial width is the width of the characters carried over to this row
-                    let (mut total_width, fits) = F::max_fitting(remaining.clone(), max_line_width);
+                    let measurement = F::measure_line(remaining.clone(), max_line_width);
+
+                    let mut total_width = measurement.width;
 
                     // in some rare cases, the carried over text may not fit into a single line
-                    if fits {
+                    if measurement.fits_line {
                         let mut last_whitespace_width = 0;
                         let mut first_word = true;
 
                         for token in self.parser.clone() {
-                            if total_width >= max_line_width {
-                                break;
-                            }
                             match token {
                                 Token::NewLine => {
                                     break;
                                 }
 
-                                Token::Whitespace(n) if total_width == 0 => {
-                                    total_width =
-                                        (n * F::total_char_width(' ')).min(max_line_width);
+                                Token::Whitespace(_) if total_width == 0 => {
+                                    // eat spaces at the start of line
                                 }
 
                                 Token::Whitespace(n) => {
@@ -110,28 +107,32 @@ where
                                 }
 
                                 Token::Word(w) => {
-                                    let word_width =
-                                        w.chars().map(F::total_char_width).sum::<u32>();
-                                    let line_width =
-                                        total_width + word_width + last_whitespace_width;
-                                    if line_width <= max_line_width {
-                                        total_width = line_width;
+                                    let word_measurement = F::measure_line(
+                                        w.chars(),
+                                        max_line_width - total_width - last_whitespace_width,
+                                    );
+                                    if word_measurement.fits_line {
+                                        total_width +=
+                                            last_whitespace_width + word_measurement.width;
                                         last_whitespace_width = 0;
                                         first_word = false;
                                     } else {
                                         if first_word {
                                             total_width =
-                                                F::max_fitting(w.chars(), max_line_width).0;
+                                                F::measure_line(w.chars(), max_line_width).width;
                                         }
                                         break;
                                     }
                                 }
                             }
+                            if total_width >= max_line_width {
+                                break;
+                            }
                         }
                     }
 
                     self.cursor.advance((max_line_width - total_width + 1) / 2);
-                    self.state = if remaining.clone().next().is_none() {
+                    self.state = if remaining.as_str().is_empty() {
                         CenterAlignedState::NextWord(true)
                     } else {
                         CenterAlignedState::DrawWord(remaining.clone())
@@ -141,29 +142,33 @@ where
                 CenterAlignedState::NextWord(first_word) => {
                     if let Some(token) = self.parser.next() {
                         match token {
+                            Token::Word(w) if first_word => {
+                                self.state = CenterAlignedState::DrawWord(w.chars());
+                            }
+
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if first_word
-                                    || self.cursor.fits_in_line(
-                                        w.chars().map(F::total_char_width).sum::<u32>(),
-                                    )
-                                {
+                                if self.cursor.fits_in_line(F::str_width(w)) {
                                     self.state = CenterAlignedState::DrawWord(w.chars());
                                 } else {
                                     self.state = CenterAlignedState::LineBreak(w.chars());
                                 }
                             }
 
+                            Token::Whitespace(_) if first_word => {
+                                // Ignore whitespace before first word in line
+                            }
+
                             Token::Whitespace(n) => {
                                 // word wrapping, also applied for whitespace sequences
-                                let width = F::total_char_width(' ');
                                 let mut lookahead = self.parser.clone();
                                 if let Some(Token::Word(w)) = lookahead.next() {
+                                    let width = F::total_char_width(' ');
                                     // only render whitespace if next is word and next doesn't wrap
-                                    let n_width = w.chars().map(F::total_char_width).sum::<u32>();
+                                    let n_width = F::str_width(w) + n * width;
 
                                     let pos = self.cursor.position;
-                                    self.state = if self.cursor.fits_in_line(n_width + width) {
+                                    self.state = if self.cursor.fits_in_line(n_width) {
                                         self.cursor.advance(width);
                                         CenterAlignedState::DrawWhitespace(
                                             n - 1,

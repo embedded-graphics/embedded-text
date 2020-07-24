@@ -37,35 +37,43 @@ impl<'a> Iterator for Parser<'a> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let string = self.inner.as_str();
-        self.inner.next().map(|(start, c)| match c {
+        self.inner.next().map(|(_, c)| match c {
             '\n' => Token::NewLine,
 
             c if c.is_whitespace() => {
-                let mut len = 1;
-                for (_, c) in self.inner.clone() {
+                let mut len = 0;
+                for (idx, c) in string.char_indices() {
                     if c.is_whitespace() {
-                        // consume the whitespace
-                        self.inner.next();
                         len += 1;
                     } else {
-                        break;
+                        // consume the whitespaces
+                        self.inner = unsafe { string.get_unchecked(idx..) }.char_indices();
+                        return Token::Whitespace(len);
                     }
                 }
+
+                // consume all the text
+                self.inner = "".char_indices();
                 Token::Whitespace(len)
             }
 
             _ => {
-                for (possible_end, c) in self.inner.clone() {
+                for (possible_end, c) in string.char_indices() {
                     if c.is_whitespace() {
-                        return Token::Word(unsafe {
+                        let (word, rest) = unsafe {
                             // don't worry
-                            string.get_unchecked(0..possible_end - start)
-                        });
-                    } else {
-                        // consume the character
-                        self.inner.next();
+                            (
+                                string.get_unchecked(0..possible_end),
+                                string.get_unchecked(possible_end..),
+                            )
+                        };
+                        self.inner = rest.char_indices();
+                        return Token::Word(word);
                     }
                 }
+
+                // consume all the text
+                self.inner = "".char_indices();
                 Token::Word(&string)
             }
         })

@@ -27,15 +27,12 @@ impl TextAlignment for Justified {}
 /// there's a space in the line) take up all available space.
 #[derive(Copy, Clone, Debug)]
 pub struct SpaceInfo {
-    /// The width of the first space_count whitespace characters
+    /// The width of the whitespace characters
     pub space_width: u32,
 
     /// Stores how many characters are rendered using the space_width width. This field changes
     /// during rendering
     pub space_count: u32,
-
-    /// Width of space characters after space_count number of spaces have been rendered
-    pub remaining_space_width: u32,
 }
 
 impl SpaceInfo {
@@ -49,26 +46,24 @@ impl SpaceInfo {
     #[must_use]
     fn new(space_width: u32, extra_pixel_count: u32) -> Self {
         SpaceInfo {
-            space_width: space_width + 1,
+            space_width,
             space_count: extra_pixel_count,
-            remaining_space_width: space_width,
         }
     }
 
     #[inline]
     fn space_width(&mut self) -> u32 {
         if self.space_count == 0 {
-            self.remaining_space_width
+            self.space_width
         } else {
             self.space_count -= 1;
-            self.space_width
+            self.space_width + 1
         }
     }
 
     #[inline]
     fn peek_space_width(&self, whitespace_count: u32) -> u32 {
-        let above_limit = whitespace_count.saturating_sub(self.space_count);
-        self.space_width * self.space_count + above_limit * self.remaining_space_width
+        whitespace_count * self.space_width + self.space_count.min(whitespace_count)
     }
 }
 
@@ -122,10 +117,6 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if !self.cursor.in_display_area() {
-                break None;
-            }
-
             match self.state {
                 JustifiedState::LineBreak(ref remaining) => {
                     self.cursor.carriage_return();
@@ -134,24 +125,26 @@ where
                 }
 
                 JustifiedState::MeasureLine(ref remaining) => {
+                    if !self.cursor.in_display_area() {
+                        break None;
+                    }
                     let max_line_width = RectExt::size(self.cursor.bounds).width;
 
                     // initial width is the width of the characters carried over to this row
-                    let (mut total_width, fits) = F::max_fitting(remaining.clone(), max_line_width);
+                    let measurement = F::measure_line(remaining.clone(), max_line_width);
+
+                    let mut total_width = measurement.width;
 
                     let mut total_whitespace_count = 0;
                     let mut stretch_line = false;
 
                     // in some rare cases, the carried over text may not fit into a single line
-                    if fits {
+                    if measurement.fits_line {
                         let mut last_whitespace_width = 0;
                         let mut last_whitespace_count = 0;
                         let mut total_whitespace_width = 0;
 
                         for token in self.parser.clone() {
-                            if total_width >= max_line_width {
-                                break;
-                            }
                             match token {
                                 Token::NewLine => {
                                     break;
@@ -168,40 +161,48 @@ where
                                 }
 
                                 Token::Word(w) => {
-                                    let word_width =
-                                        w.chars().map(F::total_char_width).sum::<u32>();
-                                    let new_total_width = total_width + word_width;
-                                    let new_whitespace_width =
-                                        total_whitespace_width + last_whitespace_width;
+                                    let word_measurement = F::measure_line(
+                                        w.chars(),
+                                        max_line_width
+                                            - total_width
+                                            - total_whitespace_width
+                                            - last_whitespace_width,
+                                    );
 
-                                    if new_whitespace_width + new_total_width > max_line_width {
+                                    if !word_measurement.fits_line {
                                         // including the word would wrap the line, stop here instead
                                         stretch_line = true;
                                         break;
                                     }
 
-                                    total_width = new_total_width;
-                                    total_whitespace_width = new_whitespace_width;
+                                    total_width += word_measurement.width;
+                                    total_whitespace_width += last_whitespace_width;
                                     total_whitespace_count += last_whitespace_count;
 
                                     last_whitespace_count = 0;
                                     last_whitespace_width = 0;
                                 }
                             }
+
+                            if total_width + total_whitespace_width + last_whitespace_width
+                                >= max_line_width
+                            {
+                                stretch_line = true;
+                                break;
+                            }
                         }
                     }
 
                     let space_info = if stretch_line && total_whitespace_count != 0 {
                         let total_space_width = max_line_width - total_width;
-                        let space_width = (total_space_width / total_whitespace_count)
-                            .max(F::total_char_width(' '));
-                        let extra_pixels = total_space_width - space_width * total_whitespace_count;
+                        let space_width = total_space_width / total_whitespace_count;
+                        let extra_pixels = total_space_width % total_whitespace_count;
                         SpaceInfo::new(space_width, extra_pixels)
                     } else {
                         SpaceInfo::default::<F>()
                     };
 
-                    self.state = if remaining.clone().next().is_none() {
+                    self.state = if remaining.as_str().is_empty() {
                         JustifiedState::NextWord(true, space_info)
                     } else {
                         JustifiedState::DrawWord(remaining.clone(), space_info)
@@ -211,17 +212,21 @@ where
                 JustifiedState::NextWord(first_word, mut space_info) => {
                     if let Some(token) = self.parser.next() {
                         match token {
+                            Token::Word(w) if first_word => {
+                                self.state = JustifiedState::DrawWord(w.chars(), space_info);
+                            }
+
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if first_word
-                                    || self.cursor.fits_in_line(
-                                        w.chars().map(F::total_char_width).sum::<u32>(),
-                                    )
-                                {
+                                if self.cursor.fits_in_line(F::str_width(w)) {
                                     self.state = JustifiedState::DrawWord(w.chars(), space_info);
                                 } else {
                                     self.state = JustifiedState::LineBreak(w.chars());
                                 }
+                            }
+
+                            Token::Whitespace(_) if first_word => {
+                                // Ignore whitespace before first word in line
                             }
 
                             Token::Whitespace(n) => {
@@ -229,8 +234,7 @@ where
                                 let mut lookahead = self.parser.clone();
                                 if let Some(Token::Word(w)) = lookahead.next() {
                                     // only render whitespace if next is word and next doesn't wrap
-                                    let n_width = w.chars().map(F::total_char_width).sum::<u32>()
-                                        + space_info.peek_space_width(n);
+                                    let n_width = F::str_width(w) + space_info.peek_space_width(n);
 
                                     let pos = self.cursor.position;
                                     self.state = if self.cursor.fits_in_line(n_width) {

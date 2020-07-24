@@ -26,7 +26,7 @@ where
     F: Font + Copy,
 {
     /// This state processes the next token in the text.
-    NextWord,
+    NextWord(bool),
 
     /// This state processes the next character in a word.
     DrawWord(Chars<'a>),
@@ -48,7 +48,7 @@ where
     #[inline]
     #[must_use]
     fn create_state() -> Self::PixelIteratorState {
-        LeftAlignedState::NextWord
+        LeftAlignedState::NextWord(true)
     }
 }
 
@@ -62,27 +62,20 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if !self.cursor.in_display_area() {
-                break None;
-            }
-
             match self.state {
-                LeftAlignedState::NextWord => {
+                LeftAlignedState::NextWord(first_word) => {
                     if let Some(token) = self.parser.next() {
                         match token {
                             Token::Word(w) => {
                                 // measure w to see if it fits in current line
-                                if !self
-                                    .cursor
-                                    .fits_in_line(w.chars().map(F::total_char_width).sum::<u32>())
-                                    && !self.cursor.is_start_of_line()
-                                {
+                                if !first_word && !self.cursor.fits_in_line(F::str_width(w)) {
                                     self.cursor.carriage_return();
                                     self.cursor.new_line();
                                 }
 
                                 self.state = LeftAlignedState::DrawWord(w.chars());
                             }
+
                             Token::Whitespace(n) => {
                                 // word wrapping, also applied for whitespace sequences
                                 let width = F::total_char_width(' ');
@@ -93,7 +86,7 @@ where
                                         EmptySpaceIterator::new(width, pos, self.style.text_style),
                                     )
                                 } else {
-                                    LeftAlignedState::NextWord
+                                    LeftAlignedState::NextWord(first_word)
                                 }
                             }
 
@@ -103,6 +96,10 @@ where
                             }
                         }
                     } else {
+                        break None;
+                    }
+
+                    if !self.cursor.in_display_area() {
                         break None;
                     }
                 }
@@ -121,9 +118,13 @@ where
                             // word wrapping
                             self.cursor.carriage_return();
                             self.cursor.new_line();
+
+                            if !self.cursor.in_display_area() {
+                                break None;
+                            }
                         }
                     } else {
-                        self.state = LeftAlignedState::NextWord;
+                        self.state = LeftAlignedState::NextWord(false);
                     }
                 }
 
@@ -134,7 +135,7 @@ where
 
                     self.state = if n == 0 {
                         // no more spaces to draw
-                        LeftAlignedState::NextWord
+                        LeftAlignedState::NextWord(false)
                     } else {
                         // word wrapping, also applied for whitespace sequences
                         let width = F::total_char_width(' ');
@@ -144,6 +145,10 @@ where
                         if !self.cursor.advance(width) {
                             self.cursor.carriage_return();
                             self.cursor.new_line();
+
+                            if !self.cursor.in_display_area() {
+                                break None;
+                            }
                             pos = self.cursor.position;
                             self.cursor.advance(width);
                         }
