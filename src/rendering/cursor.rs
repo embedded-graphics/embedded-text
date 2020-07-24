@@ -43,7 +43,7 @@ impl<F: Font> Cursor<F> {
     /// Note: Only vertical overrun is checked.
     #[inline]
     pub fn in_display_area(&self) -> bool {
-        self.position.y < self.bounds.bottom_right.y
+        (self.position.y + F::CHARACTER_SIZE.height as i32 - 1) < self.bounds.bottom_right.y
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.
