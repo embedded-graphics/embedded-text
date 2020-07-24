@@ -62,10 +62,6 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if !self.cursor.in_display_area() {
-                break None;
-            }
-
             match self.state {
                 LeftAlignedState::NextWord(first_word) => {
                     if let Some(token) = self.parser.next() {
@@ -102,6 +98,10 @@ where
                     } else {
                         break None;
                     }
+
+                    if !self.cursor.in_display_area() {
+                        break None;
+                    }
                 }
 
                 LeftAlignedState::DrawWord(ref mut chars_iterator) => {
@@ -118,6 +118,10 @@ where
                             // word wrapping
                             self.cursor.carriage_return();
                             self.cursor.new_line();
+
+                            if !self.cursor.in_display_area() {
+                                break None;
+                            }
                         }
                     } else {
                         self.state = LeftAlignedState::NextWord(false);
@@ -141,6 +145,10 @@ where
                         if !self.cursor.advance(width) {
                             self.cursor.carriage_return();
                             self.cursor.new_line();
+
+                            if !self.cursor.in_display_area() {
+                                break None;
+                            }
                             pos = self.cursor.position;
                             self.cursor.advance(width);
                         }

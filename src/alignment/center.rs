@@ -68,10 +68,6 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if !self.cursor.in_display_area() {
-                break None;
-            }
-
             match self.state {
                 CenterAlignedState::LineBreak(ref remaining) => {
                     self.cursor.carriage_return();
@@ -80,6 +76,9 @@ where
                 }
 
                 CenterAlignedState::MeasureLine(ref remaining) => {
+                    if !self.cursor.in_display_area() {
+                        break None;
+                    }
                     let max_line_width = RectExt::size(self.cursor.bounds).width;
 
                     // initial width is the width of the characters carried over to this row
