@@ -3,7 +3,7 @@ use crate::utils::font_ext::FontExt;
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Pixel iterator to render a styled character
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct StyledCharacterIterator<C, F>
 where
     C: PixelColor,
