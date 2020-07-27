@@ -10,9 +10,7 @@ use crate::{
     style::StyledTextBox,
     utils::font_ext::{FontExt, LineMeasurement},
 };
-use embedded_graphics::{
-    drawable::Pixel, fonts::Font, pixelcolor::PixelColor, primitives::Rectangle,
-};
+use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered fully justified
 #[derive(Copy, Clone, Debug)]
@@ -94,10 +92,7 @@ where
     #[inline]
     #[must_use]
     fn create_state(&self) -> Self::PixelIteratorState {
-        JustifiedState::NextLine(
-            None,
-            Cursor::new(self.text_box.bounds),
-        )
+        JustifiedState::NextLine(None, Cursor::new(self.text_box.bounds))
     }
 }
 

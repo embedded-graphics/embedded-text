@@ -17,7 +17,7 @@ use crate::{
     parser::Parser,
     style::{StyledTextBox, TextBoxStyle},
 };
-use embedded_graphics::{prelude::*, primitives::Rectangle};
+use embedded_graphics::prelude::*;
 
 /// This trait is used to associate a state type to a horizontal alignment option.
 pub trait StateFactory {

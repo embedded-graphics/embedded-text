@@ -10,9 +10,7 @@ use crate::{
     style::StyledTextBox,
     utils::font_ext::FontExt,
 };
-use embedded_graphics::{
-    drawable::Pixel, fonts::Font, pixelcolor::PixelColor, primitives::Rectangle,
-};
+use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered left aligned
 #[derive(Copy, Clone, Debug)]
@@ -43,10 +41,7 @@ where
     #[inline]
     #[must_use]
     fn create_state(&self) -> Self::PixelIteratorState {
-        LeftAlignedState::NextLine(
-            None,
-            Cursor::new(self.text_box.bounds),
-        )
+        LeftAlignedState::NextLine(None, Cursor::new(self.text_box.bounds))
     }
 }
 
