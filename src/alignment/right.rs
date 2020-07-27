@@ -61,7 +61,7 @@ where
                         break None;
                     }
 
-                    if self.parser.peek().is_none() && carried_token.is_none() {
+                    if carried_token.is_none() && self.parser.peek().is_none() {
                         break None;
                     }
 
