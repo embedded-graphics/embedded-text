@@ -132,8 +132,8 @@ where
 
                     // in some rare cases, the carried over text may not fit into a single line
                     if measurement.fits_line {
-                        let mut last_whitespace_width = 0;
-                        let mut last_whitespace_count = 0;
+                        let mut next_whitespace_count = 0;
+                        let mut next_whitespace_width = 0;
                         let mut total_whitespace_width = 0;
 
                         for token in self.parser.clone() {
@@ -147,21 +147,19 @@ where
                                 }
 
                                 Token::Whitespace(n) => {
-                                    last_whitespace_count = n;
-                                    last_whitespace_width =
-                                        (n * F::total_char_width(' ')).min(space);
+                                    next_whitespace_count = total_whitespace_count + n;
+                                    next_whitespace_width = total_whitespace_width
+                                        + (n * F::total_char_width(' ')).min(space);
 
-                                    if total_whitespace_width + last_whitespace_width >= space {
+                                    if next_whitespace_width >= space {
                                         stretch_line = true;
                                         break;
                                     }
                                 }
 
                                 Token::Word(w) => {
-                                    let word_measurement = F::measure_line(
-                                        w.chars(),
-                                        space - total_whitespace_width - last_whitespace_width,
-                                    );
+                                    let word_measurement =
+                                        F::measure_line(w.chars(), space - next_whitespace_width);
 
                                     if !word_measurement.fits_line {
                                         // including the word would wrap the line, stop here instead
@@ -170,11 +168,8 @@ where
                                     }
 
                                     space -= word_measurement.width;
-                                    total_whitespace_width += last_whitespace_width;
-                                    total_whitespace_count += last_whitespace_count;
-
-                                    last_whitespace_count = 0;
-                                    last_whitespace_width = 0;
+                                    total_whitespace_width = next_whitespace_width;
+                                    total_whitespace_count = next_whitespace_count;
                                 }
                             }
                         }
