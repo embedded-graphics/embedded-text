@@ -119,7 +119,7 @@ where
                     let max_line_width = cursor.line_width();
 
                     // initial width is the width of the characters carried over to this row
-                    let measurement = if let Some(Token::Word(w)) = carried_token.clone() {
+                    let measurement = if let Some(Token::Word(ref w)) = carried_token {
                         F::measure_line(w.chars(), max_line_width)
                     } else {
                         LineMeasurement::empty()
