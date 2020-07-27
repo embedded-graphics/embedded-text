@@ -76,13 +76,12 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
+    /// Position information
+    pub cursor: Cursor<F>,
     /// The text to draw.
     pub parser: Parser<'a>,
     current_token: LineState<'a, C, F>,
     config: LineConfiguration<SP>,
-
-    /// Position information
-    pub cursor: Cursor<F>,
     style: TextStyle<C, F>,
     first_word: bool,
 }

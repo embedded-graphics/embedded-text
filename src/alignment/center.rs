@@ -42,8 +42,11 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state(bounds: Rectangle) -> Self::PixelIteratorState {
-        CenterAlignedState::NextLine(None, Cursor::new(bounds))
+    fn create_state(&self) -> Self::PixelIteratorState {
+        CenterAlignedState::NextLine(
+            None,
+            Cursor::new(self.text_box.bounds),
+        )
     }
 }
 

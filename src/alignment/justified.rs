@@ -93,8 +93,11 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state(bounds: Rectangle) -> Self::PixelIteratorState {
-        JustifiedState::NextLine(None, Cursor::new(bounds))
+    fn create_state(&self) -> Self::PixelIteratorState {
+        JustifiedState::NextLine(
+            None,
+            Cursor::new(self.text_box.bounds),
+        )
     }
 }
 

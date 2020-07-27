@@ -25,7 +25,7 @@ pub trait StateFactory {
     type PixelIteratorState;
 
     /// Creates a new state variable.
-    fn create_state(bounds: Rectangle) -> Self::PixelIteratorState;
+    fn create_state(&self) -> Self::PixelIteratorState;
 }
 
 /// Pixel iterator for styled text.
@@ -60,9 +60,7 @@ where
         Self {
             parser: Parser::parse(styled.text_box.text),
             style: styled.style,
-            state: <StyledTextBox<'a, C, F, A> as StateFactory>::create_state(
-                styled.text_box.bounds,
-            ),
+            state: styled.create_state(),
         }
     }
 }

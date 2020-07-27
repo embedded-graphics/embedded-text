@@ -10,9 +10,7 @@ use crate::{
     style::StyledTextBox,
     utils::font_ext::{FontExt, LineMeasurement},
 };
-use embedded_graphics::{
-    drawable::Pixel, fonts::Font, pixelcolor::PixelColor, primitives::Rectangle,
-};
+use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered right aligned
 #[derive(Copy, Clone, Debug)]
@@ -42,8 +40,8 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state(bounds: Rectangle) -> Self::PixelIteratorState {
-        RightAlignedState::NextLine(None, Cursor::new(bounds))
+    fn create_state(&self) -> Self::PixelIteratorState {
+        RightAlignedState::NextLine(None, Cursor::new(self.text_box.bounds))
     }
 }
 
