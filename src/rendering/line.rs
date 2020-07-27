@@ -259,16 +259,16 @@ where
                         // character done, move to the next one
                         let char_width = F::total_char_width(c);
 
-                        if !self.fits_in_line(char_width) {
-                            // word wrapping, this line is done
-                            LineState::Done(Some(Token::Word(chars.as_str())))
-                        } else {
+                        if self.fits_in_line(char_width) {
                             let pos = self.pos;
                             self.pos.x += char_width as i32;
                             LineState::Word(
                                 lookahead,
                                 StyledCharacterIterator::new(c, pos, self.style),
                             )
+                        } else {
+                            // word wrapping, this line is done
+                            LineState::Done(Some(Token::Word(chars.as_str())))
                         }
                     } else {
                         // process token
