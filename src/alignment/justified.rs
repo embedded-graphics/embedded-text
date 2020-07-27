@@ -162,7 +162,7 @@ where
 
                                     if !word_measurement.fits_line {
                                         // including the word would wrap the line, stop here instead
-                                        stretch_line = true;
+                                        stretch_line = total_whitespace_count != 0;
                                         break;
                                     }
 
@@ -173,7 +173,7 @@ where
                         }
                     }
 
-                    let space_info = if stretch_line && total_whitespace_count != 0 {
+                    let space_info = if stretch_line {
                         let space_width = space / total_whitespace_count;
                         let extra_pixels = space % total_whitespace_count;
                         JustifiedSpaceConfig::new(space_width, extra_pixels)
