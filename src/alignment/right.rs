@@ -102,7 +102,6 @@ where
                                         F::measure_line(w.chars(), space_with_last_ws);
                                     if word_measurement.fits_line {
                                         space = space_with_last_ws - word_measurement.width;
-                                        last_whitespace_width = 0;
                                         first_word = false;
                                     } else {
                                         if first_word {

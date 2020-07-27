@@ -134,7 +134,6 @@ where
                     if measurement.fits_line {
                         let mut next_whitespace_count = 0;
                         let mut next_whitespace_width = 0;
-                        let mut total_whitespace_width = 0;
 
                         for token in self.parser.clone() {
                             match token {
@@ -147,9 +146,9 @@ where
                                 }
 
                                 Token::Whitespace(n) => {
-                                    next_whitespace_count = total_whitespace_count + n;
-                                    next_whitespace_width = total_whitespace_width
-                                        + (n * F::total_char_width(' ')).min(space);
+                                    next_whitespace_count += n;
+                                    next_whitespace_width +=
+                                        (n * F::total_char_width(' ')).min(space);
 
                                     if next_whitespace_width >= space {
                                         stretch_line = true;
@@ -168,7 +167,6 @@ where
                                     }
 
                                     space -= word_measurement.width;
-                                    total_whitespace_width = next_whitespace_width;
                                     total_whitespace_count = next_whitespace_count;
                                 }
                             }
