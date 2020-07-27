@@ -1,17 +1,17 @@
 //! Cursor to track rendering position
-use crate::utils::font_ext::FontExt;
 use core::marker::PhantomData;
-use embedded_graphics::{prelude::*, primitives::Rectangle};
+use embedded_graphics::{fonts::Font, geometry::Point, primitives::Rectangle};
 
 /// Internal structure that keeps track of rendering a [`TextBox`].
 pub struct Cursor<F: Font> {
     _marker: PhantomData<F>,
 
-    /// Bounding box of the [`TextBox`]
-    pub bounds: Rectangle,
-
     /// Current cursor position
     pub position: Point,
+
+    left: i32,
+    right: i32,
+    bottom: i32,
 }
 
 impl<F: Font> Cursor<F> {
@@ -21,9 +21,17 @@ impl<F: Font> Cursor<F> {
     pub fn new(bounds: Rectangle) -> Self {
         Self {
             _marker: PhantomData,
-            bounds,
             position: bounds.top_left,
+            bottom: bounds.bottom_right.y + 1,
+            left: bounds.top_left.x,
+            right: (bounds.bottom_right.x + 1).max(bounds.top_left.x),
         }
+    }
+
+    /// Returns the width of the textbox
+    #[inline]
+    pub fn line_width(&self) -> u32 {
+        (self.right - self.left) as u32
     }
 
     /// Starts a new line.
@@ -35,7 +43,7 @@ impl<F: Font> Cursor<F> {
     /// Moves the cursor back to the start of the line.
     #[inline]
     pub fn carriage_return(&mut self) {
-        self.position.x = self.bounds.top_left.x;
+        self.position.x = self.left;
     }
 
     /// Returns whether the cursor is in the bounding box.
@@ -43,19 +51,13 @@ impl<F: Font> Cursor<F> {
     /// Note: Only vertical overrun is checked.
     #[inline]
     pub fn in_display_area(&self) -> bool {
-        (self.position.y + F::CHARACTER_SIZE.height as i32 - 1) < self.bounds.bottom_right.y
+        (self.position.y + F::CHARACTER_SIZE.height as i32) < self.bottom
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.
     #[inline]
     pub fn fits_in_line(&self, width: u32) -> bool {
-        width <= self.space_in_line()
-    }
-
-    /// Advances the cursor by a given character.
-    #[inline]
-    pub fn advance_char(&mut self, c: char) -> bool {
-        self.advance(F::total_char_width(c))
+        width as i32 <= self.right - self.position.x
     }
 
     /// Advances the cursor by a given amount.
@@ -67,12 +69,6 @@ impl<F: Font> Cursor<F> {
         } else {
             false
         }
-    }
-
-    /// Returns the available space in the current line.
-    #[inline]
-    pub fn space_in_line(&self) -> u32 {
-        (self.bounds.bottom_right.x + 1).saturating_sub(self.position.x) as u32
     }
 }
 
@@ -97,7 +93,7 @@ mod test {
             Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)));
 
         assert!(cursor.fits_in_line(1));
-        assert!(cursor.advance_char('a'));
+        assert!(cursor.advance(6));
         assert!(!cursor.fits_in_line(1));
     }
 }

@@ -7,10 +7,7 @@ use crate::{
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
-    utils::{
-        font_ext::{FontExt, LineMeasurement},
-        rect_ext::RectExt,
-    },
+    utils::font_ext::{FontExt, LineMeasurement},
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
@@ -67,7 +64,7 @@ where
                         break None;
                     }
 
-                    let max_line_width = self.cursor.bounds.size().width;
+                    let max_line_width = self.cursor.line_width();
 
                     // initial width is the width of the characters carried over to this row
                     let measurement = if let Some(Token::Word(w)) = carried_token.clone() {
@@ -129,7 +126,7 @@ where
                     self.state = CenterAlignedState::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
                         self.cursor.position,
-                        self.cursor.bounds.size().width,
+                        self.cursor.line_width(),
                         LineConfiguration {
                             starting_spaces: false,
                             ending_spaces: false,

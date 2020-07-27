@@ -7,7 +7,7 @@ use crate::{
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
-    utils::{font_ext::FontExt, rect_ext::RectExt},
+    utils::font_ext::FontExt,
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
@@ -67,7 +67,7 @@ where
                     self.state = LeftAlignedState::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
                         self.cursor.position,
-                        self.cursor.bounds.size().width,
+                        self.cursor.line_width(),
                         LineConfiguration {
                             starting_spaces: true,
                             ending_spaces: true,
