@@ -79,7 +79,6 @@ where
                     // in some rare cases, the carried over text may not fit into a single line
                     if measurement.fits_line {
                         let mut last_whitespace_width = 0;
-                        let mut first_word = true;
 
                         for token in self.parser.clone() {
                             match token {
@@ -102,9 +101,8 @@ where
                                         F::measure_line(w.chars(), space_with_last_ws);
                                     if word_measurement.fits_line {
                                         space = space_with_last_ws - word_measurement.width;
-                                        first_word = false;
                                     } else {
-                                        if first_word {
+                                        if space == max_line_width {
                                             space = max_line_width
                                                 - F::measure_line(w.chars(), max_line_width).width;
                                         }
