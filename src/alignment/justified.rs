@@ -27,11 +27,11 @@ impl TextAlignment for Justified {}
 #[derive(Copy, Clone, Debug)]
 pub struct JustifiedSpaceConfig {
     /// The width of the whitespace characters
-    pub space_width: u32,
+    space_width: u32,
 
     /// Stores how many characters are rendered using the space_width width. This field changes
     /// during rendering
-    pub space_count: u32,
+    space_count: u32,
 }
 
 impl JustifiedSpaceConfig {
