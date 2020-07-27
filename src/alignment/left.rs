@@ -3,13 +3,16 @@ use crate::{
     alignment::TextAlignment,
     parser::Token,
     rendering::{
+        cursor::Cursor,
         line::{LineConfiguration, StyledLineIterator, UniformSpaceConfig},
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
     utils::font_ext::FontExt,
 };
-use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
+use embedded_graphics::{
+    drawable::Pixel, fonts::Font, pixelcolor::PixelColor, primitives::Rectangle,
+};
 
 /// Marks text to be rendered left aligned
 #[derive(Copy, Clone, Debug)]
@@ -24,7 +27,7 @@ where
     F: Font + Copy,
 {
     /// Starts processing a line
-    NextLine(Option<Token<'a>>),
+    NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig>),
@@ -39,8 +42,8 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state() -> Self::PixelIteratorState {
-        LeftAlignedState::NextLine(None)
+    fn create_state(bounds: Rectangle) -> Self::PixelIteratorState {
+        LeftAlignedState::NextLine(None, Cursor::new(bounds))
     }
 }
 
@@ -55,8 +58,8 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                LeftAlignedState::NextLine(ref carried_token) => {
-                    if !self.cursor.in_display_area() {
+                LeftAlignedState::NextLine(ref carried_token, ref cursor) => {
+                    if !cursor.in_display_area() {
                         break None;
                     }
 
@@ -66,8 +69,7 @@ where
 
                     self.state = LeftAlignedState::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
-                        self.cursor.position,
-                        self.cursor.line_width(),
+                        *cursor,
                         LineConfiguration {
                             starting_spaces: true,
                             ending_spaces: true,
@@ -83,9 +85,12 @@ where
                         break pixel;
                     }
 
+                    let mut cursor = line_iterator.cursor;
+                    cursor.new_line();
+                    cursor.carriage_return();
                     self.parser = line_iterator.parser.clone();
-                    self.state = LeftAlignedState::NextLine(line_iterator.remaining_token());
-                    self.cursor.new_line();
+                    self.state =
+                        LeftAlignedState::NextLine(line_iterator.remaining_token(), cursor);
                 }
             };
         }

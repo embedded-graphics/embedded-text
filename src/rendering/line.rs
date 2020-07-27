@@ -1,7 +1,9 @@
 //! Line rendering
 use crate::{
     parser::{Parser, Token},
-    rendering::{character::StyledCharacterIterator, whitespace::EmptySpaceIterator},
+    rendering::{
+        character::StyledCharacterIterator, cursor::Cursor, whitespace::EmptySpaceIterator,
+    },
     utils::font_ext::FontExt,
 };
 use core::str::Chars;
@@ -78,9 +80,10 @@ where
     pub parser: Parser<'a>,
     current_token: LineState<'a, C, F>,
     config: LineConfiguration<SP>,
+
+    /// Position information
+    pub cursor: Cursor<F>,
     style: TextStyle<C, F>,
-    pos: Point,
-    max_x: i32,
     first_word: bool,
 }
 
@@ -95,8 +98,7 @@ where
     #[must_use]
     pub fn new(
         parser: Parser<'a>,
-        pos: Point,
-        width: u32,
+        cursor: Cursor<F>,
         config: LineConfiguration<SP>,
         style: TextStyle<C, F>,
         carried_token: Option<Token<'a>>,
@@ -107,9 +109,8 @@ where
                 .map(LineState::ProcessToken)
                 .unwrap_or(LineState::FetchNext),
             config,
+            cursor,
             style,
-            pos,
-            max_x: pos.x + width as i32 - 1,
             first_word: true,
         }
     }
@@ -126,7 +127,7 @@ where
     }
 
     fn fits_in_line(&self, width: u32) -> bool {
-        self.pos.x + width as i32 - 1 <= self.max_x
+        self.cursor.fits_in_line(width)
     }
 }
 
@@ -185,8 +186,8 @@ where
                                 }
 
                                 self.current_token = if space_width > 0 {
-                                    let pos = self.pos;
-                                    self.pos.x += space_width as i32;
+                                    let pos = self.cursor.position;
+                                    self.cursor.advance(space_width);
                                     LineState::Whitespace(
                                         spaces,
                                         EmptySpaceIterator::new(space_width, pos, self.style),
@@ -220,8 +221,8 @@ where
                             // unwrap is safe here, parser doesn't emit empty words
                             let c = chars.next().unwrap();
 
-                            let pos = self.pos;
-                            self.pos.x += F::total_char_width(c) as i32;
+                            let pos = self.cursor.position;
+                            self.cursor.advance(F::total_char_width(c));
 
                             self.current_token = LineState::Word(
                                 chars,
@@ -260,8 +261,8 @@ where
                         let char_width = F::total_char_width(c);
 
                         if self.fits_in_line(char_width) {
-                            let pos = self.pos;
-                            self.pos.x += char_width as i32;
+                            let pos = self.cursor.position;
+                            self.cursor.advance(char_width);
                             LineState::Word(
                                 lookahead,
                                 StyledCharacterIterator::new(c, pos, self.style),
@@ -288,10 +289,13 @@ where
 mod test {
 
     use crate::parser::{Parser, Token};
-    use crate::rendering::line::{LineConfiguration, StyledLineIterator, UniformSpaceConfig};
+    use crate::rendering::{
+        cursor::Cursor,
+        line::{LineConfiguration, StyledLineIterator, UniformSpaceConfig},
+    };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        style::TextStyleBuilder,
+        primitives::Rectangle, style::TextStyleBuilder,
     };
 
     #[test]
@@ -307,7 +311,8 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut iter = StyledLineIterator::new(parser, Point::zero(), 6 * 7, config, style, None);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -341,7 +346,8 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut iter = StyledLineIterator::new(parser, Point::zero(), 6 * 3, config, style, None);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 8)));
+        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -375,7 +381,8 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut iter = StyledLineIterator::new(parser, Point::zero(), 6 * 7, config, style, None);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -408,7 +415,8 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut iter = StyledLineIterator::new(parser, Point::zero(), 6 * 3, config, style, None);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 8)));
+        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -442,7 +450,8 @@ mod test {
             space_config: UniformSpaceConfig(6),
         };
 
-        let mut iter = StyledLineIterator::new(parser, Point::zero(), 6 * 7, config, style, None);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -468,7 +477,8 @@ mod test {
             space_config: UniformSpaceConfig(6),
         };
 
-        let mut iter = StyledLineIterator::new(parser, Point::zero(), 6 * 7, config, style, None);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -502,7 +512,8 @@ mod test {
             space_config: UniformSpaceConfig(6),
         };
 
-        let mut iter = StyledLineIterator::new(parser, Point::zero(), 6 * 5, config, style, None);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 8)));
+        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -511,8 +522,7 @@ mod test {
 
         let mut iter = StyledLineIterator::new(
             iter.parser.clone(),
-            Point::zero(),
-            6 * 5,
+            cursor,
             config,
             style,
             iter.remaining_token(),

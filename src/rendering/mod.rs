@@ -17,8 +17,7 @@ use crate::{
     parser::Parser,
     style::{StyledTextBox, TextBoxStyle},
 };
-use cursor::Cursor;
-use embedded_graphics::prelude::*;
+use embedded_graphics::{prelude::*, primitives::Rectangle};
 
 /// This trait is used to associate a state type to a horizontal alignment option.
 pub trait StateFactory {
@@ -26,7 +25,7 @@ pub trait StateFactory {
     type PixelIteratorState;
 
     /// Creates a new state variable.
-    fn create_state() -> Self::PixelIteratorState;
+    fn create_state(bounds: Rectangle) -> Self::PixelIteratorState;
 }
 
 /// Pixel iterator for styled text.
@@ -42,9 +41,6 @@ where
 
     /// Style used for rendering
     pub style: TextBoxStyle<C, F, A>,
-
-    /// Position information
-    pub cursor: Cursor<F>,
 
     /// State information used by the rendering algorithms
     pub state: <StyledTextBox<'a, C, F, A> as StateFactory>::PixelIteratorState,
@@ -64,8 +60,9 @@ where
         Self {
             parser: Parser::parse(styled.text_box.text),
             style: styled.style,
-            cursor: Cursor::new(styled.text_box.bounds),
-            state: <StyledTextBox<'a, C, F, A> as StateFactory>::create_state(),
+            state: <StyledTextBox<'a, C, F, A> as StateFactory>::create_state(
+                styled.text_box.bounds,
+            ),
         }
     }
 }

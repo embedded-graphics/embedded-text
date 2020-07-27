@@ -3,13 +3,16 @@ use crate::{
     alignment::TextAlignment,
     parser::Token,
     rendering::{
+        cursor::Cursor,
         line::{LineConfiguration, StyledLineIterator, UniformSpaceConfig},
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
     utils::font_ext::{FontExt, LineMeasurement},
 };
-use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
+use embedded_graphics::{
+    drawable::Pixel, fonts::Font, pixelcolor::PixelColor, primitives::Rectangle,
+};
 
 /// Marks text to be rendered right aligned
 #[derive(Copy, Clone, Debug)]
@@ -24,7 +27,7 @@ where
     F: Font + Copy,
 {
     /// Starts processing a line
-    NextLine(Option<Token<'a>>),
+    NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig>),
@@ -39,8 +42,8 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state() -> Self::PixelIteratorState {
-        RightAlignedState::NextLine(None)
+    fn create_state(bounds: Rectangle) -> Self::PixelIteratorState {
+        RightAlignedState::NextLine(None, Cursor::new(bounds))
     }
 }
 
@@ -55,8 +58,8 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                RightAlignedState::NextLine(ref carried_token) => {
-                    if !self.cursor.in_display_area() {
+                RightAlignedState::NextLine(ref carried_token, ref mut cursor) => {
+                    if !cursor.in_display_area() {
                         break None;
                     }
 
@@ -64,7 +67,7 @@ where
                         break None;
                     }
 
-                    let max_line_width = self.cursor.line_width();
+                    let max_line_width = cursor.line_width();
 
                     // initial width is the width of the characters carried over to this row
                     let measurement = if let Some(Token::Word(w)) = carried_token.clone() {
@@ -117,13 +120,12 @@ where
                         }
                     }
 
-                    self.cursor.carriage_return();
-                    self.cursor.advance(max_line_width - total_width);
+                    cursor.carriage_return();
+                    cursor.advance(max_line_width - total_width);
 
                     self.state = RightAlignedState::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
-                        self.cursor.position,
-                        self.cursor.line_width(),
+                        *cursor,
                         LineConfiguration {
                             starting_spaces: false,
                             ending_spaces: false,
@@ -139,9 +141,11 @@ where
                         break pixel;
                     }
 
+                    let mut cursor = line_iterator.cursor;
+                    cursor.new_line();
                     self.parser = line_iterator.parser.clone();
-                    self.state = RightAlignedState::NextLine(line_iterator.remaining_token());
-                    self.cursor.new_line();
+                    self.state =
+                        RightAlignedState::NextLine(line_iterator.remaining_token(), cursor);
                 }
             }
         }

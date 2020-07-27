@@ -3,6 +3,7 @@ use core::marker::PhantomData;
 use embedded_graphics::{fonts::Font, geometry::Point, primitives::Rectangle};
 
 /// Internal structure that keeps track of rendering a [`TextBox`].
+#[derive(Copy, Clone, Debug)]
 pub struct Cursor<F: Font> {
     _marker: PhantomData<F>,
 
@@ -62,13 +63,8 @@ impl<F: Font> Cursor<F> {
 
     /// Advances the cursor by a given amount.
     #[inline]
-    pub fn advance(&mut self, by: u32) -> bool {
-        if self.fits_in_line(by) {
-            self.position.x += by as i32;
-            true
-        } else {
-            false
-        }
+    pub fn advance(&mut self, by: u32) {
+        self.position.x += by as i32;
     }
 }
 
@@ -93,7 +89,7 @@ mod test {
             Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)));
 
         assert!(cursor.fits_in_line(1));
-        assert!(cursor.advance(6));
+        cursor.advance(6);
         assert!(!cursor.fits_in_line(1));
     }
 }

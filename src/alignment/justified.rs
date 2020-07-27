@@ -3,13 +3,16 @@ use crate::{
     alignment::TextAlignment,
     parser::Token,
     rendering::{
+        cursor::Cursor,
         line::{LineConfiguration, SpaceConfig, StyledLineIterator},
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
     utils::font_ext::{FontExt, LineMeasurement},
 };
-use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
+use embedded_graphics::{
+    drawable::Pixel, fonts::Font, pixelcolor::PixelColor, primitives::Rectangle,
+};
 
 /// Marks text to be rendered fully justified
 #[derive(Copy, Clone, Debug)]
@@ -75,7 +78,7 @@ where
     F: Font + Copy,
 {
     /// Starts processing a line
-    NextLine(Option<Token<'a>>),
+    NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line
     DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig>),
@@ -90,8 +93,8 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state() -> Self::PixelIteratorState {
-        JustifiedState::NextLine(None)
+    fn create_state(bounds: Rectangle) -> Self::PixelIteratorState {
+        JustifiedState::NextLine(None, Cursor::new(bounds))
     }
 }
 
@@ -106,8 +109,8 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                JustifiedState::NextLine(ref carried_token) => {
-                    if !self.cursor.in_display_area() {
+                JustifiedState::NextLine(ref carried_token, ref cursor) => {
+                    if !cursor.in_display_area() {
                         break None;
                     }
 
@@ -115,7 +118,7 @@ where
                         break None;
                     }
 
-                    let max_line_width = self.cursor.line_width();
+                    let max_line_width = cursor.line_width();
 
                     // initial width is the width of the characters carried over to this row
                     let measurement = if let Some(Token::Word(w)) = carried_token.clone() {
@@ -195,8 +198,7 @@ where
 
                     self.state = JustifiedState::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
-                        self.cursor.position,
-                        self.cursor.line_width(),
+                        *cursor,
                         LineConfiguration {
                             starting_spaces: false,
                             ending_spaces: false,
@@ -212,9 +214,11 @@ where
                         break pixel;
                     }
 
+                    let mut cursor = line_iterator.cursor;
+                    cursor.new_line();
+                    cursor.carriage_return();
                     self.parser = line_iterator.parser.clone();
-                    self.state = JustifiedState::NextLine(line_iterator.remaining_token());
-                    self.cursor.new_line();
+                    self.state = JustifiedState::NextLine(line_iterator.remaining_token(), cursor);
                 }
             }
         }
