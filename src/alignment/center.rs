@@ -114,9 +114,6 @@ where
                                     }
                                 }
                             }
-                            if total_width >= max_line_width {
-                                break;
-                            }
                         }
                     }
 

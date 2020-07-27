@@ -129,7 +129,7 @@ where
                             }
                         }
 
-                        _ => {}
+                        Token::NewLine => {}
                     }
                 }
                 current_rows

@@ -229,7 +229,7 @@ where
                             );
                         }
 
-                        _ => {
+                        Token::NewLine => {
                             // we're done
                             self.current_token = LineState::Done(None);
                         }

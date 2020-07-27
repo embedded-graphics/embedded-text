@@ -149,6 +149,13 @@ where
                                     last_whitespace_count = n;
                                     last_whitespace_width = (n * F::total_char_width(' '))
                                         .min(max_line_width - total_width);
+
+                                    if total_width + total_whitespace_width + last_whitespace_width
+                                        >= max_line_width
+                                    {
+                                        stretch_line = true;
+                                        break;
+                                    }
                                 }
 
                                 Token::Word(w) => {
@@ -173,13 +180,6 @@ where
                                     last_whitespace_count = 0;
                                     last_whitespace_width = 0;
                                 }
-                            }
-
-                            if total_width + total_whitespace_width + last_whitespace_width
-                                >= max_line_width
-                            {
-                                stretch_line = true;
-                                break;
                             }
                         }
                     }
