@@ -1,17 +1,17 @@
 //! Whitespace rendering
 
-use core::marker::PhantomData;
+use core::{marker::PhantomData, mem::MaybeUninit};
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Pixel iterator to render font spacing
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct EmptySpaceIterator<C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
     _font: PhantomData<F>,
-    color: Option<C>,
+    color: MaybeUninit<C>,
     pos: Point,
     char_walk: Point,
     walk_max_x: i32,
@@ -25,13 +25,26 @@ where
     /// Creates a new pixel iterator to draw empty spaces.
     #[inline]
     #[must_use]
-    pub fn new(width: u32, pos: Point, style: TextStyle<C, F>) -> Self {
-        Self {
-            _font: PhantomData,
-            color: style.background_color,
-            pos,
-            char_walk: Point::zero(),
-            walk_max_x: width as i32 - 1,
+    pub fn new(width: u32, position: Point, style: TextStyle<C, F>) -> Self {
+        if width == 0 || style.background_color.is_none() {
+            Self {
+                _font: PhantomData,
+                color: MaybeUninit::uninit(),
+                pos: Point::zero(),
+                char_walk: Point::zero(),
+                walk_max_x: 0,
+            }
+        } else {
+            let walk_max_x = position.x + width as i32 - 1;
+            let walk_max_y = position.y + F::CHARACTER_SIZE.height as i32;
+
+            Self {
+                _font: PhantomData,
+                color: MaybeUninit::new(style.background_color.unwrap()),
+                pos: Point::new(position.x, walk_max_y),
+                char_walk: position,
+                walk_max_x,
+            }
         }
     }
 }
@@ -45,24 +58,23 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(color) = self.color {
-            if self.walk_max_x < 0 || self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
-                // Done with filling this space
-                None
+        let walk = self.char_walk;
+        if walk.y < self.pos.y {
+            if walk.x < self.walk_max_x {
+                self.char_walk.x += 1;
             } else {
-                let p = self.pos + self.char_walk;
-
-                if self.char_walk.x < self.walk_max_x {
-                    self.char_walk.x += 1;
-                } else {
-                    self.char_walk.x = 0;
-                    self.char_walk.y += 1;
-                }
-
-                // Skip to next point if pixel is transparent
-                Some(Pixel(p, color))
+                self.char_walk.x = self.pos.x;
+                self.char_walk.y += 1;
             }
+
+            // Skip to next point if pixel is transparent
+            Some(Pixel(walk, unsafe {
+                // this is safe because if not initialized,
+                // coordinates are set to never hit this line
+                self.color.assume_init()
+            }))
         } else {
+            // Done with filling this space
             None
         }
     }
@@ -94,6 +106,19 @@ mod test {
             .build();
 
         assert_eq!(0, EmptySpaceIterator::new(10, Point::zero(), style).count());
+    }
+
+    #[test]
+    fn first_point_in_position() {
+        let style = TextStyleBuilder::new(Font6x8)
+            .background_color(BinaryColor::On)
+            .build();
+
+        let pos = Point::new(8, 6);
+        assert_eq!(
+            pos,
+            EmptySpaceIterator::new(10, pos, style).next().unwrap().0
+        );
     }
 
     #[test]
