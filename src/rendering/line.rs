@@ -7,23 +7,36 @@ use crate::{
 use core::str::Chars;
 use embedded_graphics::{prelude::*, style::TextStyle};
 
+/// Internal state used to render a line
 #[derive(Debug)]
 pub enum LineState<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
+    /// Decide what to do next
     ProcessToken(Token<'a>),
+
+    /// Render a word
     Word(Chars<'a>, StyledCharacterIterator<C, F>),
+
+    /// Render whitespace
     Whitespace(u32, EmptySpaceIterator<C, F>),
+
+    /// Signal that the renderer has finished, store the token that was consumed but not rendered
     Done(Option<Token<'a>>),
 }
 
+/// Retrieves size of space characters
 pub trait SpaceConfig: Copy {
+    /// Look at the size of next n spaces, without advancing
     fn peek_next_width(&self, n: u32) -> u32;
+
+    /// Get the width of the next space and advance
     fn next_space_width(&mut self) -> u32;
 }
 
+/// Contains the fixed width of a space character
 #[derive(Copy, Clone, Debug)]
 pub struct UniformSpaceConfig(pub u32);
 impl SpaceConfig for UniformSpaceConfig {
@@ -38,10 +51,16 @@ impl SpaceConfig for UniformSpaceConfig {
     }
 }
 
+/// Renderer configuration options
 #[derive(Copy, Clone, Debug)]
 pub struct LineConfiguration<SP: SpaceConfig> {
+    /// Render spaces at the start of a line
     pub starting_spaces: bool,
+
+    /// Render spaces at the end of a line
     pub ending_spaces: bool,
+
+    /// Space configuration
     pub space_config: SP,
 }
 
@@ -92,11 +111,17 @@ where
 
     /// When finished, this method returns the last partially processed token, or
     /// None if everything was rendered.
+    #[must_use]
+    #[inline]
     pub fn remaining_token(&self) -> Option<Token<'a>> {
         match self.current_token {
             Some(LineState::Done(ref t)) => t.clone(),
             _ => None,
         }
+    }
+
+    fn fits_in_line(&self, width: u32) -> bool {
+        self.pos.x + width as i32 - 1 <= self.max_x
     }
 }
 
@@ -138,9 +163,7 @@ where
                                     let space_width = self.config.space_config.peek_next_width(n);
                                     let word_width = F::str_width(w);
 
-                                    let width = (space_width + word_width) as i32;
-
-                                    self.pos.x + width <= self.max_x
+                                    self.fits_in_line(space_width + word_width)
                                 } else {
                                     false
                                 }
@@ -149,26 +172,34 @@ where
                             if render_whitespace {
                                 // take as many spaces as possible and save the rest in state
 
-                                let pos = self.pos;
                                 let mut space_width = 0;
-
                                 let mut spaces = n;
+
                                 while spaces > 0
-                                    && pos.x
-                                        + (space_width
-                                            + self.config.space_config.peek_next_width(0))
-                                            as i32
-                                        <= self.max_x
+                                    && self.fits_in_line(
+                                        space_width + self.config.space_config.peek_next_width(1),
+                                    )
                                 {
                                     spaces -= 1;
                                     space_width += self.config.space_config.next_space_width();
                                 }
 
-                                self.pos.x += space_width as i32;
-                                self.current_token = Some(LineState::Whitespace(
-                                    spaces,
-                                    EmptySpaceIterator::new(space_width, pos, self.style),
-                                ));
+                                if space_width > 0 {
+                                    let pos = self.pos;
+                                    self.pos.x += space_width as i32;
+                                    self.current_token = Some(LineState::Whitespace(
+                                        spaces,
+                                        EmptySpaceIterator::new(space_width, pos, self.style),
+                                    ));
+                                } else if spaces > 1 {
+                                    self.current_token = Some(LineState::Done(Some(
+                                        Token::Whitespace(spaces.saturating_sub(1)),
+                                    )));
+                                    break None;
+                                } else {
+                                    self.current_token = Some(LineState::Done(None));
+                                    break None;
+                                }
                             } else {
                                 // nothing, process next token
                                 self.current_token = None;
@@ -178,13 +209,9 @@ where
                         Token::Word(w) => {
                             if self.first_word {
                                 self.first_word = false;
-                            } else {
-                                let word_width = F::str_width(w) as i32;
-                                if self.pos.x + word_width > self.max_x {
-                                    self.current_token =
-                                        Some(LineState::Done(Some(Token::Word(w))));
-                                    break None;
-                                }
+                            } else if !self.fits_in_line(F::str_width(w)) {
+                                self.current_token = Some(LineState::Done(Some(Token::Word(w))));
+                                break None;
                             }
 
                             // - always draw first word, Word state should handle wrapping
@@ -224,7 +251,7 @@ where
                     }
                 }
 
-                Some(LineState::Word(ref mut chars, ref mut iter)) => {
+                Some(LineState::Word(ref chars, ref mut iter)) => {
                     if let pixel @ Some(_) = iter.next() {
                         break pixel;
                     }
@@ -232,16 +259,17 @@ where
                     let mut lookahead = chars.clone();
                     if let Some(c) = lookahead.next() {
                         // character done, move to the next one
-                        let pos = self.pos;
-                        self.pos.x += F::total_char_width(c) as i32;
+                        let char_width = F::total_char_width(c);
 
-                        if self.pos.x > self.max_x + 1 {
+                        if !self.fits_in_line(char_width) {
                             // word wrapping, this line is done
                             self.current_token =
                                 Some(LineState::Done(Some(Token::Word(chars.as_str()))));
                             break None;
                         }
 
+                        let pos = self.pos;
+                        self.pos.x += char_width as i32;
                         self.current_token = Some(LineState::Word(
                             lookahead,
                             StyledCharacterIterator::new(c, pos, self.style),

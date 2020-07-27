@@ -3,15 +3,13 @@ use crate::{
     alignment::TextAlignment,
     parser::Token,
     rendering::{
-        character::StyledCharacterIterator, whitespace::EmptySpaceIterator, StateFactory,
-        StyledTextBoxIterator,
+        line::{LineConfiguration, StyledLineIterator, UniformSpaceConfig},
+        StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
-    utils::font_ext::FontExt,
+    utils::{font_ext::FontExt, rect_ext::RectExt},
 };
-use embedded_graphics::prelude::*;
-
-use core::str::Chars;
+use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered left aligned
 #[derive(Copy, Clone, Debug)]
@@ -25,17 +23,11 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// This state processes the next token in the text.
-    NextWord(bool),
+    /// Starts processing a line
+    NextLine(Option<Token<'a>>),
 
-    /// This state processes the next character in a word.
-    DrawWord(Chars<'a>),
-
-    /// This state renders a character, then passes the rest of the character iterator to DrawWord.
-    DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>),
-
-    /// This state renders whitespace.
-    DrawWhitespace(u32, EmptySpaceIterator<C, F>),
+    /// Renders the processed line
+    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig>),
 }
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, LeftAligned>
@@ -48,7 +40,7 @@ where
     #[inline]
     #[must_use]
     fn create_state() -> Self::PixelIteratorState {
-        LeftAlignedState::NextWord(true)
+        LeftAlignedState::NextLine(None)
     }
 }
 
@@ -63,109 +55,37 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                LeftAlignedState::NextWord(first_word) => {
-                    if let Some(token) = self.parser.next() {
-                        match token {
-                            Token::Word(w) => {
-                                // measure w to see if it fits in current line
-                                if !first_word && !self.cursor.fits_in_line(F::str_width(w)) {
-                                    self.cursor.carriage_return();
-                                    self.cursor.new_line();
-                                }
-
-                                self.state = LeftAlignedState::DrawWord(w.chars());
-                            }
-
-                            Token::Whitespace(n) => {
-                                // word wrapping, also applied for whitespace sequences
-                                let width = F::total_char_width(' ');
-                                let pos = self.cursor.position;
-                                self.state = if self.cursor.advance(width) {
-                                    LeftAlignedState::DrawWhitespace(
-                                        n - 1,
-                                        EmptySpaceIterator::new(width, pos, self.style.text_style),
-                                    )
-                                } else {
-                                    LeftAlignedState::NextWord(first_word)
-                                }
-                            }
-
-                            Token::NewLine => {
-                                self.cursor.carriage_return();
-                                self.cursor.new_line();
-                            }
-                        }
-                    } else {
-                        break None;
-                    }
-
+                LeftAlignedState::NextLine(ref carried_token) => {
                     if !self.cursor.in_display_area() {
                         break None;
                     }
-                }
 
-                LeftAlignedState::DrawWord(ref mut chars_iterator) => {
-                    let mut copy = chars_iterator.clone();
-                    if let Some(c) = copy.next() {
-                        let current_pos = self.cursor.position;
-
-                        if self.cursor.advance_char(c) {
-                            self.state = LeftAlignedState::DrawCharacter(
-                                copy,
-                                StyledCharacterIterator::new(c, current_pos, self.style.text_style),
-                            );
-                        } else {
-                            // word wrapping
-                            self.cursor.carriage_return();
-                            self.cursor.new_line();
-
-                            if !self.cursor.in_display_area() {
-                                break None;
-                            }
-                        }
-                    } else {
-                        self.state = LeftAlignedState::NextWord(false);
+                    if self.parser.peek().is_none() && carried_token.is_none() {
+                        break None;
                     }
+
+                    self.state = LeftAlignedState::DrawLine(StyledLineIterator::new(
+                        self.parser.clone(),
+                        self.cursor.position,
+                        self.cursor.bounds.size().width,
+                        LineConfiguration {
+                            starting_spaces: true,
+                            ending_spaces: true,
+                            space_config: UniformSpaceConfig(F::total_char_width(' ')),
+                        },
+                        self.style.text_style,
+                        carried_token.clone(),
+                    ));
                 }
 
-                LeftAlignedState::DrawWhitespace(n, ref mut iterator) => {
-                    if let pixel @ Some(_) = iterator.next() {
+                LeftAlignedState::DrawLine(ref mut line_iterator) => {
+                    if let pixel @ Some(_) = line_iterator.next() {
                         break pixel;
                     }
 
-                    self.state = if n == 0 {
-                        // no more spaces to draw
-                        LeftAlignedState::NextWord(false)
-                    } else {
-                        // word wrapping, also applied for whitespace sequences
-                        let width = F::total_char_width(' ');
-
-                        // use the current position, except if wrapping
-                        let mut pos = self.cursor.position;
-                        if !self.cursor.advance(width) {
-                            self.cursor.carriage_return();
-                            self.cursor.new_line();
-
-                            if !self.cursor.in_display_area() {
-                                break None;
-                            }
-                            pos = self.cursor.position;
-                            self.cursor.advance(width);
-                        }
-
-                        LeftAlignedState::DrawWhitespace(
-                            n - 1,
-                            EmptySpaceIterator::new(width, pos, self.style.text_style),
-                        )
-                    }
-                }
-
-                LeftAlignedState::DrawCharacter(ref chars_iterator, ref mut iterator) => {
-                    if let pixel @ Some(_) = iterator.next() {
-                        break pixel;
-                    }
-
-                    self.state = LeftAlignedState::DrawWord(chars_iterator.clone());
+                    self.parser = line_iterator.parser.clone();
+                    self.state = LeftAlignedState::NextLine(line_iterator.remaining_token());
+                    self.cursor.new_line();
                 }
             };
         }
@@ -246,6 +166,46 @@ mod test {
                 "#.#.#.#.....#...#.####..####....#...#...#..####.",
                 ".#.#..#......####.#.....#......###..#...#.....#.",
                 "..................#.....#..................###.."
+            ])
+        );
+    }
+
+    #[test]
+    fn simple_word_wrapping_by_space() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new(
+            "wrapping word",
+            Rectangle::new(Point::zero(), Point::new(47, 54)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "................................#...............",
+                "................................................",
+                "#...#.#.##...###..####..####...##...#.##...####.",
+                "#...#.##..#.....#.#...#.#...#...#...##..#.#...#.",
+                "#.#.#.#......####.#...#.#...#...#...#...#.#...#.",
+                "#.#.#.#.....#...#.####..####....#...#...#..####.",
+                ".#.#..#......####.#.....#......###..#...#.....#.",
+                "..................#.....#..................###..",
+                "......................#.                        ",
+                "......................#.                        ",
+                "#...#..###..#.##...##.#.                        ",
+                "#...#.#...#.##..#.#..##.                        ",
+                "#.#.#.#...#.#.....#...#.                        ",
+                "#.#.#.#...#.#.....#...#.                        ",
+                ".#.#...###..#......####.                        ",
+                "........................                        ",
             ])
         );
     }
