@@ -74,7 +74,7 @@ where
                         LineMeasurement::empty()
                     };
 
-                    let mut total_width = measurement.width;
+                    let mut space = max_line_width - measurement.width;
 
                     // in some rare cases, the carried over text may not fit into a single line
                     if measurement.fits_line {
@@ -87,29 +87,27 @@ where
                                     break;
                                 }
 
-                                Token::Whitespace(_) if total_width == 0 => {
+                                Token::Whitespace(_) if space == max_line_width => {
                                     // eat spaces at the start of line
                                 }
 
                                 Token::Whitespace(n) => {
-                                    last_whitespace_width = (n as u32 * F::total_char_width(' '))
-                                        .min(max_line_width - total_width);
+                                    last_whitespace_width =
+                                        (n as u32 * F::total_char_width(' ')).min(space);
                                 }
 
                                 Token::Word(w) => {
-                                    let word_measurement = F::measure_line(
-                                        w.chars(),
-                                        max_line_width - total_width - last_whitespace_width,
-                                    );
+                                    let space_with_last_ws = space - last_whitespace_width;
+                                    let word_measurement =
+                                        F::measure_line(w.chars(), space_with_last_ws);
                                     if word_measurement.fits_line {
-                                        total_width +=
-                                            last_whitespace_width + word_measurement.width;
+                                        space = space_with_last_ws - word_measurement.width;
                                         last_whitespace_width = 0;
                                         first_word = false;
                                     } else {
                                         if first_word {
-                                            total_width =
-                                                F::measure_line(w.chars(), max_line_width).width;
+                                            space = max_line_width
+                                                - F::measure_line(w.chars(), max_line_width).width;
                                         }
                                         break;
                                     }
@@ -119,7 +117,7 @@ where
                     }
 
                     cursor.carriage_return();
-                    cursor.advance(max_line_width - total_width);
+                    cursor.advance(space);
 
                     self.state = RightAlignedState::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
