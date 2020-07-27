@@ -1,10 +1,14 @@
 //! Whitespace rendering
 
-use core::{marker::PhantomData, mem::MaybeUninit};
+use core::{
+    fmt::{Debug, Formatter, Result},
+    marker::PhantomData,
+    mem::MaybeUninit,
+};
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Pixel iterator to render font spacing
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct EmptySpaceIterator<C, F>
 where
     C: PixelColor,
@@ -15,6 +19,24 @@ where
     pos: Point,
     char_walk: Point,
     walk_max_x: i32,
+}
+
+impl<C, F> Debug for EmptySpaceIterator<C, F>
+where
+    C: PixelColor,
+    F: Font + Copy,
+{
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        // Manual Debug implementation is necessary because MaybeUninit is only Debug in >=1.41.0
+        f.debug_struct(&core::any::type_name::<Self>())
+            .field("_font", &self._font)
+            .field("color", &core::any::type_name::<C>())
+            .field("pos", &self.pos)
+            .field("char_walk", &self.char_walk)
+            .field("walk_max_x", &self.walk_max_x)
+            .finish()
+    }
 }
 
 impl<C, F> EmptySpaceIterator<C, F>
