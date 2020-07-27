@@ -36,6 +36,13 @@ impl<'a> Parser<'a> {
     pub fn peek(&self) -> Option<Token> {
         self.clone().next()
     }
+
+    /// Returns true if there are no tokens to process
+    #[inline]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.inner.as_str().is_empty()
+    }
 }
 
 impl<'a> Iterator for Parser<'a> {
