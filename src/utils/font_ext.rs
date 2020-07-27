@@ -41,6 +41,13 @@ impl LineMeasurement {
     pub const fn new(width: u32, fits_line: bool) -> Self {
         LineMeasurement { width, fits_line }
     }
+
+    /// Creates a new measurement result object for an empty line.
+    #[inline]
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self::new(0, true)
+    }
 }
 
 impl<F> FontExt for F

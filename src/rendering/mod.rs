@@ -6,6 +6,9 @@ pub mod character;
 /// Whitespace rendering
 pub mod whitespace;
 
+/// Line rendering
+pub mod line;
+
 /// Cursor to track rendering position
 pub mod cursor;
 

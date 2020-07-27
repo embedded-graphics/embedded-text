@@ -3,15 +3,13 @@ use crate::{
     alignment::TextAlignment,
     parser::Token,
     rendering::{
-        character::StyledCharacterIterator, whitespace::EmptySpaceIterator, StateFactory,
-        StyledTextBoxIterator,
+        line::{LineConfiguration, SpaceConfig, StyledLineIterator},
+        StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
-    utils::{font_ext::FontExt, rect_ext::RectExt},
+    utils::font_ext::{FontExt, LineMeasurement},
 };
-use embedded_graphics::prelude::*;
-
-use core::str::Chars;
+use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered fully justified
 #[derive(Copy, Clone, Debug)]
@@ -26,7 +24,7 @@ impl TextAlignment for Justified {}
 /// width is used. This struct stores two width values so the whole line will always (at least if
 /// there's a space in the line) take up all available space.
 #[derive(Copy, Clone, Debug)]
-pub struct SpaceInfo {
+pub struct JustifiedSpaceConfig {
     /// The width of the whitespace characters
     pub space_width: u32,
 
@@ -35,24 +33,26 @@ pub struct SpaceInfo {
     pub space_count: u32,
 }
 
-impl SpaceInfo {
+impl JustifiedSpaceConfig {
     #[inline]
     #[must_use]
     fn default<F: Font>() -> Self {
-        SpaceInfo::new(F::total_char_width(' '), 0)
+        JustifiedSpaceConfig::new(F::total_char_width(' '), 0)
     }
 
     #[inline]
     #[must_use]
     fn new(space_width: u32, extra_pixel_count: u32) -> Self {
-        SpaceInfo {
+        JustifiedSpaceConfig {
             space_width,
             space_count: extra_pixel_count,
         }
     }
+}
 
+impl SpaceConfig for JustifiedSpaceConfig {
     #[inline]
-    fn space_width(&mut self) -> u32 {
+    fn next_space_width(&mut self) -> u32 {
         if self.space_count == 0 {
             self.space_width
         } else {
@@ -62,7 +62,7 @@ impl SpaceInfo {
     }
 
     #[inline]
-    fn peek_space_width(&self, whitespace_count: u32) -> u32 {
+    fn peek_next_width(&self, whitespace_count: u32) -> u32 {
         whitespace_count * self.space_width + self.space_count.min(whitespace_count)
     }
 }
@@ -74,23 +74,11 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// This state processes the next token in the text.
-    NextWord(bool, SpaceInfo),
+    /// Starts processing a line
+    NextLine(Option<Token<'a>>),
 
-    /// This state handles a line break after a newline character or word wrapping.
-    LineBreak(Chars<'a>),
-
-    /// This state measures the next line to calculate the position of the first word.
-    MeasureLine(Chars<'a>),
-
-    /// This state processes the next character in a word.
-    DrawWord(Chars<'a>, SpaceInfo),
-
-    /// This state renders a character, then passes the rest of the character iterator to DrawWord.
-    DrawCharacter(Chars<'a>, StyledCharacterIterator<C, F>, SpaceInfo),
-
-    /// This state renders whitespace.
-    DrawWhitespace(u32, EmptySpaceIterator<C, F>, SpaceInfo),
+    /// Renders the processed line
+    DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig>),
 }
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, Justified>
@@ -103,7 +91,7 @@ where
     #[inline]
     #[must_use]
     fn create_state() -> Self::PixelIteratorState {
-        JustifiedState::MeasureLine("".chars())
+        JustifiedState::NextLine(None)
     }
 }
 
@@ -118,20 +106,23 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                JustifiedState::LineBreak(ref remaining) => {
-                    self.cursor.carriage_return();
-                    self.cursor.new_line();
-                    self.state = JustifiedState::MeasureLine(remaining.clone());
-                }
-
-                JustifiedState::MeasureLine(ref remaining) => {
+                JustifiedState::NextLine(ref carried_token) => {
                     if !self.cursor.in_display_area() {
                         break None;
                     }
-                    let max_line_width = RectExt::size(self.cursor.bounds).width;
+
+                    if self.parser.peek().is_none() && carried_token.is_none() {
+                        break None;
+                    }
+
+                    let max_line_width = self.cursor.line_width();
 
                     // initial width is the width of the characters carried over to this row
-                    let measurement = F::measure_line(remaining.clone(), max_line_width);
+                    let measurement = if let Some(Token::Word(w)) = carried_token.clone() {
+                        F::measure_line(w.chars(), max_line_width)
+                    } else {
+                        LineMeasurement::empty()
+                    };
 
                     let mut total_width = measurement.width;
 
@@ -197,127 +188,33 @@ where
                         let total_space_width = max_line_width - total_width;
                         let space_width = total_space_width / total_whitespace_count;
                         let extra_pixels = total_space_width % total_whitespace_count;
-                        SpaceInfo::new(space_width, extra_pixels)
+                        JustifiedSpaceConfig::new(space_width, extra_pixels)
                     } else {
-                        SpaceInfo::default::<F>()
+                        JustifiedSpaceConfig::default::<F>()
                     };
 
-                    self.state = if remaining.as_str().is_empty() {
-                        JustifiedState::NextWord(true, space_info)
-                    } else {
-                        JustifiedState::DrawWord(remaining.clone(), space_info)
-                    }
+                    self.state = JustifiedState::DrawLine(StyledLineIterator::new(
+                        self.parser.clone(),
+                        self.cursor.position,
+                        self.cursor.line_width(),
+                        LineConfiguration {
+                            starting_spaces: false,
+                            ending_spaces: false,
+                            space_config: space_info,
+                        },
+                        self.style.text_style,
+                        carried_token.clone(),
+                    ));
                 }
 
-                JustifiedState::NextWord(first_word, mut space_info) => {
-                    if let Some(token) = self.parser.next() {
-                        match token {
-                            Token::Word(w) if first_word => {
-                                self.state = JustifiedState::DrawWord(w.chars(), space_info);
-                            }
-
-                            Token::Word(w) => {
-                                // measure w to see if it fits in current line
-                                if self.cursor.fits_in_line(F::str_width(w)) {
-                                    self.state = JustifiedState::DrawWord(w.chars(), space_info);
-                                } else {
-                                    self.state = JustifiedState::LineBreak(w.chars());
-                                }
-                            }
-
-                            Token::Whitespace(_) if first_word => {
-                                // Ignore whitespace before first word in line
-                            }
-
-                            Token::Whitespace(n) => {
-                                // word wrapping, also applied for whitespace sequences
-                                let mut lookahead = self.parser.clone();
-                                if let Some(Token::Word(w)) = lookahead.next() {
-                                    // only render whitespace if next is word and next doesn't wrap
-                                    let n_width = F::str_width(w) + space_info.peek_space_width(n);
-
-                                    let pos = self.cursor.position;
-                                    self.state = if self.cursor.fits_in_line(n_width) {
-                                        let width = space_info.space_width();
-                                        self.cursor.advance(width);
-                                        JustifiedState::DrawWhitespace(
-                                            n - 1,
-                                            EmptySpaceIterator::new(
-                                                width,
-                                                pos,
-                                                self.style.text_style,
-                                            ),
-                                            space_info,
-                                        )
-                                    } else {
-                                        JustifiedState::NextWord(first_word, space_info)
-                                    }
-                                } else {
-                                    // don't render
-                                }
-                            }
-
-                            Token::NewLine => {
-                                self.state = JustifiedState::LineBreak("".chars());
-                            }
-                        }
-                    } else {
-                        break None;
-                    }
-                }
-
-                JustifiedState::DrawWord(ref mut chars_iterator, space_info) => {
-                    let mut copy = chars_iterator.clone();
-                    self.state = if let Some(c) = copy.next() {
-                        let current_pos = self.cursor.position;
-
-                        if self.cursor.advance_char(c) {
-                            JustifiedState::DrawCharacter(
-                                copy,
-                                StyledCharacterIterator::new(c, current_pos, self.style.text_style),
-                                space_info,
-                            )
-                        } else {
-                            // word wrapping
-                            JustifiedState::LineBreak(chars_iterator.clone())
-                        }
-                    } else {
-                        JustifiedState::NextWord(false, space_info)
-                    }
-                }
-
-                JustifiedState::DrawWhitespace(n, ref mut iterator, mut space_info) => {
-                    if let pixel @ Some(_) = iterator.next() {
+                JustifiedState::DrawLine(ref mut line_iterator) => {
+                    if let pixel @ Some(_) = line_iterator.next() {
                         break pixel;
                     }
 
-                    self.state = if n == 0 {
-                        // no more spaces to draw
-                        JustifiedState::NextWord(false, space_info)
-                    } else {
-                        let width = space_info.space_width();
-                        let pos = self.cursor.position;
-                        if self.cursor.advance(width) {
-                            // draw next space
-                            JustifiedState::DrawWhitespace(
-                                n - 1,
-                                EmptySpaceIterator::new(width, pos, self.style.text_style),
-                                space_info,
-                            )
-                        } else {
-                            // word wrapping, also applied for whitespace sequences
-                            // eat the spaces from the start of next line
-                            JustifiedState::LineBreak("".chars())
-                        }
-                    }
-                }
-
-                JustifiedState::DrawCharacter(ref chars_iterator, ref mut iterator, space_info) => {
-                    if let pixel @ Some(_) = iterator.next() {
-                        break pixel;
-                    }
-
-                    self.state = JustifiedState::DrawWord(chars_iterator.clone(), space_info);
+                    self.parser = line_iterator.parser.clone();
+                    self.state = JustifiedState::NextLine(line_iterator.remaining_token());
+                    self.cursor.new_line();
                 }
             }
         }

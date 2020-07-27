@@ -1,5 +1,5 @@
 //! Parse text into words, newlines and whitespace sequences
-use core::str::CharIndices;
+use core::str::Chars;
 
 /// A text token
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -15,9 +15,9 @@ pub enum Token<'a> {
 }
 
 /// The parser struct
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Parser<'a> {
-    inner: CharIndices<'a>,
+    inner: Chars<'a>,
 }
 
 impl<'a> Parser<'a> {
@@ -26,8 +26,15 @@ impl<'a> Parser<'a> {
     #[must_use]
     pub fn parse(text: &'a str) -> Self {
         Self {
-            inner: text.char_indices(),
+            inner: text.chars(),
         }
+    }
+
+    /// Returns the next token without advancing
+    #[inline]
+    #[must_use]
+    pub fn peek(&self) -> Option<Token> {
+        self.clone().next()
     }
 }
 
@@ -37,23 +44,23 @@ impl<'a> Iterator for Parser<'a> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let string = self.inner.as_str();
-        self.inner.next().map(|(_, c)| match c {
+        self.inner.next().map(|c| match c {
             '\n' => Token::NewLine,
 
             c if c.is_whitespace() => {
                 let mut len = 0;
                 for (idx, c) in string.char_indices() {
-                    if c.is_whitespace() {
+                    if c.is_whitespace() && c != '\n' {
                         len += 1;
                     } else {
                         // consume the whitespaces
-                        self.inner = unsafe { string.get_unchecked(idx..) }.char_indices();
+                        self.inner = unsafe { string.get_unchecked(idx..) }.chars();
                         return Token::Whitespace(len);
                     }
                 }
 
                 // consume all the text
-                self.inner = "".char_indices();
+                self.inner = "".chars();
                 Token::Whitespace(len)
             }
 
@@ -67,13 +74,13 @@ impl<'a> Iterator for Parser<'a> {
                                 string.get_unchecked(possible_end..),
                             )
                         };
-                        self.inner = rest.char_indices();
+                        self.inner = rest.chars();
                         return Token::Word(word);
                     }
                 }
 
                 // consume all the text
-                self.inner = "".char_indices();
+                self.inner = "".chars();
                 Token::Word(&string)
             }
         })
