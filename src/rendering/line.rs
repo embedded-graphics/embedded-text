@@ -138,12 +138,11 @@ where
         loop {
             match self.current_token {
                 None => {
-                    if let Some(token) = self.parser.next() {
-                        self.current_token = Some(LineState::ProcessToken(token));
+                    self.current_token = if let Some(token) = self.parser.next() {
+                        Some(LineState::ProcessToken(token))
                     } else {
                         // we're done
-                        self.current_token = Some(LineState::Done(None));
-                        break None;
+                        Some(LineState::Done(None))
                     }
                 }
 
@@ -153,20 +152,16 @@ where
                         Token::Whitespace(n) => {
                             let render_whitespace = if self.first_word {
                                 self.config.starting_spaces
+                            } else if self.config.ending_spaces {
+                                true
+                            } else if let Some(Token::Word(w)) = self.parser.peek() {
+                                // Check if space + w fits in line, otherwise it's up to config
+                                let space_width = self.config.space_config.peek_next_width(n);
+                                let word_width = F::str_width(w);
+
+                                self.fits_in_line(space_width + word_width)
                             } else {
-                                let lookahead = self.parser.peek();
-
-                                if self.config.ending_spaces {
-                                    true
-                                } else if let Some(Token::Word(w)) = lookahead {
-                                    // Check if space + w fits in line, otherwise it's up to config
-                                    let space_width = self.config.space_config.peek_next_width(n);
-                                    let word_width = F::str_width(w);
-
-                                    self.fits_in_line(space_width + word_width)
-                                } else {
-                                    false
-                                }
+                                false
                             };
 
                             if render_whitespace {
@@ -184,21 +179,21 @@ where
                                     space_width += self.config.space_config.next_space_width();
                                 }
 
-                                if space_width > 0 {
+                                self.current_token = if space_width > 0 {
                                     let pos = self.pos;
                                     self.pos.x += space_width as i32;
-                                    self.current_token = Some(LineState::Whitespace(
+                                    Some(LineState::Whitespace(
                                         spaces,
                                         EmptySpaceIterator::new(space_width, pos, self.style),
-                                    ));
+                                    ))
                                 } else if spaces > 1 {
-                                    self.current_token = Some(LineState::Done(Some(
-                                        Token::Whitespace(spaces.saturating_sub(1)),
-                                    )));
-                                    break None;
+                                    // there are spaces to render but none fit the line
+                                    // eat one as a newline and stop
+                                    Some(LineState::Done(Some(Token::Whitespace(
+                                        spaces.saturating_sub(1),
+                                    ))))
                                 } else {
-                                    self.current_token = Some(LineState::Done(None));
-                                    break None;
+                                    Some(LineState::Done(None))
                                 }
                             } else {
                                 // nothing, process next token
@@ -232,7 +227,6 @@ where
                         _ => {
                             // we're done
                             self.current_token = Some(LineState::Done(None));
-                            break None;
                         }
                     }
                 }
@@ -242,12 +236,11 @@ where
                         break pixel;
                     }
 
-                    if *n == 0 {
-                        self.current_token = None;
+                    self.current_token = if *n == 0 {
+                        None
                     } else {
                         // n > 0 only if not every space was rendered
-                        self.current_token = Some(LineState::Done(Some(Token::Whitespace(*n))));
-                        break None;
+                        Some(LineState::Done(Some(Token::Whitespace(*n))))
                     }
                 }
 
@@ -257,26 +250,24 @@ where
                     }
 
                     let mut lookahead = chars.clone();
-                    if let Some(c) = lookahead.next() {
+                    self.current_token = if let Some(c) = lookahead.next() {
                         // character done, move to the next one
                         let char_width = F::total_char_width(c);
 
                         if !self.fits_in_line(char_width) {
                             // word wrapping, this line is done
-                            self.current_token =
-                                Some(LineState::Done(Some(Token::Word(chars.as_str()))));
-                            break None;
+                            Some(LineState::Done(Some(Token::Word(chars.as_str()))))
+                        } else {
+                            let pos = self.pos;
+                            self.pos.x += char_width as i32;
+                            Some(LineState::Word(
+                                lookahead,
+                                StyledCharacterIterator::new(c, pos, self.style),
+                            ))
                         }
-
-                        let pos = self.pos;
-                        self.pos.x += char_width as i32;
-                        self.current_token = Some(LineState::Word(
-                            lookahead,
-                            StyledCharacterIterator::new(c, pos, self.style),
-                        ));
                     } else {
                         // process token
-                        self.current_token = None;
+                        None
                     }
                 }
 
