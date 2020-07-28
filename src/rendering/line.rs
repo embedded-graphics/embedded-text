@@ -34,6 +34,12 @@ where
 
 /// Retrieves size of space characters
 pub trait SpaceConfig: Copy {
+    /// Render spaces at the start of a line
+    fn starting_spaces(&self) -> bool;
+
+    /// Render spaces at the end of a line
+    fn ending_spaces(&self) -> bool;
+
     /// Look at the size of next n spaces, without advancing
     fn peek_next_width(&self, n: u32) -> u32;
 
@@ -43,30 +49,37 @@ pub trait SpaceConfig: Copy {
 
 /// Contains the fixed width of a space character
 #[derive(Copy, Clone, Debug)]
-pub struct UniformSpaceConfig(pub u32);
-impl SpaceConfig for UniformSpaceConfig {
-    #[inline]
-    fn peek_next_width(&self, n: u32) -> u32 {
-        n * self.0
-    }
+pub struct UniformSpaceConfig {
+    /// Space width
+    pub space_width: u32,
 
-    #[inline]
-    fn next_space_width(&mut self) -> u32 {
-        self.0
-    }
-}
-
-/// Renderer configuration options
-#[derive(Copy, Clone, Debug)]
-pub struct LineConfiguration<SP: SpaceConfig> {
     /// Render spaces at the start of a line
     pub starting_spaces: bool,
 
     /// Render spaces at the end of a line
     pub ending_spaces: bool,
+}
 
-    /// Space configuration
-    pub space_config: SP,
+impl SpaceConfig for UniformSpaceConfig {
+    #[inline]
+    fn starting_spaces(&self) -> bool {
+        self.starting_spaces
+    }
+
+    #[inline]
+    fn ending_spaces(&self) -> bool {
+        self.ending_spaces
+    }
+
+    #[inline]
+    fn peek_next_width(&self, n: u32) -> u32 {
+        n * self.space_width
+    }
+
+    #[inline]
+    fn next_space_width(&mut self) -> u32 {
+        self.space_width
+    }
 }
 
 /// Pixel iterator to render a styled character
@@ -81,7 +94,7 @@ where
     /// The text to draw.
     pub parser: Parser<'a>,
     current_token: LineState<'a, C, F>,
-    config: LineConfiguration<SP>,
+    config: SP,
     style: TextStyle<C, F>,
     first_word: bool,
 }
@@ -98,7 +111,7 @@ where
     pub fn new(
         parser: Parser<'a>,
         cursor: Cursor<F>,
-        config: LineConfiguration<SP>,
+        config: SP,
         style: TextStyle<C, F>,
         carried_token: Option<Token<'a>>,
     ) -> Self {
@@ -156,12 +169,12 @@ where
                     match token.clone() {
                         Token::Whitespace(n) => {
                             let render_whitespace = if self.first_word {
-                                self.config.starting_spaces
-                            } else if self.config.ending_spaces {
+                                self.config.starting_spaces()
+                            } else if self.config.ending_spaces() {
                                 true
                             } else if let Some(Token::Word(w)) = self.parser.peek() {
                                 // Check if space + w fits in line, otherwise it's up to config
-                                let space_width = self.config.space_config.peek_next_width(n);
+                                let space_width = self.config.peek_next_width(n);
                                 let word_width = F::str_width(w);
 
                                 self.fits_in_line(space_width + word_width)
@@ -176,12 +189,11 @@ where
                                 let mut spaces = n;
 
                                 while spaces > 0
-                                    && self.fits_in_line(
-                                        space_width + self.config.space_config.peek_next_width(1),
-                                    )
+                                    && self
+                                        .fits_in_line(space_width + self.config.peek_next_width(1))
                                 {
                                     spaces -= 1;
-                                    space_width += self.config.space_config.next_space_width();
+                                    space_width += self.config.next_space_width();
                                 }
 
                                 self.current_token = if space_width > 0 {
@@ -290,7 +302,7 @@ mod test {
     use crate::parser::{Parser, Token};
     use crate::rendering::{
         cursor::Cursor,
-        line::{LineConfiguration, StyledLineIterator, UniformSpaceConfig},
+        line::{StyledLineIterator, UniformSpaceConfig},
     };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
@@ -300,10 +312,10 @@ mod test {
     #[test]
     fn simple_render() {
         let parser = Parser::parse(" Some sample text");
-        let config = LineConfiguration {
+        let config = UniformSpaceConfig {
             starting_spaces: true,
             ending_spaces: true,
-            space_config: UniformSpaceConfig(6),
+            space_width: 6,
         };
         let style = TextStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
@@ -335,10 +347,10 @@ mod test {
     #[test]
     fn simple_render_first_word_not_wrapped() {
         let parser = Parser::parse(" Some sample text");
-        let config = LineConfiguration {
+        let config = UniformSpaceConfig {
             starting_spaces: true,
             ending_spaces: true,
-            space_config: UniformSpaceConfig(6),
+            space_width: 6,
         };
         let style = TextStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
@@ -370,10 +382,10 @@ mod test {
     #[test]
     fn newline_stops_render() {
         let parser = Parser::parse("Some \nsample text");
-        let config = LineConfiguration {
+        let config = UniformSpaceConfig {
             starting_spaces: true,
             ending_spaces: true,
-            space_config: UniformSpaceConfig(6),
+            space_width: 6,
         };
         let style = TextStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
@@ -404,10 +416,10 @@ mod test {
     #[test]
     fn first_spaces_not_rendered() {
         let parser = Parser::parse("  Some sample text");
-        let config = LineConfiguration {
-            starting_spaces: false,
+        let config = UniformSpaceConfig {
+            starting_spaces: true,
             ending_spaces: true,
-            space_config: UniformSpaceConfig(6),
+            space_width: 6,
         };
         let style = TextStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
@@ -443,10 +455,10 @@ mod test {
             .build();
 
         let parser = Parser::parse("Some  sample text");
-        let config = LineConfiguration {
+        let config = UniformSpaceConfig {
             starting_spaces: true,
-            ending_spaces: false,
-            space_config: UniformSpaceConfig(6),
+            ending_spaces: true,
+            space_width: 6,
         };
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
@@ -470,10 +482,10 @@ mod test {
         );
 
         let parser = Parser::parse("Some  sample text");
-        let config = LineConfiguration {
+        let config = UniformSpaceConfig {
             starting_spaces: true,
             ending_spaces: true,
-            space_config: UniformSpaceConfig(6),
+            space_width: 6,
         };
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
@@ -505,10 +517,10 @@ mod test {
             .build();
 
         let parser = Parser::parse("Some  sample text");
-        let config = LineConfiguration {
+        let config = UniformSpaceConfig {
             starting_spaces: true,
             ending_spaces: true,
-            space_config: UniformSpaceConfig(6),
+            space_width: 6,
         };
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 8)));

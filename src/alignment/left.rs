@@ -4,7 +4,7 @@ use crate::{
     parser::Token,
     rendering::{
         cursor::Cursor,
-        line::{LineConfiguration, StyledLineIterator, UniformSpaceConfig},
+        line::{StyledLineIterator, UniformSpaceConfig},
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
@@ -68,10 +68,10 @@ where
                     self.state = LeftAlignedState::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
                         *cursor,
-                        LineConfiguration {
+                        UniformSpaceConfig {
                             starting_spaces: true,
                             ending_spaces: true,
-                            space_config: UniformSpaceConfig(F::total_char_width(' ')),
+                            space_width: F::total_char_width(' '),
                         },
                         self.style.text_style,
                         carried_token.clone(),

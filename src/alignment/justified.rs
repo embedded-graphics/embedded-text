@@ -4,7 +4,7 @@ use crate::{
     parser::Token,
     rendering::{
         cursor::Cursor,
-        line::{LineConfiguration, SpaceConfig, StyledLineIterator},
+        line::{SpaceConfig, StyledLineIterator},
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
@@ -52,6 +52,16 @@ impl JustifiedSpaceConfig {
 }
 
 impl SpaceConfig for JustifiedSpaceConfig {
+    #[inline]
+    fn starting_spaces(&self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn ending_spaces(&self) -> bool {
+        false
+    }
+
     #[inline]
     fn next_space_width(&mut self) -> u32 {
         if self.space_count == 0 {
@@ -184,11 +194,7 @@ where
                     self.state = JustifiedState::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
                         *cursor,
-                        LineConfiguration {
-                            starting_spaces: false,
-                            ending_spaces: false,
-                            space_config: space_info,
-                        },
+                        space_info,
                         self.style.text_style,
                         carried_token.clone(),
                     ));
