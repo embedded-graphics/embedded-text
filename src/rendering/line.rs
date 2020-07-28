@@ -417,7 +417,7 @@ mod test {
     fn first_spaces_not_rendered() {
         let parser = Parser::parse("  Some sample text");
         let config = UniformSpaceConfig {
-            starting_spaces: true,
+            starting_spaces: false,
             ending_spaces: true,
             space_width: 6,
         };
@@ -457,7 +457,7 @@ mod test {
         let parser = Parser::parse("Some  sample text");
         let config = UniformSpaceConfig {
             starting_spaces: true,
-            ending_spaces: true,
+            ending_spaces: false,
             space_width: 6,
         };
 
