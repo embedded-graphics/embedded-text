@@ -1,7 +1,7 @@
 //! Extends font types with some helper methods.
 use crate::parser::{Parser, Token};
 use core::str::Chars;
-use embedded_graphics::{fonts::Font, geometry::Point};
+use embedded_graphics::fonts::Font;
 
 /// `Font` extensions
 pub trait FontExt {
@@ -10,9 +10,6 @@ pub trait FontExt {
     /// Returns the width of the characters that fit into the given space and whether or not all of
     /// the input fits into the given space.
     fn measure_line(iter: Chars<'_>, max_width: u32) -> LineMeasurement;
-
-    /// Returns the value of a pixel in a character in the font.
-    fn character_point(c: char, p: Point) -> bool;
 
     /// Returns the total width of the character plus the character spacing.
     fn total_char_width(c: char) -> u32;
@@ -69,12 +66,6 @@ where
         }
 
         LineMeasurement::new(total_width, true)
-    }
-
-    #[inline]
-    #[must_use]
-    fn character_point(c: char, p: Point) -> bool {
-        Self::character_pixel(c, p.x as u32, p.y as u32)
     }
 
     #[inline]

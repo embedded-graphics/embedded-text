@@ -1,6 +1,34 @@
 //! Character rendering
-use crate::utils::font_ext::FontExt;
+use core::marker::PhantomData;
 use embedded_graphics::{prelude::*, style::TextStyle};
+
+/// Represents a glyph to be drawn
+#[derive(Copy, Clone, Debug)]
+pub struct Glyph<F: Font> {
+    _font: PhantomData<F>,
+    c: char,
+}
+
+impl<F> Glyph<F>
+where
+    F: Font,
+{
+    /// Creates a glyph from a character
+    #[inline]
+    pub fn new(c: char) -> Self {
+        Self {
+            _font: PhantomData,
+            c,
+        }
+    }
+
+    /// Returns the value (foreground/background) of a given point
+    #[inline]
+    #[must_use]
+    pub fn point(&self, p: Point) -> bool {
+        F::character_pixel(self.c, p.x as u32, p.y as u32)
+    }
+}
 
 /// Pixel iterator to render a styled character
 #[derive(Clone, Debug)]
@@ -9,7 +37,7 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    character: char,
+    character: Glyph<F>,
     style: TextStyle<C, F>,
     pos: Point,
     char_walk: Point,
@@ -26,7 +54,7 @@ where
     #[must_use]
     pub fn new(character: char, pos: Point, style: TextStyle<C, F>) -> Self {
         Self {
-            character,
+            character: Glyph::new(character),
             style,
             pos,
             char_walk: Point::zero(),
@@ -58,7 +86,7 @@ where
                 self.char_walk.y += 1;
             }
 
-            let color = if F::character_point(self.character, pos) {
+            let color = if self.character.point(pos) {
                 self.style.text_color
             } else {
                 self.style.background_color
