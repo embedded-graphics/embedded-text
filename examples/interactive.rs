@@ -45,6 +45,7 @@ fn main() -> Result<(), core::convert::Infallible> {
         for event in window.events() {
             match event {
                 SimulatorEvent::MouseButtonDown { point, .. } => {
+                    println!("MouseDown: {:?}", point);
                     bounds = Rectangle::new(Point::zero(), point);
                 }
                 SimulatorEvent::Quit => break 'running,
