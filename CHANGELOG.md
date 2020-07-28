@@ -1,3 +1,11 @@
+Unreleased
+==========
+
+Fixed:
+
+ * Fixed a word wrapping issue where the first space may sometimes be rendered 0 width
+ * Crash with `Justified` alignment
+
 0.0.3 (2020-07-28)
 ==================
 

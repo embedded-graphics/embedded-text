@@ -168,6 +168,7 @@ where
                     // No token being processed, get next one
                     match token.clone() {
                         Token::Whitespace(n) => {
+                            let mut would_wrap = false;
                             let render_whitespace = if self.first_word {
                                 self.config.starting_spaces()
                             } else if self.config.ending_spaces() {
@@ -177,7 +178,11 @@ where
                                 let space_width = self.config.peek_next_width(n);
                                 let word_width = F::str_width(w);
 
-                                self.fits_in_line(space_width + word_width)
+                                let fits = self.fits_in_line(space_width + word_width);
+
+                                would_wrap = !fits;
+
+                                fits
                             } else {
                                 false
                             };
@@ -212,6 +217,8 @@ where
                                 } else {
                                     LineState::Done(None)
                                 }
+                            } else if would_wrap {
+                                self.current_token = LineState::Done(None);
                             } else {
                                 // nothing, process next token
                                 self.current_token = LineState::FetchNext;
