@@ -1,4 +1,18 @@
 //! Parse text into words, newlines and whitespace sequences
+//!
+//! ```rust
+//! use embedded_text::parser::{Parser, Token};
+//!
+//! let parser = Parser::parse("Hello, world!\n");
+//! let tokens = parser.collect::<Vec<Token<'_>>>();
+//!
+//! assert_eq!(vec![
+//!     Token::Word("Hello,"),
+//!     Token::Whitespace(1),
+//!     Token::Word("world!"),
+//!     Token::NewLine
+//! ], tokens);
+//! ```
 use core::str::Chars;
 
 /// A text token
@@ -14,7 +28,7 @@ pub enum Token<'a> {
     Word(&'a str),
 }
 
-/// The parser struct
+/// Text parser. Turns a string into a stream of [`Token`] objects.
 #[derive(Clone, Debug)]
 pub struct Parser<'a> {
     inner: Chars<'a>,

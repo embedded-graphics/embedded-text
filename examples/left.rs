@@ -6,7 +6,7 @@ use embedded_graphics::{
     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
 };
 
-use embedded_text::{style::TextBoxStyleBuilder, TextBox};
+use embedded_text::prelude::*;
 
 fn main() -> Result<(), core::convert::Infallible> {
     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));

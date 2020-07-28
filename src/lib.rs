@@ -80,6 +80,21 @@ pub mod utils;
 use alignment::TextAlignment;
 use style::{StyledTextBox, TextBoxStyle};
 
+/// Prelude
+///
+/// Useful imports
+pub mod prelude {
+    pub use crate::{
+        style::{TextBoxStyle, TextBoxStyleBuilder},
+        TextBox,
+    };
+
+    pub use embedded_graphics::{
+        primitives::Rectangle,
+        style::{TextStyle, TextStyleBuilder},
+    };
+}
+
 /// A piece of text with an associated area on the display
 pub struct TextBox<'a> {
     /// The text to be displayed in this `TextBox`

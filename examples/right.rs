@@ -2,11 +2,9 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 
-use embedded_graphics::{
-    fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
-};
+use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 
-use embedded_text::{alignment::RightAligned, style::TextBoxStyleBuilder, TextBox};
+use embedded_text::{alignment::RightAligned, prelude::*};
 
 fn main() -> Result<(), core::convert::Infallible> {
     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
