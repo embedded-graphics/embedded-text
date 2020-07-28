@@ -255,6 +255,38 @@ mod test {
     }
 
     #[test]
+    fn wrapping_when_space_is_less_than_space_character() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(Justified)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new(
+            "A word",
+            Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 8)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                ".###..            ",
+                "#...#.            ",
+                "#...#.            ",
+                "#####.            ",
+                "#...#.            ",
+                "#...#.            ",
+                "#...#.            ",
+                "......            ",
+            ])
+        );
+    }
+
+    #[test]
     fn simple_word_wrapping() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
