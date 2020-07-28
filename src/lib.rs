@@ -86,6 +86,7 @@ use style::{StyledTextBox, TextBoxStyle};
 pub mod prelude {
     pub use crate::{
         style::{TextBoxStyle, TextBoxStyleBuilder},
+        utils::font_ext::FontExt,
         TextBox,
     };
 
