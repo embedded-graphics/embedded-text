@@ -6,7 +6,8 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 #[derive(Copy, Clone, Debug)]
 pub struct Glyph<F: Font> {
     _font: PhantomData<F>,
-    char_offset: u32,
+    char_x: u32,
+    char_y: u32,
 }
 
 impl<F> Glyph<F>
@@ -16,9 +17,17 @@ where
     /// Creates a glyph from a character
     #[inline]
     pub fn new(c: char) -> Self {
+        let char_offset = F::char_offset(c);
+        let char_per_row = F::FONT_IMAGE_WIDTH / F::CHARACTER_SIZE.width;
+
+        // Top left corner of character, in pixels
+        let char_x = char_offset % char_per_row * F::CHARACTER_SIZE.width;
+        let char_y = char_offset / char_per_row * F::CHARACTER_SIZE.height;
+
         Self {
             _font: PhantomData,
-            char_offset: F::char_offset(c),
+            char_x,
+            char_y,
         }
     }
 
@@ -26,25 +35,19 @@ where
     #[inline]
     #[must_use]
     pub fn point(&self, p: Point) -> bool {
-        let char_per_row = F::FONT_IMAGE_WIDTH / F::CHARACTER_SIZE.width;
-
-        let row = self.char_offset / char_per_row;
-
-        // Top left corner of character, in pixels
-        let char_x = (self.char_offset - (row * char_per_row)) * F::CHARACTER_SIZE.width;
-        let char_y = row * F::CHARACTER_SIZE.height;
-
         // Bit index
         // = X pixel offset for char
         // + Character row offset (row 0 = 0, row 1 = (192 * 8) = 1536)
         // + X offset for the pixel block that comprises this char
         // + Y offset for pixel block
-        let bitmap_bit_index = char_x + p.x as u32 + ((char_y + p.y as u32) * F::FONT_IMAGE_WIDTH);
+        let cx = self.char_x + p.x as u32;
+        let cy = self.char_y + p.y as u32;
+        let bitmap_bit_index = cx + cy * F::FONT_IMAGE_WIDTH;
 
         let bitmap_byte = bitmap_bit_index / 8;
-        let bitmap_bit = 7 - (bitmap_bit_index % 8);
+        let bitmap_bit = bitmap_bit_index % 8;
 
-        F::FONT_IMAGE[bitmap_byte as usize] & (1 << bitmap_bit) != 0
+        F::FONT_IMAGE[bitmap_byte as usize] & (0x80 >> bitmap_bit) != 0
     }
 }
 
