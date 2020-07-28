@@ -161,7 +161,7 @@ where
                                         (n * F::total_char_width(' ')).min(space);
 
                                     if next_whitespace_width >= space {
-                                        stretch_line = true;
+                                        stretch_line = total_whitespace_count != 0;
                                         break;
                                     }
                                 }
