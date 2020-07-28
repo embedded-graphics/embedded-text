@@ -9,8 +9,7 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// The character to draw.
-    pub character: char,
+    character: char,
     style: TextStyle<C, F>,
     pos: Point,
     char_walk: Point,
