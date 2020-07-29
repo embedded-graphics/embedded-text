@@ -1,7 +1,7 @@
 Unreleased
 ==========
 
-Fixed:
+## Fixed:
 
  * Fixed an issue where text height was measured incorrectly when encountering words wider than line
  * Fixed an issue where characters could be drawn outside of the bounding box when there is not enough space to render a single character
