@@ -95,7 +95,7 @@ where
                                     if total_width == 0 {
                                         // first word gets a line break in current pos
                                         word_width = width;
-                                        total_width = width;
+                                        total_width = 0;
                                     } else {
                                         // other words get wrapped
                                         word_width += width;
@@ -125,7 +125,6 @@ where
                 current_rows
             })
             .sum::<u32>();
-
         line_count * F::CHARACTER_SIZE.height
     }
 
@@ -167,7 +166,9 @@ mod test {
     fn test_height() {
         let data = [
             ("", 0, 0),
-            ("word", 50, 8),
+            ("word", 4 * 6, 8), // exact fit into 1 line
+            ("word", 4 * 6 - 1, 16),
+            ("word", 2 * 6, 16), // exact fit into 2 lines
             ("word\nnext", 50, 16),
             ("verylongword", 50, 16),
             ("some verylongword", 50, 24),
