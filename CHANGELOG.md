@@ -1,6 +1,10 @@
 Unreleased
 ==========
 
+## Added:
+
+ * Added `TextBoxStyle::from_text_style`
+
 ## Changed:
 
  * **breaking:** Renamed `measure_text` to `measure_text_height`

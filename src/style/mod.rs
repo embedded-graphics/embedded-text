@@ -42,6 +42,15 @@ where
         }
     }
 
+    /// Creates a textbox style from the given text style and alignment.
+    #[inline]
+    pub fn from_text_style(text_style: TextStyle<C, F>, alignment: A) -> Self {
+        Self {
+            text_style,
+            alignment,
+        }
+    }
+
     /// Measures text height when rendered using a given width.
     #[inline]
     #[must_use]
