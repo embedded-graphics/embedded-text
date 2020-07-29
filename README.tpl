@@ -1,4 +1,4 @@
-# embedded-text [![crates.io](https://img.shields.io/crates/v/embedded_text.svg)](https://crates.io/crates/embedded_text) ![Rust](https://github.com/bugadani/embedded-text/workflows/Rust/badge.svg)
+# embedded-text [![crates.io](https://img.shields.io/crates/v/embedded_text.svg)](https://crates.io/crates/embedded_text) [![docs.rs](https://docs.rs/embedded-text/badge.svg)](https://docs.rs/embedded-text/) ![Rust](https://github.com/bugadani/embedded-text/workflows/Rust/badge.svg)
 
 {{readme}}
 
