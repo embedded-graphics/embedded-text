@@ -1,4 +1,4 @@
-//! Right aligned text
+//! Right aligned text.
 use crate::{
     alignment::TextAlignment,
     parser::Token,
@@ -12,22 +12,22 @@ use crate::{
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
-/// Marks text to be rendered right aligned
+/// Marks text to be rendered right aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct RightAligned;
 impl TextAlignment for RightAligned {}
 
-/// State variable used by the right aligned text renderer
+/// State variable used by the right aligned text renderer.
 #[derive(Debug)]
 pub enum RightAlignedState<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// Starts processing a line
+    /// Starts processing a line.
     NextLine(Option<Token<'a>>, Cursor<F>),
 
-    /// Renders the processed line
+    /// Renders the processed line.
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig>),
 }
 

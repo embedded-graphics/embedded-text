@@ -1,6 +1,6 @@
+//! Textbox styling.
 use embedded_graphics::{prelude::*, style::TextStyle};
 
-/// Textbox style builder
 pub mod builder;
 
 use crate::{
@@ -13,6 +13,18 @@ use crate::{
 pub use builder::TextBoxStyleBuilder;
 
 /// Styling options of a [`TextBox`].
+///
+/// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor` and
+/// [`TextAlignment`] information necessary to draw a [`TextBox`].
+///
+/// To construct a new `TextBoxStyle` object, use the [`new`] or [`from_text_style`] methods or
+/// the [`TextBoxStyleBuilder`] object.
+///
+/// [`TextBox`]: ../struct.TextBox.html
+/// [`TextAlignment`]: ../alignment/trait.TextAlignment.html
+/// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
+/// [`new`]: #method.new
+/// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct TextBoxStyle<C, F, A>
 where
@@ -23,7 +35,7 @@ where
     /// Style properties for text.
     pub text_style: TextStyle<C, F>,
 
-    /// Horizontal alignment
+    /// Horizontal text alignment.
     pub alignment: A,
 }
 
@@ -33,7 +45,7 @@ where
     F: Font + Copy,
     A: TextAlignment,
 {
-    /// Creates a textbox style with transparent background.
+    /// Creates a `TextBoxStyle` object with transparent background.
     #[inline]
     pub fn new(font: F, text_color: C, alignment: A) -> Self {
         Self {
@@ -42,7 +54,7 @@ where
         }
     }
 
-    /// Creates a textbox style from the given text style and alignment.
+    /// Creates a `TextBoxStyle` object from the given text style and alignment.
     #[inline]
     pub fn from_text_style(text_style: TextStyle<C, F>, alignment: A) -> Self {
         Self {
@@ -110,16 +122,28 @@ where
 }
 
 /// A styled [`TextBox`] struct.
+///
+/// This structure is constructed by calling the [`into_styled`] method of a [`TextBox`] object.
+/// Use the [`draw`] method to draw the textbox on a display.
+///
+/// [`TextBox`]: ../struct.TextBox.html
+/// [`into_styled`]: ../struct.TextBox.html#method.into_styled
+/// [`draw`]: #method.draw
 pub struct StyledTextBox<'a, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
     A: TextAlignment,
 {
-    /// A [`TextBox`] that has an associated [`TextBoxStyle`]
+    /// A [`TextBox`] that has an associated [`TextBoxStyle`].
+    ///
+    /// [`TextBox`]: ../struct.TextBox.html
+    /// [`TextBoxStyle`]: struct.TextBoxStyle.html
     pub text_box: TextBox<'a>,
 
-    /// The style of the [`TextBox`]
+    /// The style of the [`TextBox`].
+    ///
+    /// [`TextBox`]: ../struct.TextBox.html
     pub style: TextBoxStyle<C, F, A>,
 }
 

@@ -1,16 +1,11 @@
-/// Center aligned text rendering
+//! Horizontal text alignment opitons.
+
 pub mod center;
-
-/// Fully justified text rendering
 pub mod justified;
-
-/// Left aligned text rendering
 pub mod left;
-
-/// Right aligned text rendering
 pub mod right;
 
-/// Text alignment
+/// Text alignment base trait.
 pub trait TextAlignment: Copy {}
 
 pub use center::CenterAligned;

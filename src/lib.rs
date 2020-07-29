@@ -1,12 +1,13 @@
-//! TextBox for embedded-graphics
+//! TextBox for embedded-graphics.
 //!
-//! This crate provides a configurable [`TextBox`] to render multiline text using [embedded-graphics].
+//! This crate provides a configurable [`TextBox`] to render multiline text inside a bounding
+//! [`Rectangle`] using [embedded-graphics].
 //!
-//! `TextBox` supports the common text alignments:
-//!  - `LeftAligned`
-//!  - `RightAligned`
-//!  - `CenterAligned`
-//!  - `Justified`
+//! [`TextBox`] supports the common text alignments:
+//!  - [`LeftAligned`]
+//!  - [`RightAligned`]
+//!  - [`CenterAligned`]
+//!  - [`Justified`]
 //!
 //! ## Example
 //!
@@ -53,6 +54,12 @@
 //! [embedded-graphics]: https://github.com/jamwaffles/embedded-graphics/
 //! [the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
 //! [simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
+//! [`Rectangle`]: ./prelude/struct.Rectangle.html
+//! [`TextBox`]: ./struct.TextBox.html
+//! [`LeftAligned`]: ./alignment/left/struct.LeftAligned.html
+//! [`RightAligned`]: ./alignment/right/struct.RightAligned.html
+//! [`CenterAligned`]: ./alignment/center/struct.CenterAligned.html
+//! [`Justified`]: ./alignment/justified/struct.Justified.html
 
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
@@ -62,19 +69,10 @@
 
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 
-/// Horizontal text alignment opitons.
 pub mod alignment;
-
-/// Parse text into smaller units.
 pub mod parser;
-
-/// Helpers to render text.
 pub mod rendering;
-
-/// Textbox styling.
 pub mod style;
-
-/// Helpers.
 pub mod utils;
 
 use alignment::TextAlignment;
@@ -82,7 +80,7 @@ use style::{StyledTextBox, TextBoxStyle};
 
 /// Prelude.
 ///
-/// A collection of useful imports. Also re-exports some types from [embedded-graphics] for
+/// A collection of useful imports. Also re-exports some types from `embedded-graphics` for
 /// convenience.
 pub mod prelude {
     pub use crate::{
@@ -108,7 +106,7 @@ pub mod prelude {
 /// See the [module-level documentation] for more information.
 ///
 /// [`into_styled`]: #method.into_styled
-/// [`StyledTextBox]: style/index.html
+/// [`StyledTextBox`]: style/struct.StyledTextBox.html
 /// [module-level documentation]: index.html
 pub struct TextBox<'a> {
     /// The text to be displayed in this `TextBox`
@@ -119,14 +117,14 @@ pub struct TextBox<'a> {
 }
 
 impl<'a> TextBox<'a> {
-    /// Creates a new `TextBox` instance with a given bounding box.
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle`.
     #[inline]
     #[must_use]
     pub fn new(text: &'a str, bounds: Rectangle) -> Self {
         Self { text, bounds }
     }
 
-    /// Attaches a textbox style to the textbox object.
+    /// Attaches a [`TextBoxStyle`] to the textbox object.
     #[inline]
     #[must_use]
     pub fn into_styled<C, F, A>(self, style: TextBoxStyle<C, F, A>) -> StyledTextBox<'a, C, F, A>

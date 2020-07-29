@@ -1,3 +1,5 @@
+//! Font helper extensions.
+//!
 //! Extends font types with some helper methods.
 use embedded_graphics::fonts::Font;
 

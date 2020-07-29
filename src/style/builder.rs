@@ -1,10 +1,11 @@
+//! Textbox style builder.
 use crate::{alignment::LeftAligned, alignment::TextAlignment, style::TextBoxStyle};
 use embedded_graphics::{
     prelude::*,
     style::{TextStyle, TextStyleBuilder},
 };
 
-/// Textbox style builder.
+/// Textbox style builder object.
 pub struct TextBoxStyleBuilder<C, F, A>
 where
     C: PixelColor,

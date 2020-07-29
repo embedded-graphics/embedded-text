@@ -1,4 +1,4 @@
-//! Left aligned text
+//! Left aligned text.
 use crate::{
     alignment::TextAlignment,
     parser::Token,
@@ -12,22 +12,22 @@ use crate::{
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
-/// Marks text to be rendered left aligned
+/// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct LeftAligned;
 impl TextAlignment for LeftAligned {}
 
-/// State variable used by the left aligned text renderer
+/// State variable used by the left aligned text renderer.
 #[derive(Debug)]
 pub enum LeftAlignedState<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// Starts processing a line
+    /// Starts processing a line.
     NextLine(Option<Token<'a>>, Cursor<F>),
 
-    /// Renders the processed line
+    /// Renders the processed line.
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig>),
 }
 

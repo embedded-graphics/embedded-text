@@ -2,7 +2,8 @@
 
 TextBox for embedded-graphics
 
-This crate provides a configurable `TextBox` to render multiline text using [embedded-graphics].
+This crate provides a configurable `TextBox` to render multiline text inside a bounding
+`Rectangle` using [embedded-graphics].
 
 `TextBox` supports the common text alignments:
  - `LeftAligned`

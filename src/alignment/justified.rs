@@ -1,4 +1,4 @@
-//! Fully justified text
+//! Fully justified text.
 use crate::{
     alignment::TextAlignment,
     parser::Token,
@@ -12,7 +12,7 @@ use crate::{
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
-/// Marks text to be rendered fully justified
+/// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
 pub struct Justified;
 impl TextAlignment for Justified {}
@@ -26,11 +26,11 @@ impl TextAlignment for Justified {}
 /// there's a space in the line) take up all available space.
 #[derive(Copy, Clone, Debug)]
 pub struct JustifiedSpaceConfig {
-    /// The width of the whitespace characters
+    /// The width of the whitespace characters.
     space_width: u32,
 
     /// Stores how many characters are rendered using the space_width width. This field changes
-    /// during rendering
+    /// during rendering.
     space_count: u32,
 }
 
@@ -78,17 +78,17 @@ impl SpaceConfig for JustifiedSpaceConfig {
     }
 }
 
-/// State variable used by the fully justified text renderer
+/// State variable used by the fully justified text renderer.
 #[derive(Debug)]
 pub enum JustifiedState<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// Starts processing a line
+    /// Starts processing a line.
     NextLine(Option<Token<'a>>, Cursor<F>),
 
-    /// Renders the processed line
+    /// Renders the processed line.
     DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig>),
 }
 

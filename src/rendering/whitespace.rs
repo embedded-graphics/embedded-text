@@ -1,4 +1,4 @@
-//! Whitespace rendering
+//! Whitespace rendering.
 
 use core::{
     fmt::{Debug, Formatter, Result},
@@ -7,7 +7,12 @@ use core::{
 };
 use embedded_graphics::{prelude::*, style::TextStyle};
 
-/// Pixel iterator to render font spacing
+/// Pixel iterator to render boxes using a single color.
+///
+/// This struct may be used to implement custom rendering algorithms. Internally, this pixel
+/// iterator is used by [`StyledLineIterator`] to render whitespace.
+///
+/// [`StyledLineIterator`]: ../line/struct.StyledLineIterator.html
 #[derive(Clone)]
 pub struct EmptySpaceIterator<C, F>
 where

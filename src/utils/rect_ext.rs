@@ -1,9 +1,11 @@
-//! Extends the embedded-graphics `Rectangle` struct with some helper methods.
+//! Rectangle helper extensions.
+//!
+//! Extends the embedded-graphics [`Rectangle`] struct with some helper methods.
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 
-/// `Rectangle` extensions
+/// [`Rectangle`] extensions
 pub trait RectExt {
-    /// Returns the (correct) size of a `Rectangle`.
+    /// Returns the (correct) size of a [`Rectangle`].
     fn size(self) -> Size;
 }
 

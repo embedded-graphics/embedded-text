@@ -1,4 +1,4 @@
-//! Cursor to track rendering position
+//! Cursor to track rendering position.
 use core::marker::PhantomData;
 use embedded_graphics::{fonts::Font, geometry::Point, primitives::Rectangle};
 

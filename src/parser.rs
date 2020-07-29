@@ -18,24 +18,26 @@ use core::str::Chars;
 /// A text token
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token<'a> {
-    /// A newline character
+    /// A newline character.
     NewLine,
 
-    /// n whitespace characters
+    /// A number of whitespace characters.
     Whitespace(u32),
 
-    /// A word (a sequence of non-whitespace characters)
+    /// A word (a sequence of non-whitespace characters).
     Word(&'a str),
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.
+///
+/// [`Token`]: struct.Token.html
 #[derive(Clone, Debug)]
 pub struct Parser<'a> {
     inner: Chars<'a>,
 }
 
 impl<'a> Parser<'a> {
-    /// Create a new parser object to process the given piece of text
+    /// Create a new parser object to process the given piece of text.
     #[inline]
     #[must_use]
     pub fn parse(text: &'a str) -> Self {
@@ -44,14 +46,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Returns the next token without advancing
+    /// Returns the next token without advancing.
     #[inline]
     #[must_use]
     pub fn peek(&self) -> Option<Token> {
         self.clone().next()
     }
 
-    /// Returns true if there are no tokens to process
+    /// Returns true if there are no tokens to process.
     #[inline]
     #[must_use]
     pub fn is_empty(&self) -> bool {

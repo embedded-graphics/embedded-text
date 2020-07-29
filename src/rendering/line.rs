@@ -1,4 +1,4 @@
-//! Line rendering
+//! Line rendering.
 use crate::{
     parser::{Parser, Token},
     rendering::{
@@ -9,54 +9,54 @@ use crate::{
 use core::str::Chars;
 use embedded_graphics::{prelude::*, style::TextStyle};
 
-/// Internal state used to render a line
+/// Internal state used to render a line.
 #[derive(Debug)]
 pub enum LineState<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// Fetch next token
+    /// Fetch next token.
     FetchNext,
 
-    /// Decide what to do next
+    /// Decide what to do next.
     ProcessToken(Token<'a>),
 
-    /// Render a word
+    /// Render a word.
     Word(Chars<'a>, StyledCharacterIterator<C, F>),
 
-    /// Render whitespace
+    /// Render whitespace.
     Whitespace(u32, EmptySpaceIterator<C, F>),
 
-    /// Signal that the renderer has finished, store the token that was consumed but not rendered
+    /// Signal that the renderer has finished, store the token that was consumed but not rendered.
     Done(Option<Token<'a>>),
 }
 
-/// Retrieves size of space characters
+/// Retrieves size of space characters.
 pub trait SpaceConfig: Copy {
-    /// Render spaces at the start of a line
+    /// Render spaces at the start of a line.
     fn starting_spaces(&self) -> bool;
 
-    /// Render spaces at the end of a line
+    /// Render spaces at the end of a line.
     fn ending_spaces(&self) -> bool;
 
-    /// Look at the size of next n spaces, without advancing
+    /// Look at the size of next n spaces, without advancing.
     fn peek_next_width(&self, n: u32) -> u32;
 
-    /// Get the width of the next space and advance
+    /// Get the width of the next space and advance.
     fn next_space_width(&mut self) -> u32;
 }
 
-/// Contains the fixed width of a space character
+/// Contains the fixed width of a space character.
 #[derive(Copy, Clone, Debug)]
 pub struct UniformSpaceConfig {
-    /// Space width
+    /// Space width.
     pub space_width: u32,
 
-    /// Render spaces at the start of a line
+    /// Render spaces at the start of a line.
     pub starting_spaces: bool,
 
-    /// Render spaces at the end of a line
+    /// Render spaces at the end of a line.
     pub ending_spaces: bool,
 }
 
@@ -82,17 +82,19 @@ impl SpaceConfig for UniformSpaceConfig {
     }
 }
 
-/// Pixel iterator to render a styled character
+/// Pixel iterator to render a single line of styled text.
 #[derive(Debug)]
 pub struct StyledLineIterator<'a, C, F, SP: SpaceConfig>
 where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// Position information
+    /// Position information.
     pub cursor: Cursor<F>,
+
     /// The text to draw.
     pub parser: Parser<'a>,
+
     current_token: LineState<'a, C, F>,
     config: SP,
     style: TextStyle<C, F>,
@@ -127,8 +129,10 @@ where
         }
     }
 
-    /// When finished, this method returns the last partially processed token, or
-    /// None if everything was rendered.
+    /// When finished, this method returns the last partially processed [`Token`], or
+    /// `None` if everything was rendered.
+    ///
+    /// [`Token`]: ../../parser/enum.Token.html
     #[must_use]
     #[inline]
     pub fn remaining_token(&self) -> Option<Token<'a>> {

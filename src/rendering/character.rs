@@ -1,8 +1,8 @@
-//! Character rendering
+//! Character rendering.
 use core::marker::PhantomData;
 use embedded_graphics::{prelude::*, style::TextStyle};
 
-/// Represents a glyph to be drawn
+/// Represents a glyph (a symbol) to be drawn.
 #[derive(Copy, Clone, Debug)]
 pub struct Glyph<F: Font> {
     _font: PhantomData<F>,
@@ -13,13 +13,13 @@ impl<F> Glyph<F>
 where
     F: Font,
 {
-    /// Creates a glyph from a character
+    /// Creates a glyph from a character.
     #[inline]
     pub fn new(c: char) -> Self {
         let char_offset = F::char_offset(c);
         let char_per_row = F::FONT_IMAGE_WIDTH / F::CHARACTER_SIZE.width;
 
-        // Top left corner of character, in pixels
+        // Top left corner of character, in pixels.
         let char_x = char_offset % char_per_row * F::CHARACTER_SIZE.width;
         let char_y = char_offset / char_per_row * F::CHARACTER_SIZE.height;
 
@@ -29,7 +29,9 @@ where
         }
     }
 
-    /// Returns the value (foreground/background) of a given point
+    /// Returns the value of a given point:
+    ///  * `true` for foreground pixels
+    ///  * `false` for background pixels
     #[inline]
     #[must_use]
     pub fn point(&self, p: Point) -> bool {
@@ -47,7 +49,12 @@ where
     }
 }
 
-/// Pixel iterator to render a styled character
+/// Pixel iterator to render a single styled character.
+///
+/// This struct may be used to implement custom rendering algorithms. Internally, this pixel
+/// iterator is used by [`StyledLineIterator`] to render whitespace.
+///
+/// [`StyledLineIterator`]: ../line/struct.StyledLineIterator.html
 #[derive(Clone, Debug)]
 pub struct StyledCharacterIterator<C, F>
 where
