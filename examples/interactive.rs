@@ -1,5 +1,7 @@
 //! This example draws text into a bounding box that can be modified by
-//! clicking on the display.
+//! clicking and dragging on the display.
+//!
+//! Press spacebar to switch text alignment
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
@@ -7,64 +9,112 @@ use embedded_graphics_simulator::{
 use embedded_graphics::{
     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, style::PrimitiveStyle,
 };
+use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
-use embedded_text::{alignment::*, prelude::*};
+use embedded_text::{alignment::*, prelude::*, style::StyledTextBox};
+
+enum ProcessedEvent {
+    Nothing,
+    Quit,
+    Next,
+    Resize(Point),
+}
+
+impl ProcessedEvent {
+    pub fn new(event: SimulatorEvent) -> Self {
+        unsafe {
+            // This is fine for a demo
+            static mut MOUSE_DOWN: bool = false;
+
+            match event {
+                SimulatorEvent::MouseButtonDown { point, .. } => {
+                    println!("MouseButtonDown: {:?}", point);
+                    MOUSE_DOWN = true;
+                    ProcessedEvent::Resize(point)
+                }
+                SimulatorEvent::MouseButtonUp { .. } => {
+                    println!("MouseButtonUp");
+                    MOUSE_DOWN = false;
+                    ProcessedEvent::Nothing
+                }
+                SimulatorEvent::MouseMove { point, .. } => {
+                    if MOUSE_DOWN {
+                        println!("MouseMove: {:?}", point);
+                        ProcessedEvent::Resize(point)
+                    } else {
+                        ProcessedEvent::Nothing
+                    }
+                }
+                SimulatorEvent::KeyDown { keycode, .. } if keycode == Keycode::Space => {
+                    ProcessedEvent::Next
+                }
+                SimulatorEvent::Quit => ProcessedEvent::Quit,
+                _ => ProcessedEvent::Nothing,
+            }
+        }
+    }
+}
+
+fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
+where
+    A: TextAlignment,
+    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A>: Drawable<BinaryColor>,
+{
+    loop {
+        let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
+
+        let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";
+
+        TextBox::new(text, *bounds)
+            .into_styled(
+                TextBoxStyleBuilder::new(Font6x8)
+                    .alignment(alignment)
+                    .text_color(BinaryColor::On)
+                    .build(),
+            )
+            .draw(&mut display)
+            .unwrap();
+
+        bounds
+            .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+            .draw(&mut display)
+            .unwrap();
+
+        window.update(&display);
+        for event in window.events() {
+            match ProcessedEvent::new(event) {
+                ProcessedEvent::Resize(bottom_right) => bounds.bottom_right = bottom_right,
+                ProcessedEvent::Quit => return false,
+                ProcessedEvent::Next => return true,
+                ProcessedEvent::Nothing => {}
+            }
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+}
 
 fn main() -> Result<(), core::convert::Infallible> {
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-        .alignment(Justified)
-        .text_color(BinaryColor::On)
-        .build();
-
-    let rectangle_style = PrimitiveStyle::with_stroke(BinaryColor::On, 1);
-
-    let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";
-
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
     let mut bounds = Rectangle::new(Point::zero(), Point::new(128, 128));
-    let mut mouse_down = false;
 
     'running: loop {
-        let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
-
-        TextBox::new(text, bounds)
-            .into_styled(textbox_style)
-            .draw(&mut display)
-            .unwrap();
-
-        bounds
-            .into_styled(rectangle_style)
-            .draw(&mut display)
-            .unwrap();
-
-        window.update(&display);
-        for event in window.events() {
-            match event {
-                SimulatorEvent::MouseButtonDown { point, .. } => {
-                    println!("MouseButtonDown: {:?}", point);
-                    mouse_down = true;
-                    bounds = Rectangle::new(Point::zero(), point);
-                }
-                SimulatorEvent::MouseButtonUp { .. } => {
-                    println!("MouseButtonUp");
-                    mouse_down = false;
-                }
-                SimulatorEvent::MouseMove { point, .. } => {
-                    if mouse_down {
-                        println!("MouseMove: {:?}", point);
-                        bounds = Rectangle::new(Point::zero(), point);
-                    }
-                }
-                SimulatorEvent::Quit => break 'running,
-                _ => {}
-            }
+        if !demo_loop(&mut window, &mut bounds, Justified) {
+            break 'running;
         }
-        thread::sleep(Duration::from_millis(10));
+        if !demo_loop(&mut window, &mut bounds, LeftAligned) {
+            break 'running;
+        }
+        if !demo_loop(&mut window, &mut bounds, CenterAligned) {
+            break 'running;
+        }
+        if !demo_loop(&mut window, &mut bounds, RightAligned) {
+            break 'running;
+        }
     }
 
     Ok(())

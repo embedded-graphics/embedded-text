@@ -21,3 +21,4 @@ embedded-graphics = "0.6.2"
 
 [dev-dependencies]
 embedded-graphics-simulator = "0.2.1"
+sdl2 = "0.32.2"
