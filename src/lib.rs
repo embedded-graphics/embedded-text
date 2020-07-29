@@ -1,6 +1,6 @@
 //! TextBox for embedded-graphics
 //!
-//! This crate provides a configurable `TextBox` to render multiline text using [embedded-graphics].
+//! This crate provides a configurable [`TextBox`] to render multiline text using [embedded-graphics].
 //!
 //! `TextBox` supports the common text alignments:
 //!  - `LeftAligned`
@@ -95,7 +95,20 @@ pub mod prelude {
     };
 }
 
-/// A piece of text with an associated area on the display
+/// A textbox object.
+///
+/// The `TextBox` struct represents a piece of text that can be drawn on a display inside the given
+/// bounding box.
+///
+/// The struct only contains the text and the bounding box, no additional information. To draw
+/// a textbox it is necessary to attach a style to it using the [`into_styled`] method to create a
+/// [`StyledTextBox`] object.
+///
+/// See the [module-level documentation] for more information.
+///
+/// [`into_styled`]: #method.into_styled
+/// [`StyledTextBox]: style/index.html
+/// [module-level documentation]: index.html
 pub struct TextBox<'a> {
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
