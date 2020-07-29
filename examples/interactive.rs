@@ -13,7 +13,7 @@ use embedded_graphics::{
     style::{PrimitiveStyle, TextStyleBuilder},
 };
 use sdl2::keyboard::Keycode;
-use std::{fmt::Write, thread, time::Duration};
+use std::{thread, time::Duration};
 
 use embedded_text::{alignment::*, prelude::*, style::StyledTextBox};
 
@@ -84,10 +84,11 @@ where
             .draw(&mut display)
             .unwrap();
 
+        let width = bounds.bottom_right.x + 1;
         let height_text = format!(
-            "Lines: {}",
-            Font6x8::measure_text(text, bounds.bottom_right.x as u32 - 1)
-                / Font6x8::CHARACTER_SIZE.height
+            "Width: {} Lines: {}",
+            width,
+            Font6x8::measure_text(text, width as u32) / Font6x8::CHARACTER_SIZE.height
         );
 
         Text::new(&height_text, Point::zero())
