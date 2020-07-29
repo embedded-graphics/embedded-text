@@ -211,8 +211,11 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::builder::TextBoxStyleBuilder;
-    use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor};
+    use crate::{alignment::*, style::builder::TextBoxStyleBuilder};
+    use embedded_graphics::{
+        fonts::{Font, Font6x8},
+        pixelcolor::BinaryColor,
+    };
 
     #[test]
     fn test_measure_height() {
@@ -237,5 +240,42 @@ mod test {
                 text, height, expected_height
             );
         }
+    }
+
+    #[test]
+    fn test_measure_height_of_left_aligned_counts_space() {
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let text = "    Word      ";
+        let width = 6 * 6;
+        let expected_height = 3 * Font6x8::CHARACTER_SIZE.height;
+
+        let height = textbox_style.measure_text_height(text, width);
+        assert_eq!(
+            height, expected_height,
+            "Height of \"{}\" is {} but is expected to be {}",
+            text, height, expected_height
+        );
+    }
+
+    #[test]
+    fn test_measure_height_of_center_aligned_ignores_space() {
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let text = "    Word      ";
+        let width = 6 * 6;
+        let expected_height = 1 * Font6x8::CHARACTER_SIZE.height;
+
+        let height = textbox_style.measure_text_height(text, width);
+        assert_eq!(
+            height, expected_height,
+            "Height of \"{}\" is {} but is expected to be {}",
+            text, height, expected_height
+        );
     }
 }
