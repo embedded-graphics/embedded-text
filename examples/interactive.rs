@@ -7,10 +7,13 @@ use embedded_graphics_simulator::{
 };
 
 use embedded_graphics::{
-    fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, style::PrimitiveStyle,
+    fonts::{Font6x8, Text},
+    pixelcolor::BinaryColor,
+    prelude::*,
+    style::{PrimitiveStyle, TextStyleBuilder},
 };
 use sdl2::keyboard::Keycode;
-use std::{thread, time::Duration};
+use std::{fmt::Write, thread, time::Duration};
 
 use embedded_text::{alignment::*, prelude::*, style::StyledTextBox};
 
@@ -62,7 +65,7 @@ where
     for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A>: Drawable<BinaryColor>,
 {
     loop {
-        let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
+        let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
 
         let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 
@@ -78,6 +81,21 @@ where
 
         bounds
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+            .draw(&mut display)
+            .unwrap();
+
+        let height_text = format!(
+            "Lines: {}",
+            Font6x8::measure_text(text, bounds.bottom_right.x as u32 - 1)
+                / Font6x8::CHARACTER_SIZE.height
+        );
+
+        Text::new(&height_text, Point::zero())
+            .into_styled(
+                TextStyleBuilder::new(Font6x8)
+                    .text_color(BinaryColor::On)
+                    .build(),
+            )
             .draw(&mut display)
             .unwrap();
 
@@ -100,7 +118,7 @@ fn main() -> Result<(), core::convert::Infallible> {
         .build();
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
-    let mut bounds = Rectangle::new(Point::zero(), Point::new(128, 128));
+    let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 128));
 
     'running: loop {
         if !demo_loop(&mut window, &mut bounds, Justified) {
