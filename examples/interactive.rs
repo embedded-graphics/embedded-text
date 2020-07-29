@@ -27,6 +27,7 @@ fn main() -> Result<(), core::convert::Infallible> {
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
     let mut bounds = Rectangle::new(Point::zero(), Point::new(128, 128));
+    let mut mouse_down = false;
 
     'running: loop {
         let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
@@ -45,8 +46,19 @@ fn main() -> Result<(), core::convert::Infallible> {
         for event in window.events() {
             match event {
                 SimulatorEvent::MouseButtonDown { point, .. } => {
-                    println!("MouseDown: {:?}", point);
+                    println!("MouseButtonDown: {:?}", point);
+                    mouse_down = true;
                     bounds = Rectangle::new(Point::zero(), point);
+                }
+                SimulatorEvent::MouseButtonUp { .. } => {
+                    println!("MouseButtonUp");
+                    mouse_down = false;
+                }
+                SimulatorEvent::MouseMove { point, .. } => {
+                    if mouse_down {
+                        println!("MouseMove: {:?}", point);
+                        bounds = Rectangle::new(Point::zero(), point);
+                    }
                 }
                 SimulatorEvent::Quit => break 'running,
                 _ => {}
