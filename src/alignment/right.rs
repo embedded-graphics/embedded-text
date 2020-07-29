@@ -69,7 +69,7 @@ where
 
                     // initial width is the width of the characters carried over to this row
                     let measurement = if let Some(Token::Word(ref w)) = carried_token {
-                        F::measure_line(w.chars(), max_line_width)
+                        F::measure_line(w, max_line_width)
                     } else {
                         LineMeasurement::empty()
                     };
@@ -97,23 +97,21 @@ where
 
                                 Token::Word(w) => {
                                     let space_with_last_ws = space - last_whitespace_width;
-                                    let word_measurement =
-                                        F::measure_line(w.chars(), space_with_last_ws);
-                                    if word_measurement.fits_line {
-                                        space = space_with_last_ws - word_measurement.width;
-                                    } else {
+                                    let word_measurement = F::measure_line(w, space_with_last_ws);
+
+                                    if !word_measurement.fits_line {
                                         if space == max_line_width {
-                                            space = max_line_width
-                                                - F::measure_line(w.chars(), max_line_width).width;
+                                            space -= F::measure_line(w, max_line_width).width;
                                         }
                                         break;
                                     }
+
+                                    space = space_with_last_ws - word_measurement.width;
                                 }
                             }
                         }
                     }
 
-                    cursor.carriage_return();
                     cursor.advance(space);
 
                     self.state = RightAlignedState::DrawLine(StyledLineIterator::new(
@@ -134,11 +132,12 @@ where
                         break pixel;
                     }
 
+                    self.parser = line_iterator.parser.clone();
+                    let carried_token = line_iterator.remaining_token();
                     let mut cursor = line_iterator.cursor;
                     cursor.new_line();
-                    self.parser = line_iterator.parser.clone();
-                    self.state =
-                        RightAlignedState::NextLine(line_iterator.remaining_token(), cursor);
+                    cursor.carriage_return();
+                    self.state = RightAlignedState::NextLine(carried_token, cursor);
                 }
             }
         }

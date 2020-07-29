@@ -130,7 +130,7 @@ where
 
                     // initial width is the width of the characters carried over to this row
                     let measurement = if let Some(Token::Word(ref w)) = carried_token {
-                        F::measure_line(w.chars(), max_line_width)
+                        F::measure_line(w, max_line_width)
                     } else {
                         LineMeasurement::empty()
                     };
@@ -168,7 +168,7 @@ where
 
                                 Token::Word(w) => {
                                     let word_measurement =
-                                        F::measure_line(w.chars(), space - next_whitespace_width);
+                                        F::measure_line(w, space - next_whitespace_width);
 
                                     if !word_measurement.fits_line {
                                         // including the word would wrap the line, stop here instead
@@ -205,11 +205,12 @@ where
                         break pixel;
                     }
 
+                    self.parser = line_iterator.parser.clone();
+                    let carried_token = line_iterator.remaining_token();
                     let mut cursor = line_iterator.cursor;
                     cursor.new_line();
                     cursor.carriage_return();
-                    self.parser = line_iterator.parser.clone();
-                    self.state = JustifiedState::NextLine(line_iterator.remaining_token(), cursor);
+                    self.state = JustifiedState::NextLine(carried_token, cursor);
                 }
             }
         }

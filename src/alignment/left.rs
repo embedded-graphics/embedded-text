@@ -83,12 +83,12 @@ where
                         break pixel;
                     }
 
+                    self.parser = line_iterator.parser.clone();
+                    let carried_token = line_iterator.remaining_token();
                     let mut cursor = line_iterator.cursor;
                     cursor.new_line();
                     cursor.carriage_return();
-                    self.parser = line_iterator.parser.clone();
-                    self.state =
-                        LeftAlignedState::NextLine(line_iterator.remaining_token(), cursor);
+                    self.state = LeftAlignedState::NextLine(carried_token, cursor);
                 }
             };
         }
