@@ -45,7 +45,7 @@ where
     /// Measures text height when rendered using a given width.
     #[inline]
     #[must_use]
-    pub fn measure_text(&self, text: &str, max_width: u32) -> u32 {
+    pub fn measure_text_height(&self, text: &str, max_width: u32) -> u32 {
         let line_count = text
             .lines()
             .map(|line| {
@@ -197,7 +197,7 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
         for (text, width, expected_height) in data.iter() {
-            let height = textbox_style.measure_text(text, *width);
+            let height = textbox_style.measure_text_height(text, *width);
             assert_eq!(
                 height, *expected_height,
                 "Height of \"{}\" is {} but is expected to be {}",

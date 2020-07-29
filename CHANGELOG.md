@@ -3,6 +3,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking:** Renamed `measure_text` to `measure_text_height`
  * **breaking:** Moved `measure_text` from `FontExt` to `TextBoxStyle`
  * **breaking:** Removed `FontExt` from `prelude`
 

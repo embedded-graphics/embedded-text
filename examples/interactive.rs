@@ -87,7 +87,7 @@ where
         let height_text = format!(
             "Width: {} Lines: {}",
             width,
-            textbox_style.measure_text(text, width as u32) / Font6x8::CHARACTER_SIZE.height
+            textbox_style.measure_text_height(text, width as u32) / Font6x8::CHARACTER_SIZE.height
         );
 
         Text::new(&height_text, Point::zero())
