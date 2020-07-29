@@ -141,6 +141,26 @@ where
     fn fits_in_line(&self, width: u32) -> bool {
         self.cursor.fits_in_line(width)
     }
+
+    fn try_draw_next_character(&mut self, word: &'a str) -> LineState<'a, C, F> {
+        let mut lookahead = word.chars();
+        if let Some(c) = lookahead.next() {
+            // character done, move to the next one
+            let char_width = F::total_char_width(c);
+
+            if self.fits_in_line(char_width) {
+                let pos = self.cursor.position;
+                self.cursor.advance(char_width);
+                LineState::Word(lookahead, StyledCharacterIterator::new(c, pos, self.style))
+            } else {
+                // word wrapping, this line is done
+                LineState::Done(Some(Token::Word(word)))
+            }
+        } else {
+            // process token
+            LineState::FetchNext
+        }
+    }
 }
 
 impl<C, F, SP> Iterator for StyledLineIterator<'_, C, F, SP>
@@ -233,19 +253,7 @@ where
                                 break None;
                             }
 
-                            // - always draw first word, Word state should handle wrapping
-                            let mut chars = w.chars();
-
-                            // unwrap is safe here, parser doesn't emit empty words
-                            let c = chars.next().unwrap();
-
-                            let pos = self.cursor.position;
-                            self.cursor.advance(F::total_char_width(c));
-
-                            self.current_token = LineState::Word(
-                                chars,
-                                StyledCharacterIterator::new(c, pos, self.style),
-                            );
+                            self.current_token = self.try_draw_next_character(w);
                         }
 
                         Token::NewLine => {
@@ -273,26 +281,8 @@ where
                         break pixel;
                     }
 
-                    let mut lookahead = chars.clone();
-                    self.current_token = if let Some(c) = lookahead.next() {
-                        // character done, move to the next one
-                        let char_width = F::total_char_width(c);
-
-                        if self.fits_in_line(char_width) {
-                            let pos = self.cursor.position;
-                            self.cursor.advance(char_width);
-                            LineState::Word(
-                                lookahead,
-                                StyledCharacterIterator::new(c, pos, self.style),
-                            )
-                        } else {
-                            // word wrapping, this line is done
-                            LineState::Done(Some(Token::Word(chars.as_str())))
-                        }
-                    } else {
-                        // process token
-                        LineState::FetchNext
-                    }
+                    let word = chars.as_str();
+                    self.current_token = self.try_draw_next_character(word);
                 }
 
                 LineState::Done(_) => {
