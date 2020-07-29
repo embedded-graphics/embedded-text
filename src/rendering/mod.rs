@@ -54,6 +54,8 @@ where
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
     /// Creates a new pixel iterator to render the styled [`TextBox`]
+    ///
+    /// [`TextBox`]: ../struct.TextBox.html
     #[inline]
     #[must_use]
     pub fn new(styled: &'a StyledTextBox<'a, C, F, A>) -> Self {

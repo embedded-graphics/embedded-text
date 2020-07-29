@@ -62,27 +62,28 @@
 
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 
-/// Horizontal text alignment opitons
+/// Horizontal text alignment opitons.
 pub mod alignment;
 
-/// Parse text into smaller units
+/// Parse text into smaller units.
 pub mod parser;
 
-/// Helpers to render text
+/// Helpers to render text.
 pub mod rendering;
 
-/// Textbox styling
+/// Textbox styling.
 pub mod style;
 
-/// Helpers
+/// Helpers.
 pub mod utils;
 
 use alignment::TextAlignment;
 use style::{StyledTextBox, TextBoxStyle};
 
-/// Prelude
+/// Prelude.
 ///
-/// Useful imports
+/// A collection of useful imports. Also re-exports some types from [embedded-graphics] for
+/// convenience.
 pub mod prelude {
     pub use crate::{
         style::{TextBoxStyle, TextBoxStyleBuilder},

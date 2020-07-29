@@ -1,4 +1,4 @@
-//! Parse text into words, newlines and whitespace sequences
+//! Parse text into words, newlines and whitespace sequences.
 //!
 //! ```rust
 //! use embedded_text::parser::{Parser, Token};

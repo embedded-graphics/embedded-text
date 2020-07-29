@@ -2,7 +2,9 @@
 use core::marker::PhantomData;
 use embedded_graphics::{fonts::Font, geometry::Point, primitives::Rectangle};
 
-/// Internal structure that keeps track of rendering a [`TextBox`].
+/// Internal structure that keeps track of position information while rendering a [`TextBox`].
+///
+/// [`TextBox`]: ../../struct.TextBox.html
 #[derive(Copy, Clone, Debug)]
 pub struct Cursor<F: Font> {
     _marker: PhantomData<F>,
@@ -16,7 +18,7 @@ pub struct Cursor<F: Font> {
 }
 
 impl<F: Font> Cursor<F> {
-    /// Creates a new `Cursor` located at the top left of the bounding box.
+    /// Creates a new `Cursor` object located at the top left of the given bounding [`Rectangle`].
     #[inline]
     #[must_use]
     pub fn new(bounds: Rectangle) -> Self {
