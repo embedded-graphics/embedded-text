@@ -10,7 +10,7 @@ use embedded_graphics::{
     fonts::{Font6x8, Text},
     pixelcolor::BinaryColor,
     prelude::*,
-    style::{PrimitiveStyle, TextStyleBuilder},
+    style::PrimitiveStyle,
 };
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
@@ -68,14 +68,13 @@ where
         let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
 
         let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(alignment)
+            .text_color(BinaryColor::On)
+            .build();
 
         TextBox::new(text, *bounds)
-            .into_styled(
-                TextBoxStyleBuilder::new(Font6x8)
-                    .alignment(alignment)
-                    .text_color(BinaryColor::On)
-                    .build(),
-            )
+            .into_styled(textbox_style)
             .draw(&mut display)
             .unwrap();
 
@@ -88,15 +87,11 @@ where
         let height_text = format!(
             "Width: {} Lines: {}",
             width,
-            Font6x8::measure_text(text, width as u32) / Font6x8::CHARACTER_SIZE.height
+            textbox_style.measure_text(text, width as u32) / Font6x8::CHARACTER_SIZE.height
         );
 
         Text::new(&height_text, Point::zero())
-            .into_styled(
-                TextStyleBuilder::new(Font6x8)
-                    .text_color(BinaryColor::On)
-                    .build(),
-            )
+            .into_styled(textbox_style.text_style)
             .draw(&mut display)
             .unwrap();
 

@@ -1,6 +1,11 @@
 Unreleased
 ==========
 
+## Changed:
+
+ * **breaking:** Moved `measure_text` from `FontExt` to `TextBoxStyle`
+ * **breaking:** Removed `FontExt` from `prelude`
+
 ## Fixed:
 
  * Fixed an issue where text height was measured incorrectly when encountering words wider than line

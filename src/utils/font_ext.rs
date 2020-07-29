@@ -1,5 +1,4 @@
 //! Extends font types with some helper methods.
-use crate::parser::{Parser, Token};
 use embedded_graphics::fonts::Font;
 
 /// `Font` extensions
@@ -12,9 +11,6 @@ pub trait FontExt {
 
     /// Returns the total width of the character plus the character spacing.
     fn total_char_width(c: char) -> u32;
-
-    /// Measures text height when rendered using a given width.
-    fn measure_text(text: &str, max_width: u32) -> u32;
 
     /// Measure text width
     fn str_width(s: &str) -> u32;
@@ -73,62 +69,6 @@ where
     }
 
     #[inline]
-    #[must_use]
-    fn measure_text(text: &str, max_width: u32) -> u32 {
-        let line_count = text
-            .lines()
-            .map(|line| {
-                let mut current_rows = 1;
-                let mut total_width = 0;
-                for token in Parser::parse(line) {
-                    match token {
-                        Token::Word(w) => {
-                            let mut word_width = 0;
-                            for c in w.chars() {
-                                let width = F::total_char_width(c);
-                                if total_width + word_width + width <= max_width {
-                                    // letter fits, letter is added to word width
-                                    word_width += width;
-                                } else {
-                                    // letter (and word) doesn't fit this line, open a new one
-                                    current_rows += 1;
-                                    if total_width == 0 {
-                                        // first word gets a line break in current pos
-                                        word_width = width;
-                                        total_width = 0;
-                                    } else {
-                                        // other words get wrapped
-                                        word_width += width;
-                                        total_width = 0;
-                                    }
-                                }
-                            }
-
-                            total_width += word_width;
-                        }
-
-                        Token::Whitespace(n) => {
-                            let width = F::total_char_width(' ');
-                            for _ in 0..n {
-                                if total_width + width <= max_width {
-                                    total_width += width;
-                                } else {
-                                    current_rows += 1;
-                                    total_width = width;
-                                }
-                            }
-                        }
-
-                        Token::NewLine => {}
-                    }
-                }
-                current_rows
-            })
-            .sum::<u32>();
-        line_count * F::CHARACTER_SIZE.height
-    }
-
-    #[inline]
     fn str_width(s: &str) -> u32 {
         s.chars().map(F::total_char_width).sum::<u32>()
     }
@@ -160,27 +100,5 @@ mod test {
     fn test_max_fitting_long() {
         let measurement = Font6x8::measure_line("somereallylongword", 55);
         assert_eq!(measurement, LineMeasurement::new(54, false));
-    }
-
-    #[test]
-    fn test_height() {
-        let data = [
-            ("", 0, 0),
-            ("word", 4 * 6, 8), // exact fit into 1 line
-            ("word", 4 * 6 - 1, 16),
-            ("word", 2 * 6, 16), // exact fit into 2 lines
-            ("word\nnext", 50, 16),
-            ("verylongword", 50, 16),
-            ("some verylongword", 50, 24),
-            ("1 23456 12345 61234 561", 36, 40),
-        ];
-        for (text, width, expected_height) in data.iter() {
-            let height = Font6x8::measure_text(text, *width);
-            assert_eq!(
-                height, *expected_height,
-                "Height of \"{}\" is {} but is expected to be {}",
-                text, height, expected_height
-            );
-        }
     }
 }
