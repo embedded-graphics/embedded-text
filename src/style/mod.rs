@@ -201,19 +201,23 @@ where
         let line_count = text
             .lines()
             .map(|line| {
-                let mut current_rows = 0;
-                let mut parser = Parser::parse(line);
-                let mut carry = None;
+                if line == "" {
+                    1
+                } else {
+                    let mut current_rows = 0;
+                    let mut parser = Parser::parse(line);
+                    let mut carry = None;
 
-                loop {
-                    let (w, _, t) = self.measure_line(&mut parser, carry.take(), max_width);
-                    if w != 0 {
-                        current_rows += 1;
+                    loop {
+                        let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
+                        if w != 0 {
+                            current_rows += 1;
+                        }
+                        if t.is_none() || t == carry {
+                            return current_rows;
+                        }
+                        carry = t;
                     }
-                    if t.is_none() {
-                        return current_rows;
-                    }
-                    carry = t;
                 }
             })
             .sum::<u32>();
@@ -321,10 +325,14 @@ mod test {
     fn test_measure_height() {
         let data = [
             ("", 0, 0),
+            (" ", 0, 0), // infinite loop
+            (" ", 6, 8),
             ("word", 4 * 6, 8), // exact fit into 1 line
             ("word", 4 * 6 - 1, 16),
             ("word", 2 * 6, 16), // exact fit into 2 lines
             ("word\nnext", 50, 16),
+            ("word\n\nnext", 50, 24),
+            ("word\n  \nnext", 50, 24),
             ("verylongword", 50, 16),
             ("some verylongword", 50, 24),
             ("1 23456 12345 61234 561", 36, 40),
