@@ -269,6 +269,7 @@ mod test {
 
         let text = "    Word      ";
         let width = 6 * 6;
+        #[allow(clippy::identity_op)]
         let expected_height = 1 * Font6x8::CHARACTER_SIZE.height;
 
         let height = textbox_style.measure_text_height(text, width);
