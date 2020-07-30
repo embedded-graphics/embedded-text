@@ -128,7 +128,7 @@ where
 
                     let space = max_line_width
                         - (width - total_whitespace_count * F::total_char_width(' '));
-                    let stretch_line = t.is_some() && !matches!(t, Some(Token::NewLine));
+                    let stretch_line = t.is_some() && t != Some(Token::NewLine);
 
                     let space_info = if stretch_line && total_whitespace_count != 0 {
                         let space_width = space / total_whitespace_count;
