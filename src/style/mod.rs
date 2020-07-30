@@ -134,8 +134,6 @@ where
 
                 Token::NewLine => {
                     // eat the newline, although it shoulnd't be carried
-                    // todo remove this
-                    unreachable!();
                 }
             }
         }
