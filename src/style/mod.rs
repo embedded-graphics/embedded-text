@@ -63,6 +63,144 @@ where
         }
     }
 
+    // Returns the size of a token if it fits the line, or the max size that fits and the remaining
+    // unprocessed part.
+    fn measure_word(w: &str, max_width: u32) -> (u32, Option<&str>) {
+        let (width, consumed) = F::max_str_width(w, max_width);
+        if consumed == w {
+            (width, None)
+        } else {
+            (
+                width,
+                Some(unsafe {
+                    // consumed is the first part of w, so it's length must be
+                    // on char boundary
+                    w.get_unchecked(consumed.len()..)
+                }),
+            )
+        }
+    }
+
+    /// Measure the width and count spaces in a single line of text.
+    ///
+    /// Returns (width, rendered space count, unprocessed token)
+    #[inline]
+    pub fn measure_line<'a>(
+        &self,
+        parser: &mut Parser<'a>,
+        carried_token: Option<Token<'a>>,
+        max_line_width: u32,
+    ) -> (u32, u32, Option<Token<'a>>) {
+        let mut current_width = 0;
+        let mut total_spaces = 0;
+        let mut last_spaces = 0;
+        let mut last_space_width = 0;
+
+        let mut first_word_processed = false;
+
+        if let Some(t) = carried_token {
+            match t {
+                Token::Word(w) => {
+                    let (width, carried) = Self::measure_word(w, max_line_width);
+
+                    if let Some(w) = carried {
+                        return (width, 0, Some(Token::Word(w)));
+                    }
+
+                    first_word_processed = true;
+                    current_width = width;
+                }
+
+                Token::Whitespace(n) => {
+                    let (width, carried) = if A::STARTING_SPACES {
+                        let (w, consumed) = F::max_space_width(n, max_line_width);
+                        (w, n - consumed)
+                    } else {
+                        (0, 0)
+                    };
+
+                    if carried != 0 {
+                        let token = Some(Token::Whitespace(carried));
+                        return if A::ENDING_SPACES {
+                            (width, n - carried, token)
+                        } else {
+                            (0, 0, token)
+                        };
+                    }
+
+                    last_spaces = n;
+                    last_space_width = width;
+                }
+
+                Token::NewLine => {
+                    // eat the newline, although it shoulnd't be carried
+                    // todo remove this
+                    unreachable!();
+                }
+            }
+        }
+
+        let mut carried_token: Option<Token<'_>> = None;
+        for token in parser {
+            match token {
+                Token::Word(w) => {
+                    let (width, carried) =
+                        Self::measure_word(w, max_line_width - current_width - last_space_width);
+
+                    if width != 0 {
+                        current_width += last_space_width + width;
+                        total_spaces += last_spaces;
+                    }
+
+                    if let Some(carried_w) = carried {
+                        if first_word_processed {
+                            // carry the whole word
+                            carried_token.replace(Token::Word(w));
+                        } else {
+                            // first word; break word into parts
+                            carried_token.replace(Token::Word(carried_w));
+                        }
+                        break;
+                    }
+
+                    first_word_processed = true;
+                    last_space_width = 0;
+                    last_spaces = 0;
+                }
+
+                Token::Whitespace(n) => {
+                    let (width, carried) = if A::STARTING_SPACES || first_word_processed {
+                        let (w, consumed) = F::max_space_width(
+                            n,
+                            max_line_width - current_width - last_space_width,
+                        );
+                        (w, n - consumed)
+                    } else {
+                        (0, 0)
+                    };
+
+                    // update before breaking, so that ENDING_SPACES can use data
+                    last_spaces += n;
+                    last_space_width += width;
+
+                    if carried != 0 {
+                        carried_token.replace(Token::Whitespace(carried));
+                        break;
+                    }
+                }
+
+                Token::NewLine => {
+                    break;
+                }
+            }
+        }
+        if A::ENDING_SPACES {
+            total_spaces += last_spaces;
+            current_width += last_space_width;
+        }
+        (current_width, total_spaces, carried_token)
+    }
+
     /// Measures text height when rendered using a given width.
     #[inline]
     #[must_use]
@@ -70,50 +208,21 @@ where
         let line_count = text
             .lines()
             .map(|line| {
-                let mut current_rows = 1;
-                let mut total_width = 0;
-                for token in Parser::parse(line) {
-                    match token {
-                        Token::Word(w) => {
-                            let mut word_width = 0;
-                            for c in w.chars() {
-                                let width = F::total_char_width(c);
-                                if total_width + word_width + width <= max_width {
-                                    // letter fits, letter is added to word width
-                                    word_width += width;
-                                } else {
-                                    // letter (and word) doesn't fit this line, open a new one
-                                    current_rows += 1;
-                                    if total_width == 0 {
-                                        // first word gets a line break in current pos
-                                        word_width = width;
-                                        total_width = 0;
-                                    } else {
-                                        // other words get wrapped
-                                        word_width += width;
-                                        total_width = 0;
-                                    }
-                                }
-                            }
+                let mut current_rows = 0;
+                let mut parser = Parser::parse(line);
+                let mut carry = None;
 
-                            total_width += word_width;
-                        }
-
-                        Token::Whitespace(n) => {
-                            let width = F::total_char_width(' ');
-                            for _ in 0..n {
-                                if total_width + width <= max_width {
-                                    total_width += width;
-                                } else {
-                                    current_rows += 1;
-                                    total_width = width;
-                                }
-                            }
-                        }
-
-                        Token::NewLine => {}
+                loop {
+                    let (w, _, t) = self.measure_line(&mut parser, carry.take(), max_width);
+                    if w != 0 {
+                        current_rows += 1;
                     }
+                    if t.is_none() {
+                        break;
+                    }
+                    carry = t;
                 }
+
                 current_rows
             })
             .sum::<u32>();
@@ -232,12 +341,12 @@ mod test {
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .build();
-        for (text, width, expected_height) in data.iter() {
+        for (i, (text, width, expected_height)) in data.iter().enumerate() {
             let height = textbox_style.measure_text_height(text, *width);
             assert_eq!(
                 height, *expected_height,
-                "Height of \"{}\" is {} but is expected to be {}",
-                text, height, expected_height
+                "#{}: Height of \"{}\" is {} but is expected to be {}",
+                i, text, height, expected_height
             );
         }
     }
@@ -260,7 +369,7 @@ mod test {
         );
     }
 
-    /*#[test]
+    #[test]
     fn test_measure_height_of_center_aligned_ignores_space() {
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .alignment(CenterAligned)
@@ -278,5 +387,5 @@ mod test {
             "Height of \"{}\" is {} but is expected to be {}",
             text, height, expected_height
         );
-    }*/
+    }
 }
