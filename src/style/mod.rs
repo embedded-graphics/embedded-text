@@ -92,10 +92,8 @@ where
         max_line_width: u32,
     ) -> (u32, u32, Option<Token<'a>>) {
         let mut current_width = 0;
-        let mut total_spaces = 0;
         let mut last_spaces = 0;
         let mut last_space_width = 0;
-
         let mut first_word_processed = false;
 
         if let Some(t) = carried_token {
@@ -112,24 +110,22 @@ where
                 }
 
                 Token::Whitespace(n) => {
-                    let (width, carried) = if A::STARTING_SPACES {
-                        let (w, consumed) = F::max_space_width(n, max_line_width);
-                        (w, n - consumed)
-                    } else {
-                        (0, 0)
-                    };
+                    if A::STARTING_SPACES {
+                        let (width, consumed) = F::max_space_width(n, max_line_width);
+                        let carried = n - consumed;
 
-                    if carried != 0 {
-                        let token = Some(Token::Whitespace(carried));
-                        return if A::ENDING_SPACES {
-                            (width, n - carried, token)
-                        } else {
-                            (0, 0, token)
-                        };
+                        if carried != 0 {
+                            let token = Some(Token::Whitespace(carried));
+                            return if A::ENDING_SPACES {
+                                (width, consumed, token)
+                            } else {
+                                (0, 0, token)
+                            };
+                        }
+
+                        last_spaces = n;
+                        last_space_width = width;
                     }
-
-                    last_spaces = n;
-                    last_space_width = width;
                 }
 
                 Token::NewLine => {
@@ -138,12 +134,13 @@ where
             }
         }
 
-        let mut carried_token: Option<Token<'_>> = None;
+        let mut total_spaces = 0;
+        let mut carried_token = None;
         for token in parser {
+            let available_space = max_line_width - current_width - last_space_width;
             match token {
                 Token::Word(w) => {
-                    let (width, carried) =
-                        Self::measure_word(w, max_line_width - current_width - last_space_width);
+                    let (width, carried) = Self::measure_word(w, available_space);
 
                     if let Some(carried_w) = carried {
                         if first_word_processed {
@@ -170,23 +167,18 @@ where
                 }
 
                 Token::Whitespace(n) => {
-                    let (width, carried) = if A::STARTING_SPACES || first_word_processed {
-                        let (w, consumed) = F::max_space_width(
-                            n,
-                            max_line_width - current_width - last_space_width,
-                        );
-                        (w, n - consumed)
-                    } else {
-                        (0, 0)
-                    };
+                    if A::STARTING_SPACES || first_word_processed {
+                        let (width, consumed) = F::max_space_width(n, available_space);
+                        let carried = n - consumed;
 
-                    // update before breaking, so that ENDING_SPACES can use data
-                    last_spaces += n;
-                    last_space_width += width;
+                        // update before breaking, so that ENDING_SPACES can use data
+                        last_spaces += n;
+                        last_space_width += width;
 
-                    if carried != 0 {
-                        carried_token.replace(Token::Whitespace(carried));
-                        break;
+                        if carried != 0 {
+                            carried_token.replace(Token::Whitespace(carried));
+                            break;
+                        }
                     }
                 }
 
@@ -219,12 +211,10 @@ where
                         current_rows += 1;
                     }
                     if t.is_none() {
-                        break;
+                        return current_rows;
                     }
                     carry = t;
                 }
-
-                current_rows
             })
             .sum::<u32>();
         line_count * F::CHARACTER_SIZE.height
