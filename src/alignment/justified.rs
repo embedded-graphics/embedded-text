@@ -15,7 +15,10 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
 pub struct Justified;
-impl TextAlignment for Justified {}
+impl TextAlignment for Justified {
+    const STARTING_SPACES: bool = false;
+    const ENDING_SPACES: bool = false;
+}
 
 /// Internal state information used to store width of whitespace characters when rendering fully
 /// justified text.
@@ -53,16 +56,6 @@ impl JustifiedSpaceConfig {
 
 impl SpaceConfig for JustifiedSpaceConfig {
     #[inline]
-    fn starting_spaces(&self) -> bool {
-        false
-    }
-
-    #[inline]
-    fn ending_spaces(&self) -> bool {
-        false
-    }
-
-    #[inline]
     fn next_space_width(&mut self) -> u32 {
         if self.space_count == 0 {
             self.space_width
@@ -89,7 +82,7 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig>),
+    DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig, Justified>),
 }
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, Justified>

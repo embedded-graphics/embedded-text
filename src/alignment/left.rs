@@ -15,7 +15,10 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct LeftAligned;
-impl TextAlignment for LeftAligned {}
+impl TextAlignment for LeftAligned {
+    const STARTING_SPACES: bool = true;
+    const ENDING_SPACES: bool = true;
+}
 
 /// State variable used by the left aligned text renderer.
 #[derive(Debug)]
@@ -28,7 +31,7 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig>),
+    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, LeftAligned>),
 }
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, LeftAligned>
@@ -69,8 +72,6 @@ where
                         self.parser.clone(),
                         *cursor,
                         UniformSpaceConfig {
-                            starting_spaces: true,
-                            ending_spaces: true,
                             space_width: F::total_char_width(' '),
                         },
                         self.style.text_style,

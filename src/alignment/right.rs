@@ -15,7 +15,10 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered right aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct RightAligned;
-impl TextAlignment for RightAligned {}
+impl TextAlignment for RightAligned {
+    const STARTING_SPACES: bool = false;
+    const ENDING_SPACES: bool = false;
+}
 
 /// State variable used by the right aligned text renderer.
 #[derive(Debug)]
@@ -28,7 +31,7 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig>),
+    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, RightAligned>),
 }
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, RightAligned>
@@ -118,8 +121,6 @@ where
                         self.parser.clone(),
                         *cursor,
                         UniformSpaceConfig {
-                            starting_spaces: false,
-                            ending_spaces: false,
                             space_width: F::total_char_width(' '),
                         },
                         self.style.text_style,
