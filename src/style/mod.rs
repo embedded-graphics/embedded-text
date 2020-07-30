@@ -260,7 +260,7 @@ mod test {
         );
     }
 
-    #[test]
+    /*#[test]
     fn test_measure_height_of_center_aligned_ignores_space() {
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .alignment(CenterAligned)
@@ -278,5 +278,5 @@ mod test {
             "Height of \"{}\" is {} but is expected to be {}",
             text, height, expected_height
         );
-    }
+    }*/
 }
