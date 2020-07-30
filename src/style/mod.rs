@@ -147,20 +147,23 @@ where
                     let (width, carried) =
                         Self::measure_word(w, max_line_width - current_width - last_space_width);
 
-                    if width != 0 {
-                        current_width += last_space_width + width;
-                        total_spaces += last_spaces;
-                    }
-
                     if let Some(carried_w) = carried {
                         if first_word_processed {
                             // carry the whole word
                             carried_token.replace(Token::Word(w));
                         } else {
+                            if width != 0 {
+                                current_width += last_space_width + width;
+                                total_spaces += last_spaces;
+                            }
                             // first word; break word into parts
                             carried_token.replace(Token::Word(carried_w));
                         }
                         break;
+                    }
+                    if width != 0 {
+                        current_width += last_space_width + width;
+                        total_spaces += last_spaces;
                     }
 
                     first_word_processed = true;
