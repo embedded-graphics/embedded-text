@@ -21,6 +21,12 @@ pub trait FontExt {
     ///
     /// Returns the width of the characters that fit into the given space and the processed string.
     fn max_str_width(s: &str, max_width: u32) -> (u32, &str);
+
+    /// Measures a sequence of spaces in a line with a determinate maximum width.
+    ///
+    /// Returns the width of the spaces that fit into the given space and the number of spaces that
+    /// fit.
+    fn max_space_width(n: u32, max_width: u32) -> (u32, u32);
 }
 
 /// Result of a `measure_line` function call.
@@ -85,6 +91,15 @@ where
         }
         (width, s)
     }
+
+    #[inline]
+    #[must_use]
+    fn max_space_width(n: u32, max_width: u32) -> (u32, u32) {
+        let space_width = F::total_char_width(' ');
+        let num_spaces = (max_width / space_width).min(n);
+
+        (num_spaces * space_width, num_spaces)
+    }
 }
 
 #[cfg(test)]
@@ -123,5 +138,14 @@ mod test {
             (54, "somereall"),
             Font6x8::max_str_width("somereallylongword", 55)
         );
+    }
+
+    #[test]
+    fn test_max_space_width() {
+        assert_eq!((0, 0), Font6x8::max_space_width(0, 36));
+        assert_eq!((36, 6), Font6x8::max_space_width(6, 36));
+        assert_eq!((36, 6), Font6x8::max_space_width(6, 36));
+        assert_eq!((36, 6), Font6x8::max_space_width(6, 38));
+        assert_eq!((36, 6), Font6x8::max_space_width(7, 36));
     }
 }
