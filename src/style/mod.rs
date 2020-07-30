@@ -198,29 +198,30 @@ where
     #[inline]
     #[must_use]
     pub fn measure_text_height(&self, text: &str, max_width: u32) -> u32 {
-        let line_count = text
+        let mut last_row_empty = false;
+        let mut line_count = text
             .lines()
             .map(|line| {
-                if line == "" {
-                    1
-                } else {
-                    let mut current_rows = 0;
-                    let mut parser = Parser::parse(line);
-                    let mut carry = None;
+                let mut current_rows = 0;
+                let mut parser = Parser::parse(line);
+                let mut carry = None;
 
-                    loop {
-                        let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
-                        if w != 0 {
-                            current_rows += 1;
-                        }
-                        if t.is_none() || t == carry {
-                            return current_rows;
-                        }
-                        carry = t;
+                loop {
+                    let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
+                    current_rows += 1;
+                    last_row_empty = w == 0;
+                    if t.is_none() || t == carry {
+                        return current_rows;
                     }
+                    carry = t;
                 }
             })
             .sum::<u32>();
+
+        if last_row_empty && !text.ends_with('\n') {
+            line_count -= 1;
+        }
+
         line_count * F::CHARACTER_SIZE.height
     }
 }
@@ -322,12 +323,15 @@ mod test {
     fn test_measure_height() {
         let data = [
             ("", 0, 0),
-            (" ", 0, 0),
-            (" ", 5, 0),
+            (" ", 0, 8),
+            (" ", 5, 8),
             (" ", 6, 8),
+            ("\n", 6, 8),
+            ("\n ", 6, 16),
             ("word", 4 * 6, 8), // exact fit into 1 line
             ("word", 4 * 6 - 1, 16),
             ("word", 2 * 6, 16), // exact fit into 2 lines
+            ("word\n", 2 * 6, 16),
             ("word\nnext", 50, 16),
             ("word\n\nnext", 50, 24),
             ("word\n  \nnext", 50, 24),
@@ -354,8 +358,9 @@ mod test {
         let data = [
             ("", 0, 0),
             (" ", 0, 0),
-            (" ", 5, 0),
-            (" ", 6, 8),
+            (" ", 6, 0),
+            ("\n ", 6, 8),
+            ("word\n", 2 * 6, 16),
             ("word\n  \nnext", 50, 24),
             ("    Word      ", 36, 8),
         ];
