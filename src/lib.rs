@@ -1,7 +1,7 @@
 //! TextBox for embedded-graphics.
 //!
 //! This crate provides a configurable [`TextBox`] to render multiline text inside a bounding
-//! [`Rectangle`] using [embedded-graphics].
+//! `Rectangle` using [embedded-graphics].
 //!
 //! [`TextBox`] supports the common text alignments:
 //!  - [`LeftAligned`]
@@ -54,7 +54,6 @@
 //! [embedded-graphics]: https://github.com/jamwaffles/embedded-graphics/
 //! [the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
 //! [simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
-//! [`Rectangle`]: ./prelude/struct.Rectangle.html
 //! [`TextBox`]: ./struct.TextBox.html
 //! [`LeftAligned`]: ./alignment/left/struct.LeftAligned.html
 //! [`RightAligned`]: ./alignment/right/struct.RightAligned.html
@@ -83,11 +82,13 @@ use style::{StyledTextBox, TextBoxStyle};
 /// A collection of useful imports. Also re-exports some types from `embedded-graphics` for
 /// convenience.
 pub mod prelude {
+    #[doc(no_inline)]
     pub use crate::{
         style::{TextBoxStyle, TextBoxStyleBuilder},
         TextBox,
     };
 
+    #[doc(no_inline)]
     pub use embedded_graphics::{
         primitives::Rectangle,
         style::{TextStyle, TextStyleBuilder},

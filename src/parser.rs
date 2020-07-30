@@ -30,7 +30,7 @@ pub enum Token<'a> {
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.
 ///
-/// [`Token`]: struct.Token.html
+/// [`Token`]: enum.Token.html
 #[derive(Clone, Debug)]
 pub struct Parser<'a> {
     inner: Chars<'a>,
