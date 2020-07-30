@@ -46,6 +46,12 @@ jobs:
     - name: Build examples
       run: cargo build --examples --verbose
 
+    - name: Check doc links
+      run: |
+        cargo install cargo-deadlinks
+        cargo doc
+        cargo deadlinks
+
     - name: Run tests
       run: |
         cargo test --verbose --release
