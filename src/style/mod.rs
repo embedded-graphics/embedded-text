@@ -316,10 +316,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::{alignment::*, style::builder::TextBoxStyleBuilder};
-    use embedded_graphics::{
-        fonts::{Font, Font6x8},
-        pixelcolor::BinaryColor,
-    };
+    use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor};
 
     #[test]
     fn test_measure_height() {
@@ -337,6 +334,7 @@ mod test {
             ("verylongword", 50, 16),
             ("some verylongword", 50, 24),
             ("1 23456 12345 61234 561", 36, 40),
+            ("    Word      ", 36, 24),
         ];
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
@@ -352,40 +350,26 @@ mod test {
     }
 
     #[test]
-    fn test_measure_height_of_left_aligned_counts_space() {
-        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-            .text_color(BinaryColor::On)
-            .build();
-
-        let text = "    Word      ";
-        let width = 6 * 6;
-        let expected_height = 3 * Font6x8::CHARACTER_SIZE.height;
-
-        let height = textbox_style.measure_text_height(text, width);
-        assert_eq!(
-            height, expected_height,
-            "Height of \"{}\" is {} but is expected to be {}",
-            text, height, expected_height
-        );
-    }
-
-    #[test]
-    fn test_measure_height_of_center_aligned_ignores_space() {
+    fn test_measure_height_ignored_spaces() {
+        let data = [
+            ("", 0, 0),
+            (" ", 0, 0),
+            (" ", 5, 0),
+            (" ", 6, 8),
+            ("word\n  \nnext", 50, 24),
+            ("    Word      ", 36, 8),
+        ];
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .alignment(CenterAligned)
             .text_color(BinaryColor::On)
             .build();
-
-        let text = "    Word      ";
-        let width = 6 * 6;
-        #[allow(clippy::identity_op)]
-        let expected_height = 1 * Font6x8::CHARACTER_SIZE.height;
-
-        let height = textbox_style.measure_text_height(text, width);
-        assert_eq!(
-            height, expected_height,
-            "Height of \"{}\" is {} but is expected to be {}",
-            text, height, expected_height
-        );
+        for (i, (text, width, expected_height)) in data.iter().enumerate() {
+            let height = textbox_style.measure_text_height(text, *width);
+            assert_eq!(
+                height, *expected_height,
+                "#{}: Height of \"{}\" is {} but is expected to be {}",
+                i, text, height, expected_height
+            );
+        }
     }
 }
