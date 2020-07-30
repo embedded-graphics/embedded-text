@@ -325,7 +325,8 @@ mod test {
     fn test_measure_height() {
         let data = [
             ("", 0, 0),
-            (" ", 0, 0), // infinite loop
+            (" ", 0, 0),
+            (" ", 5, 0),
             (" ", 6, 8),
             ("word", 4 * 6, 8), // exact fit into 1 line
             ("word", 4 * 6 - 1, 16),
