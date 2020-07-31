@@ -67,18 +67,17 @@ where
     // unprocessed part.
     fn measure_word(w: &str, max_width: u32) -> (u32, Option<&str>) {
         let (width, consumed) = F::max_str_width(w, max_width);
-        if consumed == w {
-            (width, None)
+        let carried = if consumed == w {
+            None
         } else {
-            (
-                width,
-                Some(unsafe {
-                    // consumed is the first part of w, so it's length must be
-                    // on char boundary
-                    w.get_unchecked(consumed.len()..)
-                }),
-            )
-        }
+            Some(unsafe {
+                // consumed is the first part of w, so it's length must be
+                // on char boundary
+                w.get_unchecked(consumed.len()..)
+            })
+        };
+
+        (width, carried)
     }
 
     /// Measure the width and count spaces in a single line of text.
@@ -148,23 +147,24 @@ where
                     let (width, carried) = Self::measure_word(w, available_space);
 
                     if let Some(carried_w) = carried {
-                        if first_word_processed {
+                        let carried_word = if first_word_processed {
                             // carry the whole word
-                            carried_token.replace(Token::Word(w));
+                            w
                         } else {
                             if width != 0 {
                                 current_width += last_space_width + width;
                                 total_spaces += last_spaces;
                             }
                             // first word; break word into parts
-                            carried_token.replace(Token::Word(carried_w));
-                        }
+                            carried_w
+                        };
+                        carried_token.replace(Token::Word(carried_word));
                         break;
                     }
-                    if width != 0 {
-                        current_width += last_space_width + width;
-                        total_spaces += last_spaces;
-                    }
+
+                    // If there's no carried token, width != 0 assuming there are no empty words
+                    current_width += last_space_width + width;
+                    total_spaces += last_spaces;
 
                     first_word_processed = true;
                     last_space_width = 0;
@@ -174,14 +174,13 @@ where
                 Token::Whitespace(n) => {
                     if A::STARTING_SPACES || first_word_processed {
                         let (width, consumed) = F::max_space_width(n, available_space);
-                        let carried = n - consumed;
 
                         // update before breaking, so that ENDING_SPACES can use data
                         last_spaces += n;
                         last_space_width += width;
 
-                        if carried != 0 {
-                            carried_token.replace(Token::Whitespace(carried));
+                        if n != consumed {
+                            carried_token.replace(Token::Whitespace(n - consumed));
                             break;
                         }
                     }

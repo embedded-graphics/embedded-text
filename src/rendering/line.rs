@@ -159,6 +159,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.current_token {
+                // No token being processed, get next one
                 State::FetchNext => {
                     self.current_token = self
                         .parser
@@ -167,7 +168,6 @@ where
                 }
 
                 State::ProcessToken(ref token) => {
-                    // No token being processed, get next one
                     match token.clone() {
                         Token::Whitespace(n) => {
                             let mut would_wrap = false;
