@@ -14,7 +14,9 @@ exclude = [
     ".github/",
 ]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bench]]
+name = "render"
+harness = false
 
 [dependencies]
 embedded-graphics = "0.6.2"
@@ -22,3 +24,4 @@ embedded-graphics = "0.6.2"
 [dev-dependencies]
 embedded-graphics-simulator = "0.2.1"
 sdl2 = "0.32.2"
+criterion = "0.3.3"
