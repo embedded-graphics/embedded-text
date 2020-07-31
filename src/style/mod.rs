@@ -202,17 +202,17 @@ where
         let mut line_count = text
             .lines()
             .map(|line| {
-                let mut current_rows = 0;
+                let mut current_rows = 1;
                 let mut parser = Parser::parse(line);
                 let mut carry = None;
 
                 loop {
                     let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
-                    current_rows += 1;
-                    last_row_empty = w == 0;
                     if t.is_none() || t == carry {
+                        last_row_empty = w == 0;
                         return current_rows;
                     }
+                    current_rows += 1;
                     carry = t;
                 }
             })
