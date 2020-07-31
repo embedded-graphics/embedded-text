@@ -129,7 +129,7 @@ where
                 }
 
                 Token::NewLine => {
-                    // eat the newline, although it shoulnd't be carried
+                    // eat the newline
                 }
             }
         }
@@ -183,6 +183,7 @@ where
                 }
 
                 Token::NewLine => {
+                    carried_token.replace(Token::NewLine);
                     break;
                 }
             }
@@ -198,31 +199,27 @@ where
     #[inline]
     #[must_use]
     pub fn measure_text_height(&self, text: &str, max_width: u32) -> u32 {
-        let mut last_row_empty = false;
-        let mut line_count = text
-            .lines()
-            .map(|line| {
-                let mut current_rows = 1;
-                let mut parser = Parser::parse(line);
-                let mut carry = None;
+        let mut current_height = 0;
+        let mut parser = Parser::parse(text);
+        let mut carry = None;
+        let mut bytes = parser.remaining();
 
-                loop {
-                    let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
-                    if t.is_none() || t == carry {
-                        last_row_empty = w == 0;
-                        return current_rows;
-                    }
-                    current_rows += 1;
-                    carry = t;
+        loop {
+            let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
+            let remaining = parser.remaining();
+            // exit condition:
+            // - no more tokens to process
+            // - the same token is encountered twice
+            if t.is_none() || (t == carry && bytes == remaining) {
+                if w != 0 {
+                    current_height += F::CHARACTER_SIZE.height;
                 }
-            })
-            .sum::<u32>();
-
-        if last_row_empty && !text.ends_with('\n') {
-            line_count -= 1;
+                return current_height;
+            }
+            bytes = remaining;
+            current_height += F::CHARACTER_SIZE.height;
+            carry = t;
         }
-
-        line_count * F::CHARACTER_SIZE.height
     }
 }
 

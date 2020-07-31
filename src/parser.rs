@@ -59,6 +59,12 @@ impl<'a> Parser<'a> {
     pub fn is_empty(&self) -> bool {
         self.inner.as_str().is_empty()
     }
+
+    /// Returns the number of unprocessed bytes.
+    #[inline]
+    pub fn remaining(&self) -> usize {
+        self.inner.as_str().len()
+    }
 }
 
 impl<'a> Iterator for Parser<'a> {
