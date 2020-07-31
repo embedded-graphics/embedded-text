@@ -13,11 +13,12 @@ Unreleased
 
 ## Fixed:
 
- * Fixed several text height measurement issues and inconsistencies
- * Fixed an issue where text height was measured incorrectly when encountering words wider than line
- * Fixed an issue where characters could be drawn outside of the bounding box when there is not enough space to render a single character
- * Fixed a word wrapping issue where the first space may sometimes be rendered 0 width
- * Crash with `Justified` alignment
+ * Fixed an issue where after a line break, the last line was not rendered if the exact height was available.
+ * Fixed several text height measurement issues and inconsistencies.
+ * Fixed an issue where text height was measured incorrectly when encountering words wider than line.
+ * Fixed an issue where characters could be drawn outside of the bounding box when there is not enough space to render a single character.
+ * Fixed a word wrapping issue where the first space may sometimes be rendered 0 width.
+ * Crash with `Justified` alignment.
 
 0.0.3 (2020-07-28)
 ==================

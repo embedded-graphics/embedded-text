@@ -346,7 +346,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 8)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 7)));
         let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
             StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
@@ -378,7 +378,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)));
         let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
             StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
@@ -409,7 +409,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 8)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 7)));
         let mut iter: StyledLineIterator<_, _, _, EndingSpaces> =
             StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
@@ -441,7 +441,7 @@ mod test {
         let parser = Parser::parse("Some  sample text");
         let config = UniformSpaceConfig { space_width: 6 };
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)));
         let mut iter: StyledLineIterator<_, _, _, StartingSpaces> =
             StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
@@ -465,7 +465,7 @@ mod test {
         let parser = Parser::parse("Some  sample text");
         let config = UniformSpaceConfig { space_width: 6 };
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)));
         let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
             StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
@@ -497,7 +497,7 @@ mod test {
         let parser = Parser::parse("Some  sample text");
         let config = UniformSpaceConfig { space_width: 6 };
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 8)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)));
         let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
             StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();

@@ -56,7 +56,7 @@ impl<F: Font> Cursor<F> {
     #[inline]
     #[must_use]
     pub fn in_display_area(&self) -> bool {
-        (self.position.y + F::CHARACTER_SIZE.height as i32) < self.bottom
+        (self.position.y + F::CHARACTER_SIZE.height as i32) <= self.bottom
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.

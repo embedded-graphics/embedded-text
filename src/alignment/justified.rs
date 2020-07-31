@@ -182,7 +182,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 54)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 7)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -213,7 +213,7 @@ mod test {
 
         TextBox::new(
             "A word",
-            Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 8)),
+            Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -245,7 +245,7 @@ mod test {
 
         TextBox::new(
             "word wrapping",
-            Rectangle::new(Point::zero(), Point::new(54, 54)),
+            Rectangle::new(Point::zero(), Point::new(54, 15)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -285,7 +285,7 @@ mod test {
 
         TextBox::new(
             "word and other word last line",
-            Rectangle::new(Point::zero(), Point::new(60, 54)),
+            Rectangle::new(Point::zero(), Point::new(60, 23)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -333,7 +333,7 @@ mod test {
 
         TextBox::new(
             "word somereallylongword",
-            Rectangle::new(Point::zero(), Point::new(54, 54)),
+            Rectangle::new(Point::zero(), Point::new(54, 23)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -381,7 +381,7 @@ mod test {
 
         TextBox::new(
             "somereallylongword",
-            Rectangle::new(Point::zero(), Point::new(54, 54)),
+            Rectangle::new(Point::zero(), Point::new(54, 15)),
         )
         .into_styled(style)
         .draw(&mut display)

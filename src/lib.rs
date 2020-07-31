@@ -40,7 +40,7 @@
 //!
 //!     TextBox::new(
 //!         text,
-//!         Rectangle::new(Point::zero(), Point::new(128, height as i32)),
+//!         Rectangle::new(Point::zero(), Point::new(128, height as i32 - 1)),
 //!     )
 //!     .into_styled(textbox_style)
 //!     .draw(&mut display)
