@@ -27,7 +27,7 @@ impl<F: Font> Cursor<F> {
             position: bounds.top_left,
             bottom: bounds.bottom_right.y + 1,
             left: bounds.top_left.x,
-            right: (bounds.bottom_right.x + 1).max(bounds.top_left.x),
+            right: bounds.bottom_right.x + 1,
         }
     }
 
