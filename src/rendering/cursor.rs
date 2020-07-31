@@ -52,7 +52,7 @@ impl<F: Font> Cursor<F> {
 
     /// Returns whether the cursor is in the bounding box.
     ///
-    /// Note: Only vertical overrun is checked.
+    /// *Note:* Only vertical overrun is checked.
     #[inline]
     #[must_use]
     pub fn in_display_area(&self) -> bool {
