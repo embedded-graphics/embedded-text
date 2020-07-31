@@ -5,7 +5,9 @@ use embedded_graphics::{
     style::{TextStyle, TextStyleBuilder},
 };
 
-/// Textbox style builder object.
+/// [`TextBoxStyle`] builder object.
+///
+/// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
 pub struct TextBoxStyleBuilder<C, F, A>
 where
     C: PixelColor,
@@ -22,6 +24,11 @@ where
     F: Font + Copy,
 {
     /// Creates a new textbox style builder with a given font.
+    ///
+    /// Default settings are:
+    ///  - [`LeftAligned`]
+    ///  - Text color: transparent
+    ///  - Backgound color: transparent
     #[inline]
     #[must_use]
     pub fn new(font: F) -> Self {
@@ -39,6 +46,8 @@ where
     A: TextAlignment,
 {
     /// Sets the text color.
+    ///
+    /// *Note:* once the text color is set, there is no way to reset it to transparent.
     #[inline]
     #[must_use]
     pub fn text_color(self, text_color: C) -> Self {
@@ -49,6 +58,20 @@ where
     }
 
     /// Sets the background color.
+    ///
+    /// *Note:* once the background color is set, there is no way to reset it to transparent.
+    ///
+    /// # Example: transparent text with background.
+    ///
+    /// ```rust
+    /// # use embedded_text::style::builder::TextBoxStyleBuilder;
+    /// # use embedded_graphics::fonts::Font6x8;
+    /// # use embedded_graphics::pixelcolor::BinaryColor;
+    /// #
+    /// let style = TextBoxStyleBuilder::new(Font6x8)
+    ///     .background_color(BinaryColor::On)
+    ///     .build();
+    /// ```
     #[inline]
     #[must_use]
     pub fn background_color(self, background_color: C) -> Self {
@@ -81,14 +104,16 @@ where
     /// Sets the text alignment.
     #[inline]
     #[must_use]
-    pub fn alignment<AA: TextAlignment>(self, alignment: AA) -> TextBoxStyleBuilder<C, F, AA> {
+    pub fn alignment<TA: TextAlignment>(self, alignment: TA) -> TextBoxStyleBuilder<C, F, TA> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment,
         }
     }
 
-    /// Builds the text style.
+    /// Builds the [`TextBoxStyle`].
+    ///
+    /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
     #[inline]
     #[must_use]
     pub fn build(self) -> TextBoxStyle<C, F, A> {

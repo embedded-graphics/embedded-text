@@ -201,6 +201,35 @@ where
     }
 
     /// Measures text height when rendered using a given width.
+    ///
+    /// Example: measure height of text when rendered using a 6x8 font and 72px width.
+    ///
+    /// ```rust
+    /// # use embedded_text::style::builder::TextBoxStyleBuilder;
+    /// # use embedded_graphics::fonts::Font6x8;
+    /// # use embedded_graphics::pixelcolor::BinaryColor;
+    /// #
+    /// let style = TextBoxStyleBuilder::new(Font6x8)
+    ///     .text_color(BinaryColor::On)
+    ///     .build();
+    ///
+    /// let height = style.measure_text_height(
+    ///     "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
+    ///     72,
+    /// );
+    ///
+    /// // Expect 7 lines of text, wrapped in something like the following:
+    ///
+    /// // |Lorem Ipsum |
+    /// // |is simply   |
+    /// // |dummy text  |
+    /// // |of the      |
+    /// // |printing and|
+    /// // |typesetting |
+    /// // |industry.   |
+    ///
+    /// assert_eq!(7 * 8, height);
+    /// ```
     #[inline]
     #[must_use]
     pub fn measure_text_height(&self, text: &str, max_width: u32) -> u32 {

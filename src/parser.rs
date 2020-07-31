@@ -6,12 +6,15 @@
 //! let parser = Parser::parse("Hello, world!\n");
 //! let tokens = parser.collect::<Vec<Token<'_>>>();
 //!
-//! assert_eq!(vec![
-//!     Token::Word("Hello,"),
-//!     Token::Whitespace(1),
-//!     Token::Word("world!"),
-//!     Token::NewLine
-//! ], tokens);
+//! assert_eq!(
+//!     vec![
+//!         Token::Word("Hello,"),
+//!         Token::Whitespace(1),
+//!         Token::Word("world!"),
+//!         Token::NewLine
+//!     ],
+//!     tokens
+//! );
 //! ```
 use core::str::Chars;
 
