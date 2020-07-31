@@ -13,6 +13,7 @@ Unreleased
 
 ## Fixed:
 
+ * Fixed several text height measurement issues and inconsistencies
  * Fixed an issue where text height was measured incorrectly when encountering words wider than line
  * Fixed an issue where characters could be drawn outside of the bounding box when there is not enough space to render a single character
  * Fixed a word wrapping issue where the first space may sometimes be rendered 0 width
