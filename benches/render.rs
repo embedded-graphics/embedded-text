@@ -1,7 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use embedded_graphics::{
     fonts::{Font6x8, Text},
-    mock_display::MockDisplay,
     pixelcolor::BinaryColor,
     prelude::*,
     style::TextStyleBuilder,
