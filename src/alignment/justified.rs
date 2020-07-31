@@ -8,14 +8,17 @@ use crate::{
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
-    utils::font_ext::{FontExt, LineMeasurement},
+    utils::font_ext::FontExt,
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
 pub struct Justified;
-impl TextAlignment for Justified {}
+impl TextAlignment for Justified {
+    const STARTING_SPACES: bool = false;
+    const ENDING_SPACES: bool = false;
+}
 
 /// Internal state information used to store width of whitespace characters when rendering fully
 /// justified text.
@@ -53,16 +56,6 @@ impl JustifiedSpaceConfig {
 
 impl SpaceConfig for JustifiedSpaceConfig {
     #[inline]
-    fn starting_spaces(&self) -> bool {
-        false
-    }
-
-    #[inline]
-    fn ending_spaces(&self) -> bool {
-        false
-    }
-
-    #[inline]
     fn next_space_width(&mut self) -> u32 {
         if self.space_count == 0 {
             self.space_width
@@ -89,7 +82,7 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig>),
+    DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig, Justified>),
 }
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, Justified>
@@ -127,63 +120,17 @@ where
                     }
 
                     let max_line_width = cursor.line_width();
+                    let (width, total_whitespace_count, t) = self.style.measure_line(
+                        &mut self.parser.clone(),
+                        carried_token.clone(),
+                        max_line_width,
+                    );
 
-                    // initial width is the width of the characters carried over to this row
-                    let measurement = if let Some(Token::Word(ref w)) = carried_token {
-                        F::measure_line(w, max_line_width)
-                    } else {
-                        LineMeasurement::empty()
-                    };
+                    let space = max_line_width
+                        - (width - total_whitespace_count * F::total_char_width(' '));
+                    let stretch_line = t.is_some() && t != Some(Token::NewLine);
 
-                    let mut space = max_line_width - measurement.width;
-
-                    let mut total_whitespace_count = 0;
-                    let mut stretch_line = false;
-
-                    // in some rare cases, the carried over text may not fit into a single line
-                    if measurement.fits_line {
-                        let mut next_whitespace_count = 0;
-                        let mut next_whitespace_width = 0;
-
-                        for token in self.parser.clone() {
-                            match token {
-                                Token::NewLine => {
-                                    break;
-                                }
-
-                                Token::Whitespace(_) if space == max_line_width => {
-                                    // eat spaces at the start of line
-                                }
-
-                                Token::Whitespace(n) => {
-                                    next_whitespace_count += n;
-                                    next_whitespace_width +=
-                                        (n * F::total_char_width(' ')).min(space);
-
-                                    if next_whitespace_width >= space {
-                                        stretch_line = total_whitespace_count != 0;
-                                        break;
-                                    }
-                                }
-
-                                Token::Word(w) => {
-                                    let word_measurement =
-                                        F::measure_line(w, space - next_whitespace_width);
-
-                                    if !word_measurement.fits_line {
-                                        // including the word would wrap the line, stop here instead
-                                        stretch_line = total_whitespace_count != 0;
-                                        break;
-                                    }
-
-                                    space -= word_measurement.width;
-                                    total_whitespace_count = next_whitespace_count;
-                                }
-                            }
-                        }
-                    }
-
-                    let space_info = if stretch_line {
+                    let space_info = if stretch_line && total_whitespace_count != 0 {
                         let space_width = space / total_whitespace_count;
                         let extra_pixels = space % total_whitespace_count;
                         JustifiedSpaceConfig::new(space_width, extra_pixels)

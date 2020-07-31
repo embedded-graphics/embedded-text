@@ -16,6 +16,17 @@ pub trait FontExt {
 
     /// Measure text width
     fn str_width(s: &str) -> u32;
+
+    /// Measures a sequence of characters in a line with a determinate maximum width.
+    ///
+    /// Returns the width of the characters that fit into the given space and the processed string.
+    fn max_str_width(s: &str, max_width: u32) -> (u32, &str);
+
+    /// Measures a sequence of spaces in a line with a determinate maximum width.
+    ///
+    /// Returns the width of the spaces that fit into the given space and the number of spaces that
+    /// fit.
+    fn max_space_width(n: u32, max_width: u32) -> (u32, u32);
 }
 
 /// Result of a `measure_line` function call.
@@ -51,18 +62,9 @@ where
     #[inline]
     #[must_use]
     fn measure_line(line: &str, max_width: u32) -> LineMeasurement {
-        let mut total_width = 0;
+        let (width, processed) = Self::max_str_width(line, max_width);
 
-        for c in line.chars() {
-            let new_width = total_width + F::total_char_width(c);
-            if new_width > max_width {
-                return LineMeasurement::new(total_width, false);
-            } else {
-                total_width = new_width;
-            }
-        }
-
-        LineMeasurement::new(total_width, true)
+        LineMeasurement::new(width, processed == line)
     }
 
     #[inline]
@@ -74,6 +76,30 @@ where
     fn str_width(s: &str) -> u32 {
         s.chars().map(F::total_char_width).sum::<u32>()
     }
+
+    #[inline]
+    #[must_use]
+    fn max_str_width(s: &str, max_width: u32) -> (u32, &str) {
+        let mut width = 0;
+        for (idx, c) in s.char_indices() {
+            let new_width = width + F::total_char_width(c);
+            if new_width > max_width {
+                return (width, unsafe { s.get_unchecked(0..idx) });
+            } else {
+                width = new_width;
+            }
+        }
+        (width, s)
+    }
+
+    #[inline]
+    #[must_use]
+    fn max_space_width(n: u32, max_width: u32) -> (u32, u32) {
+        let space_width = F::total_char_width(' ');
+        let num_spaces = (max_width / space_width).min(n);
+
+        (num_spaces * space_width, num_spaces)
+    }
 }
 
 #[cfg(test)]
@@ -83,24 +109,43 @@ mod test {
 
     #[test]
     fn test_max_fitting_empty() {
-        assert_eq!(Font6x8::measure_line("", 54), LineMeasurement::new(0, true))
+        assert_eq!(Font6x8::measure_line("", 54), LineMeasurement::new(0, true));
+        assert_eq!((0, ""), Font6x8::max_str_width("", 54));
     }
 
     #[test]
     fn test_max_fitting_exact() {
         let measurement = Font6x8::measure_line("somereall", 54);
         assert_eq!(measurement, LineMeasurement::new(54, true));
+        assert_eq!((54, "somereall"), Font6x8::max_str_width("somereall", 54));
     }
 
     #[test]
     fn test_max_fitting_long_exact() {
         let measurement = Font6x8::measure_line("somereallylongword", 54);
         assert_eq!(measurement, LineMeasurement::new(54, false));
+        assert_eq!(
+            (54, "somereall"),
+            Font6x8::max_str_width("somereallylongword", 54)
+        );
     }
 
     #[test]
     fn test_max_fitting_long() {
         let measurement = Font6x8::measure_line("somereallylongword", 55);
         assert_eq!(measurement, LineMeasurement::new(54, false));
+        assert_eq!(
+            (54, "somereall"),
+            Font6x8::max_str_width("somereallylongword", 55)
+        );
+    }
+
+    #[test]
+    fn test_max_space_width() {
+        assert_eq!((0, 0), Font6x8::max_space_width(0, 36));
+        assert_eq!((36, 6), Font6x8::max_space_width(6, 36));
+        assert_eq!((36, 6), Font6x8::max_space_width(6, 36));
+        assert_eq!((36, 6), Font6x8::max_space_width(6, 38));
+        assert_eq!((36, 6), Font6x8::max_space_width(7, 36));
     }
 }

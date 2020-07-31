@@ -8,14 +8,17 @@ use crate::{
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
-    utils::font_ext::{FontExt, LineMeasurement},
+    utils::font_ext::FontExt,
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered center aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct CenterAligned;
-impl TextAlignment for CenterAligned {}
+impl TextAlignment for CenterAligned {
+    const STARTING_SPACES: bool = false;
+    const ENDING_SPACES: bool = false;
+}
 
 /// State variable used by the center aligned text renderer.
 #[derive(Debug)]
@@ -28,7 +31,7 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig>),
+    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, CenterAligned>),
 }
 
 impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, CenterAligned>
@@ -66,60 +69,17 @@ where
                     }
 
                     let max_line_width = cursor.line_width();
-
-                    // initial width is the width of the characters carried over to this row
-                    let measurement = if let Some(Token::Word(ref w)) = carried_token {
-                        F::measure_line(w, max_line_width)
-                    } else {
-                        LineMeasurement::empty()
-                    };
-
-                    let mut space = max_line_width - measurement.width;
-
-                    // in some rare cases, the carried over text may not fit into a single line
-                    if measurement.fits_line {
-                        let mut last_whitespace_width = 0;
-
-                        for token in self.parser.clone() {
-                            match token {
-                                Token::NewLine => {
-                                    break;
-                                }
-
-                                Token::Whitespace(_) if space == max_line_width => {
-                                    // eat spaces at the start of line
-                                }
-
-                                Token::Whitespace(n) => {
-                                    last_whitespace_width =
-                                        (n * F::total_char_width(' ')).min(space);
-                                }
-
-                                Token::Word(w) => {
-                                    let space_with_last_ws = space - last_whitespace_width;
-                                    let word_measurement = F::measure_line(w, space_with_last_ws);
-
-                                    if !word_measurement.fits_line {
-                                        if space == max_line_width {
-                                            space -= F::measure_line(w, max_line_width).width;
-                                        }
-                                        break;
-                                    }
-
-                                    space = space_with_last_ws - word_measurement.width;
-                                }
-                            }
-                        }
-                    }
-
-                    cursor.advance((space + 1) / 2);
+                    let (width, _, _) = self.style.measure_line(
+                        &mut self.parser.clone(),
+                        carried_token.clone(),
+                        max_line_width,
+                    );
+                    cursor.advance((max_line_width - width + 1) / 2);
 
                     self.state = State::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
                         *cursor,
                         UniformSpaceConfig {
-                            starting_spaces: false,
-                            ending_spaces: false,
                             space_width: F::total_char_width(' '),
                         },
                         self.style.text_style,

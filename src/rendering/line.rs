@@ -1,12 +1,13 @@
 //! Line rendering.
 use crate::{
+    alignment::TextAlignment,
     parser::{Parser, Token},
     rendering::{
         character::StyledCharacterIterator, cursor::Cursor, whitespace::EmptySpaceIterator,
     },
     utils::font_ext::FontExt,
 };
-use core::str::Chars;
+use core::{marker::PhantomData, str::Chars};
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Internal state used to render a line.
@@ -34,12 +35,6 @@ where
 
 /// Retrieves size of space characters.
 pub trait SpaceConfig: Copy {
-    /// Render spaces at the start of a line.
-    fn starting_spaces(&self) -> bool;
-
-    /// Render spaces at the end of a line.
-    fn ending_spaces(&self) -> bool;
-
     /// Look at the size of next n spaces, without advancing.
     fn peek_next_width(&self, n: u32) -> u32;
 
@@ -52,25 +47,9 @@ pub trait SpaceConfig: Copy {
 pub struct UniformSpaceConfig {
     /// Space width.
     pub space_width: u32,
-
-    /// Render spaces at the start of a line.
-    pub starting_spaces: bool,
-
-    /// Render spaces at the end of a line.
-    pub ending_spaces: bool,
 }
 
 impl SpaceConfig for UniformSpaceConfig {
-    #[inline]
-    fn starting_spaces(&self) -> bool {
-        self.starting_spaces
-    }
-
-    #[inline]
-    fn ending_spaces(&self) -> bool {
-        self.ending_spaces
-    }
-
     #[inline]
     fn peek_next_width(&self, n: u32) -> u32 {
         n * self.space_width
@@ -84,10 +63,12 @@ impl SpaceConfig for UniformSpaceConfig {
 
 /// Pixel iterator to render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineIterator<'a, C, F, SP: SpaceConfig>
+pub struct StyledLineIterator<'a, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
+    SP: SpaceConfig,
+    A: TextAlignment,
 {
     /// Position information.
     pub cursor: Cursor<F>,
@@ -99,13 +80,15 @@ where
     config: SP,
     style: TextStyle<C, F>,
     first_word: bool,
+    alignment: PhantomData<A>,
 }
 
-impl<'a, C, F, SP> StyledLineIterator<'a, C, F, SP>
+impl<'a, C, F, SP, A> StyledLineIterator<'a, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
     SP: SpaceConfig,
+    A: TextAlignment,
 {
     /// Creates a new pixel iterator to draw the given character.
     #[inline]
@@ -124,6 +107,7 @@ where
             cursor,
             style,
             first_word: true,
+            alignment: PhantomData,
         }
     }
 
@@ -162,11 +146,12 @@ where
     }
 }
 
-impl<C, F, SP> Iterator for StyledLineIterator<'_, C, F, SP>
+impl<C, F, SP, A> Iterator for StyledLineIterator<'_, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
     SP: SpaceConfig,
+    A: TextAlignment,
 {
     type Item = Pixel<C>;
 
@@ -187,8 +172,8 @@ where
                         Token::Whitespace(n) => {
                             let mut would_wrap = false;
                             let render_whitespace = if self.first_word {
-                                self.config.starting_spaces()
-                            } else if self.config.ending_spaces() {
+                                A::STARTING_SPACES
+                            } else if A::ENDING_SPACES {
                                 true
                             } else if let Some(Token::Word(w)) = self.parser.peek() {
                                 // Check if space + w fits in line, otherwise it's up to config
@@ -290,7 +275,7 @@ where
 
 #[cfg(test)]
 mod test {
-
+    use crate::alignment::TextAlignment;
     use crate::parser::{Parser, Token};
     use crate::rendering::{
         cursor::Cursor,
@@ -301,21 +286,37 @@ mod test {
         primitives::Rectangle, style::TextStyleBuilder,
     };
 
+    #[derive(Copy, Clone)]
+    pub struct AllSpaces;
+    impl TextAlignment for AllSpaces {
+        const STARTING_SPACES: bool = true;
+        const ENDING_SPACES: bool = true;
+    }
+    #[derive(Copy, Clone)]
+    pub struct StartingSpaces;
+    impl TextAlignment for StartingSpaces {
+        const STARTING_SPACES: bool = true;
+        const ENDING_SPACES: bool = false;
+    }
+    #[derive(Copy, Clone)]
+    pub struct EndingSpaces;
+    impl TextAlignment for EndingSpaces {
+        const STARTING_SPACES: bool = false;
+        const ENDING_SPACES: bool = true;
+    }
+
     #[test]
     fn simple_render() {
         let parser = Parser::parse(" Some sample text");
-        let config = UniformSpaceConfig {
-            starting_spaces: true,
-            ending_spaces: true,
-            space_width: 6,
-        };
+        let config = UniformSpaceConfig { space_width: 6 };
         let style = TextStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -339,18 +340,15 @@ mod test {
     #[test]
     fn simple_render_first_word_not_wrapped() {
         let parser = Parser::parse(" Some sample text");
-        let config = UniformSpaceConfig {
-            starting_spaces: true,
-            ending_spaces: true,
-            space_width: 6,
-        };
+        let config = UniformSpaceConfig { space_width: 6 };
         let style = TextStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -374,18 +372,15 @@ mod test {
     #[test]
     fn newline_stops_render() {
         let parser = Parser::parse("Some \nsample text");
-        let config = UniformSpaceConfig {
-            starting_spaces: true,
-            ending_spaces: true,
-            space_width: 6,
-        };
+        let config = UniformSpaceConfig { space_width: 6 };
         let style = TextStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -408,18 +403,15 @@ mod test {
     #[test]
     fn first_spaces_not_rendered() {
         let parser = Parser::parse("  Some sample text");
-        let config = UniformSpaceConfig {
-            starting_spaces: false,
-            ending_spaces: true,
-            space_width: 6,
-        };
+        let config = UniformSpaceConfig { space_width: 6 };
         let style = TextStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter: StyledLineIterator<_, _, _, EndingSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -447,14 +439,11 @@ mod test {
             .build();
 
         let parser = Parser::parse("Some  sample text");
-        let config = UniformSpaceConfig {
-            starting_spaces: true,
-            ending_spaces: false,
-            space_width: 6,
-        };
+        let config = UniformSpaceConfig { space_width: 6 };
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter: StyledLineIterator<_, _, _, StartingSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -474,14 +463,11 @@ mod test {
         );
 
         let parser = Parser::parse("Some  sample text");
-        let config = UniformSpaceConfig {
-            starting_spaces: true,
-            ending_spaces: true,
-            space_width: 6,
-        };
+        let config = UniformSpaceConfig { space_width: 6 };
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -509,21 +495,18 @@ mod test {
             .build();
 
         let parser = Parser::parse("Some  sample text");
-        let config = UniformSpaceConfig {
-            starting_spaces: true,
-            ending_spaces: true,
-            space_width: 6,
-        };
+        let config = UniformSpaceConfig { space_width: 6 };
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
 
         assert_eq!(Some(Token::Whitespace(1)), iter.remaining_token());
 
-        let mut iter = StyledLineIterator::new(
+        let mut iter: StyledLineIterator<_, _, _, AllSpaces> = StyledLineIterator::new(
             iter.parser.clone(),
             cursor,
             config,
