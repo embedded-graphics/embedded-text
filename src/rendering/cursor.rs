@@ -33,6 +33,7 @@ impl<F: Font> Cursor<F> {
 
     /// Returns the width of the textbox
     #[inline]
+    #[must_use]
     pub fn line_width(&self) -> u32 {
         (self.right - self.left) as u32
     }
@@ -53,12 +54,14 @@ impl<F: Font> Cursor<F> {
     ///
     /// Note: Only vertical overrun is checked.
     #[inline]
+    #[must_use]
     pub fn in_display_area(&self) -> bool {
         (self.position.y + F::CHARACTER_SIZE.height as i32) < self.bottom
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.
     #[inline]
+    #[must_use]
     pub fn fits_in_line(&self, width: u32) -> bool {
         width as i32 <= self.right - self.position.x
     }

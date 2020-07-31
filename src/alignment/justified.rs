@@ -80,7 +80,7 @@ impl SpaceConfig for JustifiedSpaceConfig {
 
 /// State variable used by the fully justified text renderer.
 #[derive(Debug)]
-pub enum JustifiedState<'a, C, F>
+pub enum State<'a, C, F>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -97,12 +97,12 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    type PixelIteratorState = JustifiedState<'a, C, F>;
+    type PixelIteratorState = State<'a, C, F>;
 
     #[inline]
     #[must_use]
     fn create_state(&self) -> Self::PixelIteratorState {
-        JustifiedState::NextLine(None, Cursor::new(self.text_box.bounds))
+        State::NextLine(None, Cursor::new(self.text_box.bounds))
     }
 }
 
@@ -117,7 +117,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                JustifiedState::NextLine(ref carried_token, ref cursor) => {
+                State::NextLine(ref carried_token, ref cursor) => {
                     if !cursor.in_display_area() {
                         break None;
                     }
@@ -191,7 +191,7 @@ where
                         JustifiedSpaceConfig::default::<F>()
                     };
 
-                    self.state = JustifiedState::DrawLine(StyledLineIterator::new(
+                    self.state = State::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
                         *cursor,
                         space_info,
@@ -200,7 +200,7 @@ where
                     ));
                 }
 
-                JustifiedState::DrawLine(ref mut line_iterator) => {
+                State::DrawLine(ref mut line_iterator) => {
                     if let pixel @ Some(_) = line_iterator.next() {
                         break pixel;
                     }
@@ -210,7 +210,7 @@ where
                     let mut cursor = line_iterator.cursor;
                     cursor.new_line();
                     cursor.carriage_return();
-                    self.state = JustifiedState::NextLine(carried_token, cursor);
+                    self.state = State::NextLine(carried_token, cursor);
                 }
             }
         }

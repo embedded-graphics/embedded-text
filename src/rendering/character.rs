@@ -15,6 +15,7 @@ where
 {
     /// Creates a glyph from a character.
     #[inline]
+    #[must_use]
     pub fn new(c: char) -> Self {
         let char_offset = F::char_offset(c);
         let char_per_row = F::FONT_IMAGE_WIDTH / F::CHARACTER_SIZE.width;
