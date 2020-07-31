@@ -6,6 +6,11 @@ pub mod left;
 pub mod right;
 
 /// Text alignment base trait.
+///
+/// Use implementors to parametrize [`TextBoxStyle`] and [`TextBoxStyleBuilder`].
+///
+/// [`TextBoxStyle`]: ../style/struct.TextBoxStyle.html
+/// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
 pub trait TextAlignment: Copy {
     /// Whether or not render spaces in the start of the line.
     const STARTING_SPACES: bool;
