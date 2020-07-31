@@ -83,8 +83,13 @@ where
 
     /// Measure the width and count spaces in a single line of text.
     ///
-    /// Returns (width, rendered space count, unprocessed token)
+    /// Returns (width, rendered space count, carried token)
+    ///
+    /// Instead of peeking ahead when processing tokens, this function advances the parser before
+    /// processing a token. If a token opens a new line, it will be returned as the carried token.
+    /// If the carried token is `None`, the parser has finished processing the text.
     #[inline]
+    #[must_use]
     pub fn measure_line<'a>(
         &self,
         parser: &mut Parser<'a>,
