@@ -89,43 +89,44 @@ impl<'a> Iterator for Parser<'a> {
         let string = self.inner.as_str();
         self.inner.next().map(|c| {
             let mut iter = self.inner.clone();
-            match c {
-                '\n' => Token::NewLine,
-                '\r' => Token::CarriageReturn,
 
-                c if Self::is_space_char(c) => {
-                    let mut len = 1;
-                    while let Some(c) = iter.next() {
-                        if Self::is_space_char(c) {
-                            len += 1;
-                            self.inner = iter.clone();
-                        } else {
-                            // consume the whitespaces
-                            return Token::Whitespace(len);
-                        }
+            if Self::is_word_char(c) {
+                while let Some(c) = iter.next() {
+                    if Self::is_word_char(c) {
+                        self.inner = iter.clone();
+                    } else {
+                        let offset = string.len() - self.inner.as_str().len();
+                        return Token::Word(unsafe {
+                            // don't worry
+                            string.get_unchecked(0..offset)
+                        });
                     }
-
-                    // consume all the text
-                    self.inner = "".chars();
-                    Token::Whitespace(len)
                 }
 
-                _ => {
-                    while let Some(c) = iter.next() {
-                        if !Self::is_word_char(c) {
-                            let offset = string.len() - self.inner.as_str().len();
-                            return Token::Word(unsafe {
-                                // don't worry
-                                string.get_unchecked(0..offset)
-                            });
-                        } else {
-                            self.inner = iter.clone();
-                        }
-                    }
+                // consume all the text
+                self.inner = "".chars();
+                Token::Word(&string)
+            } else {
+                match c {
+                    '\n' => Token::NewLine,
+                    '\r' => Token::CarriageReturn,
 
-                    // consume all the text
-                    self.inner = "".chars();
-                    Token::Word(&string)
+                    _ => {
+                        let mut len = 1;
+                        while let Some(c) = iter.next() {
+                            if Self::is_space_char(c) {
+                                len += 1;
+                                self.inner = iter.clone();
+                            } else {
+                                // consume the whitespaces
+                                return Token::Whitespace(len);
+                            }
+                        }
+
+                        // consume all the text
+                        self.inner = "".chars();
+                        Token::Whitespace(len)
+                    }
                 }
             }
         })
