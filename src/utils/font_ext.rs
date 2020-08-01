@@ -174,7 +174,7 @@ mod test {
 
     #[test]
     fn test_str_width() {
-        let data = [("", 0), ("foo", 3), ("foo\rbar", 3), ("foo\rfoobar", 6)];
+        let data: [(&str, u32); 4] = [("", 0), ("foo", 3), ("foo\rbar", 3), ("foo\rfoobar", 6)];
         for (word, chars) in data.iter() {
             assert_eq!(chars * 6, Font6x8::str_width(word));
         }
