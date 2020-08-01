@@ -151,6 +151,33 @@ mod test {
     }
 
     #[test]
+    fn simple_render_cr() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        TextBox::new("O\rX", Rectangle::new(Point::zero(), Point::new(54, 7)))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "#####    ",
+                "#   #    ",
+                "## ##    ",
+                "# # #    ",
+                "## ##    ",
+                "#   #    ",
+                "#####    ",
+            ])
+        );
+    }
+
+    #[test]
     fn simple_word_wrapping() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
