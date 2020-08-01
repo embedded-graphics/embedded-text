@@ -174,7 +174,19 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use embedded_graphics::fonts::Font6x8;
+    use embedded_graphics::fonts::{Font6x6, Font6x8};
+
+    #[test]
+    fn nbsp_width_equal_to_space() {
+        assert_eq!(
+            Font6x8::total_char_width('\u{A0}'),
+            Font6x8::total_char_width(' ')
+        );
+        assert_eq!(
+            Font6x6::total_char_width('\u{A0}'),
+            Font6x6::total_char_width(' ')
+        );
+    }
 
     #[test]
     fn test_str_width() {
