@@ -10,6 +10,10 @@ Unreleased
    * `FontExt::max_str_width_nocr`
  * Support carriage return (`\r`) control characters.
 
+## Fixed:
+
+ * Fixed an issue where height measurement unexpectedly carried a space that is consumed during drawing.
+
 0.1.0 (2020-07-31)
 ==================
 

@@ -125,7 +125,7 @@ where
                         let carried = n - consumed;
 
                         if carried != 0 {
-                            let token = Some(Token::Whitespace(carried));
+                            let token = Some(Token::Whitespace(carried - 1));
                             return if A::ENDING_SPACES {
                                 (width, consumed, token)
                             } else {
@@ -186,13 +186,16 @@ where
 
                 Token::Whitespace(n) => {
                     if A::STARTING_SPACES || first_word_processed {
-                        let (width, consumed) = F::max_space_width(n, available_space);
+                        let (width, mut consumed) = F::max_space_width(n, available_space);
 
                         // update before breaking, so that ENDING_SPACES can use data
                         last_spaces += n;
                         last_space_width += width;
 
                         if n != consumed {
+                            if A::ENDING_SPACES {
+                                consumed += 1;
+                            }
                             carried_token.replace(Token::Whitespace(n - consumed));
                             break;
                         }
@@ -378,7 +381,8 @@ mod test {
             ("\n ", 6, 16),
             ("word", 4 * 6, 8), // exact fit into 1 line
             ("word", 4 * 6 - 1, 16),
-            ("word", 2 * 6, 16), // exact fit into 2 lines
+            ("word", 2 * 6, 16),      // exact fit into 2 lines
+            ("word word", 4 * 6, 16), // exact fit into 2 lines
             ("word\n", 2 * 6, 16),
             ("word\nnext", 50, 16),
             ("word\n\nnext", 50, 24),
