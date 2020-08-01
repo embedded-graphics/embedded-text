@@ -453,5 +453,16 @@ mod test {
 
         let height = textbox_style.measure_text_height(text, 5 * Font6x8::CHARACTER_SIZE.width);
         assert_eq!(height, 16);
+
+        // bug discovered while using the interactive example
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let text = "embedded-text also\u{A0}supports non-breaking spaces.";
+
+        let height = textbox_style.measure_text_height(text, 79);
+        assert_eq!(height, 4 * Font6x8::CHARACTER_SIZE.height);
     }
 }
