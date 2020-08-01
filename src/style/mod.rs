@@ -353,7 +353,10 @@ where
 #[cfg(test)]
 mod test {
     use crate::{alignment::*, style::builder::TextBoxStyleBuilder};
-    use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor};
+    use embedded_graphics::{
+        fonts::{Font, Font6x8},
+        pixelcolor::BinaryColor,
+    };
 
     #[test]
     fn test_measure_height() {
@@ -413,5 +416,18 @@ mod test {
                 i, text, height, expected_height
             );
         }
+    }
+
+    #[test]
+    fn test_measure_height_nbsp() {
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let text = "123\u{A0}45 123";
+
+        let height = textbox_style.measure_text_height(text, 5 * Font6x8::CHARACTER_SIZE.width);
+        assert_eq!(height, 16);
     }
 }
