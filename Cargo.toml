@@ -18,6 +18,10 @@ exclude = [
 name = "render"
 harness = false
 
+[[bench]]
+name = "parse"
+harness = false
+
 [dependencies]
 embedded-graphics = "0.6.2"
 
