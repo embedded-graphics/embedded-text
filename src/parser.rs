@@ -71,6 +71,14 @@ impl<'a> Parser<'a> {
     pub fn remaining(&self) -> usize {
         self.inner.as_str().len()
     }
+
+    fn is_word_char(c: char) -> bool {
+        !c.is_whitespace() || c == '\u{A0}'
+    }
+
+    fn is_space_char(c: char) -> bool {
+        c.is_whitespace() && !['\n', '\r', '\u{A0}'].contains(&c)
+    }
 }
 
 impl<'a> Iterator for Parser<'a> {
@@ -81,43 +89,44 @@ impl<'a> Iterator for Parser<'a> {
         let string = self.inner.as_str();
         self.inner.next().map(|c| {
             let mut iter = self.inner.clone();
-            match c {
-                '\n' => Token::NewLine,
-                '\r' => Token::CarriageReturn,
 
-                c if c.is_whitespace() => {
-                    let mut len = 1;
-                    while let Some(c) = iter.next() {
-                        if c.is_whitespace() && c != '\n' && c != '\r' {
-                            len += 1;
-                            self.inner = iter.clone();
-                        } else {
-                            // consume the whitespaces
-                            return Token::Whitespace(len);
-                        }
+            if Self::is_word_char(c) {
+                while let Some(c) = iter.next() {
+                    if Self::is_word_char(c) {
+                        self.inner = iter.clone();
+                    } else {
+                        let offset = string.len() - self.inner.as_str().len();
+                        return Token::Word(unsafe {
+                            // don't worry
+                            string.get_unchecked(0..offset)
+                        });
                     }
-
-                    // consume all the text
-                    self.inner = "".chars();
-                    Token::Whitespace(len)
                 }
 
-                _ => {
-                    while let Some(c) = iter.next() {
-                        if c.is_whitespace() {
-                            let offset = string.len() - self.inner.as_str().len();
-                            return Token::Word(unsafe {
-                                // don't worry
-                                string.get_unchecked(0..offset)
-                            });
-                        } else {
-                            self.inner = iter.clone();
-                        }
-                    }
+                // consume all the text
+                self.inner = "".chars();
+                Token::Word(&string)
+            } else {
+                match c {
+                    '\n' => Token::NewLine,
+                    '\r' => Token::CarriageReturn,
 
-                    // consume all the text
-                    self.inner = "".chars();
-                    Token::Word(&string)
+                    _ => {
+                        let mut len = 1;
+                        while let Some(c) = iter.next() {
+                            if Self::is_space_char(c) {
+                                len += 1;
+                                self.inner = iter.clone();
+                            } else {
+                                // consume the whitespaces
+                                return Token::Whitespace(len);
+                            }
+                        }
+
+                        // consume all the text
+                        self.inner = "".chars();
+                        Token::Whitespace(len)
+                    }
                 }
             }
         })
@@ -164,6 +173,21 @@ mod test {
         assert_eq!(
             Parser::parse(text).collect::<Vec<Token>>(),
             vec![Token::Word("test😅"),]
+        );
+    }
+
+    #[test]
+    fn parse_nbsp_as_word_char() {
+        let text = "test\u{A0}word";
+
+        assert_eq!(9, "test\u{A0}word".chars().count());
+        assert_eq!(
+            Parser::parse(text).collect::<Vec<Token>>(),
+            vec![Token::Word("test\u{A0}word"),]
+        );
+        assert_eq!(
+            Parser::parse(" \u{A0}word").collect::<Vec<Token>>(),
+            vec![Token::Whitespace(1), Token::Word("\u{A0}word"),]
         );
     }
 }

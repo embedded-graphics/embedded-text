@@ -63,8 +63,8 @@ where
         }
     }
 
-    // Returns the size of a token if it fits the line, or the max size that fits and the remaining
-    // unprocessed part.
+    /// Returns the size of a token if it fits the line, or the max size that fits and the remaining
+    /// unprocessed part.
     fn measure_word(w: &str, max_width: u32) -> (u32, Option<&str>) {
         let (width, consumed) = F::max_str_width_nocr(w, max_width);
         let carried = if consumed == w {
@@ -78,6 +78,11 @@ where
         };
 
         (width, carried)
+    }
+
+    /// Counts the number of printed whitespaces in a word
+    fn count_printed_spaces(w: &str) -> u32 {
+        w.chars().filter(|&c| c == '\u{A0}').count() as u32
     }
 
     /// Measure the width and count spaces in a single line of text.
@@ -106,7 +111,8 @@ where
                     let (width, carried) = Self::measure_word(w, max_line_width);
 
                     if let Some(w) = carried {
-                        return (width, 0, Some(Token::Word(w)));
+                        let spaces = Self::count_printed_spaces(w);
+                        return (width, spaces, Some(Token::Word(w)));
                     }
 
                     first_word_processed = true;
@@ -119,7 +125,7 @@ where
                         let carried = n - consumed;
 
                         if carried != 0 {
-                            let token = Some(Token::Whitespace(carried));
+                            let token = Some(Token::Whitespace(carried - 1));
                             return if A::ENDING_SPACES {
                                 (width, consumed, token)
                             } else {
@@ -156,8 +162,10 @@ where
                             w
                         } else {
                             if width != 0 {
+                                let spaces =
+                                    Self::count_printed_spaces(&w[0..w.len() - carried_w.len()]);
                                 current_width += last_space_width + width;
-                                total_spaces += last_spaces;
+                                total_spaces += last_spaces + spaces;
                             }
                             // first word; break word into parts
                             carried_w
@@ -166,9 +174,10 @@ where
                         break;
                     }
 
+                    let spaces = Self::count_printed_spaces(w);
                     // If there's no carried token, width != 0 assuming there are no empty words
                     current_width += last_space_width + width;
-                    total_spaces += last_spaces;
+                    total_spaces += last_spaces + spaces;
 
                     first_word_processed = true;
                     last_space_width = 0;
@@ -177,13 +186,16 @@ where
 
                 Token::Whitespace(n) => {
                     if A::STARTING_SPACES || first_word_processed {
-                        let (width, consumed) = F::max_space_width(n, available_space);
+                        let (width, mut consumed) = F::max_space_width(n, available_space);
 
                         // update before breaking, so that ENDING_SPACES can use data
                         last_spaces += n;
                         last_space_width += width;
 
                         if n != consumed {
+                            if A::ENDING_SPACES {
+                                consumed += 1;
+                            }
                             carried_token.replace(Token::Whitespace(n - consumed));
                             break;
                         }
@@ -352,8 +364,11 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{alignment::*, style::builder::TextBoxStyleBuilder};
-    use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor};
+    use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
+    use embedded_graphics::{
+        fonts::{Font, Font6x8},
+        pixelcolor::BinaryColor,
+    };
 
     #[test]
     fn test_measure_height() {
@@ -366,7 +381,8 @@ mod test {
             ("\n ", 6, 16),
             ("word", 4 * 6, 8), // exact fit into 1 line
             ("word", 4 * 6 - 1, 16),
-            ("word", 2 * 6, 16), // exact fit into 2 lines
+            ("word", 2 * 6, 16),      // exact fit into 2 lines
+            ("word word", 4 * 6, 16), // exact fit into 2 lines
             ("word\n", 2 * 6, 16),
             ("word\nnext", 50, 16),
             ("word\n\nnext", 50, 24),
@@ -413,5 +429,44 @@ mod test {
                 i, text, height, expected_height
             );
         }
+    }
+
+    #[test]
+    fn test_measure_line_counts_nbsp() {
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let mut text = Parser::parse("123\u{A0}45");
+
+        let (w, s, _) =
+            textbox_style.measure_line(&mut text, None, 5 * Font6x8::CHARACTER_SIZE.width);
+        assert_eq!(w, 5 * Font6x8::CHARACTER_SIZE.width);
+        assert_eq!(s, 1);
+    }
+
+    #[test]
+    fn test_measure_height_nbsp() {
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let text = "123\u{A0}45 123";
+
+        let height = textbox_style.measure_text_height(text, 5 * Font6x8::CHARACTER_SIZE.width);
+        assert_eq!(height, 16);
+
+        // bug discovered while using the interactive example
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let text = "embedded-text also\u{A0}supports non-breaking spaces.";
+
+        let height = textbox_style.measure_text_height(text, 79);
+        assert_eq!(height, 4 * Font6x8::CHARACTER_SIZE.height);
     }
 }

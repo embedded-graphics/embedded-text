@@ -67,7 +67,7 @@ where
     loop {
         let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
 
-        let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";
+        let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.\n\nembedded-text also\u{A0}supports non-breaking spaces.";
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .alignment(alignment)
             .text_color(BinaryColor::On)
@@ -114,7 +114,7 @@ fn main() -> Result<(), core::convert::Infallible> {
         .build();
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
-    let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 128));
+    let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 200));
 
     'running: loop {
         if !demo_loop(&mut window, &mut bounds, Justified) {
