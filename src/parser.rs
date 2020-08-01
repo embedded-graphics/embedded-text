@@ -72,11 +72,11 @@ impl<'a> Parser<'a> {
         self.inner.as_str().len()
     }
 
-    fn word_char(c: char) -> bool {
+    fn is_word_char(c: char) -> bool {
         !c.is_whitespace() || c == '\u{A0}'
     }
 
-    fn space_char(c: char) -> bool {
+    fn is_space_char(c: char) -> bool {
         c.is_whitespace() && !['\n', '\r', '\u{A0}'].contains(&c)
     }
 }
@@ -93,10 +93,10 @@ impl<'a> Iterator for Parser<'a> {
                 '\n' => Token::NewLine,
                 '\r' => Token::CarriageReturn,
 
-                c if c.is_whitespace() => {
+                c if Self::is_space_char(c) => {
                     let mut len = 1;
                     while let Some(c) = iter.next() {
-                        if Self::space_char(c) {
+                        if Self::is_space_char(c) {
                             len += 1;
                             self.inner = iter.clone();
                         } else {
@@ -112,7 +112,7 @@ impl<'a> Iterator for Parser<'a> {
 
                 _ => {
                     while let Some(c) = iter.next() {
-                        if !Self::word_char(c) {
+                        if !Self::is_word_char(c) {
                             let offset = string.len() - self.inner.as_str().len();
                             return Token::Word(unsafe {
                                 // don't worry
@@ -172,6 +172,21 @@ mod test {
         assert_eq!(
             Parser::parse(text).collect::<Vec<Token>>(),
             vec![Token::Word("test😅"),]
+        );
+    }
+
+    #[test]
+    fn parse_nbsp_as_word_char() {
+        let text = "test\u{A0}word";
+
+        assert_eq!(9, "test\u{A0}word".chars().count());
+        assert_eq!(
+            Parser::parse(text).collect::<Vec<Token>>(),
+            vec![Token::Word("test\u{A0}word"),]
+        );
+        assert_eq!(
+            Parser::parse(" \u{A0}word").collect::<Vec<Token>>(),
+            vec![Token::Whitespace(1), Token::Word("\u{A0}word"),]
         );
     }
 }
