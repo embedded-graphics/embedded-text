@@ -66,7 +66,7 @@ where
     // Returns the size of a token if it fits the line, or the max size that fits and the remaining
     // unprocessed part.
     fn measure_word(w: &str, max_width: u32) -> (u32, Option<&str>) {
-        let (width, consumed) = F::max_str_width(w, max_width);
+        let (width, consumed) = F::max_str_width_nocr(w, max_width);
         let carried = if consumed == w {
             None
         } else {
@@ -135,6 +135,10 @@ where
                 Token::NewLine => {
                     // eat the newline
                 }
+
+                Token::CarriageReturn => {
+                    // eat the \r since it's meaningless in the beginning of a line
+                }
             }
         }
 
@@ -186,8 +190,8 @@ where
                     }
                 }
 
-                Token::NewLine => {
-                    carried_token.replace(Token::NewLine);
+                Token::NewLine | Token::CarriageReturn => {
+                    carried_token.replace(token);
                     break;
                 }
             }
@@ -249,8 +253,10 @@ where
                 }
                 return current_height;
             }
+            if t != Some(Token::CarriageReturn) {
+                current_height += F::CHARACTER_SIZE.height;
+            }
             bytes = remaining;
-            current_height += F::CHARACTER_SIZE.height;
             carry = t;
         }
     }
@@ -369,6 +375,7 @@ mod test {
             ("some verylongword", 50, 24),
             ("1 23456 12345 61234 561", 36, 40),
             ("    Word      ", 36, 24),
+            ("Longer\rnowrap", 36, 8),
         ];
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)

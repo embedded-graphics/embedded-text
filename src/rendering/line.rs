@@ -30,7 +30,7 @@ where
     Whitespace(u32, EmptySpaceIterator<C, F>),
 
     /// Signal that the renderer has finished, store the token that was consumed but not rendered.
-    Done(Option<Token<'a>>),
+    Done(Token<'a>),
 }
 
 /// Retrieves size of space characters.
@@ -119,7 +119,7 @@ where
     #[inline]
     pub fn remaining_token(&self) -> Option<Token<'a>> {
         match self.current_token {
-            State::Done(ref t) => t.clone(),
+            State::Done(ref t) => Some(t.clone()),
             _ => None,
         }
     }
@@ -140,7 +140,7 @@ where
                 State::Word(lookahead, StyledCharacterIterator::new(c, pos, self.style))
             } else {
                 // word wrapping, this line is done
-                State::Done(Some(Token::Word(word)))
+                State::Done(Token::Word(word))
             }
         })
     }
@@ -164,7 +164,7 @@ where
                     self.current_token = self
                         .parser
                         .next()
-                        .map_or(State::Done(None), State::ProcessToken);
+                        .map_or(State::Done(Token::NewLine), State::ProcessToken);
                 }
 
                 State::ProcessToken(ref token) => {
@@ -178,7 +178,7 @@ where
                             } else if let Some(Token::Word(w)) = self.parser.peek() {
                                 // Check if space + w fits in line, otherwise it's up to config
                                 let space_width = self.config.peek_next_width(n);
-                                let word_width = F::str_width(w);
+                                let word_width = F::str_width_nocr(w);
 
                                 let fits = self.fits_in_line(space_width + word_width);
 
@@ -213,12 +213,12 @@ where
                                 } else if spaces > 1 {
                                     // there are spaces to render but none fit the line
                                     // eat one as a newline and stop
-                                    State::Done(Some(Token::Whitespace(spaces.saturating_sub(1))))
+                                    State::Done(Token::Whitespace(spaces.saturating_sub(1)))
                                 } else {
-                                    State::Done(None)
+                                    State::Done(Token::NewLine)
                                 }
                             } else if would_wrap {
-                                self.current_token = State::Done(None);
+                                self.current_token = State::Done(Token::NewLine);
                             } else {
                                 // nothing, process next token
                                 self.current_token = State::FetchNext;
@@ -228,17 +228,17 @@ where
                         Token::Word(w) => {
                             if self.first_word {
                                 self.first_word = false;
-                            } else if !self.fits_in_line(F::str_width(w)) {
-                                self.current_token = State::Done(Some(Token::Word(w)));
+                            } else if !self.fits_in_line(F::str_width_nocr(w)) {
+                                self.current_token = State::Done(Token::Word(w));
                                 break None;
                             }
 
                             self.current_token = self.try_draw_next_character(w);
                         }
 
-                        Token::NewLine => {
+                        Token::NewLine | Token::CarriageReturn => {
                             // we're done
-                            self.current_token = State::Done(None);
+                            self.current_token = State::Done(token.clone());
                         }
                     }
                 }
@@ -252,7 +252,7 @@ where
                         State::FetchNext
                     } else {
                         // n > 0 only if not every space was rendered
-                        State::Done(Some(Token::Whitespace(*n)))
+                        State::Done(Token::Whitespace(*n))
                     }
                 }
 

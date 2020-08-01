@@ -24,6 +24,9 @@ pub enum Token<'a> {
     /// A newline character.
     NewLine,
 
+    /// A \r character.
+    CarriageReturn,
+
     /// A number of whitespace characters.
     Whitespace(u32),
 
@@ -80,11 +83,12 @@ impl<'a> Iterator for Parser<'a> {
             let mut iter = self.inner.clone();
             match c {
                 '\n' => Token::NewLine,
+                '\r' => Token::CarriageReturn,
 
                 c if c.is_whitespace() => {
                     let mut len = 1;
                     while let Some(c) = iter.next() {
-                        if c.is_whitespace() && c != '\n' {
+                        if c.is_whitespace() && c != '\n' && c != '\r' {
                             len += 1;
                             self.inner = iter.clone();
                         } else {
@@ -134,7 +138,9 @@ mod test {
                 Token::Word("Lorem"),
                 Token::Whitespace(1),
                 Token::Word("ipsum"),
-                Token::Whitespace(3),
+                Token::Whitespace(1),
+                Token::CarriageReturn,
+                Token::Whitespace(1),
                 Token::Word("dolor"),
                 Token::Whitespace(1),
                 Token::Word("sit"),

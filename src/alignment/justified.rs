@@ -153,11 +153,27 @@ where
                     }
 
                     self.parser = line_iterator.parser.clone();
-                    let carried_token = line_iterator.remaining_token();
-                    let mut cursor = line_iterator.cursor;
-                    cursor.new_line();
-                    cursor.carriage_return();
-                    self.state = State::NextLine(carried_token, cursor);
+
+                    let carried_token = match line_iterator.remaining_token() {
+                        Some(Token::NewLine) => {
+                            line_iterator.cursor.new_line();
+                            line_iterator.cursor.carriage_return();
+                            None
+                        }
+
+                        Some(Token::CarriageReturn) => {
+                            line_iterator.cursor.carriage_return();
+                            None
+                        }
+
+                        c => {
+                            line_iterator.cursor.new_line();
+                            line_iterator.cursor.carriage_return();
+                            c
+                        }
+                    };
+
+                    self.state = State::NextLine(carried_token, line_iterator.cursor);
                 }
             }
         }
@@ -198,6 +214,33 @@ mod test {
                 "#.#.#.#...#.#.....#...#.",
                 ".#.#...###..#......####.",
                 "........................",
+            ])
+        );
+    }
+
+    #[test]
+    fn simple_render_cr() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(Justified)
+            .text_color(BinaryColor::On)
+            .build();
+
+        TextBox::new("O\rX", Rectangle::new(Point::zero(), Point::new(54, 7)))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "#####    ",
+                "#   #    ",
+                "## ##    ",
+                "# # #    ",
+                "## ##    ",
+                "#   #    ",
+                "#####    ",
             ])
         );
     }

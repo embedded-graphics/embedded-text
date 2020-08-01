@@ -1,3 +1,14 @@
+Unreleased
+==========
+
+## Added:
+
+ * Added optimized measurement function that do not expect carriage returns.
+   * `FontExt::measure_line_nocr`
+   * `FontExt::str_width_nocr`
+   * `FontExt::max_str_width_nocr`
+ * Support carriage return (`\r`) control characters.
+
 0.1.0 (2020-07-31)
 ==================
 
