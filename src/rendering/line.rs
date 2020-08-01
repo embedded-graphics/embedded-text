@@ -338,6 +338,38 @@ mod test {
     }
 
     #[test]
+    fn simple_render_nbsp() {
+        let parser = Parser::parse("Some\u{A0}sample text");
+        let config = UniformSpaceConfig { space_width: 6 };
+        let style = TextStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut display = MockDisplay::new();
+
+        iter.draw(&mut display).unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                ".###......................................",
+                "#...#.....................................",
+                "#......###..##.#...###.........####..###..",
+                ".###..#...#.#.#.#.#...#.......#.........#.",
+                "....#.#...#.#...#.#####........###...####.",
+                "#...#.#...#.#...#.#...............#.#...#.",
+                ".###...###..#...#..###........####...####.",
+                "..........................................",
+            ])
+        );
+        assert_eq!(Some(Token::Word("mple")), iter.remaining_token());
+    }
+
+    #[test]
     fn simple_render_first_word_not_wrapped() {
         let parser = Parser::parse(" Some sample text");
         let config = UniformSpaceConfig { space_width: 6 };
