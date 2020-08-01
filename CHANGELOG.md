@@ -1,3 +1,10 @@
+Unreleased
+==========
+
+## Added:
+
+ * Support carriage return (`\r`) control characters.
+
 0.1.0 (2020-07-31)
 ==================
 
