@@ -73,11 +73,13 @@ impl<'a> Parser<'a> {
     }
 
     fn is_word_char(c: char) -> bool {
-        !c.is_whitespace() || c == '\u{A0}'
+        (!c.is_whitespace() || c == '\u{A0}') && c != '\u{200B}'
     }
 
     fn is_space_char(c: char) -> bool {
-        c.is_whitespace() && !['\n', '\r', '\u{A0}'].contains(&c)
+        // '\u{200B}' (zero-width space) breaks whitespace sequences - this works as long as
+        // space handling is symmetrical (i.e. starting == ending behaviour)
+        c.is_whitespace() && !['\n', '\r', '\u{A0}', '\u{200B}'].contains(&c) || c == '\u{200B}'
     }
 }
 
@@ -86,50 +88,59 @@ impl<'a> Iterator for Parser<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let string = self.inner.as_str();
-        self.inner.next().map(|c| {
-            let mut iter = self.inner.clone();
+        let token = 'parse: loop {
+            let string = self.inner.as_str();
+            if let Some(c) = self.inner.next() {
+                let mut iter = self.inner.clone();
 
-            if Self::is_word_char(c) {
-                while let Some(c) = iter.next() {
-                    if Self::is_word_char(c) {
-                        self.inner = iter.clone();
-                    } else {
-                        let offset = string.len() - self.inner.as_str().len();
-                        return Token::Word(unsafe {
-                            // don't worry
-                            string.get_unchecked(0..offset)
-                        });
-                    }
-                }
-
-                // consume all the text
-                self.inner = "".chars();
-                Token::Word(&string)
-            } else {
-                match c {
-                    '\n' => Token::NewLine,
-                    '\r' => Token::CarriageReturn,
-
-                    _ => {
-                        let mut len = 1;
-                        while let Some(c) = iter.next() {
-                            if Self::is_space_char(c) {
-                                len += 1;
-                                self.inner = iter.clone();
-                            } else {
-                                // consume the whitespaces
-                                return Token::Whitespace(len);
-                            }
+                if Self::is_word_char(c) {
+                    while let Some(c) = iter.next() {
+                        if Self::is_word_char(c) {
+                            self.inner = iter.clone();
+                        } else {
+                            let offset = string.len() - self.inner.as_str().len();
+                            break 'parse Token::Word(unsafe {
+                                // don't worry
+                                string.get_unchecked(0..offset)
+                            });
                         }
+                    }
 
-                        // consume all the text
-                        self.inner = "".chars();
-                        Token::Whitespace(len)
+                    // consume all the text
+                    self.inner = "".chars();
+                    break Token::Word(&string);
+                } else {
+                    match c {
+                        '\n' => break 'parse Token::NewLine,
+                        '\r' => break 'parse Token::CarriageReturn,
+                        '\u{200B}' => {}
+
+                        _ => {
+                            let mut len = 1;
+                            while let Some(c) = iter.next() {
+                                if Self::is_space_char(c) {
+                                    if c != '\u{200B}' {
+                                        len += 1;
+                                    }
+                                    self.inner = iter.clone();
+                                } else {
+                                    // consume the whitespaces
+                                    break 'parse Token::Whitespace(len);
+                                }
+                            }
+
+                            // consume all the text
+                            self.inner = "".chars();
+                            break Token::Whitespace(len);
+                        }
                     }
                 }
+            } else {
+                return None;
             }
-        })
+        };
+
+        Some(token)
     }
 }
 
@@ -167,7 +178,22 @@ mod test {
 
     #[test]
     fn parse_multibyte_last() {
-        // (At least) for now, \r is considered a whitespace
+        let text = "two\u{200B}words";
+        assert_eq!(9, "two\u{200B}words".chars().count());
+
+        assert_eq!(
+            Parser::parse(text).collect::<Vec<Token>>(),
+            vec![Token::Word("two"), Token::Word("words")]
+        );
+
+        assert_eq!(
+            Parser::parse("  \u{200B} ").collect::<Vec<Token>>(),
+            vec![Token::Whitespace(3)]
+        );
+    }
+
+    #[test]
+    fn parse_zwsp() {
         let text = "test😅";
 
         assert_eq!(

@@ -3,6 +3,7 @@ Unreleased
 
 ## Added:
 
+ * Support for zero.width space character (`\u{200B}`).
  * Support for nonbreaking space character (`\u{A0}`).
  * Added optimized measurement function that do not expect carriage returns.
    * `FontExt::measure_line_nocr`
