@@ -7,22 +7,22 @@ use embedded_graphics::{
 };
 use embedded_text::{alignment::*, prelude::*, rendering::StyledTextBoxIterator};
 
+const TEXT: &str = "Benchmark text!";
+
 fn benchmark_render_text(c: &mut Criterion) {
-    let text = "Benchmark!";
     let style = TextStyleBuilder::new(Font6x8)
         .text_color(BinaryColor::On)
         .build();
 
     c.bench_function("Text", |b| {
         b.iter(|| {
-            let object = Text::new(black_box(text), Point::zero()).into_styled(style);
+            let object = Text::new(black_box(TEXT), Point::zero()).into_styled(style);
             object.into_iter().collect::<Vec<Pixel<BinaryColor>>>()
         })
     });
 }
 
 fn benchmark_render_textbox(c: &mut Criterion) {
-    let text = "Benchmark!";
     let style = TextBoxStyleBuilder::new(Font6x8)
         .text_color(BinaryColor::On)
         .build();
@@ -30,8 +30,8 @@ fn benchmark_render_textbox(c: &mut Criterion) {
     c.bench_function("TextBox", |b| {
         b.iter(|| {
             let obj = TextBox::new(
-                black_box(text),
-                Rectangle::new(Point::zero(), Point::new(59, 7)),
+                black_box(TEXT),
+                Rectangle::new(Point::zero(), Point::new(6 * 15 - 1, 7)),
             )
             .into_styled(style);
             let object = StyledTextBoxIterator::new(&obj);
@@ -41,7 +41,6 @@ fn benchmark_render_textbox(c: &mut Criterion) {
 }
 
 fn benchmark_render_textbox_aligned(c: &mut Criterion) {
-    let text = "Benchmark!";
     let style = TextBoxStyleBuilder::new(Font6x8)
         .alignment(RightAligned)
         .text_color(BinaryColor::On)
@@ -50,8 +49,8 @@ fn benchmark_render_textbox_aligned(c: &mut Criterion) {
     c.bench_function("TextBox, RightAligned", |b| {
         b.iter(|| {
             let obj = TextBox::new(
-                black_box(text),
-                Rectangle::new(Point::zero(), Point::new(59, 7)),
+                black_box(TEXT),
+                Rectangle::new(Point::zero(), Point::new(6 * 15 - 1, 7)),
             )
             .into_styled(style);
             let object = StyledTextBoxIterator::new(&obj);
