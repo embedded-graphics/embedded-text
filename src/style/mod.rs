@@ -66,7 +66,7 @@ where
     // Returns the size of a token if it fits the line, or the max size that fits and the remaining
     // unprocessed part.
     fn measure_word(w: &str, max_width: u32) -> (u32, Option<&str>) {
-        let (width, consumed) = F::max_str_width(w, max_width);
+        let (width, consumed) = F::max_str_width_nocr(w, max_width);
         let carried = if consumed == w {
             None
         } else {

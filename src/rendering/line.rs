@@ -178,7 +178,7 @@ where
                             } else if let Some(Token::Word(w)) = self.parser.peek() {
                                 // Check if space + w fits in line, otherwise it's up to config
                                 let space_width = self.config.peek_next_width(n);
-                                let word_width = F::str_width(w);
+                                let word_width = F::str_width_nocr(w);
 
                                 let fits = self.fits_in_line(space_width + word_width);
 
@@ -228,7 +228,7 @@ where
                         Token::Word(w) => {
                             if self.first_word {
                                 self.first_word = false;
-                            } else if !self.fits_in_line(F::str_width(w)) {
+                            } else if !self.fits_in_line(F::str_width_nocr(w)) {
                                 self.current_token = State::Done(Token::Word(w));
                                 break None;
                             }
