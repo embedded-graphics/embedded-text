@@ -253,8 +253,10 @@ where
                 }
                 return current_height;
             }
+            if t != Some(Token::CarriageReturn) {
+                current_height += F::CHARACTER_SIZE.height;
+            }
             bytes = remaining;
-            current_height += F::CHARACTER_SIZE.height;
             carry = t;
         }
     }
@@ -373,6 +375,7 @@ mod test {
             ("some verylongword", 50, 24),
             ("1 23456 12345 61234 561", 36, 40),
             ("    Word      ", 36, 24),
+            ("Longer\rnowrap", 36, 8),
         ];
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
