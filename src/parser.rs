@@ -76,44 +76,45 @@ impl<'a> Iterator for Parser<'a> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let string = self.inner.as_str();
-        self.inner.next().map(|c| match c {
-            '\n' => Token::NewLine,
+        self.inner.next().map(|c| {
+            let mut iter = self.inner.clone();
+            match c {
+                '\n' => Token::NewLine,
 
-            c if c.is_whitespace() => {
-                let mut len = 0;
-                for (idx, c) in string.char_indices() {
-                    if c.is_whitespace() && c != '\n' {
-                        len += 1;
-                    } else {
-                        // consume the whitespaces
-                        self.inner = unsafe { string.get_unchecked(idx..) }.chars();
-                        return Token::Whitespace(len);
+                c if c.is_whitespace() => {
+                    let mut len = 1;
+                    while let Some(c) = iter.next() {
+                        if c.is_whitespace() && c != '\n' {
+                            len += 1;
+                            self.inner = iter.clone();
+                        } else {
+                            // consume the whitespaces
+                            return Token::Whitespace(len);
+                        }
                     }
+
+                    // consume all the text
+                    self.inner = "".chars();
+                    Token::Whitespace(len)
                 }
 
-                // consume all the text
-                self.inner = "".chars();
-                Token::Whitespace(len)
-            }
-
-            _ => {
-                for (possible_end, c) in string.char_indices() {
-                    if c.is_whitespace() {
-                        let (word, rest) = unsafe {
-                            // don't worry
-                            (
-                                string.get_unchecked(0..possible_end),
-                                string.get_unchecked(possible_end..),
-                            )
-                        };
-                        self.inner = rest.chars();
-                        return Token::Word(word);
+                _ => {
+                    while let Some(c) = iter.next() {
+                        if c.is_whitespace() {
+                            let offset = string.len() - self.inner.as_str().len();
+                            return Token::Word(unsafe {
+                                // don't worry
+                                string.get_unchecked(0..offset)
+                            });
+                        } else {
+                            self.inner = iter.clone();
+                        }
                     }
-                }
 
-                // consume all the text
-                self.inner = "".chars();
-                Token::Word(&string)
+                    // consume all the text
+                    self.inner = "".chars();
+                    Token::Word(&string)
+                }
             }
         })
     }
