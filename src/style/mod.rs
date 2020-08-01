@@ -135,6 +135,10 @@ where
                 Token::NewLine => {
                     // eat the newline
                 }
+
+                Token::CarriageReturn => {
+                    // eat the \r since it's meaningless in the beginning of a line
+                }
             }
         }
 
@@ -186,8 +190,8 @@ where
                     }
                 }
 
-                Token::NewLine => {
-                    carried_token.replace(Token::NewLine);
+                Token::NewLine | Token::CarriageReturn => {
+                    carried_token.replace(token);
                     break;
                 }
             }
