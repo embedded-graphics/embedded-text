@@ -63,8 +63,8 @@ where
         }
     }
 
-    // Returns the size of a token if it fits the line, or the max size that fits and the remaining
-    // unprocessed part.
+    /// Returns the size of a token if it fits the line, or the max size that fits and the remaining
+    /// unprocessed part.
     fn measure_word(w: &str, max_width: u32) -> (u32, Option<&str>) {
         let (width, consumed) = F::max_str_width_nocr(w, max_width);
         let carried = if consumed == w {
@@ -78,6 +78,11 @@ where
         };
 
         (width, carried)
+    }
+
+    /// Counts the number of printed whitespaces in a word
+    fn count_printed_spaces(w: &str) -> u32 {
+        w.chars().filter(|&c| c == '\u{A0}').count() as u32
     }
 
     /// Measure the width and count spaces in a single line of text.
@@ -106,7 +111,8 @@ where
                     let (width, carried) = Self::measure_word(w, max_line_width);
 
                     if let Some(w) = carried {
-                        return (width, 0, Some(Token::Word(w)));
+                        let spaces = Self::count_printed_spaces(w);
+                        return (width, spaces, Some(Token::Word(w)));
                     }
 
                     first_word_processed = true;
@@ -156,8 +162,10 @@ where
                             w
                         } else {
                             if width != 0 {
+                                let spaces =
+                                    Self::count_printed_spaces(&w[0..w.len() - carried_w.len()]);
                                 current_width += last_space_width + width;
-                                total_spaces += last_spaces;
+                                total_spaces += last_spaces + spaces;
                             }
                             // first word; break word into parts
                             carried_w
@@ -166,9 +174,10 @@ where
                         break;
                     }
 
+                    let spaces = Self::count_printed_spaces(w);
                     // If there's no carried token, width != 0 assuming there are no empty words
                     current_width += last_space_width + width;
-                    total_spaces += last_spaces;
+                    total_spaces += last_spaces + spaces;
 
                     first_word_processed = true;
                     last_space_width = 0;
@@ -352,7 +361,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{alignment::*, style::builder::TextBoxStyleBuilder};
+    use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
     use embedded_graphics::{
         fonts::{Font, Font6x8},
         pixelcolor::BinaryColor,
@@ -416,6 +425,21 @@ mod test {
                 i, text, height, expected_height
             );
         }
+    }
+
+    #[test]
+    fn test_measure_line_counts_nbsp() {
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let mut text = Parser::parse("123\u{A0}45");
+
+        let (w, s, _) =
+            textbox_style.measure_line(&mut text, None, 5 * Font6x8::CHARACTER_SIZE.width);
+        assert_eq!(w, 5 * Font6x8::CHARACTER_SIZE.width);
+        assert_eq!(s, 1);
     }
 
     #[test]

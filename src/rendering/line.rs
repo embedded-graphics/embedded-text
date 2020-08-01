@@ -23,8 +23,11 @@ where
     /// Decide what to do next.
     ProcessToken(Token<'a>),
 
-    /// Render a word.
-    Word(Chars<'a>, StyledCharacterIterator<C, F>),
+    /// Render a character in a word.
+    WordChar(Chars<'a>, StyledCharacterIterator<C, F>),
+
+    /// Render a printed space in a word.
+    WordSpace(Chars<'a>, EmptySpaceIterator<C, F>),
 
     /// Render whitespace.
     Whitespace(u32, EmptySpaceIterator<C, F>),
@@ -131,16 +134,33 @@ where
     fn try_draw_next_character(&mut self, word: &'a str) -> State<'a, C, F> {
         let mut lookahead = word.chars();
         lookahead.next().map_or(State::FetchNext, |c| {
-            // character done, move to the next one
-            let char_width = F::total_char_width(c);
+            if c == '\u{A0}' {
+                let sp_width = self.config.peek_next_width(1);
 
-            if self.fits_in_line(char_width) {
-                let pos = self.cursor.position;
-                self.cursor.advance(char_width);
-                State::Word(lookahead, StyledCharacterIterator::new(c, pos, self.style))
+                if self.fits_in_line(sp_width) {
+                    let pos = self.cursor.position;
+                    self.cursor.advance(sp_width);
+                    self.config.next_space_width();
+                    State::WordSpace(
+                        lookahead,
+                        EmptySpaceIterator::new(sp_width, pos, self.style),
+                    )
+                } else {
+                    // word wrapping, this line is done
+                    State::Done(Token::Word(word))
+                }
             } else {
-                // word wrapping, this line is done
-                State::Done(Token::Word(word))
+                // character done, move to the next one
+                let char_width = F::total_char_width(c);
+
+                if self.fits_in_line(char_width) {
+                    let pos = self.cursor.position;
+                    self.cursor.advance(char_width);
+                    State::WordChar(lookahead, StyledCharacterIterator::new(c, pos, self.style))
+                } else {
+                    // word wrapping, this line is done
+                    State::Done(Token::Word(word))
+                }
             }
         })
     }
@@ -256,7 +276,16 @@ where
                     }
                 }
 
-                State::Word(ref chars, ref mut iter) => {
+                State::WordChar(ref chars, ref mut iter) => {
+                    if let pixel @ Some(_) = iter.next() {
+                        break pixel;
+                    }
+
+                    let word = chars.as_str();
+                    self.current_token = self.try_draw_next_character(word);
+                }
+
+                State::WordSpace(ref chars, ref mut iter) => {
                     if let pixel @ Some(_) = iter.next() {
                         break pixel;
                     }
