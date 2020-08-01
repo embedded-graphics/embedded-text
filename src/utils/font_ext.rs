@@ -95,6 +95,10 @@ where
 
     #[inline]
     fn total_char_width(c: char) -> u32 {
+        if c == '\u{A0}' {
+            // A non-breaking space is as wide as a regular one
+            return F::char_width(' ') + F::CHARACTER_SPACING;
+        }
         F::char_width(c) + F::CHARACTER_SPACING
     }
 

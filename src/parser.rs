@@ -71,6 +71,14 @@ impl<'a> Parser<'a> {
     pub fn remaining(&self) -> usize {
         self.inner.as_str().len()
     }
+
+    fn word_char(c: char) -> bool {
+        !c.is_whitespace() || c == '\u{A0}'
+    }
+
+    fn space_char(c: char) -> bool {
+        c.is_whitespace() && !['\n', '\r', '\u{A0}'].contains(&c)
+    }
 }
 
 impl<'a> Iterator for Parser<'a> {
@@ -88,7 +96,7 @@ impl<'a> Iterator for Parser<'a> {
                 c if c.is_whitespace() => {
                     let mut len = 1;
                     while let Some(c) = iter.next() {
-                        if c.is_whitespace() && c != '\n' && c != '\r' {
+                        if Self::space_char(c) {
                             len += 1;
                             self.inner = iter.clone();
                         } else {
@@ -104,7 +112,7 @@ impl<'a> Iterator for Parser<'a> {
 
                 _ => {
                     while let Some(c) = iter.next() {
-                        if c.is_whitespace() {
+                        if !Self::word_char(c) {
                             let offset = string.len() - self.inner.as_str().len();
                             return Token::Word(unsafe {
                                 // don't worry
