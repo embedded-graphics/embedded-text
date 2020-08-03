@@ -213,9 +213,9 @@ where
                                 let mut space_width = 0;
                                 let mut spaces = n;
 
+                                let available = self.cursor.space();
                                 while spaces > 0
-                                    && self
-                                        .fits_in_line(space_width + self.config.peek_next_width(1))
+                                    && space_width + self.config.peek_next_width(1) < available
                                 {
                                     spaces -= 1;
                                     space_width += self.config.next_space_width();

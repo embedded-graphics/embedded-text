@@ -63,7 +63,14 @@ impl<F: Font> Cursor<F> {
     #[inline]
     #[must_use]
     pub fn fits_in_line(&self, width: u32) -> bool {
-        width as i32 <= self.right - self.position.x
+        width <= self.space()
+    }
+
+    /// Returns the amount of empty space in the line.
+    #[inline]
+    #[must_use]
+    pub fn space(&self) -> u32 {
+        (self.right - self.position.x) as u32
     }
 
     /// Advances the cursor by a given amount.
