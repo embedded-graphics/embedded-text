@@ -68,8 +68,19 @@ impl<F: Font> Cursor<F> {
 
     /// Advances the cursor by a given amount.
     #[inline]
-    pub fn advance(&mut self, by: u32) {
+    pub fn advance_unchecked(&mut self, by: u32) {
         self.position.x += by as i32;
+    }
+
+    /// Advances the cursor by a given amount.
+    #[inline]
+    pub fn advance(&mut self, by: u32) -> bool {
+        if self.fits_in_line(by) {
+            self.advance_unchecked(by);
+            true
+        } else {
+            false
+        }
     }
 }
 

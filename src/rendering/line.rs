@@ -133,35 +133,33 @@ where
 
     fn try_draw_next_character(&mut self, word: &'a str) -> State<'a, C, F> {
         let mut lookahead = word.chars();
+        let pos = self.cursor.position;
         lookahead.next().map_or(State::FetchNext, |c| {
             if c == '\u{A0}' {
+                // nbsp
                 let sp_width = self.config.peek_next_width(1);
 
-                if self.fits_in_line(sp_width) {
-                    let pos = self.cursor.position;
-                    self.cursor.advance(sp_width);
-                    self.config.next_space_width();
-                    State::WordSpace(
+                if self.cursor.advance(sp_width) {
+                    self.config.next_space_width(); // we have peeked the value, consume it
+                    return State::WordSpace(
                         lookahead,
                         EmptySpaceIterator::new(sp_width, pos, self.style),
-                    )
-                } else {
-                    // word wrapping, this line is done
-                    State::Done(Token::Word(word))
+                    );
                 }
             } else {
                 // character done, move to the next one
                 let char_width = F::total_char_width(c);
 
-                if self.fits_in_line(char_width) {
-                    let pos = self.cursor.position;
-                    self.cursor.advance(char_width);
-                    State::WordChar(lookahead, StyledCharacterIterator::new(c, pos, self.style))
-                } else {
-                    // word wrapping, this line is done
-                    State::Done(Token::Word(word))
+                if self.cursor.advance(char_width) {
+                    return State::WordChar(
+                        lookahead,
+                        StyledCharacterIterator::new(c, pos, self.style),
+                    );
                 }
             }
+
+            // word wrapping, this line is done
+            State::Done(Token::Word(word))
         })
     }
 }
@@ -225,7 +223,7 @@ where
 
                                 self.current_token = if space_width > 0 {
                                     let pos = self.cursor.position;
-                                    self.cursor.advance(space_width);
+                                    self.cursor.advance_unchecked(space_width);
                                     State::Whitespace(
                                         spaces,
                                         EmptySpaceIterator::new(space_width, pos, self.style),

@@ -74,7 +74,7 @@ where
                         carried_token.clone(),
                         max_line_width,
                     );
-                    cursor.advance((max_line_width - width + 1) / 2);
+                    cursor.advance_unchecked((max_line_width - width + 1) / 2);
 
                     self.state = State::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
