@@ -186,7 +186,7 @@ where
                 }
 
                 State::ProcessToken(ref token) => {
-                    match token.clone() {
+                    self.current_token = match token.clone() {
                         Token::Whitespace(n) => {
                             let mut would_wrap = false;
                             let render_whitespace = if self.first_word {
@@ -219,7 +219,7 @@ where
                                     spaces_to_render += 1;
                                 }
 
-                                self.current_token = if spaces_to_render > 0 {
+                                if spaces_to_render > 0 {
                                     let pos = self.cursor.position;
                                     let space_width = self.config.consume(spaces_to_render);
                                     self.cursor.advance_unchecked(space_width);
@@ -227,18 +227,20 @@ where
                                         n - spaces_to_render,
                                         EmptySpaceIterator::new(space_width, pos, self.style),
                                     )
-                                } else if n > 1 {
+                                } else {
                                     // there are spaces to render but none fit the line
                                     // eat one as a newline and stop
-                                    State::Done(Token::Whitespace(n - 1))
-                                } else {
-                                    State::Done(Token::NewLine)
+                                    State::Done(if n > 1 {
+                                        Token::Whitespace(n - 1)
+                                    } else {
+                                        Token::NewLine
+                                    })
                                 }
                             } else if would_wrap {
-                                self.current_token = State::Done(Token::NewLine);
+                                State::Done(Token::NewLine)
                             } else {
                                 // nothing, process next token
-                                self.current_token = State::FetchNext;
+                                State::FetchNext
                             }
                         }
 
@@ -250,12 +252,12 @@ where
                                 break None;
                             }
 
-                            self.current_token = self.try_draw_next_character(w);
+                            self.try_draw_next_character(w)
                         }
 
                         Token::NewLine | Token::CarriageReturn => {
                             // we're done
-                            self.current_token = State::Done(token.clone());
+                            State::Done(token.clone())
                         }
                     }
                 }
