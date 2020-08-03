@@ -41,8 +41,8 @@ pub trait SpaceConfig: Copy {
     /// Look at the size of next n spaces, without advancing.
     fn peek_next_width(&self, n: u32) -> u32;
 
-    /// Get the width of the next space and advance.
-    fn next_space_width(&mut self) -> u32;
+    /// Advance the internal state
+    fn consume(&mut self, n: u32) -> u32;
 }
 
 /// Contains the fixed width of a space character.
@@ -59,8 +59,8 @@ impl SpaceConfig for UniformSpaceConfig {
     }
 
     #[inline]
-    fn next_space_width(&mut self) -> u32 {
-        self.space_width
+    fn consume(&mut self, n: u32) -> u32 {
+        self.peek_next_width(n)
     }
 }
 
@@ -140,7 +140,7 @@ where
                 let sp_width = self.config.peek_next_width(1);
 
                 if self.cursor.advance(sp_width) {
-                    self.config.next_space_width(); // we have peeked the value, consume it
+                    self.config.consume(1); // we have peeked the value, consume it
                     return State::WordSpace(
                         lookahead,
                         EmptySpaceIterator::new(sp_width, pos, self.style),
@@ -210,28 +210,27 @@ where
                             if render_whitespace {
                                 // take as many spaces as possible and save the rest in state
 
-                                let mut space_width = 0;
-                                let mut spaces = n;
-
+                                // we could also binary search but I don't think it's worth it
+                                let mut spaces_to_render = 0;
                                 let available = self.cursor.space();
-                                while spaces > 0
-                                    && space_width + self.config.peek_next_width(1) < available
+                                while spaces_to_render < n
+                                    && self.config.peek_next_width(spaces_to_render + 1) < available
                                 {
-                                    spaces -= 1;
-                                    space_width += self.config.next_space_width();
+                                    spaces_to_render += 1;
                                 }
 
-                                self.current_token = if space_width > 0 {
+                                self.current_token = if spaces_to_render > 0 {
                                     let pos = self.cursor.position;
+                                    let space_width = self.config.consume(spaces_to_render);
                                     self.cursor.advance_unchecked(space_width);
                                     State::Whitespace(
-                                        spaces,
+                                        n - spaces_to_render,
                                         EmptySpaceIterator::new(space_width, pos, self.style),
                                     )
-                                } else if spaces > 1 {
+                                } else if n > 1 {
                                     // there are spaces to render but none fit the line
                                     // eat one as a newline and stop
-                                    State::Done(Token::Whitespace(spaces.saturating_sub(1)))
+                                    State::Done(Token::Whitespace(n - 1))
                                 } else {
                                     State::Done(Token::NewLine)
                                 }

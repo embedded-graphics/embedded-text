@@ -56,18 +56,15 @@ impl JustifiedSpaceConfig {
 
 impl SpaceConfig for JustifiedSpaceConfig {
     #[inline]
-    fn next_space_width(&mut self) -> u32 {
-        if self.space_count == 0 {
-            self.space_width
-        } else {
-            self.space_count -= 1;
-            self.space_width + 1
-        }
+    fn peek_next_width(&self, whitespace_count: u32) -> u32 {
+        whitespace_count * self.space_width + self.space_count.min(whitespace_count)
     }
 
     #[inline]
-    fn peek_next_width(&self, whitespace_count: u32) -> u32 {
-        whitespace_count * self.space_width + self.space_count.min(whitespace_count)
+    fn consume(&mut self, n: u32) -> u32 {
+        let w = self.peek_next_width(n);
+        self.space_count = self.space_count.saturating_sub(n);
+        w
     }
 }
 
