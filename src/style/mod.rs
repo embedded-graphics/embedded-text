@@ -103,7 +103,7 @@ where
         let mut current_width = 0;
         let mut last_spaces = 0;
         let mut last_space_width = 0;
-        let mut first_word_processed = false;
+        let mut is_first_word = true;
 
         if let Some(t) = carried_token {
             match t {
@@ -115,7 +115,7 @@ where
                         return (width, spaces, Some(Token::Word(w)));
                     }
 
-                    first_word_processed = true;
+                    is_first_word = false;
                     current_width = width;
                 }
 
@@ -157,10 +157,7 @@ where
                     let (width, carried) = Self::measure_word(w, available_space);
 
                     if let Some(carried_w) = carried {
-                        let carried_word = if first_word_processed {
-                            // carry the whole word
-                            w
-                        } else {
+                        let carried_word = if is_first_word {
                             if width != 0 {
                                 let spaces =
                                     Self::count_printed_spaces(&w[0..w.len() - carried_w.len()]);
@@ -169,6 +166,9 @@ where
                             }
                             // first word; break word into parts
                             carried_w
+                        } else {
+                            // carry the whole word
+                            w
                         };
                         carried_token.replace(Token::Word(carried_word));
                         break;
@@ -179,13 +179,13 @@ where
                     current_width += last_space_width + width;
                     total_spaces += last_spaces + spaces;
 
-                    first_word_processed = true;
+                    is_first_word = false;
                     last_space_width = 0;
                     last_spaces = 0;
                 }
 
                 Token::Whitespace(n) => {
-                    if A::STARTING_SPACES || first_word_processed {
+                    if A::STARTING_SPACES || !is_first_word {
                         let (width, mut consumed) = F::max_space_width(n, available_space);
 
                         // update before breaking, so that ENDING_SPACES can use data
