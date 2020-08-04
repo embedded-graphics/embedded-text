@@ -73,6 +73,42 @@ impl LineMeasurement {
     }
 }
 
+fn str_width<F: Font>(s: &str, ignore_cr: bool) -> u32 {
+    let mut width = 0;
+    let mut current_width = 0;
+    for c in s.chars() {
+        if !ignore_cr && c == '\r' {
+            width = current_width.max(width);
+            current_width = 0;
+        } else {
+            current_width += F::total_char_width(c);
+        }
+    }
+
+    current_width.max(width)
+}
+
+fn max_str_width<F: Font>(s: &str, max_width: u32, ignore_cr: bool) -> (u32, &str) {
+    let mut width = 0;
+    let mut current_width = 0;
+    for (idx, c) in s.char_indices() {
+        if !ignore_cr && c == '\r' {
+            width = current_width.max(width);
+            current_width = 0;
+        } else {
+            let new_width = current_width + F::total_char_width(c);
+            if new_width > max_width {
+                width = current_width.max(width);
+                return (width, unsafe { s.get_unchecked(0..idx) });
+            } else {
+                current_width = new_width;
+            }
+        }
+    }
+    width = current_width.max(width);
+    (width, s)
+}
+
 impl<F> FontExt for F
 where
     F: Font,
@@ -104,61 +140,24 @@ where
 
     #[inline]
     fn str_width(s: &str) -> u32 {
-        let mut width = 0;
-        let mut current_width = 0;
-        for c in s.chars() {
-            if c == '\r' {
-                width = current_width.max(width);
-                current_width = 0;
-            } else {
-                current_width += F::total_char_width(c);
-            }
-        }
-
-        current_width.max(width)
+        str_width::<F>(s, false)
     }
 
     #[inline]
     fn str_width_nocr(s: &str) -> u32 {
-        s.chars().map(F::total_char_width).sum::<u32>()
+        str_width::<F>(s, true)
     }
 
     #[inline]
     #[must_use]
     fn max_str_width(s: &str, max_width: u32) -> (u32, &str) {
-        let mut width = 0;
-        let mut current_width = 0;
-        for (idx, c) in s.char_indices() {
-            if c == '\r' {
-                width = current_width.max(width);
-                current_width = 0;
-            } else {
-                let new_width = current_width + F::total_char_width(c);
-                if new_width > max_width {
-                    width = current_width.max(width);
-                    return (width, unsafe { s.get_unchecked(0..idx) });
-                } else {
-                    current_width = new_width;
-                }
-            }
-        }
-        width = current_width.max(width);
-        (width, s)
+        max_str_width::<F>(s, max_width, false)
     }
 
     #[inline]
     #[must_use]
     fn max_str_width_nocr(s: &str, max_width: u32) -> (u32, &str) {
-        let mut width = 0;
-        for (idx, c) in s.char_indices() {
-            let new_width = width + F::total_char_width(c);
-            if new_width > max_width {
-                return (width, unsafe { s.get_unchecked(0..idx) });
-            } else {
-                width = new_width;
-            }
-        }
-        (width, s)
+        max_str_width::<F>(s, max_width, true)
     }
 
     #[inline]
