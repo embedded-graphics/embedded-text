@@ -6,7 +6,7 @@ pub mod line;
 pub mod whitespace;
 
 use crate::{
-    alignment::TextAlignment,
+    alignment::horizontal::HorizontalTextAlignment,
     parser::Parser,
     style::{StyledTextBox, TextBoxStyle},
 };
@@ -28,7 +28,7 @@ pub struct StyledTextBoxIterator<'a, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
     /// Parser to process the text during rendering.
@@ -45,7 +45,7 @@ impl<'a, C, F, A> StyledTextBoxIterator<'a, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
     /// Creates a new pixel iterator to render the styled [`TextBox`].

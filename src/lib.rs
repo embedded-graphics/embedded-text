@@ -77,7 +77,7 @@ pub mod rendering;
 pub mod style;
 pub mod utils;
 
-use alignment::TextAlignment;
+use alignment::horizontal::HorizontalTextAlignment;
 use style::{StyledTextBox, TextBoxStyle};
 
 /// Prelude.
@@ -135,7 +135,7 @@ impl<'a> TextBox<'a> {
     where
         C: PixelColor,
         F: Font + Copy,
-        A: TextAlignment,
+        A: HorizontalTextAlignment,
     {
         StyledTextBox {
             text_box: self,

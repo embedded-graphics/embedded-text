@@ -1,6 +1,6 @@
 //! Center aligned text.
 use crate::{
-    alignment::TextAlignment,
+    alignment::horizontal::HorizontalTextAlignment,
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -15,7 +15,7 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered center aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct CenterAligned;
-impl TextAlignment for CenterAligned {
+impl HorizontalTextAlignment for CenterAligned {
     const STARTING_SPACES: bool = false;
     const ENDING_SPACES: bool = false;
 }
@@ -127,7 +127,7 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::CenterAligned, style::TextBoxStyleBuilder, TextBox};
+    use crate::{alignment::horizontal::CenterAligned, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
     fn simple_render() {

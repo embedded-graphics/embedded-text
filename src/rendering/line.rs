@@ -1,6 +1,6 @@
 //! Line rendering.
 use crate::{
-    alignment::TextAlignment,
+    alignment::horizontal::HorizontalTextAlignment,
     parser::{Parser, Token},
     rendering::{
         character::StyledCharacterIterator, cursor::Cursor, whitespace::EmptySpaceIterator,
@@ -71,7 +71,7 @@ where
     C: PixelColor,
     F: Font + Copy,
     SP: SpaceConfig,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     /// Position information.
     pub cursor: Cursor<F>,
@@ -91,7 +91,7 @@ where
     C: PixelColor,
     F: Font + Copy,
     SP: SpaceConfig,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     /// Creates a new pixel iterator to draw the given character.
     #[inline]
@@ -169,7 +169,7 @@ where
     C: PixelColor,
     F: Font + Copy,
     SP: SpaceConfig,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     type Item = Pixel<C>;
 
@@ -303,7 +303,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::alignment::TextAlignment;
+    use crate::alignment::HorizontalTextAlignment;
     use crate::parser::{Parser, Token};
     use crate::rendering::{
         cursor::Cursor,
@@ -316,19 +316,19 @@ mod test {
 
     #[derive(Copy, Clone)]
     pub struct AllSpaces;
-    impl TextAlignment for AllSpaces {
+    impl HorizontalTextAlignment for AllSpaces {
         const STARTING_SPACES: bool = true;
         const ENDING_SPACES: bool = true;
     }
     #[derive(Copy, Clone)]
     pub struct StartingSpaces;
-    impl TextAlignment for StartingSpaces {
+    impl HorizontalTextAlignment for StartingSpaces {
         const STARTING_SPACES: bool = true;
         const ENDING_SPACES: bool = false;
     }
     #[derive(Copy, Clone)]
     pub struct EndingSpaces;
-    impl TextAlignment for EndingSpaces {
+    impl HorizontalTextAlignment for EndingSpaces {
         const STARTING_SPACES: bool = false;
         const ENDING_SPACES: bool = true;
     }

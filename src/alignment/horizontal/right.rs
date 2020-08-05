@@ -1,6 +1,6 @@
 //! Right aligned text.
 use crate::{
-    alignment::TextAlignment,
+    alignment::horizontal::HorizontalTextAlignment,
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -15,7 +15,7 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered right aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct RightAligned;
-impl TextAlignment for RightAligned {
+impl HorizontalTextAlignment for RightAligned {
     const STARTING_SPACES: bool = false;
     const ENDING_SPACES: bool = false;
 }
@@ -127,7 +127,7 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::RightAligned, style::TextBoxStyleBuilder, TextBox};
+    use crate::{alignment::horizontal::RightAligned, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
     fn simple_render() {

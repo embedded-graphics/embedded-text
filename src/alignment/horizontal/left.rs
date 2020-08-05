@@ -1,6 +1,6 @@
 //! Left aligned text.
 use crate::{
-    alignment::TextAlignment,
+    alignment::horizontal::HorizontalTextAlignment,
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -15,7 +15,7 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct LeftAligned;
-impl TextAlignment for LeftAligned {
+impl HorizontalTextAlignment for LeftAligned {
     const STARTING_SPACES: bool = true;
     const ENDING_SPACES: bool = true;
 }
@@ -119,7 +119,7 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::LeftAligned, style::TextBoxStyleBuilder, TextBox};
+    use crate::{alignment::horizontal::LeftAligned, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
     fn simple_render() {

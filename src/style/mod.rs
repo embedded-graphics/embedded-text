@@ -4,7 +4,7 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 pub mod builder;
 
 use crate::{
-    alignment::TextAlignment,
+    alignment::horizontal::HorizontalTextAlignment,
     parser::{Parser, Token},
     rendering::{StateFactory, StyledTextBoxIterator},
     utils::{font_ext::FontExt, rect_ext::RectExt},
@@ -15,13 +15,13 @@ pub use builder::TextBoxStyleBuilder;
 /// Styling options of a [`TextBox`].
 ///
 /// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor` and
-/// [`TextAlignment`] information necessary to draw a [`TextBox`].
+/// [`HorizontalTextAlignment`] information necessary to draw a [`TextBox`].
 ///
 /// To construct a new `TextBoxStyle` object, use the [`new`] or [`from_text_style`] methods or
 /// the [`TextBoxStyleBuilder`] object.
 ///
 /// [`TextBox`]: ../struct.TextBox.html
-/// [`TextAlignment`]: ../alignment/trait.TextAlignment.html
+/// [`HorizontalTextAlignment`]: ../alignment/trait.HorizontalTextAlignment.html
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
@@ -30,7 +30,7 @@ pub struct TextBoxStyle<C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     /// Style properties for text.
     pub text_style: TextStyle<C, F>,
@@ -43,7 +43,7 @@ impl<C, F, A> TextBoxStyle<C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     /// Creates a `TextBoxStyle` object with transparent background.
     #[inline]
@@ -286,7 +286,7 @@ pub struct StyledTextBox<'a, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
     ///
@@ -304,7 +304,7 @@ impl<'a, C, F, A> Drawable<C> for &'a StyledTextBox<'a, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
     StyledTextBoxIterator<'a, C, F, A>: Iterator<Item = Pixel<C>>,
     StyledTextBox<'a, C, F, A>: StateFactory,
 {
@@ -318,7 +318,7 @@ impl<C, F, A> Transform for StyledTextBox<'_, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     #[inline]
     #[must_use]
@@ -341,7 +341,7 @@ impl<C, F, A> Dimensions for StyledTextBox<'_, C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     #[inline]
     #[must_use]

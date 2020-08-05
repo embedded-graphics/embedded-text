@@ -1,6 +1,6 @@
 //! Fully justified text.
 use crate::{
-    alignment::TextAlignment,
+    alignment::horizontal::HorizontalTextAlignment,
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -15,7 +15,7 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
 pub struct Justified;
-impl TextAlignment for Justified {
+impl HorizontalTextAlignment for Justified {
     const STARTING_SPACES: bool = false;
     const ENDING_SPACES: bool = false;
 }
@@ -184,7 +184,7 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::Justified, style::TextBoxStyleBuilder, TextBox};
+    use crate::{alignment::horizontal::Justified, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
     fn simple_render() {

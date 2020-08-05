@@ -1,5 +1,8 @@
 //! Textbox style builder.
-use crate::{alignment::LeftAligned, alignment::TextAlignment, style::TextBoxStyle};
+use crate::{
+    alignment::horizontal::HorizontalTextAlignment, alignment::horizontal::LeftAligned,
+    style::TextBoxStyle,
+};
 use embedded_graphics::{
     prelude::*,
     style::{TextStyle, TextStyleBuilder},
@@ -12,7 +15,7 @@ pub struct TextBoxStyleBuilder<C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     text_style_builder: TextStyleBuilder<C, F>,
     alignment: A,
@@ -43,7 +46,7 @@ impl<C, F, A> TextBoxStyleBuilder<C, F, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: TextAlignment,
+    A: HorizontalTextAlignment,
 {
     /// Sets the text color.
     ///
@@ -101,10 +104,13 @@ where
         }
     }
 
-    /// Sets the text alignment.
+    /// Sets the text alignment::horizontal.
     #[inline]
     #[must_use]
-    pub fn alignment<TA: TextAlignment>(self, alignment: TA) -> TextBoxStyleBuilder<C, F, TA> {
+    pub fn alignment<TA: HorizontalTextAlignment>(
+        self,
+        alignment: TA,
+    ) -> TextBoxStyleBuilder<C, F, TA> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment,
