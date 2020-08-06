@@ -8,6 +8,6 @@ pub mod top;
 ///
 /// Use implementors to parametrize [`TextBoxStyle`] and [`TextBoxStyleBuilder`].
 ///
-/// [`TextBoxStyle`]: ../style/struct.TextBoxStyle.html
-/// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
+/// [`TextBoxStyle`]: ../../style/struct.TextBoxStyle.html
+/// [`TextBoxStyleBuilder`]: ../../style/builder/struct.TextBoxStyleBuilder.html
 pub trait VerticalTextAlignment {}

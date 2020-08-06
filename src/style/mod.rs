@@ -21,7 +21,7 @@ pub use builder::TextBoxStyleBuilder;
 /// the [`TextBoxStyleBuilder`] object.
 ///
 /// [`TextBox`]: ../struct.TextBox.html
-/// [`HorizontalTextAlignment`]: ../alignment/trait.HorizontalTextAlignment.html
+/// [`HorizontalTextAlignment`]: ../alignment/horizontal/trait.HorizontalTextAlignment.html
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style

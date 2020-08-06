@@ -9,8 +9,8 @@ pub mod right;
 ///
 /// Use implementors to parametrize [`TextBoxStyle`] and [`TextBoxStyleBuilder`].
 ///
-/// [`TextBoxStyle`]: ../style/struct.TextBoxStyle.html
-/// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
+/// [`TextBoxStyle`]: ../../style/struct.TextBoxStyle.html
+/// [`TextBoxStyleBuilder`]: ../../style/builder/struct.TextBoxStyleBuilder.html
 pub trait HorizontalTextAlignment: Copy {
     /// Whether or not render spaces in the start of the line.
     const STARTING_SPACES: bool;

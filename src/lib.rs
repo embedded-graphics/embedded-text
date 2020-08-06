@@ -58,10 +58,10 @@
 //! [the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
 //! [simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
 //! [`TextBox`]: ./struct.TextBox.html
-//! [`LeftAligned`]: ./alignment/left/struct.LeftAligned.html
-//! [`RightAligned`]: ./alignment/right/struct.RightAligned.html
-//! [`CenterAligned`]: ./alignment/center/struct.CenterAligned.html
-//! [`Justified`]: ./alignment/justified/struct.Justified.html
+//! [`LeftAligned`]: ./alignment/horizontal/left/struct.LeftAligned.html
+//! [`RightAligned`]: ./alignment/horizontal/right/struct.RightAligned.html
+//! [`CenterAligned`]: ./alignment/horizontal/center/struct.CenterAligned.html
+//! [`Justified`]: ./alignment/horizontal/justified/struct.Justified.html
 
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
