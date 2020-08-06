@@ -5,7 +5,7 @@ pub mod justified;
 pub mod left;
 pub mod right;
 
-/// Text alignment base trait.
+/// Horizontal text alignment base trait.
 ///
 /// Use implementors to parametrize [`TextBoxStyle`] and [`TextBoxStyleBuilder`].
 ///
