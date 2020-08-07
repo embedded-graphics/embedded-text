@@ -1,6 +1,9 @@
 //! Textbox style builder.
 use crate::{
-    alignment::horizontal::HorizontalTextAlignment, alignment::horizontal::LeftAligned,
+    alignment::{
+        horizontal::{HorizontalTextAlignment, LeftAligned},
+        vertical::{Top, VerticalTextAlignment},
+    },
     style::TextBoxStyle,
 };
 use embedded_graphics::{
@@ -11,17 +14,19 @@ use embedded_graphics::{
 /// [`TextBoxStyle`] builder object.
 ///
 /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
-pub struct TextBoxStyleBuilder<C, F, A>
+pub struct TextBoxStyleBuilder<C, F, A, V>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
 {
     text_style_builder: TextStyleBuilder<C, F>,
     alignment: A,
+    vertical_alignment: V,
 }
 
-impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned>
+impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, Top>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -38,15 +43,17 @@ where
         Self {
             text_style_builder: TextStyleBuilder::new(font),
             alignment: LeftAligned,
+            vertical_alignment: Top,
         }
     }
 }
 
-impl<C, F, A> TextBoxStyleBuilder<C, F, A>
+impl<C, F, A, V> TextBoxStyleBuilder<C, F, A, V>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
 {
     /// Sets the text color.
     ///
@@ -104,7 +111,7 @@ where
         }
     }
 
-    /// Sets the text alignment::horizontal.
+    /// Sets the horizontal text alignment.
     #[inline]
     #[must_use]
     pub fn alignment<TA: HorizontalTextAlignment>(
@@ -117,6 +124,20 @@ where
         }
     }
 
+    /// Sets the vertical text alignment.
+    #[inline]
+    #[must_use]
+    pub fn alignment<VA: VerticalTextAlignment>(
+        self,
+        vertical_alignment: VA,
+    ) -> TextBoxStyleBuilder<C, F, VA> {
+        TextBoxStyleBuilder {
+            text_style_builder: self.text_style_builder,
+            alignment: self.alignment,
+            vertical_alignment,
+        }
+    }
+
     /// Builds the [`TextBoxStyle`].
     ///
     /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
@@ -126,6 +147,7 @@ where
         TextBoxStyle {
             text_style: self.text_style_builder.build(),
             alignment: self.alignment,
+            vertical_alignment: self.vertical_alignment,
         }
     }
 }

@@ -4,7 +4,7 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 pub mod builder;
 
 use crate::{
-    alignment::horizontal::HorizontalTextAlignment,
+    alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{StateFactory, StyledTextBoxIterator},
     utils::{font_ext::FontExt, rect_ext::RectExt},
@@ -14,52 +14,65 @@ pub use builder::TextBoxStyleBuilder;
 
 /// Styling options of a [`TextBox`].
 ///
-/// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor` and
-/// [`HorizontalTextAlignment`] information necessary to draw a [`TextBox`].
+/// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor`,
+/// [`HorizontalTextAlignment`] and [`VerticalTextAlginment`] information necessary to draw a
+/// [`TextBox`].
 ///
 /// To construct a new `TextBoxStyle` object, use the [`new`] or [`from_text_style`] methods or
 /// the [`TextBoxStyleBuilder`] object.
 ///
 /// [`TextBox`]: ../struct.TextBox.html
 /// [`HorizontalTextAlignment`]: ../alignment/horizontal/trait.HorizontalTextAlignment.html
+/// [`VerticalTextAlignment`]: ../alignment/vertical/trait.VerticalTextAlignment.html
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct TextBoxStyle<C, F, A>
+pub struct TextBoxStyle<C, F, A, V>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
 {
     /// Style properties for text.
     pub text_style: TextStyle<C, F>,
 
     /// Horizontal text alignment.
     pub alignment: A,
+
+    /// Vertical text alignment.
+    pub vertical_alignment: V,
 }
 
-impl<C, F, A> TextBoxStyle<C, F, A>
+impl<C, F, A, V> TextBoxStyle<C, F, A, V>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
 {
     /// Creates a `TextBoxStyle` object with transparent background.
     #[inline]
-    pub fn new(font: F, text_color: C, alignment: A) -> Self {
+    pub fn new(font: F, text_color: C, alignment: A, vertical_alignment: V) -> Self {
         Self {
             text_style: TextStyle::new(font, text_color),
             alignment,
+            vertical_alignment,
         }
     }
 
     /// Creates a `TextBoxStyle` object from the given text style and alignment.
     #[inline]
-    pub fn from_text_style(text_style: TextStyle<C, F>, alignment: A) -> Self {
+    pub fn from_text_style(
+        text_style: TextStyle<C, F>,
+        alignment: A,
+        vertical_alignment: V,
+    ) -> Self {
         Self {
             text_style,
             alignment,
+            vertical_alignment,
         }
     }
 
@@ -282,11 +295,12 @@ where
 /// [`TextBox`]: ../struct.TextBox.html
 /// [`into_styled`]: ../struct.TextBox.html#method.into_styled
 /// [`draw`]: #method.draw
-pub struct StyledTextBox<'a, C, F, A>
+pub struct StyledTextBox<'a, C, F, A, V>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
     ///
@@ -297,16 +311,17 @@ where
     /// The style of the [`TextBox`].
     ///
     /// [`TextBox`]: ../struct.TextBox.html
-    pub style: TextBoxStyle<C, F, A>,
+    pub style: TextBoxStyle<C, F, A, V>,
 }
 
-impl<'a, C, F, A> Drawable<C> for &'a StyledTextBox<'a, C, F, A>
+impl<'a, C, F, A, V> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
-    StyledTextBoxIterator<'a, C, F, A>: Iterator<Item = Pixel<C>>,
-    StyledTextBox<'a, C, F, A>: StateFactory,
+    V: VerticalTextAlignment,
+    StyledTextBoxIterator<'a, C, F, A, V>: Iterator<Item = Pixel<C>>,
+    StyledTextBox<'a, C, F, A, V>: StateFactory,
 {
     #[inline]
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
@@ -314,11 +329,12 @@ where
     }
 }
 
-impl<C, F, A> Transform for StyledTextBox<'_, C, F, A>
+impl<C, F, A, V> Transform for StyledTextBox<'_, C, F, A, V>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
 {
     #[inline]
     #[must_use]
@@ -337,11 +353,12 @@ where
     }
 }
 
-impl<C, F, A> Dimensions for StyledTextBox<'_, C, F, A>
+impl<C, F, A, V> Dimensions for StyledTextBox<'_, C, F, A, V>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
 {
     #[inline]
     #[must_use]

@@ -131,11 +131,15 @@ impl<'a> TextBox<'a> {
     /// Attaches a [`TextBoxStyle`] to the textbox object.
     #[inline]
     #[must_use]
-    pub fn into_styled<C, F, A>(self, style: TextBoxStyle<C, F, A>) -> StyledTextBox<'a, C, F, A>
+    pub fn into_styled<C, F, A, V>(
+        self,
+        style: TextBoxStyle<C, F, A, V>,
+    ) -> StyledTextBox<'a, C, F, A, V>
     where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
+        V: VerticalTextAlignment,
     {
         StyledTextBox {
             text_box: self,
