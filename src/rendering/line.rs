@@ -141,26 +141,40 @@ where
 
                 if self.cursor.advance(sp_width) {
                     self.config.consume(1); // we have peeked the value, consume it
-                    return State::WordSpace(
-                        lookahead,
-                        EmptySpaceIterator::new(sp_width, pos, self.style),
-                    );
+                    return if self.cursor.in_display_area() {
+                        State::WordSpace(
+                            lookahead,
+                            EmptySpaceIterator::new(sp_width, pos, self.style),
+                        )
+                    } else {
+                        State::ProcessToken(Token::Word(lookahead.as_str()))
+                    };
                 }
             } else {
                 // character done, move to the next one
                 let char_width = F::total_char_width(c);
 
                 if self.cursor.advance(char_width) {
-                    return State::WordChar(
-                        lookahead,
-                        StyledCharacterIterator::new(c, pos, self.style),
-                    );
+                    return if self.cursor.in_display_area() {
+                        State::WordChar(lookahead, StyledCharacterIterator::new(c, pos, self.style))
+                    } else {
+                        State::ProcessToken(Token::Word(lookahead.as_str()))
+                    };
                 }
             }
 
             // word wrapping, this line is done
             State::Done(Token::Word(word))
         })
+    }
+
+    fn finish_draw_whitespace(carried: u32) -> State<'a, C, F> {
+        if carried == 0 {
+            State::FetchNext
+        } else {
+            // n > 0 only if not every space was rendered
+            State::Done(Token::Whitespace(carried))
+        }
     }
 }
 
@@ -223,10 +237,14 @@ where
                                     let pos = self.cursor.position;
                                     let space_width = self.config.consume(spaces_to_render);
                                     self.cursor.advance_unchecked(space_width);
-                                    State::Whitespace(
-                                        n - spaces_to_render,
-                                        EmptySpaceIterator::new(space_width, pos, self.style),
-                                    )
+                                    if self.cursor.in_display_area() {
+                                        State::Whitespace(
+                                            n - spaces_to_render,
+                                            EmptySpaceIterator::new(space_width, pos, self.style),
+                                        )
+                                    } else {
+                                        Self::finish_draw_whitespace(n - spaces_to_render)
+                                    }
                                 } else {
                                     // there are spaces to render but none fit the line
                                     // eat one as a newline and stop
@@ -252,6 +270,7 @@ where
                                 break None;
                             }
 
+                            // FIXME: this isn't exactly optimal when outside of the display area
                             self.try_draw_next_character(w)
                         }
 
@@ -267,12 +286,7 @@ where
                         break pixel;
                     }
 
-                    self.current_token = if *n == 0 {
-                        State::FetchNext
-                    } else {
-                        // n > 0 only if not every space was rendered
-                        State::Done(Token::Whitespace(*n))
-                    }
+                    self.current_token = Self::finish_draw_whitespace(*n);
                 }
 
                 State::WordChar(ref chars, ref mut iter) => {
@@ -362,6 +376,30 @@ mod test {
                 "....................................",
             ])
         );
+        assert_eq!(Some(Token::Word("sample")), iter.remaining_token());
+    }
+
+    #[test]
+    fn render_before_area() {
+        let parser = Parser::parse(" Some sample text");
+        let config = UniformSpaceConfig { space_width: 6 };
+        let style = TextStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let mut cursor = Cursor::new(Rectangle::new(Point::new(0, 8), Point::new(6 * 7 - 1, 16)));
+        cursor.position.y -= 8;
+
+        let mut iter: StyledLineIterator<_, _, _, AllSpaces> =
+            StyledLineIterator::new(parser, cursor, config, style, None);
+
+        assert!(
+            iter.next().is_none(),
+            "Drawing is not allowed outside the bounding area"
+        );
+
+        // even though nothing was drawn, the text should be consumed
         assert_eq!(Some(Token::Word("sample")), iter.remaining_token());
     }
 
