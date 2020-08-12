@@ -303,7 +303,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::alignment::HorizontalTextAlignment;
+    use crate::alignment::horizontal::HorizontalTextAlignment;
     use crate::parser::{Parser, Token};
     use crate::rendering::{
         cursor::Cursor,
