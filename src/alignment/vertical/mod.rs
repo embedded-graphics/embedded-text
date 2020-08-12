@@ -10,4 +10,4 @@ pub mod top;
 ///
 /// [`TextBoxStyle`]: ../../style/struct.TextBoxStyle.html
 /// [`TextBoxStyleBuilder`]: ../../style/builder/struct.TextBoxStyleBuilder.html
-pub trait VerticalTextAlignment {}
+pub trait VerticalTextAlignment: Copy {}

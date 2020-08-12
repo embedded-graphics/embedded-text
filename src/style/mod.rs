@@ -381,7 +381,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
+    use crate::{alignment::horizontal::*, parser::Parser, style::builder::TextBoxStyleBuilder};
     use embedded_graphics::{
         fonts::{Font, Font6x8},
         pixelcolor::BinaryColor,

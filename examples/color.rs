@@ -2,7 +2,7 @@ use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Windo
 
 use embedded_graphics::{fonts::Font6x8, pixelcolor::Rgb565, prelude::*};
 
-use embedded_text::{alignment::Justified, prelude::*};
+use embedded_text::{alignment::horizontal::Justified, prelude::*};
 
 fn main() -> Result<(), core::convert::Infallible> {
     let mut display: SimulatorDisplay<Rgb565> = SimulatorDisplay::new(Size::new(129, 129));

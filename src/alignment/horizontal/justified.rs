@@ -1,6 +1,6 @@
 //! Fully justified text.
 use crate::{
-    alignment::horizontal::HorizontalTextAlignment,
+    alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment},
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -82,10 +82,11 @@ where
     DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig, Justified>),
 }
 
-impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, Justified>
+impl<'a, C, F, V> StateFactory for StyledTextBox<'a, C, F, Justified, V>
 where
     C: PixelColor,
     F: Font + Copy,
+    V: VerticalTextAlignment,
 {
     type PixelIteratorState = State<'a, C, F>;
 
@@ -96,10 +97,11 @@ where
     }
 }
 
-impl<C, F> Iterator for StyledTextBoxIterator<'_, C, F, Justified>
+impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, Justified, V>
 where
     C: PixelColor,
     F: Font + Copy,
+    V: VerticalTextAlignment,
 {
     type Item = Pixel<C>;
 

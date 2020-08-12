@@ -2,7 +2,7 @@
 use crate::{
     alignment::{
         horizontal::{HorizontalTextAlignment, LeftAligned},
-        vertical::{Top, VerticalTextAlignment},
+        vertical::{top::Top, VerticalTextAlignment},
     },
     style::TextBoxStyle,
 };
@@ -117,20 +117,21 @@ where
     pub fn alignment<TA: HorizontalTextAlignment>(
         self,
         alignment: TA,
-    ) -> TextBoxStyleBuilder<C, F, TA> {
+    ) -> TextBoxStyleBuilder<C, F, TA, V> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment,
+            vertical_alignment: self.vertical_alignment,
         }
     }
 
     /// Sets the vertical text alignment.
     #[inline]
     #[must_use]
-    pub fn alignment<VA: VerticalTextAlignment>(
+    pub fn vertical_alignment<VA: VerticalTextAlignment>(
         self,
         vertical_alignment: VA,
-    ) -> TextBoxStyleBuilder<C, F, VA> {
+    ) -> TextBoxStyleBuilder<C, F, A, VA> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment: self.alignment,
@@ -143,7 +144,7 @@ where
     /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
     #[inline]
     #[must_use]
-    pub fn build(self) -> TextBoxStyle<C, F, A> {
+    pub fn build(self) -> TextBoxStyle<C, F, A, V> {
         TextBoxStyle {
             text_style: self.text_style_builder.build(),
             alignment: self.alignment,

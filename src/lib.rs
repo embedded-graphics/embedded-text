@@ -23,7 +23,7 @@
 //!
 //! use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 //!
-//! use embedded_text::{alignment::CenterAligned, prelude::*};
+//! use embedded_text::{alignment::horizontal::CenterAligned, prelude::*};
 //!
 //! fn main() -> Result<(), core::convert::Infallible> {
 //!     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";
@@ -77,7 +77,7 @@ pub mod rendering;
 pub mod style;
 pub mod utils;
 
-use alignment::horizontal::HorizontalTextAlignment;
+use alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment};
 use style::{StyledTextBox, TextBoxStyle};
 
 /// Prelude.
