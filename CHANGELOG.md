@@ -3,6 +3,7 @@ Unreleased
 
 ## Added:
 
+ * Support for vertical text alignment.
  * Support for zero-width space character (`\u{200B}`).
  * Support for nonbreaking space character (`\u{A0}`).
  * Added optimized measurement function that do not expect carriage returns.
@@ -14,6 +15,10 @@ Unreleased
 ## Fixed:
 
  * Fixed an issue where height measurement unexpectedly carried a space that is consumed during drawing.
+
+## Changed:
+
+ * **breaking** Moved horizontal text alignment types to `alignment::horizontal`.
 
 0.1.0 (2020-07-31)
 ==================
