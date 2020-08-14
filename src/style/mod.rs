@@ -15,7 +15,7 @@ pub use builder::TextBoxStyleBuilder;
 /// Styling options of a [`TextBox`].
 ///
 /// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor`,
-/// [`HorizontalTextAlignment`] and [`VerticalTextAlginment`] information necessary to draw a
+/// [`HorizontalTextAlignment`] and [`VerticalTextAlignment`] information necessary to draw a
 /// [`TextBox`].
 ///
 /// To construct a new `TextBoxStyle` object, use the [`new`] or [`from_text_style`] methods or
