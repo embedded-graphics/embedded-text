@@ -10,9 +10,9 @@
 //!  - [`Justified`]
 //!
 //! [`TextBox`] also supports the common vertical text alignments:
-//! - [`Top`]
-//! - [`Center`]
-//! - [`Bottom`]
+//!  - [`Top`]
+//!  - [`Center`]
+//!  - [`Bottom`]
 //!
 //! ## Example
 //!
