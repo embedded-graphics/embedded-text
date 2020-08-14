@@ -57,10 +57,14 @@ where
     #[inline]
     #[must_use]
     pub fn new(styled: &'a StyledTextBox<'a, C, F, A, V>) -> Self {
+        let mut cursor = Cursor::new(styled.text_box.bounds);
+
+        V::apply_vertical_alignment(&mut cursor, &styled);
+
         Self {
             parser: Parser::parse(styled.text_box.text),
             style: styled.style,
-            state: styled.create_state(Cursor::new(styled.text_box.bounds)),
+            state: styled.create_state(cursor),
         }
     }
 }
