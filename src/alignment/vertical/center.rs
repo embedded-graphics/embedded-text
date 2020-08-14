@@ -30,3 +30,50 @@ impl VerticalTextAlignment for Center {
         cursor.position.y += offset as i32;
     }
 }
+
+#[cfg(test)]
+mod test {
+    use embedded_graphics::{
+        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        primitives::Rectangle,
+    };
+
+    use crate::{alignment::vertical, style::TextBoxStyleBuilder, TextBox};
+
+    #[test]
+    fn test_center_alignment() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .vertical_alignment(vertical::Center)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 15)))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "......................#.",
+                "......................#.",
+                "#...#..###..#.##...##.#.",
+                "#...#.#...#.##..#.#..##.",
+                "#.#.#.#...#.#.....#...#.",
+                "#.#.#.#...#.#.....#...#.",
+                ".#.#...###..#......####.",
+                "........................",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+            ])
+        );
+    }
+}
