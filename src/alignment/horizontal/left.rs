@@ -34,7 +34,7 @@ where
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, LeftAligned>),
 }
 
-impl<'a, C, F, V> StateFactory for StyledTextBox<'a, C, F, LeftAligned, V>
+impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, LeftAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -44,8 +44,8 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state(&self) -> Self::PixelIteratorState {
-        State::NextLine(None, Cursor::new(self.text_box.bounds))
+    fn create_state(&self, cursor: Cursor<F>) -> Self::PixelIteratorState {
+        State::NextLine(None, cursor)
     }
 }
 

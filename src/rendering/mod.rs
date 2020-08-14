@@ -8,6 +8,7 @@ pub mod whitespace;
 use crate::{
     alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment},
     parser::Parser,
+    rendering::cursor::Cursor,
     style::{StyledTextBox, TextBoxStyle},
 };
 use embedded_graphics::prelude::*;
@@ -15,12 +16,12 @@ use embedded_graphics::prelude::*;
 /// This trait is used to associate a state type to a horizontal alignment option.
 ///
 /// Implementing this trait is only necessary when creating new alignment algorithms.
-pub trait StateFactory {
+pub trait StateFactory<F: Font> {
     /// The type of the state variable used for rendering.
     type PixelIteratorState;
 
     /// Creates a new state variable.
-    fn create_state(&self) -> Self::PixelIteratorState;
+    fn create_state(&self, cursor: Cursor<F>) -> Self::PixelIteratorState;
 }
 
 /// Pixel iterator for styled text.
@@ -30,7 +31,7 @@ where
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBox<'a, C, F, A, V>: StateFactory,
+    StyledTextBox<'a, C, F, A, V>: StateFactory<F>,
 {
     /// Parser to process the text during rendering.
     pub parser: Parser<'a>,
@@ -39,7 +40,7 @@ where
     pub style: TextBoxStyle<C, F, A, V>,
 
     /// State information used by the rendering algorithms.
-    pub state: <StyledTextBox<'a, C, F, A, V> as StateFactory>::PixelIteratorState,
+    pub state: <StyledTextBox<'a, C, F, A, V> as StateFactory<F>>::PixelIteratorState,
 }
 
 impl<'a, C, F, A, V> StyledTextBoxIterator<'a, C, F, A, V>
@@ -48,7 +49,7 @@ where
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBox<'a, C, F, A, V>: StateFactory,
+    StyledTextBox<'a, C, F, A, V>: StateFactory<F>,
 {
     /// Creates a new pixel iterator to render the styled [`TextBox`].
     ///
@@ -59,7 +60,7 @@ where
         Self {
             parser: Parser::parse(styled.text_box.text),
             style: styled.style,
-            state: styled.create_state(),
+            state: styled.create_state(Cursor::new(styled.text_box.bounds)),
         }
     }
 }
