@@ -9,6 +9,11 @@
 //!  - [`CenterAligned`]
 //!  - [`Justified`]
 //!
+//! [`TextBox`] also supports the common vertical text alignments:
+//! - [`Top`]
+//! - [`Center`]
+//! - [`Bottom`]
+//!
 //! ## Example
 //!
 //! The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
@@ -62,6 +67,9 @@
 //! [`RightAligned`]: ./alignment/horizontal/right/struct.RightAligned.html
 //! [`CenterAligned`]: ./alignment/horizontal/center/struct.CenterAligned.html
 //! [`Justified`]: ./alignment/horizontal/justified/struct.Justified.html
+//! [`Top`]: ./alignment/vertical/top/struct.Top.html
+//! [`Center`]: ./alignment/vertical/center/struct.Center.html
+//! [`Bottom`]: ./alignment/vertical/bottom/struct.Bottom.html
 
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]

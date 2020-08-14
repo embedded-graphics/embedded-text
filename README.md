@@ -5,11 +5,16 @@ TextBox for embedded-graphics
 This crate provides a configurable `TextBox` to render multiline text inside a bounding
 `Rectangle` using [embedded-graphics].
 
-`TextBox` supports the common text alignments:
+`TextBox` supports the common horizontal text alignments:
  - `LeftAligned`
  - `RightAligned`
  - `CenterAligned`
  - `Justified`
+
+`TextBox` also supports the common vertical text alignments:
+ - `Top`
+ - `Center`
+ - `Bottom`
 
 ### Example
 
