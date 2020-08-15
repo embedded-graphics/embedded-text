@@ -1,6 +1,6 @@
 //! Left aligned text.
 use crate::{
-    alignment::TextAlignment,
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -15,7 +15,7 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct LeftAligned;
-impl TextAlignment for LeftAligned {
+impl HorizontalTextAlignment for LeftAligned {
     const STARTING_SPACES: bool = true;
     const ENDING_SPACES: bool = true;
 }
@@ -34,24 +34,26 @@ where
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, LeftAligned>),
 }
 
-impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, LeftAligned>
+impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, LeftAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
+    V: VerticalTextAlignment,
 {
     type PixelIteratorState = State<'a, C, F>;
 
     #[inline]
     #[must_use]
-    fn create_state(&self) -> Self::PixelIteratorState {
-        State::NextLine(None, Cursor::new(self.text_box.bounds))
+    fn create_state(&self, cursor: Cursor<F>) -> Self::PixelIteratorState {
+        State::NextLine(None, cursor)
     }
 }
 
-impl<C, F> Iterator for StyledTextBoxIterator<'_, C, F, LeftAligned>
+impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, LeftAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
+    V: VerticalTextAlignment,
 {
     type Item = Pixel<C>;
 

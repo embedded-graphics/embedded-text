@@ -5,11 +5,16 @@ TextBox for embedded-graphics
 This crate provides a configurable `TextBox` to render multiline text inside a bounding
 `Rectangle` using [embedded-graphics].
 
-`TextBox` supports the common text alignments:
+`TextBox` supports the common horizontal text alignments:
  - `LeftAligned`
  - `RightAligned`
  - `CenterAligned`
  - `Justified`
+
+`TextBox` also supports the common vertical text alignments:
+ - `TopAligned`
+ - `CenterAligned`
+ - `BottomAligned`
 
 ### Example
 
@@ -19,13 +24,11 @@ The examples are based on [the embedded-graphics simulator]. The simulator is bu
 ![embedded-text example with center aligned text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/center.png)
 
 ```rust
+use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
-
-use embedded_text::{alignment::CenterAligned, prelude::*};
+use embedded_text::prelude::*;
 
 fn main() -> Result<(), core::convert::Infallible> {
     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";

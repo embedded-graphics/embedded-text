@@ -9,6 +9,11 @@
 //!  - [`CenterAligned`]
 //!  - [`Justified`]
 //!
+//! [`TextBox`] also supports the common vertical text alignments:
+//!  - [`TopAligned`]
+//!  - [`CenterAligned`]
+//!  - [`BottomAligned`]
+//!
 //! ## Example
 //!
 //! The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
@@ -17,13 +22,11 @@
 //! ![embedded-text example with center aligned text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/center.png)
 //!
 //! ```rust,no_run
+//! use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 //! use embedded_graphics_simulator::{
 //!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 //! };
-//!
-//! use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
-//!
-//! use embedded_text::{alignment::CenterAligned, prelude::*};
+//! use embedded_text::prelude::*;
 //!
 //! fn main() -> Result<(), core::convert::Infallible> {
 //!     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";
@@ -62,6 +65,8 @@
 //! [`RightAligned`]: ./alignment/right/struct.RightAligned.html
 //! [`CenterAligned`]: ./alignment/center/struct.CenterAligned.html
 //! [`Justified`]: ./alignment/justified/struct.Justified.html
+//! [`TopAligned`]: ./alignment/top/struct.TopAligned.html
+//! [`BottomAligned`]: ./alignment/bottom/struct.BottomAligned.html
 
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
@@ -69,15 +74,14 @@
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
-use embedded_graphics::{prelude::*, primitives::Rectangle};
-
 pub mod alignment;
 pub mod parser;
 pub mod rendering;
 pub mod style;
 pub mod utils;
 
-use alignment::TextAlignment;
+use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
+use embedded_graphics::{prelude::*, primitives::Rectangle};
 use style::{StyledTextBox, TextBoxStyle};
 
 /// Prelude.
@@ -87,7 +91,8 @@ use style::{StyledTextBox, TextBoxStyle};
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
-        style::{TextBoxStyle, TextBoxStyleBuilder},
+        alignment::*,
+        style::{StyledTextBox, TextBoxStyle, TextBoxStyleBuilder},
         TextBox,
     };
 
@@ -131,11 +136,15 @@ impl<'a> TextBox<'a> {
     /// Attaches a [`TextBoxStyle`] to the textbox object.
     #[inline]
     #[must_use]
-    pub fn into_styled<C, F, A>(self, style: TextBoxStyle<C, F, A>) -> StyledTextBox<'a, C, F, A>
+    pub fn into_styled<C, F, A, V>(
+        self,
+        style: TextBoxStyle<C, F, A, V>,
+    ) -> StyledTextBox<'a, C, F, A, V>
     where
         C: PixelColor,
         F: Font + Copy,
-        A: TextAlignment,
+        A: HorizontalTextAlignment,
+        V: VerticalTextAlignment,
     {
         StyledTextBox {
             text_box: self,

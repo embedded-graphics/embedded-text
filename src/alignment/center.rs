@@ -1,6 +1,6 @@
-//! Center aligned text.
+//! Horizontal and vertical center aligned text.
 use crate::{
-    alignment::TextAlignment,
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -10,12 +10,14 @@ use crate::{
     style::StyledTextBox,
     utils::font_ext::FontExt,
 };
-use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
+use embedded_graphics::prelude::*;
 
 /// Marks text to be rendered center aligned.
+///
+/// This alignment can be used as both horizontal or vertical alignment.
 #[derive(Copy, Clone, Debug)]
 pub struct CenterAligned;
-impl TextAlignment for CenterAligned {
+impl HorizontalTextAlignment for CenterAligned {
     const STARTING_SPACES: bool = false;
     const ENDING_SPACES: bool = false;
 }
@@ -34,24 +36,26 @@ where
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, CenterAligned>),
 }
 
-impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, CenterAligned>
+impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, CenterAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
+    V: VerticalTextAlignment,
 {
     type PixelIteratorState = State<'a, C, F>;
 
     #[inline]
     #[must_use]
-    fn create_state(&self) -> Self::PixelIteratorState {
-        State::NextLine(None, Cursor::new(self.text_box.bounds))
+    fn create_state(&self, cursor: Cursor<F>) -> Self::PixelIteratorState {
+        State::NextLine(None, cursor)
     }
 }
 
-impl<C, F> Iterator for StyledTextBoxIterator<'_, C, F, CenterAligned>
+impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, CenterAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
+    V: VerticalTextAlignment,
 {
     type Item = Pixel<C>;
 
@@ -120,8 +124,29 @@ where
     }
 }
 
+impl VerticalTextAlignment for CenterAligned {
+    #[inline]
+    fn apply_vertical_alignment<'a, C, F, A>(
+        cursor: &mut Cursor<F>,
+        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self>,
+    ) where
+        C: PixelColor,
+        F: Font + Copy,
+        A: HorizontalTextAlignment,
+    {
+        let text_height = styled_text_box
+            .style
+            .measure_text_height(styled_text_box.text_box.text, cursor.line_width());
+
+        let box_height = styled_text_box.size().height;
+        let offset = (box_height - text_height) / 2;
+
+        cursor.position.y += offset as i32;
+    }
+}
+
 #[cfg(test)]
-mod test {
+mod test_horizontal {
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
         primitives::Rectangle,
@@ -309,6 +334,53 @@ mod test {
                 " .####...#...#...#.#...#..####.#.#.#.#...#.#.....#...#.",
                 " ....#..###...###..#...#.....#..#.#...###..#......####.",
                 " .###.....................###..........................",
+            ])
+        );
+    }
+}
+
+#[cfg(test)]
+mod test_vertical {
+    use embedded_graphics::{
+        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        primitives::Rectangle,
+    };
+
+    use crate::{alignment::CenterAligned, style::TextBoxStyleBuilder, TextBox};
+
+    #[test]
+    fn test_center_alignment() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .vertical_alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 15)))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "......................#.",
+                "......................#.",
+                "#...#..###..#.##...##.#.",
+                "#...#.#...#.##..#.#..##.",
+                "#.#.#.#...#.#.....#...#.",
+                "#.#.#.#...#.#.....#...#.",
+                ".#.#...###..#......####.",
+                "........................",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
             ])
         );
     }

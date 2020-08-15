@@ -5,7 +5,7 @@ use embedded_graphics::{
     prelude::*,
     style::TextStyleBuilder,
 };
-use embedded_text::{alignment::*, prelude::*, rendering::StyledTextBoxIterator};
+use embedded_text::{prelude::*, rendering::StyledTextBoxIterator};
 
 const TEXT: &str = "Benchmark text!";
 
@@ -59,10 +59,51 @@ fn benchmark_render_textbox_aligned(c: &mut Criterion) {
     });
 }
 
+fn benchmark_render_textbox_vertical_aligned(c: &mut Criterion) {
+    let style = TextBoxStyleBuilder::new(Font6x8)
+        .vertical_alignment(BottomAligned)
+        .text_color(BinaryColor::On)
+        .build();
+
+    c.bench_function("TextBox, BottomAligned", |b| {
+        b.iter(|| {
+            let obj = TextBox::new(
+                black_box(TEXT),
+                Rectangle::new(Point::zero(), Point::new(6 * 15 - 1, 7)),
+            )
+            .into_styled(style);
+            let object = StyledTextBoxIterator::new(&obj);
+            object.collect::<Vec<Pixel<BinaryColor>>>()
+        })
+    });
+}
+
+fn benchmark_render_textbox_both_aligned(c: &mut Criterion) {
+    let style = TextBoxStyleBuilder::new(Font6x8)
+        .alignment(CenterAligned)
+        .vertical_alignment(CenterAligned)
+        .text_color(BinaryColor::On)
+        .build();
+
+    c.bench_function("TextBox, H/V CenterAligned", |b| {
+        b.iter(|| {
+            let obj = TextBox::new(
+                black_box(TEXT),
+                Rectangle::new(Point::zero(), Point::new(6 * 15 - 1, 7)),
+            )
+            .into_styled(style);
+            let object = StyledTextBoxIterator::new(&obj);
+            object.collect::<Vec<Pixel<BinaryColor>>>()
+        })
+    });
+}
+
 criterion_group!(
     render,
     benchmark_render_text,
     benchmark_render_textbox,
-    benchmark_render_textbox_aligned
+    benchmark_render_textbox_aligned,
+    benchmark_render_textbox_vertical_aligned,
+    benchmark_render_textbox_both_aligned,
 );
 criterion_main!(render);

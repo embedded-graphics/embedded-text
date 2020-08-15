@@ -12,10 +12,9 @@ use embedded_graphics::{
     prelude::*,
     style::PrimitiveStyle,
 };
+use embedded_text::prelude::*;
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
-
-use embedded_text::{alignment::*, prelude::*, style::StyledTextBox};
 
 enum ProcessedEvent {
     Nothing,
@@ -61,8 +60,8 @@ impl ProcessedEvent {
 
 fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
 where
-    A: TextAlignment,
-    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A>: Drawable<BinaryColor>,
+    A: HorizontalTextAlignment,
+    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned>: Drawable<BinaryColor>,
 {
     loop {
         let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));

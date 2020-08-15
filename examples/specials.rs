@@ -1,10 +1,8 @@
+use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
-
-use embedded_text::{alignment::Justified, prelude::*};
+use embedded_text::prelude::*;
 
 fn main() -> Result<(), core::convert::Infallible> {
     let text = "Hello, World!\nembedded-text supports\rcarriage return.\nNon-breaking spaces\u{A0}are also supported.\nAlso\u{200B}Supports\u{200B}Zero\u{200B}Width\u{200B}Space\u{200B}Characters";

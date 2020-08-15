@@ -1,9 +1,7 @@
+use embedded_graphics::{fonts::Font6x6, pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-
-use embedded_graphics::{fonts::Font6x6, pixelcolor::BinaryColor, prelude::*};
-
 use embedded_text::prelude::*;
 
 fn main() -> Result<(), core::convert::Infallible> {

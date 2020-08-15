@@ -3,6 +3,8 @@ Unreleased
 
 ## Added:
 
+ * Support for vertical text alignment.
+ * Added alignment types to `prelude`.
  * Support for zero-width space character (`\u{200B}`).
  * Support for nonbreaking space character (`\u{A0}`).
  * Added optimized measurement function that do not expect carriage returns.

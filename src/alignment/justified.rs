@@ -1,6 +1,6 @@
 //! Fully justified text.
 use crate::{
-    alignment::TextAlignment,
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -15,7 +15,7 @@ use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 /// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
 pub struct Justified;
-impl TextAlignment for Justified {
+impl HorizontalTextAlignment for Justified {
     const STARTING_SPACES: bool = false;
     const ENDING_SPACES: bool = false;
 }
@@ -82,24 +82,26 @@ where
     DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig, Justified>),
 }
 
-impl<'a, C, F> StateFactory for StyledTextBox<'a, C, F, Justified>
+impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, Justified, V>
 where
     C: PixelColor,
     F: Font + Copy,
+    V: VerticalTextAlignment,
 {
     type PixelIteratorState = State<'a, C, F>;
 
     #[inline]
     #[must_use]
-    fn create_state(&self) -> Self::PixelIteratorState {
-        State::NextLine(None, Cursor::new(self.text_box.bounds))
+    fn create_state(&self, cursor: Cursor<F>) -> Self::PixelIteratorState {
+        State::NextLine(None, cursor)
     }
 }
 
-impl<C, F> Iterator for StyledTextBoxIterator<'_, C, F, Justified>
+impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, Justified, V>
 where
     C: PixelColor,
     F: Font + Copy,
+    V: VerticalTextAlignment,
 {
     type Item = Pixel<C>;
 

@@ -15,6 +15,7 @@ pub struct Cursor<F: Font> {
     left: i32,
     right: i32,
     bottom: i32,
+    top: i32,
 }
 
 impl<F: Font> Cursor<F> {
@@ -26,6 +27,7 @@ impl<F: Font> Cursor<F> {
             _marker: PhantomData,
             position: bounds.top_left,
             bottom: bounds.bottom_right.y + 1,
+            top: bounds.top_left.y,
             left: bounds.top_left.x,
             right: bounds.bottom_right.x + 1,
         }
@@ -56,7 +58,8 @@ impl<F: Font> Cursor<F> {
     #[inline]
     #[must_use]
     pub fn in_display_area(&self) -> bool {
-        (self.position.y + F::CHARACTER_SIZE.height as i32) <= self.bottom
+        self.position.y >= self.top
+            && (self.position.y + F::CHARACTER_SIZE.height as i32) <= self.bottom
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.
@@ -114,5 +117,18 @@ mod test {
         assert!(cursor.fits_in_line(1));
         cursor.advance(6);
         assert!(!cursor.fits_in_line(1));
+    }
+
+    #[test]
+    fn in_display_area() {
+        // 6px width
+        let mut cursor: Cursor<Font6x8> =
+            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)));
+
+        let data = [(0, true), (-8, false), (-1, false), (1, false)];
+        for &(pos, inside) in data.iter() {
+            cursor.position.y = pos;
+            assert_eq!(inside, cursor.in_display_area());
+        }
     }
 }
