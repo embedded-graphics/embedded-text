@@ -4,6 +4,8 @@ Unreleased
 ## Added:
 
  * `TextBoxStyleBuilder::from_text_style`
+ * Added `HeightMode` to select whether and how the `StyledTextBox` height should be aligned to the
+   actual text height.
 
 ## Changed:
 
