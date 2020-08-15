@@ -85,7 +85,7 @@ pub mod utils;
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 use rendering::{StateFactory, StyledTextBoxIterator};
-use style::TextBoxStyle;
+use style::{HeightMode, TextBoxStyle};
 
 /// Prelude.
 ///
@@ -95,7 +95,7 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
         alignment::*,
-        style::{TextBoxStyle, TextBoxStyleBuilder},
+        style::{Exact, FitToText, ShrinkToText, TextBoxStyle, TextBoxStyleBuilder},
         StyledTextBox, TextBox,
     };
 
@@ -172,15 +172,16 @@ impl<'a> TextBox<'a> {
     /// [`ShrinkToText`]: style/height_mode/struct.ShrinkToText.html
     #[inline]
     #[must_use]
-    pub fn into_styled<C, F, A, V>(
+    pub fn into_styled<C, F, A, V, H>(
         self,
-        style: TextBoxStyle<C, F, A, V>,
-    ) -> StyledTextBox<'a, C, F, A, V>
+        style: TextBoxStyle<C, F, A, V, H>,
+    ) -> StyledTextBox<'a, C, F, A, V, H>
     where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
+        H: HeightMode,
     {
         StyledTextBox {
             text_box: self,
@@ -232,30 +233,36 @@ impl Dimensions for TextBox<'_> {
 /// This structure is constructed by calling the [`into_styled`] method of a [`TextBox`] object.
 /// Use the [`draw`] method to draw the textbox on a display.
 ///
+/// [`TextBox`]: struct.TextBox.html
 /// [`into_styled`]: struct.TextBox.html#method.into_styled
 /// [`draw`]: #method.draw
-pub struct StyledTextBox<'a, C, F, A, V>
+pub struct StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
-    //
+    ///
+    /// [`TextBox`]: ../struct.TextBox.html
     /// [`TextBoxStyle`]: struct.TextBoxStyle.html
     pub text_box: TextBox<'a>,
 
     /// The style of the [`TextBox`].
-    pub style: TextBoxStyle<C, F, A, V>,
+    ///
+    /// [`TextBox`]: ../struct.TextBox.html
+    pub style: TextBoxStyle<C, F, A, V, H>,
 }
 
-impl<C, F, A, V> StyledTextBox<'_, C, F, A, V>
+impl<C, F, A, V, H> StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     /// Sets the height of the [`StyledTextBox`] to the height of the text.
     #[inline]
@@ -285,14 +292,15 @@ where
     }
 }
 
-impl<'a, C, F, A, V> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V>
+impl<'a, C, F, A, V, H> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBoxIterator<'a, C, F, A, V>: Iterator<Item = Pixel<C>>,
-    StyledTextBox<'a, C, F, A, V>: StateFactory<'a, F>,
+    StyledTextBoxIterator<'a, C, F, A, V, H>: Iterator<Item = Pixel<C>>,
+    StyledTextBox<'a, C, F, A, V, H>: StateFactory<'a, F>,
+    H: HeightMode,
 {
     #[inline]
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
@@ -300,12 +308,13 @@ where
     }
 }
 
-impl<C, F, A, V> Transform for StyledTextBox<'_, C, F, A, V>
+impl<C, F, A, V, H> Transform for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     #[inline]
     #[must_use]
@@ -324,12 +333,13 @@ where
     }
 }
 
-impl<C, F, A, V> Dimensions for StyledTextBox<'_, C, F, A, V>
+impl<C, F, A, V, H> Dimensions for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     #[inline]
     #[must_use]

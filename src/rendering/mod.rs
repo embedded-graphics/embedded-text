@@ -9,7 +9,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Parser,
     rendering::cursor::Cursor,
-    style::TextBoxStyle,
+    style::{HeightMode, TextBoxStyle},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
@@ -26,35 +26,37 @@ pub trait StateFactory<'a, F: Font> {
 }
 
 /// Pixel iterator for styled text.
-pub struct StyledTextBoxIterator<'a, C, F, A, V>
+pub struct StyledTextBoxIterator<'a, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBox<'a, C, F, A, V>: StateFactory<'a, F>,
+    H: HeightMode,
+    StyledTextBox<'a, C, F, A, V, H>: StateFactory<'a, F>,
 {
     /// Style used for rendering.
-    pub style: TextBoxStyle<C, F, A, V>,
+    pub style: TextBoxStyle<C, F, A, V, H>,
 
     /// State information used by the rendering algorithms.
-    pub state: <StyledTextBox<'a, C, F, A, V> as StateFactory<'a, F>>::PixelIteratorState,
+    pub state: <StyledTextBox<'a, C, F, A, V, H> as StateFactory<'a, F>>::PixelIteratorState,
 }
 
-impl<'a, C, F, A, V> StyledTextBoxIterator<'a, C, F, A, V>
+impl<'a, C, F, A, V, H> StyledTextBoxIterator<'a, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBox<'a, C, F, A, V>: StateFactory<'a, F>,
+    H: HeightMode,
+    StyledTextBox<'a, C, F, A, V, H>: StateFactory<'a, F>,
 {
     /// Creates a new pixel iterator to render the styled [`TextBox`].
     ///
     /// [`TextBox`]: ../struct.TextBox.html
     #[inline]
     #[must_use]
-    pub fn new(styled: &'a StyledTextBox<'a, C, F, A, V>) -> Self {
+    pub fn new(styled: &'a StyledTextBox<'a, C, F, A, V, H>) -> Self {
         let mut cursor = Cursor::new(styled.text_box.bounds);
 
         V::apply_vertical_alignment(&mut cursor, &styled);

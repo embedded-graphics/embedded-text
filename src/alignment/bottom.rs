@@ -2,6 +2,7 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
+    style::HeightMode,
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
@@ -12,13 +13,14 @@ pub struct BottomAligned;
 
 impl VerticalTextAlignment for BottomAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, C, F, A>(
+    fn apply_vertical_alignment<'a, C, F, A, H>(
         cursor: &mut Cursor<F>,
-        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self>,
+        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
     ) where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
+        H: HeightMode,
     {
         let text_height = styled_text_box
             .style

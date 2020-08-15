@@ -7,6 +7,7 @@ use crate::{
         line::{StyledLineIterator, UniformSpaceConfig},
         StateFactory, StyledTextBoxIterator,
     },
+    style::HeightMode,
     utils::font_ext::FontExt,
     StyledTextBox,
 };
@@ -34,11 +35,12 @@ where
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, LeftAligned>),
 }
 
-impl<'a, C, F, V> StateFactory<'a, F> for StyledTextBox<'a, C, F, LeftAligned, V>
+impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, LeftAligned, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     type PixelIteratorState = State<'a, C, F>;
 
@@ -49,11 +51,12 @@ where
     }
 }
 
-impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, LeftAligned, V>
+impl<C, F, V, H> Iterator for StyledTextBoxIterator<'_, C, F, LeftAligned, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     type Item = Pixel<C>;
 

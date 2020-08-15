@@ -24,6 +24,28 @@ use crate::{
 };
 pub use builder::TextBoxStyleBuilder;
 
+/// Specifies how the [`TextBox`]'s height is adjusted when it's turned into a [`StyledTextBox`].
+pub trait HeightMode: Copy {}
+
+/// Keep the original height
+#[derive(Copy, Clone)]
+pub struct Exact;
+
+impl HeightMode for Exact {}
+
+/// Change the height to exactly fit the text
+#[derive(Copy, Clone)]
+pub struct FitToText;
+
+impl HeightMode for FitToText {}
+
+/// If the text doesn't fill the original height, shrink the [`StyledTextBox`] to be as tall as the
+/// text.
+#[derive(Copy, Clone)]
+pub struct ShrinkToText;
+
+impl HeightMode for ShrinkToText {}
+
 /// Styling options of a [`TextBox`].
 ///
 /// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor`,
@@ -40,12 +62,13 @@ pub use builder::TextBoxStyleBuilder;
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct TextBoxStyle<C, F, A, V>
+pub struct TextBoxStyle<C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     /// Style properties for text.
     pub text_style: TextStyle<C, F>,
@@ -55,22 +78,33 @@ where
 
     /// Vertical text alignment.
     pub vertical_alignment: V,
+
+    /// The height behaviour
+    pub height_mode: H,
 }
 
-impl<C, F, A, V> TextBoxStyle<C, F, A, V>
+impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     /// Creates a `TextBoxStyle` object with transparent background.
     #[inline]
-    pub fn new(font: F, text_color: C, alignment: A, vertical_alignment: V) -> Self {
+    pub fn new(
+        font: F,
+        text_color: C,
+        alignment: A,
+        vertical_alignment: V,
+        height_mode: H,
+    ) -> Self {
         Self {
             text_style: TextStyle::new(font, text_color),
             alignment,
             vertical_alignment,
+            height_mode,
         }
     }
 
@@ -80,11 +114,13 @@ where
         text_style: TextStyle<C, F>,
         alignment: A,
         vertical_alignment: V,
+        height_mode: H,
     ) -> Self {
         Self {
             text_style,
             alignment,
             vertical_alignment,
+            height_mode,
         }
     }
 

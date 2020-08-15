@@ -1,7 +1,7 @@
 //! Textbox style builder.
 use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
-    style::TextBoxStyle,
+    style::{Exact, HeightMode, TextBoxStyle},
 };
 use embedded_graphics::{
     prelude::*,
@@ -11,19 +11,21 @@ use embedded_graphics::{
 /// [`TextBoxStyle`] builder object.
 ///
 /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
-pub struct TextBoxStyleBuilder<C, F, A, V>
+pub struct TextBoxStyleBuilder<C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     text_style_builder: TextStyleBuilder<C, F>,
     alignment: A,
     vertical_alignment: V,
+    height_mode: H,
 }
 
-impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned>
+impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -41,6 +43,7 @@ where
             text_style_builder: TextStyleBuilder::new(font),
             alignment: LeftAligned,
             vertical_alignment: TopAligned,
+            height_mode: Exact,
         }
     }
 
@@ -79,12 +82,13 @@ where
     }
 }
 
-impl<C, F, A, V> TextBoxStyleBuilder<C, F, A, V>
+impl<C, F, A, V, H> TextBoxStyleBuilder<C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     /// Sets the text color.
     ///
@@ -179,11 +183,12 @@ where
     pub fn alignment<TA: HorizontalTextAlignment>(
         self,
         alignment: TA,
-    ) -> TextBoxStyleBuilder<C, F, TA, V> {
+    ) -> TextBoxStyleBuilder<C, F, TA, V, H> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment,
             vertical_alignment: self.vertical_alignment,
+            height_mode: self.height_mode,
         }
     }
 
@@ -193,11 +198,27 @@ where
     pub fn vertical_alignment<VA: VerticalTextAlignment>(
         self,
         vertical_alignment: VA,
-    ) -> TextBoxStyleBuilder<C, F, A, VA> {
+    ) -> TextBoxStyleBuilder<C, F, A, VA, H> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment: self.alignment,
             vertical_alignment,
+            height_mode: self.height_mode,
+        }
+    }
+
+    /// Sets the height mode.
+    #[inline]
+    #[must_use]
+    pub fn height_mode<HM: HeightMode>(
+        self,
+        height_mode: HM,
+    ) -> TextBoxStyleBuilder<C, F, A, V, HM> {
+        TextBoxStyleBuilder {
+            text_style_builder: self.text_style_builder,
+            alignment: self.alignment,
+            vertical_alignment: self.vertical_alignment,
+            height_mode,
         }
     }
 
@@ -206,11 +227,12 @@ where
     /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
     #[inline]
     #[must_use]
-    pub fn build(self) -> TextBoxStyle<C, F, A, V> {
+    pub fn build(self) -> TextBoxStyle<C, F, A, V, H> {
         TextBoxStyle {
             text_style: self.text_style_builder.build(),
             alignment: self.alignment,
             vertical_alignment: self.vertical_alignment,
+            height_mode: self.height_mode,
         }
     }
 }
