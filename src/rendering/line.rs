@@ -178,26 +178,27 @@ where
     }
 
     fn finish(cursor: &mut Cursor<F>, t: Token<'a>) -> State<'a, C, F> {
-        let carried_token = match t {
+        match t {
             Token::NewLine => {
                 cursor.new_line();
                 cursor.carriage_return();
-                None
+
+                State::Done(None)
             }
 
             Token::CarriageReturn => {
                 cursor.carriage_return();
-                None
+
+                State::Done(None)
             }
 
             c => {
                 cursor.new_line();
                 cursor.carriage_return();
-                Some(c)
-            }
-        };
 
-        State::Done(carried_token)
+                State::Done(Some(c))
+            }
+        }
     }
 }
 
@@ -293,15 +294,16 @@ where
                         }
 
                         Token::Word(w) => {
+                            // FIXME: this isn't exactly optimal when outside of the display area
                             if self.first_word {
                                 self.first_word = false;
-                            } else if !self.fits_in_line(F::str_width_nocr(w)) {
-                                self.current_token = Self::finish(&mut self.cursor, token);
-                                break None;
-                            }
 
-                            // FIXME: this isn't exactly optimal when outside of the display area
-                            self.try_draw_next_character(w)
+                                self.try_draw_next_character(w)
+                            } else if self.fits_in_line(F::str_width_nocr(w)) {
+                                self.try_draw_next_character(w)
+                            } else {
+                                Self::finish(&mut self.cursor, token)
+                            }
                         }
 
                         Token::NewLine | Token::CarriageReturn => {
