@@ -270,7 +270,7 @@ where
     /// Sets the height of the [`StyledTextBox`] to the height of the text.
     #[inline]
     pub fn fit_height(&mut self) -> &mut Self {
-        self.fit_height_limited(u32::MAX)
+        self.fit_height_limited(u32::max_value())
     }
 
     /// Sets the height of the [`StyledTextBox`] to the height of the text, limited to `max_height`.
@@ -284,7 +284,7 @@ where
             .style
             .measure_text_height(self.text_box.text, self.text_box.size().width)
             .min(max_height)
-            .min(i32::MAX as u32) as i32;
+            .min(i32::max_value() as u32) as i32;
 
         // Apply height
         let y = self.text_box.bounds.top_left.y;

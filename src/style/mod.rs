@@ -21,6 +21,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     utils::font_ext::FontExt,
+    StyledTextBox,
 };
 pub use builder::TextBoxStyleBuilder;
 
