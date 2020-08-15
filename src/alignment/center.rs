@@ -1,7 +1,7 @@
 //! Horizontal and vertical center aligned text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Token,
+    parser::{Parser, Token},
     rendering::{
         cursor::Cursor,
         line::{StyledLineIterator, UniformSpaceConfig},
@@ -30,13 +30,13 @@ where
     F: Font + Copy,
 {
     /// Starts processing a line.
-    NextLine(Option<Token<'a>>, Cursor<F>),
+    NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
 
     /// Renders the processed line.
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, CenterAligned>),
 }
 
-impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, CenterAligned, V>
+impl<'a, C, F, V> StateFactory<'a, F> for StyledTextBox<'a, C, F, CenterAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -46,8 +46,8 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state(&self, cursor: Cursor<F>) -> Self::PixelIteratorState {
-        State::NextLine(None, cursor)
+    fn create_state(&self, cursor: Cursor<F>, parser: Parser<'a>) -> Self::PixelIteratorState {
+        State::NextLine(None, cursor, parser)
     }
 }
 
@@ -63,25 +63,25 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                State::NextLine(ref carried_token, ref mut cursor) => {
+                State::NextLine(ref carried_token, ref mut cursor, ref parser) => {
                     if !cursor.in_display_area() {
                         break None;
                     }
 
-                    if carried_token.is_none() && self.parser.is_empty() {
+                    if carried_token.is_none() && parser.is_empty() {
                         break None;
                     }
 
                     let max_line_width = cursor.line_width();
                     let (width, _, _) = self.style.measure_line(
-                        &mut self.parser.clone(),
+                        &mut parser.clone(),
                         carried_token.clone(),
                         max_line_width,
                     );
                     cursor.advance_unchecked((max_line_width - width + 1) / 2);
 
                     self.state = State::DrawLine(StyledLineIterator::new(
-                        self.parser.clone(),
+                        parser.clone(),
                         *cursor,
                         UniformSpaceConfig {
                             space_width: F::total_char_width(' '),
@@ -96,10 +96,13 @@ where
                         break pixel;
                     }
 
-                    self.parser = line_iterator.parser.clone();
                     let carried_token = line_iterator.remaining_token();
 
-                    self.state = State::NextLine(carried_token, line_iterator.cursor);
+                    self.state = State::NextLine(
+                        carried_token,
+                        line_iterator.cursor,
+                        line_iterator.parser.clone(),
+                    );
                 }
             }
         }

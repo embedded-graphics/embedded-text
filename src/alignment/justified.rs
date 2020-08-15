@@ -1,7 +1,7 @@
 //! Fully justified text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Token,
+    parser::{Parser, Token},
     rendering::{
         cursor::Cursor,
         line::{SpaceConfig, StyledLineIterator},
@@ -76,13 +76,13 @@ where
     F: Font + Copy,
 {
     /// Starts processing a line.
-    NextLine(Option<Token<'a>>, Cursor<F>),
+    NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
 
     /// Renders the processed line.
     DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig, Justified>),
 }
 
-impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, Justified, V>
+impl<'a, C, F, V> StateFactory<'a, F> for StyledTextBox<'a, C, F, Justified, V>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -92,8 +92,8 @@ where
 
     #[inline]
     #[must_use]
-    fn create_state(&self, cursor: Cursor<F>) -> Self::PixelIteratorState {
-        State::NextLine(None, cursor)
+    fn create_state(&self, cursor: Cursor<F>, parser: Parser<'a>) -> Self::PixelIteratorState {
+        State::NextLine(None, cursor, parser)
     }
 }
 
@@ -109,18 +109,18 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                State::NextLine(ref carried_token, ref cursor) => {
+                State::NextLine(ref carried_token, ref cursor, ref parser) => {
                     if !cursor.in_display_area() {
                         break None;
                     }
 
-                    if carried_token.is_none() && self.parser.is_empty() {
+                    if carried_token.is_none() && parser.is_empty() {
                         break None;
                     }
 
                     let max_line_width = cursor.line_width();
                     let (width, total_whitespace_count, t) = self.style.measure_line(
-                        &mut self.parser.clone(),
+                        &mut parser.clone(),
                         carried_token.clone(),
                         max_line_width,
                     );
@@ -138,7 +138,7 @@ where
                     };
 
                     self.state = State::DrawLine(StyledLineIterator::new(
-                        self.parser.clone(),
+                        parser.clone(),
                         *cursor,
                         space_info,
                         self.style.text_style,
@@ -151,10 +151,11 @@ where
                         break pixel;
                     }
 
-                    self.parser = line_iterator.parser.clone();
-                    let carried_token = line_iterator.remaining_token();
-
-                    self.state = State::NextLine(carried_token, line_iterator.cursor);
+                    self.state = State::NextLine(
+                        line_iterator.remaining_token(),
+                        line_iterator.cursor,
+                        line_iterator.parser.clone(),
+                    );
                 }
             }
         }
