@@ -417,7 +417,7 @@ mod test {
             let height = textbox_style.measure_text_height(text, *width);
             assert_eq!(
                 height, *expected_height,
-                "#{}: Height of \"{}\" is {} but is expected to be {}",
+                r#"#{}: Height of "{}" is {} but is expected to be {}"#,
                 i, text, height, expected_height
             );
         }
@@ -442,7 +442,7 @@ mod test {
             let height = textbox_style.measure_text_height(text, *width);
             assert_eq!(
                 height, *expected_height,
-                "#{}: Height of \"{}\" is {} but is expected to be {}",
+                r#"#{}: Height of "{}" is {} but is expected to be {}"#,
                 i, text, height, expected_height
             );
         }
