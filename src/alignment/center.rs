@@ -95,10 +95,8 @@ where
                         break pixel;
                     }
 
-                    let carried_token = line_iterator.remaining_token();
-
                     self.state = State::NextLine(
-                        carried_token,
+                        line_iterator.remaining_token(),
                         line_iterator.cursor,
                         line_iterator.parser.clone(),
                     );
