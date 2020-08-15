@@ -5,7 +5,8 @@ use embedded_graphics_simulator::{
 use embedded_text::prelude::*;
 
 fn main() -> Result<(), core::convert::Infallible> {
-    let text = "Hello, World!\nembedded-text supports\rcarriage return.\nNon-breaking spaces\u{A0}are also supported.\nAlso\u{200B}Supports\u{200B}Zero\u{200B}Width\u{200B}Space\u{200B}Characters";
+    let text = "Hello, World!\nembedded-text supports\rcarriage return.\nNon-breaking \
+    spaces\u{A0}are also supported.\nAlso\u{200B}Supports\u{200B}Zero\u{200B}Width\u{200B}Space\u{200B}Characters";
 
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
         .alignment(Justified)

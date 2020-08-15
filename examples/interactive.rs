@@ -63,10 +63,12 @@ where
     A: HorizontalTextAlignment,
     for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned>: Drawable<BinaryColor>,
 {
+    let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting \
+    industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
+    an unknown printer took a galley of type and scrambled it to make a type specimen book.";
     loop {
         let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
 
-        let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.\n\nembedded-text also\u{A0}supports non-breaking spaces.";
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .alignment(alignment)
             .text_color(BinaryColor::On)
