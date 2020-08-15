@@ -60,7 +60,7 @@ impl ProcessedEvent {
 
 fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
 where
-    A: HorizontalTextAlignment,
+    A: HorizontalTextAlignment + core::fmt::Debug,
     for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned>: Drawable<BinaryColor>,
 {
     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting \
@@ -84,12 +84,7 @@ where
             .draw(&mut display)
             .unwrap();
 
-        let width = bounds.bottom_right.x + 1;
-        let height_text = format!(
-            "Width: {} Lines: {}",
-            width,
-            textbox_style.measure_text_height(text, width as u32) / Font6x8::CHARACTER_SIZE.height
-        );
+        let height_text = format!("Alignment: {:?}", alignment);
 
         Text::new(&height_text, Point::zero())
             .into_styled(textbox_style.text_style)
