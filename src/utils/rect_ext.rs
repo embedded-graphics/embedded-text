@@ -5,11 +5,11 @@ use embedded_graphics::{prelude::*, primitives::Rectangle};
 
 /// [`Rectangle`] extensions
 pub trait RectExt {
-    /// Sorts the coordinates of a [`Rectangle`] so that `top` < `bottom` and `left` < `right`.
-    fn into_well_formed(self) -> Rectangle;
-
     /// Returns the (correct) size of a [`Rectangle`].
     fn size(self) -> Size;
+
+    /// Sorts the coordinates of a [`Rectangle`] so that `top` < `bottom` and `left` < `right`.
+    fn into_well_formed(self) -> Rectangle;
 }
 
 impl RectExt for Rectangle {
