@@ -9,7 +9,8 @@ Unreleased
 
  * Deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
  * **breaking** Moved `StyledTextBox` to the root module.
-
+ * Added `StyledTextBox::fit_height` and `StyledTextBox::fit_height_limited` to adjust height to text
+ 
 0.2.0 (2020-08-15)
 ==================
 

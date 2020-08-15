@@ -250,6 +250,41 @@ where
     pub style: TextBoxStyle<C, F, A, V>,
 }
 
+impl<C, F, A, V> StyledTextBox<'_, C, F, A, V>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
+{
+    /// Sets the height of the [`StyledTextBox`] to the height of the text.
+    #[inline]
+    pub fn fit_height(&mut self) -> &mut Self {
+        self.fit_height_limited(u32::MAX)
+    }
+
+    /// Sets the height of the [`StyledTextBox`] to the height of the text, limited to `max_height`.
+    ///
+    /// This method allows you to set a maximum height. The [`StyledTextBox`] will take up at most
+    /// `max_height` pixel vertical space.
+    #[inline]
+    pub fn fit_height_limited(&mut self, max_height: u32) -> &mut Self {
+        // Measure text given the width of the textbox
+        let text_height = self
+            .style
+            .measure_text_height(self.text_box.text, self.text_box.size().width)
+            .min(max_height)
+            .min(i32::MAX as u32) as i32;
+
+        // Apply height
+        let y = self.text_box.bounds.top_left.y;
+        let new_y = y.saturating_add(text_height - 1);
+        self.text_box.bounds.bottom_right.y = new_y;
+
+        self
+    }
+}
+
 impl<'a, C, F, A, V> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V>
 where
     C: PixelColor,
