@@ -25,26 +25,70 @@ use crate::{
 pub use builder::TextBoxStyleBuilder;
 
 /// Specifies how the [`TextBox`]'s height is adjusted when it's turned into a [`StyledTextBox`].
-pub trait HeightMode: Copy {}
+pub trait HeightMode: Copy {
+    /// Apply the height mode to the textbox
+    fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
+    where
+        C: PixelColor,
+        F: Font + Copy,
+        A: HorizontalTextAlignment,
+        V: VerticalTextAlignment,
+        H: HeightMode;
+}
 
 /// Keep the original height
 #[derive(Copy, Clone)]
 pub struct Exact;
 
-impl HeightMode for Exact {}
+impl HeightMode for Exact {
+    #[inline]
+    fn apply<C, F, A, V, H>(_text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
+    where
+        C: PixelColor,
+        F: Font + Copy,
+        A: HorizontalTextAlignment,
+        V: VerticalTextAlignment,
+        H: HeightMode,
+    {
+    }
+}
 
 /// Change the height to exactly fit the text
 #[derive(Copy, Clone)]
 pub struct FitToText;
 
-impl HeightMode for FitToText {}
+impl HeightMode for FitToText {
+    #[inline]
+    fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
+    where
+        C: PixelColor,
+        F: Font + Copy,
+        A: HorizontalTextAlignment,
+        V: VerticalTextAlignment,
+        H: HeightMode,
+    {
+        text_box.fit_height();
+    }
+}
 
 /// If the text doesn't fill the original height, shrink the [`StyledTextBox`] to be as tall as the
 /// text.
 #[derive(Copy, Clone)]
 pub struct ShrinkToText;
 
-impl HeightMode for ShrinkToText {}
+impl HeightMode for ShrinkToText {
+    #[inline]
+    fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
+    where
+        C: PixelColor,
+        F: Font + Copy,
+        A: HorizontalTextAlignment,
+        V: VerticalTextAlignment,
+        H: HeightMode,
+    {
+        text_box.fit_height_limited(text_box.size().height);
+    }
+}
 
 /// Styling options of a [`TextBox`].
 ///

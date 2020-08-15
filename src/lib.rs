@@ -183,10 +183,13 @@ impl<'a> TextBox<'a> {
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        StyledTextBox {
+        let mut styled = StyledTextBox {
             text_box: self,
             style,
-        }
+        };
+        H::apply(&mut styled);
+
+        styled
     }
 }
 
