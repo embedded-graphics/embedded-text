@@ -321,7 +321,7 @@ where
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     StyledTextBoxIterator<'a, C, F, A, V>: Iterator<Item = Pixel<C>>,
-    StyledTextBox<'a, C, F, A, V>: StateFactory<F>,
+    StyledTextBox<'a, C, F, A, V>: StateFactory<'a, F>,
 {
     #[inline]
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {

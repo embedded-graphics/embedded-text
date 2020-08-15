@@ -7,15 +7,11 @@ use embedded_graphics::{fonts::Font, geometry::Point, primitives::Rectangle};
 /// [`TextBox`]: ../../struct.TextBox.html
 #[derive(Copy, Clone, Debug)]
 pub struct Cursor<F: Font> {
-    _marker: PhantomData<F>,
-
     /// Current cursor position
     pub position: Point,
 
-    left: i32,
-    right: i32,
-    bottom: i32,
-    top: i32,
+    _marker: PhantomData<F>,
+    bounds: Rectangle,
 }
 
 impl<F: Font> Cursor<F> {
@@ -26,10 +22,10 @@ impl<F: Font> Cursor<F> {
         Self {
             _marker: PhantomData,
             position: bounds.top_left,
-            bottom: bounds.bottom_right.y + 1,
-            top: bounds.top_left.y,
-            left: bounds.top_left.x,
-            right: bounds.bottom_right.x + 1,
+            bounds: Rectangle::new(
+                bounds.top_left,
+                bounds.bottom_right + Point::new(1, 1 - F::CHARACTER_SIZE.height as i32),
+            ),
         }
     }
 
@@ -37,7 +33,7 @@ impl<F: Font> Cursor<F> {
     #[inline]
     #[must_use]
     pub fn line_width(&self) -> u32 {
-        (self.right - self.left) as u32
+        (self.bounds.bottom_right.x - self.bounds.top_left.x) as u32
     }
 
     /// Starts a new line.
@@ -49,17 +45,19 @@ impl<F: Font> Cursor<F> {
     /// Moves the cursor back to the start of the line.
     #[inline]
     pub fn carriage_return(&mut self) {
-        self.position.x = self.left;
+        self.position.x = self.bounds.top_left.x;
     }
 
-    /// Returns whether the cursor is in the bounding box.
+    /// Returns whether the cursor is completely in the bounding box.
+    ///
+    /// Completely means, that the line that is marked by the cursor can be drawn without any
+    /// vertical clipping or drawing outside the bounds.
     ///
     /// *Note:* Only vertical overrun is checked.
     #[inline]
     #[must_use]
     pub fn in_display_area(&self) -> bool {
-        self.position.y >= self.top
-            && (self.position.y + F::CHARACTER_SIZE.height as i32) <= self.bottom
+        self.bounds.top_left.y <= self.position.y && self.position.y <= self.bounds.bottom_right.y
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.
@@ -73,7 +71,7 @@ impl<F: Font> Cursor<F> {
     #[inline]
     #[must_use]
     pub fn space(&self) -> u32 {
-        (self.right - self.position.x) as u32
+        (self.bounds.bottom_right.x - self.position.x) as u32
     }
 
     /// Advances the cursor by a given amount.
