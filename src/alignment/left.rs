@@ -1,10 +1,10 @@
-//! Fully justified text.
+//! Left aligned text.
 use crate::{
-    alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment},
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Token,
     rendering::{
         cursor::Cursor,
-        line::{SpaceConfig, StyledLineIterator},
+        line::{StyledLineIterator, UniformSpaceConfig},
         StateFactory, StyledTextBoxIterator,
     },
     style::StyledTextBox,
@@ -12,63 +12,15 @@ use crate::{
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
-/// Marks text to be rendered fully justified.
+/// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
-pub struct Justified;
-impl HorizontalTextAlignment for Justified {
-    const STARTING_SPACES: bool = false;
-    const ENDING_SPACES: bool = false;
+pub struct LeftAligned;
+impl HorizontalTextAlignment for LeftAligned {
+    const STARTING_SPACES: bool = true;
+    const ENDING_SPACES: bool = true;
 }
 
-/// Internal state information used to store width of whitespace characters when rendering fully
-/// justified text.
-///
-/// The fully justified renderer works by calculating the width of whitespace characters for the
-/// current line. Due to integer arithmetic, there can be remainder pixels when a single space
-/// width is used. This struct stores two width values so the whole line will always (at least if
-/// there's a space in the line) take up all available space.
-#[derive(Copy, Clone, Debug)]
-pub struct JustifiedSpaceConfig {
-    /// The width of the whitespace characters.
-    space_width: u32,
-
-    /// Stores how many characters are rendered using the space_width width. This field changes
-    /// during rendering.
-    space_count: u32,
-}
-
-impl JustifiedSpaceConfig {
-    #[inline]
-    #[must_use]
-    fn default<F: Font>() -> Self {
-        JustifiedSpaceConfig::new(F::total_char_width(' '), 0)
-    }
-
-    #[inline]
-    #[must_use]
-    fn new(space_width: u32, extra_pixel_count: u32) -> Self {
-        JustifiedSpaceConfig {
-            space_width,
-            space_count: extra_pixel_count,
-        }
-    }
-}
-
-impl SpaceConfig for JustifiedSpaceConfig {
-    #[inline]
-    fn peek_next_width(&self, whitespace_count: u32) -> u32 {
-        whitespace_count * self.space_width + self.space_count.min(whitespace_count)
-    }
-
-    #[inline]
-    fn consume(&mut self, n: u32) -> u32 {
-        let w = self.peek_next_width(n);
-        self.space_count = self.space_count.saturating_sub(n);
-        w
-    }
-}
-
-/// State variable used by the fully justified text renderer.
+/// State variable used by the left aligned text renderer.
 #[derive(Debug)]
 pub enum State<'a, C, F>
 where
@@ -79,10 +31,10 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig, Justified>),
+    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, LeftAligned>),
 }
 
-impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, Justified, V>
+impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, LeftAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -97,7 +49,7 @@ where
     }
 }
 
-impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, Justified, V>
+impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, LeftAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -118,29 +70,12 @@ where
                         break None;
                     }
 
-                    let max_line_width = cursor.line_width();
-                    let (width, total_whitespace_count, t) = self.style.measure_line(
-                        &mut self.parser.clone(),
-                        carried_token.clone(),
-                        max_line_width,
-                    );
-
-                    let space = max_line_width
-                        - (width - total_whitespace_count * F::total_char_width(' '));
-                    let stretch_line = t.is_some() && t != Some(Token::NewLine);
-
-                    let space_info = if stretch_line && total_whitespace_count != 0 {
-                        let space_width = space / total_whitespace_count;
-                        let extra_pixels = space % total_whitespace_count;
-                        JustifiedSpaceConfig::new(space_width, extra_pixels)
-                    } else {
-                        JustifiedSpaceConfig::default::<F>()
-                    };
-
                     self.state = State::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
                         *cursor,
-                        space_info,
+                        UniformSpaceConfig {
+                            space_width: F::total_char_width(' '),
+                        },
                         self.style.text_style,
                         carried_token.clone(),
                     ));
@@ -174,7 +109,7 @@ where
 
                     self.state = State::NextLine(carried_token, line_iterator.cursor);
                 }
-            }
+            };
         }
     }
 }
@@ -186,13 +121,13 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::horizontal::Justified, style::TextBoxStyleBuilder, TextBox};
+    use crate::{alignment::LeftAligned, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
     fn simple_render() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(Justified)
+            .alignment(LeftAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -221,7 +156,7 @@ mod test {
     fn simple_render_cr() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(Justified)
+            .alignment(LeftAligned)
             .text_color(BinaryColor::On)
             .build();
 
@@ -245,42 +180,10 @@ mod test {
     }
 
     #[test]
-    fn wrapping_when_space_is_less_than_space_character() {
-        let mut display = MockDisplay::new();
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(Justified)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
-
-        TextBox::new(
-            "A word",
-            Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)),
-        )
-        .into_styled(style)
-        .draw(&mut display)
-        .unwrap();
-
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                ".###..            ",
-                "#...#.            ",
-                "#...#.            ",
-                "#####.            ",
-                "#...#.            ",
-                "#...#.            ",
-                "#...#.            ",
-                "......            ",
-            ])
-        );
-    }
-
-    #[test]
     fn simple_word_wrapping() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(Justified)
+            .alignment(LeftAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -296,14 +199,14 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "......................#.                        ",
-                "......................#.                        ",
-                "#...#..###..#.##...##.#.                        ",
-                "#...#.#...#.##..#.#..##.                        ",
-                "#.#.#.#...#.#.....#...#.                        ",
-                "#.#.#.#...#.#.....#...#.                        ",
-                ".#.#...###..#......####.                        ",
-                "........................                        ",
+                "......................#.......                  ",
+                "......................#.......                  ",
+                "#...#..###..#.##...##.#.......                  ",
+                "#...#.#...#.##..#.#..##.......                  ",
+                "#.#.#.#...#.#.....#...#.......                  ",
+                "#.#.#.#...#.#.....#...#.......                  ",
+                ".#.#...###..#......####.......                  ",
+                "..............................                  ",
                 "................................#...............",
                 "................................................",
                 "#...#.#.##...###..####..####...##...#.##...####.",
@@ -317,17 +220,17 @@ mod test {
     }
 
     #[test]
-    fn justified_alignment() {
+    fn simple_word_wrapping_by_space() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(Justified)
+            .alignment(LeftAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         TextBox::new(
-            "word and other word last line",
-            Rectangle::new(Point::zero(), Point::new(60, 23)),
+            "wrapping word",
+            Rectangle::new(Point::zero(), Point::new(47, 15)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -336,30 +239,62 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "......................#....................................#.",
-                "......................#....................................#.",
-                "#...#..###..#.##...##.#.....................###..#.##...##.#.",
-                "#...#.#...#.##..#.#..##........................#.##..#.#..##.",
-                "#.#.#.#...#.#.....#...#.....................####.#...#.#...#.",
-                "#.#.#.#...#.#.....#...#....................#...#.#...#.#...#.",
-                ".#.#...###..#......####.....................####.#...#..####.",
-                ".............................................................",
-                ".......#....#..............................................#.",
-                ".......#....#..............................................#.",
-                ".###..###...#.##...###..#.##.........#...#..###..#.##...##.#.",
-                "#...#..#....##..#.#...#.##..#........#...#.#...#.##..#.#..##.",
-                "#...#..#....#...#.#####.#............#.#.#.#...#.#.....#...#.",
-                "#...#..#..#.#...#.#.....#............#.#.#.#...#.#.....#...#.",
-                ".###....##..#...#..###..#.............#.#...###..#......####.",
-                ".............................................................",
-                ".##................#...........##.....#...............       ",
-                "..#................#............#.....................       ",
-                "..#....###...####.###...........#....##...#.##...###..       ",
-                "..#.......#.#......#............#.....#...##..#.#...#.       ",
-                "..#....####..###...#............#.....#...#...#.#####.       ",
-                "..#...#...#.....#..#..#.........#.....#...#...#.#.....       ",
-                ".###...####.####....##.........###...###..#...#..###..       ",
-                "......................................................       "
+                "................................#...............",
+                "................................................",
+                "#...#.#.##...###..####..####...##...#.##...####.",
+                "#...#.##..#.....#.#...#.#...#...#...##..#.#...#.",
+                "#.#.#.#......####.#...#.#...#...#...#...#.#...#.",
+                "#.#.#.#.....#...#.####..####....#...#...#..####.",
+                ".#.#..#......####.#.....#......###..#...#.....#.",
+                "..................#.....#..................###..",
+                "......................#.                        ",
+                "......................#.                        ",
+                "#...#..###..#.##...##.#.                        ",
+                "#...#.#...#.##..#.#..##.                        ",
+                "#.#.#.#...#.#.....#...#.                        ",
+                "#.#.#.#...#.#.....#...#.                        ",
+                ".#.#...###..#......####.                        ",
+                "........................                        ",
+            ])
+        );
+    }
+
+    #[test]
+    fn whitespace_word_wrapping() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new(
+            "word  wrap",
+            Rectangle::new(Point::zero(), Point::new(30, 15)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "......................#.......",
+                "......................#.......",
+                "#...#..###..#.##...##.#.......",
+                "#...#.#...#.##..#.#..##.......",
+                "#.#.#.#...#.#.....#...#.......",
+                "#.#.#.#...#.#.....#...#.......",
+                ".#.#...###..#......####.......",
+                "..............................",
+                "..............................",
+                "..............................",
+                "......#...#.#.##...###..####..",
+                "......#...#.##..#.....#.#...#.",
+                "......#.#.#.#......####.#...#.",
+                "......#.#.#.#.....#...#.####..",
+                ".......#.#..#......####.#.....",
+                "........................#....."
             ])
         );
     }
@@ -368,7 +303,7 @@ mod test {
     fn word_longer_than_line_wraps_word() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(Justified)
+            .alignment(LeftAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -384,14 +319,14 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "......................#.                              ",
-                "......................#.                              ",
-                "#...#..###..#.##...##.#.                              ",
-                "#...#.#...#.##..#.#..##.                              ",
-                "#.#.#.#...#.#.....#...#.                              ",
-                "#.#.#.#...#.#.....#...#.                              ",
-                ".#.#...###..#......####.                              ",
-                "........................                              ",
+                "......................#.......                        ",
+                "......................#.......                        ",
+                "#...#..###..#.##...##.#.......                        ",
+                "#...#.#...#.##..#.#..##.......                        ",
+                "#.#.#.#...#.#.....#...#.......                        ",
+                "#.#.#.#...#.#.....#...#.......                        ",
+                ".#.#...###..#......####.......                        ",
+                "..............................                        ",
                 "...........................................##....##...",
                 "............................................#.....#...",
                 ".####..###..##.#...###..#.##...###...###....#.....#...",
@@ -416,7 +351,7 @@ mod test {
     fn first_word_longer_than_line_wraps_word() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(Justified)
+            .alignment(LeftAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();

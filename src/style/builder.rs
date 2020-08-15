@@ -1,9 +1,6 @@
 //! Textbox style builder.
 use crate::{
-    alignment::{
-        horizontal::{HorizontalTextAlignment, LeftAligned},
-        vertical::{top::Top, VerticalTextAlignment},
-    },
+    alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     style::TextBoxStyle,
 };
 use embedded_graphics::{
@@ -26,7 +23,7 @@ where
     vertical_alignment: V,
 }
 
-impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, Top>
+impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -43,7 +40,7 @@ where
         Self {
             text_style_builder: TextStyleBuilder::new(font),
             alignment: LeftAligned,
-            vertical_alignment: Top,
+            vertical_alignment: TopAligned,
         }
     }
 }

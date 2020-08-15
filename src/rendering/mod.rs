@@ -6,7 +6,7 @@ pub mod line;
 pub mod whitespace;
 
 use crate::{
-    alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment},
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Parser,
     rendering::cursor::Cursor,
     style::{StyledTextBox, TextBoxStyle},

@@ -1,6 +1,6 @@
 //! Line rendering.
 use crate::{
-    alignment::horizontal::HorizontalTextAlignment,
+    alignment::HorizontalTextAlignment,
     parser::{Parser, Token},
     rendering::{
         character::StyledCharacterIterator, cursor::Cursor, whitespace::EmptySpaceIterator,
@@ -317,11 +317,13 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::alignment::horizontal::HorizontalTextAlignment;
-    use crate::parser::{Parser, Token};
-    use crate::rendering::{
-        cursor::Cursor,
-        line::{StyledLineIterator, UniformSpaceConfig},
+    use crate::{
+        alignment::HorizontalTextAlignment,
+        parser::{Parser, Token},
+        rendering::{
+            cursor::Cursor,
+            line::{StyledLineIterator, UniformSpaceConfig},
+        },
     };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,

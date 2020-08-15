@@ -1,33 +1,26 @@
-//! Bottom vertical text alignment.
+//! Top vertical text alignment.
 use crate::{
-    alignment::horizontal::HorizontalTextAlignment, rendering::cursor::Cursor, style::StyledTextBox,
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
+    rendering::cursor::Cursor,
+    style::StyledTextBox,
 };
 use embedded_graphics::prelude::*;
 
-use super::VerticalTextAlignment;
-
-/// Align text to the bottom of the TextBox.
+/// Align text to the top of the TextBox.
 #[derive(Copy, Clone)]
-pub struct Bottom;
+pub struct TopAligned;
 
-impl VerticalTextAlignment for Bottom {
+impl VerticalTextAlignment for TopAligned {
     #[inline]
     fn apply_vertical_alignment<'a, C, F, A>(
-        cursor: &mut Cursor<F>,
-        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self>,
+        _cursor: &mut Cursor<F>,
+        _styled_text_box: &'a StyledTextBox<'a, C, F, A, Self>,
     ) where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
     {
-        let text_height = styled_text_box
-            .style
-            .measure_text_height(styled_text_box.text_box.text, cursor.line_width());
-
-        let box_height = styled_text_box.size().height;
-        let offset = box_height - text_height;
-
-        cursor.position.y += offset as i32
+        // nothing to do here
     }
 }
 
@@ -38,13 +31,13 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::vertical, style::TextBoxStyleBuilder, TextBox};
+    use crate::{alignment::TopAligned, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
-    fn test_bottom_alignment() {
+    fn test_top_alignment() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .vertical_alignment(vertical::Bottom)
+            .vertical_alignment(TopAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -57,14 +50,6 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
                 "......................#.",
                 "......................#.",
                 "#...#..###..#.##...##.#.",
@@ -73,6 +58,14 @@ mod test {
                 "#.#.#.#...#.#.....#...#.",
                 ".#.#...###..#......####.",
                 "........................",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
             ])
         );
     }

@@ -1,11 +1,9 @@
-use embedded_graphics_simulator::{
-    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
-};
-
 use embedded_graphics::{
     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
 };
-
+use embedded_graphics_simulator::{
+    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
+};
 use embedded_text::prelude::*;
 
 fn main() -> Result<(), core::convert::Infallible> {

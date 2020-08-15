@@ -1,10 +1,7 @@
+use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
-
-use embedded_text::alignment::vertical;
 use embedded_text::prelude::*;
 
 fn main() -> Result<(), core::convert::Infallible> {
@@ -14,17 +11,17 @@ fn main() -> Result<(), core::convert::Infallible> {
 
     let textbox_style_top = TextBoxStyleBuilder::new(Font6x8)
         .text_color(BinaryColor::On)
-        .vertical_alignment(vertical::Top)
+        .vertical_alignment(TopAligned)
         .build();
 
     let textbox_style_center = TextBoxStyleBuilder::new(Font6x8)
         .text_color(BinaryColor::On)
-        .vertical_alignment(vertical::Center)
+        .vertical_alignment(CenterAligned)
         .build();
 
     let textbox_style_bottom = TextBoxStyleBuilder::new(Font6x8)
         .text_color(BinaryColor::On)
-        .vertical_alignment(vertical::Bottom)
+        .vertical_alignment(BottomAligned)
         .build();
 
     let bounds_top = Rectangle::new(Point::zero(), Point::new(63, 128));

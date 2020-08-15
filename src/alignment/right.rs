@@ -1,6 +1,6 @@
-//! Center aligned text.
+//! Right aligned text.
 use crate::{
-    alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment},
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Token,
     rendering::{
         cursor::Cursor,
@@ -12,15 +12,15 @@ use crate::{
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
-/// Marks text to be rendered center aligned.
+/// Marks text to be rendered right aligned.
 #[derive(Copy, Clone, Debug)]
-pub struct CenterAligned;
-impl HorizontalTextAlignment for CenterAligned {
+pub struct RightAligned;
+impl HorizontalTextAlignment for RightAligned {
     const STARTING_SPACES: bool = false;
     const ENDING_SPACES: bool = false;
 }
 
-/// State variable used by the center aligned text renderer.
+/// State variable used by the right aligned text renderer.
 #[derive(Debug)]
 pub enum State<'a, C, F>
 where
@@ -31,10 +31,10 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, CenterAligned>),
+    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, RightAligned>),
 }
 
-impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, CenterAligned, V>
+impl<'a, C, F, V> StateFactory<F> for StyledTextBox<'a, C, F, RightAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -49,7 +49,7 @@ where
     }
 }
 
-impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, CenterAligned, V>
+impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, RightAligned, V>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -76,7 +76,7 @@ where
                         carried_token.clone(),
                         max_line_width,
                     );
-                    cursor.advance_unchecked((max_line_width - width + 1) / 2);
+                    cursor.advance_unchecked(max_line_width - width);
 
                     self.state = State::DrawLine(StyledLineIterator::new(
                         self.parser.clone(),
@@ -129,13 +129,13 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::horizontal::CenterAligned, style::TextBoxStyleBuilder, TextBox};
+    use crate::{alignment::RightAligned, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
     fn simple_render() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(CenterAligned)
+            .alignment(RightAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -148,14 +148,14 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "                ......................#.               ",
-                "                ......................#.               ",
-                "                #...#..###..#.##...##.#.               ",
-                "                #...#.#...#.##..#.#..##.               ",
-                "                #.#.#.#...#.#.....#...#.               ",
-                "                #.#.#.#...#.#.....#...#.               ",
-                "                .#.#...###..#......####.               ",
-                "                ........................               ",
+                "                               ......................#.",
+                "                               ......................#.",
+                "                               #...#..###..#.##...##.#.",
+                "                               #...#.#...#.##..#.#..##.",
+                "                               #.#.#.#...#.#.....#...#.",
+                "                               #.#.#.#...#.#.....#...#.",
+                "                               .#.#...###..#......####.",
+                "                               ........................",
             ])
         );
     }
@@ -164,7 +164,7 @@ mod test {
     fn simple_render_cr() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(CenterAligned)
+            .alignment(RightAligned)
             .text_color(BinaryColor::On)
             .build();
 
@@ -176,13 +176,13 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "                         #####    ",
-                "                         #   #    ",
-                "                         ## ##    ",
-                "                         # # #    ",
-                "                         ## ##    ",
-                "                         #   #    ",
-                "                         #####    ",
+                "                                                 ##### ",
+                "                                                 #   # ",
+                "                                                 ## ## ",
+                "                                                 # # # ",
+                "                                                 ## ## ",
+                "                                                 #   # ",
+                "                                                 ##### ",
             ])
         );
     }
@@ -191,7 +191,7 @@ mod test {
     fn simple_word_wrapping() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(CenterAligned)
+            .alignment(RightAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -207,22 +207,22 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "                ......................#.               ",
-                "                ......................#.               ",
-                "                #...#..###..#.##...##.#.               ",
-                "                #...#.#...#.##..#.#..##.               ",
-                "                #.#.#.#...#.#.....#...#.               ",
-                "                #.#.#.#...#.#.....#...#.               ",
-                "                .#.#...###..#......####.               ",
-                "                ........................               ",
-                "    ................................#...............   ",
-                "    ................................................   ",
-                "    #...#.#.##...###..####..####...##...#.##...####.   ",
-                "    #...#.##..#.....#.#...#.#...#...#...##..#.#...#.   ",
-                "    #.#.#.#......####.#...#.#...#...#...#...#.#...#.   ",
-                "    #.#.#.#.....#...#.####..####....#...#...#..####.   ",
-                "    .#.#..#......####.#.....#......###..#...#.....#.   ",
-                "    ..................#.....#..................###..   "
+                "                               ......................#.",
+                "                               ......................#.",
+                "                               #...#..###..#.##...##.#.",
+                "                               #...#.#...#.##..#.#..##.",
+                "                               #.#.#.#...#.#.....#...#.",
+                "                               #.#.#.#...#.#.....#...#.",
+                "                               .#.#...###..#......####.",
+                "                               ........................",
+                "       ................................#...............",
+                "       ................................................",
+                "       #...#.#.##...###..####..####...##...#.##...####.",
+                "       #...#.##..#.....#.#...#.#...#...#...##..#.#...#.",
+                "       #.#.#.#......####.#...#.#...#...#...#...#.#...#.",
+                "       #.#.#.#.....#...#.####..####....#...#...#..####.",
+                "       .#.#..#......####.#.....#......###..#...#.....#.",
+                "       ..................#.....#..................###.."
             ])
         );
     }
@@ -231,7 +231,7 @@ mod test {
     fn word_longer_than_line_wraps_word() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(CenterAligned)
+            .alignment(RightAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -247,14 +247,14 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "                ......................#.               ",
-                "                ......................#.               ",
-                "                #...#..###..#.##...##.#.               ",
-                "                #...#.#...#.##..#.#..##.               ",
-                "                #.#.#.#...#.#.....#...#.               ",
-                "                #.#.#.#...#.#.....#...#.               ",
-                "                .#.#...###..#......####.               ",
-                "                ........................               ",
+                "                               ......................#.",
+                "                               ......................#.",
+                "                               #...#..###..#.##...##.#.",
+                "                               #...#.#...#.##..#.#..##.",
+                "                               #.#.#.#...#.#.....#...#.",
+                "                               #.#.#.#...#.#.....#...#.",
+                "                               .#.#...###..#......####.",
+                "                               ........................",
                 " ...........................................##....##...",
                 " ............................................#.....#...",
                 " .####..###..##.#...###..#.##...###...###....#.....#...",
@@ -279,7 +279,7 @@ mod test {
     fn first_word_longer_than_line_wraps_word() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(CenterAligned)
+            .alignment(RightAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();

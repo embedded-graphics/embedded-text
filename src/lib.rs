@@ -10,9 +10,9 @@
 //!  - [`Justified`]
 //!
 //! [`TextBox`] also supports the common vertical text alignments:
-//!  - [`Top`]
-//!  - [`Center`]
-//!  - [`Bottom`]
+//!  - [`TopAligned`]
+//!  - [`CenterAligned`]
+//!  - [`BottomAligned`]
 //!
 //! ## Example
 //!
@@ -22,13 +22,11 @@
 //! ![embedded-text example with center aligned text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/center.png)
 //!
 //! ```rust,no_run
+//! use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 //! use embedded_graphics_simulator::{
 //!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 //! };
-//!
-//! use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
-//!
-//! use embedded_text::{alignment::horizontal::CenterAligned, prelude::*};
+//! use embedded_text::prelude::*;
 //!
 //! fn main() -> Result<(), core::convert::Infallible> {
 //!     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.";
@@ -63,13 +61,12 @@
 //! [the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
 //! [simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
 //! [`TextBox`]: ./struct.TextBox.html
-//! [`LeftAligned`]: ./alignment/horizontal/left/struct.LeftAligned.html
-//! [`RightAligned`]: ./alignment/horizontal/right/struct.RightAligned.html
-//! [`CenterAligned`]: ./alignment/horizontal/center/struct.CenterAligned.html
-//! [`Justified`]: ./alignment/horizontal/justified/struct.Justified.html
-//! [`Top`]: ./alignment/vertical/top/struct.Top.html
-//! [`Center`]: ./alignment/vertical/center/struct.Center.html
-//! [`Bottom`]: ./alignment/vertical/bottom/struct.Bottom.html
+//! [`LeftAligned`]: ./alignment/left/struct.LeftAligned.html
+//! [`RightAligned`]: ./alignment/right/struct.RightAligned.html
+//! [`CenterAligned`]: ./alignment/center/struct.CenterAligned.html
+//! [`Justified`]: ./alignment/justified/struct.Justified.html
+//! [`TopAligned`]: ./alignment/top/struct.TopAligned.html
+//! [`BottomAligned`]: ./alignment/bottom/struct.BottomAligned.html
 
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
@@ -77,15 +74,14 @@
 #![deny(missing_docs)]
 #![warn(clippy::all)]
 
-use embedded_graphics::{prelude::*, primitives::Rectangle};
-
 pub mod alignment;
 pub mod parser;
 pub mod rendering;
 pub mod style;
 pub mod utils;
 
-use alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment};
+use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
+use embedded_graphics::{prelude::*, primitives::Rectangle};
 use style::{StyledTextBox, TextBoxStyle};
 
 /// Prelude.
@@ -95,7 +91,8 @@ use style::{StyledTextBox, TextBoxStyle};
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
-        style::{TextBoxStyle, TextBoxStyleBuilder},
+        alignment::*,
+        style::{StyledTextBox, TextBoxStyle, TextBoxStyleBuilder},
         TextBox,
     };
 

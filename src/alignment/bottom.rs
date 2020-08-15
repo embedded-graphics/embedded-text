@@ -1,16 +1,16 @@
-//! Center vertical text alignment.
+//! Bottom vertical text alignment.
 use crate::{
-    alignment::horizontal::HorizontalTextAlignment, rendering::cursor::Cursor, style::StyledTextBox,
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
+    rendering::cursor::Cursor,
+    style::StyledTextBox,
 };
 use embedded_graphics::prelude::*;
 
-use super::VerticalTextAlignment;
-
-/// Align text to the vertical center of the TextBox.
+/// Align text to the bottom of the TextBox.
 #[derive(Copy, Clone)]
-pub struct Center;
+pub struct BottomAligned;
 
-impl VerticalTextAlignment for Center {
+impl VerticalTextAlignment for BottomAligned {
     #[inline]
     fn apply_vertical_alignment<'a, C, F, A>(
         cursor: &mut Cursor<F>,
@@ -25,9 +25,9 @@ impl VerticalTextAlignment for Center {
             .measure_text_height(styled_text_box.text_box.text, cursor.line_width());
 
         let box_height = styled_text_box.size().height;
-        let offset = (box_height - text_height) / 2;
+        let offset = box_height - text_height;
 
-        cursor.position.y += offset as i32;
+        cursor.position.y += offset as i32
     }
 }
 
@@ -38,13 +38,13 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::vertical, style::TextBoxStyleBuilder, TextBox};
+    use crate::{alignment::BottomAligned, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
-    fn test_center_alignment() {
+    fn test_bottom_alignment() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)
-            .vertical_alignment(vertical::Center)
+            .vertical_alignment(BottomAligned)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -61,6 +61,10 @@ mod test {
                 "                        ",
                 "                        ",
                 "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
                 "......................#.",
                 "......................#.",
                 "#...#..###..#.##...##.#.",
@@ -69,10 +73,6 @@ mod test {
                 "#.#.#.#...#.#.....#...#.",
                 ".#.#...###..#......####.",
                 "........................",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
             ])
         );
     }

@@ -4,7 +4,7 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 pub mod builder;
 
 use crate::{
-    alignment::{horizontal::HorizontalTextAlignment, vertical::VerticalTextAlignment},
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{StateFactory, StyledTextBoxIterator},
     utils::{font_ext::FontExt, rect_ext::RectExt},
@@ -22,8 +22,8 @@ pub use builder::TextBoxStyleBuilder;
 /// the [`TextBoxStyleBuilder`] object.
 ///
 /// [`TextBox`]: ../struct.TextBox.html
-/// [`HorizontalTextAlignment`]: ../alignment/horizontal/trait.HorizontalTextAlignment.html
-/// [`VerticalTextAlignment`]: ../alignment/vertical/trait.VerticalTextAlignment.html
+/// [`HorizontalTextAlignment`]: ../alignment/trait.HorizontalTextAlignment.html
+/// [`VerticalTextAlignment`]: ../alignment/trait.VerticalTextAlignment.html
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
@@ -381,7 +381,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{alignment::horizontal::*, parser::Parser, style::builder::TextBoxStyleBuilder};
+    use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
     use embedded_graphics::{
         fonts::{Font, Font6x8},
         pixelcolor::BinaryColor,
