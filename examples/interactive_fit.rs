@@ -94,7 +94,10 @@ where
         window.update(&display);
         for event in window.events() {
             match ProcessedEvent::new(event) {
-                ProcessedEvent::Resize(bottom_right) => bounds.bottom_right = bottom_right,
+                ProcessedEvent::Resize(bottom_right) => {
+                    bounds.bottom_right.x = bottom_right.x.max(bounds.top_left.x);
+                    bounds.bottom_right.y = bottom_right.y.max(bounds.top_left.y);
+                }
                 ProcessedEvent::Quit => return false,
                 ProcessedEvent::Next => return true,
                 ProcessedEvent::Nothing => {}

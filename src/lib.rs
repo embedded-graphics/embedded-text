@@ -86,6 +86,7 @@ use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 use rendering::{StateFactory, StyledTextBoxIterator};
 use style::{HeightMode, TextBoxStyle};
+use utils::rect_ext::RectExt;
 
 /// Prelude.
 ///
@@ -134,7 +135,10 @@ impl<'a> TextBox<'a> {
     #[inline]
     #[must_use]
     pub fn new(text: &'a str, bounds: Rectangle) -> Self {
-        Self { text, bounds }
+        Self {
+            text,
+            bounds: bounds.into_well_formed(),
+        }
     }
 
     /// Creates a [`StyledTextBox`] by attaching a [`TextBoxStyle`] to the `TextBox` object.
@@ -227,7 +231,7 @@ impl Dimensions for TextBox<'_> {
     #[inline]
     #[must_use]
     fn size(&self) -> Size {
-        crate::utils::rect_ext::RectExt::size(self.bounds)
+        RectExt::size(self.bounds)
     }
 }
 
