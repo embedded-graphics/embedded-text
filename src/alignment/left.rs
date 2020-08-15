@@ -87,25 +87,7 @@ where
                     }
 
                     self.parser = line_iterator.parser.clone();
-
-                    let carried_token = match line_iterator.remaining_token() {
-                        Some(Token::NewLine) => {
-                            line_iterator.cursor.new_line();
-                            line_iterator.cursor.carriage_return();
-                            None
-                        }
-
-                        Some(Token::CarriageReturn) => {
-                            line_iterator.cursor.carriage_return();
-                            None
-                        }
-
-                        c => {
-                            line_iterator.cursor.new_line();
-                            line_iterator.cursor.carriage_return();
-                            c
-                        }
-                    };
+                    let carried_token = line_iterator.remaining_token();
 
                     self.state = State::NextLine(carried_token, line_iterator.cursor);
                 }
