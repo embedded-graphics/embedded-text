@@ -1,4 +1,4 @@
-//! Horizontal and vertical Center aligned text.
+//! Horizontal and vertical center aligned text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Token,
@@ -13,6 +13,8 @@ use crate::{
 use embedded_graphics::prelude::*;
 
 /// Marks text to be rendered center aligned.
+///
+/// This alignment can be used as both horizontal or vertical alignment.
 #[derive(Copy, Clone, Debug)]
 pub struct CenterAligned;
 impl HorizontalTextAlignment for CenterAligned {
