@@ -95,7 +95,7 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
         alignment::*,
-        style::{Exact, FitToText, ShrinkToText, TextBoxStyle, TextBoxStyleBuilder},
+        style::{Exact, FitToText, HeightMode, ShrinkToText, TextBoxStyle, TextBoxStyleBuilder},
         StyledTextBox, TextBox,
     };
 
