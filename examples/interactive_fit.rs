@@ -2,7 +2,6 @@
 //! clicking and dragging on the display.
 //!
 //! Press spacebar to switch between height modes
-#![feature(core_intrinsics)]
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
@@ -61,7 +60,7 @@ impl ProcessedEvent {
 
 fn demo_loop<H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
 where
-    H: HeightMode,
+    H: HeightMode + std::fmt::Debug,
     for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact>:
         Drawable<BinaryColor>,
 {
@@ -85,13 +84,7 @@ where
             .draw(&mut display)
             .unwrap();
 
-        let height_text = format!(
-            "Mode: {}",
-            std::intrinsics::type_name::<H>()
-                .rsplit_terminator("::")
-                .next()
-                .unwrap()
-        );
+        let height_text = format!("Mode: {:?}", height_mode);
 
         Text::new(&height_text, Point::zero())
             .into_styled(textbox_style.text_style)

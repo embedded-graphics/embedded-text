@@ -38,7 +38,7 @@ pub trait HeightMode: Copy {
 }
 
 /// Keep the original height
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Exact;
 
 impl HeightMode for Exact {
@@ -55,7 +55,7 @@ impl HeightMode for Exact {
 }
 
 /// Change the height to exactly fit the text
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct FitToText;
 
 impl HeightMode for FitToText {
@@ -74,7 +74,7 @@ impl HeightMode for FitToText {
 
 /// If the text doesn't fill the original height, shrink the [`StyledTextBox`] to be as tall as the
 /// text.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct ShrinkToText;
 
 impl HeightMode for ShrinkToText {
