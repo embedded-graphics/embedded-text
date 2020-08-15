@@ -63,7 +63,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                State::NextLine(ref carried_token, ref mut cursor, ref parser) => {
+                State::NextLine(ref carried_token, ref mut cursor, ref mut parser) => {
                     if !cursor.in_display_area() {
                         break None;
                     }
@@ -72,16 +72,15 @@ where
                         break None;
                     }
 
+                    let parser_clone = parser.clone();
                     let max_line_width = cursor.line_width();
-                    let (width, _, _) = self.style.measure_line(
-                        &mut parser.clone(),
-                        carried_token.clone(),
-                        max_line_width,
-                    );
+                    let (width, _, _) =
+                        self.style
+                            .measure_line(parser, carried_token.clone(), max_line_width);
                     cursor.advance_unchecked((max_line_width - width + 1) / 2);
 
                     self.state = State::DrawLine(StyledLineIterator::new(
-                        parser.clone(),
+                        parser_clone,
                         *cursor,
                         UniformSpaceConfig {
                             space_width: F::total_char_width(' '),
