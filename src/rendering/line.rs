@@ -223,7 +223,8 @@ where
                 }
 
                 State::ProcessToken(ref token) => {
-                    self.current_token = match token.clone() {
+                    let token = token.clone();
+                    self.current_token = match token {
                         Token::Whitespace(n) => {
                             let mut would_wrap = false;
                             let render_whitespace = if self.first_word {
@@ -295,7 +296,7 @@ where
                             if self.first_word {
                                 self.first_word = false;
                             } else if !self.fits_in_line(F::str_width_nocr(w)) {
-                                self.current_token = Self::finish(&mut self.cursor, Token::Word(w));
+                                self.current_token = Self::finish(&mut self.cursor, token);
                                 break None;
                             }
 
@@ -305,7 +306,7 @@ where
 
                         Token::NewLine | Token::CarriageReturn => {
                             // we're done
-                            Self::finish(&mut self.cursor, token.clone())
+                            Self::finish(&mut self.cursor, token)
                         }
                     }
                 }
