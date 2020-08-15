@@ -61,7 +61,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.state {
-                State::NextLine(ref carried_token, ref cursor, ref parser) => {
+                State::NextLine(ref carried_token, cursor, ref parser) => {
                     if !cursor.in_display_area() {
                         break None;
                     }
@@ -72,7 +72,7 @@ where
 
                     self.state = State::DrawLine(StyledLineIterator::new(
                         parser.clone(),
-                        *cursor,
+                        cursor,
                         UniformSpaceConfig {
                             space_width: F::total_char_width(' '),
                         },
