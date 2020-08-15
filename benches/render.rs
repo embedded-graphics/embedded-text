@@ -5,7 +5,7 @@ use embedded_graphics::{
     prelude::*,
     style::TextStyleBuilder,
 };
-use embedded_text::{alignment::horizontal::*, prelude::*, rendering::StyledTextBoxIterator};
+use embedded_text::{prelude::*, rendering::StyledTextBoxIterator};
 
 const TEXT: &str = "Benchmark text!";
 
