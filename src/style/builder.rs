@@ -34,8 +34,10 @@ where
     ///
     /// Default settings are:
     ///  - [`LeftAligned`]
+    ///  - [`TopAligned`]
     ///  - Text color: transparent
     ///  - Background color: transparent
+    ///  - Height mode: exact size
     #[inline]
     #[must_use]
     pub fn new(font: F) -> Self {

@@ -25,7 +25,7 @@ use crate::{
 };
 pub use builder::TextBoxStyleBuilder;
 
-/// Specifies how the [`TextBox`]'s height is adjusted when it's turned into a [`StyledTextBox`].
+/// Specifies how the [`TextBox`]'s height is adjusted when it is turned into a [`StyledTextBox`].
 pub trait HeightMode: Copy {
     /// Apply the height mode to the textbox
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
@@ -37,7 +37,7 @@ pub trait HeightMode: Copy {
         H: HeightMode;
 }
 
-/// Keep the original height
+/// Keep the original height set while constructing the [`TextBox`].
 #[derive(Copy, Clone, Debug)]
 pub struct Exact;
 
@@ -55,6 +55,11 @@ impl HeightMode for Exact {
 }
 
 /// Change the height to exactly fit the text
+///
+/// Note: in this mode, vertical alignment is meaningless. Make sure to use [`TopAligned`] for
+/// efficiency.
+///
+/// [`TopAligned`]: ../alignment/top/struct.TopAligned.html
 #[derive(Copy, Clone, Debug)]
 pub struct FitToText;
 
