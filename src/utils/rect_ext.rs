@@ -38,3 +38,16 @@ impl RectExt for Rectangle {
         )
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_well_formed() {
+        assert_eq!(
+            Rectangle::new(Point::new(0, -4), Point::new(3, 0)),
+            Rectangle::new(Point::new(3, -4), Point::zero()).into_well_formed()
+        );
+    }
+}
