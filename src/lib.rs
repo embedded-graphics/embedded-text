@@ -118,7 +118,7 @@ pub mod prelude {
 /// See the [module-level documentation] for more information.
 ///
 /// [`into_styled`]: #method.into_styled
-/// [`StyledTextBox`]: style/struct.StyledTextBox.html
+/// [`StyledTextBox`]: struct.StyledTextBox.html
 /// [module-level documentation]: index.html
 pub struct TextBox<'a> {
     /// The text to be displayed in this `TextBox`
@@ -199,8 +199,7 @@ impl Dimensions for TextBox<'_> {
 /// This structure is constructed by calling the [`into_styled`] method of a [`TextBox`] object.
 /// Use the [`draw`] method to draw the textbox on a display.
 ///
-/// [`TextBox`]: ../struct.TextBox.html
-/// [`into_styled`]: ../struct.TextBox.html#method.into_styled
+/// [`into_styled`]: struct.TextBox.html#method.into_styled
 /// [`draw`]: #method.draw
 pub struct StyledTextBox<'a, C, F, A, V>
 where
@@ -210,14 +209,11 @@ where
     V: VerticalTextAlignment,
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
-    ///
-    /// [`TextBox`]: ../struct.TextBox.html
+    //
     /// [`TextBoxStyle`]: struct.TextBoxStyle.html
     pub text_box: TextBox<'a>,
 
     /// The style of the [`TextBox`].
-    ///
-    /// [`TextBox`]: ../struct.TextBox.html
     pub style: TextBoxStyle<C, F, A, V>,
 }
 
