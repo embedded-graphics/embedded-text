@@ -93,7 +93,9 @@ where
         (width, carried)
     }
 
-    /// Counts the number of printed whitespaces in a word
+    /// Counts the number of printed whitespaces in a word.
+    ///
+    /// This function only counts whitespaces that the `Parser` can include in a `Token::Word`.
     fn count_printed_spaces(w: &str) -> u32 {
         w.chars().filter(|&c| c == '\u{A0}').count() as u32
     }
