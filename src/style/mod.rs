@@ -93,7 +93,7 @@ impl HeightMode for ShrinkToText {
 
 /// Styling options of a [`TextBox`].
 ///
-/// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor`,
+/// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor`, [`HeightMode`],
 /// [`HorizontalTextAlignment`] and [`VerticalTextAlignment`] information necessary to draw a
 /// [`TextBox`].
 ///
