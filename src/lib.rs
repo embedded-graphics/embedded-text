@@ -388,9 +388,10 @@ mod test_styled {
             .text_color(BinaryColor::On)
             .build();
 
+        let orig_size = text_box.size();
         let size = text_box.into_styled(style).size();
 
-        assert_eq!(size, Size::new(60, 61));
+        assert_eq!(size, orig_size);
     }
 
     #[test]
