@@ -9,7 +9,8 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Parser,
     rendering::cursor::Cursor,
-    style::{StyledTextBox, TextBoxStyle},
+    style::TextBoxStyle,
+    StyledTextBox,
 };
 use embedded_graphics::prelude::*;
 

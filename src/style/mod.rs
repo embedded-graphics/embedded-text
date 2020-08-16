@@ -6,9 +6,7 @@ pub mod builder;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
-    rendering::{StateFactory, StyledTextBoxIterator},
-    utils::{font_ext::FontExt, rect_ext::RectExt},
-    TextBox,
+    utils::font_ext::FontExt,
 };
 pub use builder::TextBoxStyleBuilder;
 
@@ -286,98 +284,6 @@ where
             bytes = remaining;
             carry = t;
         }
-    }
-}
-
-/// A styled [`TextBox`] struct.
-///
-/// This structure is constructed by calling the [`into_styled`] method of a [`TextBox`] object.
-/// Use the [`draw`] method to draw the textbox on a display.
-///
-/// [`TextBox`]: ../struct.TextBox.html
-/// [`into_styled`]: ../struct.TextBox.html#method.into_styled
-/// [`draw`]: #method.draw
-pub struct StyledTextBox<'a, C, F, A, V>
-where
-    C: PixelColor,
-    F: Font + Copy,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-{
-    /// A [`TextBox`] that has an associated [`TextBoxStyle`].
-    ///
-    /// [`TextBox`]: ../struct.TextBox.html
-    /// [`TextBoxStyle`]: struct.TextBoxStyle.html
-    pub text_box: TextBox<'a>,
-
-    /// The style of the [`TextBox`].
-    ///
-    /// [`TextBox`]: ../struct.TextBox.html
-    pub style: TextBoxStyle<C, F, A, V>,
-}
-
-impl<'a, C, F, A, V> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V>
-where
-    C: PixelColor,
-    F: Font + Copy,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    StyledTextBoxIterator<'a, C, F, A, V>: Iterator<Item = Pixel<C>>,
-    StyledTextBox<'a, C, F, A, V>: StateFactory<'a, F>,
-{
-    #[inline]
-    fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
-        display.draw_iter(StyledTextBoxIterator::new(self))
-    }
-}
-
-impl<C, F, A, V> Transform for StyledTextBox<'_, C, F, A, V>
-where
-    C: PixelColor,
-    F: Font + Copy,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-{
-    #[inline]
-    #[must_use]
-    fn translate(&self, by: Point) -> Self {
-        Self {
-            text_box: self.text_box.translate(by),
-            style: self.style,
-        }
-    }
-
-    #[inline]
-    fn translate_mut(&mut self, by: Point) -> &mut Self {
-        self.text_box.bounds.translate_mut(by);
-
-        self
-    }
-}
-
-impl<C, F, A, V> Dimensions for StyledTextBox<'_, C, F, A, V>
-where
-    C: PixelColor,
-    F: Font + Copy,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-{
-    #[inline]
-    #[must_use]
-    fn top_left(&self) -> Point {
-        self.text_box.bounds.top_left
-    }
-
-    #[inline]
-    #[must_use]
-    fn bottom_right(&self) -> Point {
-        self.text_box.bounds.bottom_right
-    }
-
-    #[inline]
-    #[must_use]
-    fn size(&self) -> Size {
-        RectExt::size(self.text_box.bounds)
     }
 }
 

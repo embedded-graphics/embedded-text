@@ -7,8 +7,8 @@ use crate::{
         line::{SpaceConfig, StyledLineIterator},
         StateFactory, StyledTextBoxIterator,
     },
-    style::StyledTextBox,
     utils::font_ext::FontExt,
+    StyledTextBox,
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
