@@ -23,7 +23,6 @@ use crate::{
     parser::{Parser, Token},
     style::height_mode::HeightMode,
     utils::font_ext::FontExt,
-    StyledTextBox,
 };
 pub use builder::TextBoxStyleBuilder;
 
