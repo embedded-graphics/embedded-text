@@ -4,7 +4,8 @@
 //! Although it is necessary to specify the size of the bounding box when constructing a
 //! [`TextBox`], sometimes we may want the text to stretch the text box. Height modes help us
 //! achieve this.
-
+//!
+//! [`TextBox`]: ../../struct.TextBox.html
 use embedded_graphics::prelude::*;
 
 use crate::{
@@ -13,6 +14,8 @@ use crate::{
 };
 
 /// Specifies how the [`TextBox`]'s height is adjusted when it is turned into a [`StyledTextBox`].
+///
+/// [`TextBox`]: ../../struct.TextBox.html
 pub trait HeightMode: Copy {
     /// Apply the height mode to the textbox
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
@@ -25,6 +28,8 @@ pub trait HeightMode: Copy {
 }
 
 /// Keep the original height set while constructing the [`TextBox`].
+///
+/// [`TextBox`]: ../../struct.TextBox.html
 #[derive(Copy, Clone, Debug)]
 pub struct Exact;
 
@@ -46,7 +51,7 @@ impl HeightMode for Exact {
 /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`TopAligned`] for
 /// efficiency.
 ///
-/// [`TopAligned`]: ../alignment/top/struct.TopAligned.html
+/// [`TopAligned`]: ../../alignment/top/struct.TopAligned.html
 #[derive(Copy, Clone, Debug)]
 pub struct FitToText;
 

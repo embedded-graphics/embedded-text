@@ -256,13 +256,10 @@ where
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
     ///
-    /// [`TextBox`]: ../struct.TextBox.html
-    /// [`TextBoxStyle`]: struct.TextBoxStyle.html
+    /// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
     pub text_box: TextBox<'a>,
 
     /// The style of the [`TextBox`].
-    ///
-    /// [`TextBox`]: ../struct.TextBox.html
     pub style: TextBoxStyle<C, F, A, V, H>,
 }
 
