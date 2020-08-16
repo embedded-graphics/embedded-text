@@ -7,7 +7,7 @@ use crate::{
         line::{SpaceConfig, StyledLineIterator},
         StateFactory, StyledTextBoxIterator,
     },
-    style::HeightMode,
+    style::height_mode::HeightMode,
     utils::font_ext::FontExt,
     StyledTextBox,
 };

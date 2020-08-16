@@ -85,7 +85,7 @@ pub mod utils;
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 use rendering::{StateFactory, StyledTextBoxIterator};
-use style::{HeightMode, TextBoxStyle};
+use style::{height_mode::HeightMode, TextBoxStyle};
 use utils::rect_ext::RectExt;
 
 /// Prelude.
@@ -96,7 +96,10 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
         alignment::*,
-        style::{Exact, FitToText, HeightMode, ShrinkToText, TextBoxStyle, TextBoxStyleBuilder},
+        style::{
+            height_mode::{Exact, FitToText, HeightMode, ShrinkToText},
+            TextBoxStyle, TextBoxStyleBuilder,
+        },
         StyledTextBox, TextBox,
     };
 

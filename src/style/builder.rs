@@ -1,7 +1,10 @@
 //! Textbox style builder.
 use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
-    style::{Exact, HeightMode, TextBoxStyle},
+    style::{
+        height_mode::{Exact, HeightMode},
+        TextBoxStyle,
+    },
 };
 use embedded_graphics::{
     prelude::*,

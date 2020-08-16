@@ -1,5 +1,5 @@
 //! Text alignment options.
-use crate::{rendering::cursor::Cursor, style::HeightMode, StyledTextBox};
+use crate::{rendering::cursor::Cursor, style::height_mode::HeightMode, StyledTextBox};
 use embedded_graphics::prelude::*;
 
 pub mod bottom;

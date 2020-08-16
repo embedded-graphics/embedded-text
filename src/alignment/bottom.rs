@@ -2,7 +2,7 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::HeightMode,
+    style::height_mode::HeightMode,
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
