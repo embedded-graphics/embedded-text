@@ -28,12 +28,12 @@ where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// Creates a new textbox style builder with a given font.
+    /// Creates a new `TextBoxStyleBuilder` with a given font.
     ///
     /// Default settings are:
     ///  - [`LeftAligned`]
     ///  - Text color: transparent
-    ///  - Backgound color: transparent
+    ///  - Background color: transparent
     #[inline]
     #[must_use]
     pub fn new(font: F) -> Self {
@@ -41,6 +41,40 @@ where
             text_style_builder: TextStyleBuilder::new(font),
             alignment: LeftAligned,
             vertical_alignment: TopAligned,
+        }
+    }
+
+    /// Creates a `TextBoxStyleBuilder` from existing `TextStyle` object.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use embedded_text::prelude::*;
+    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, style::TextStyleBuilder};
+    ///
+    /// let text_style = TextStyleBuilder::new(Font6x8)
+    ///     .background_color(BinaryColor::On)
+    ///     .build();
+    ///
+    /// let style = TextBoxStyleBuilder::from_text_style(text_style)
+    ///     .build();
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn from_text_style(text_style: TextStyle<C, F>) -> Self {
+        let mut text_style_builder = TextStyleBuilder::new(text_style.font);
+
+        if let Some(color) = text_style.background_color {
+            text_style_builder = text_style_builder.background_color(color);
+        }
+
+        if let Some(color) = text_style.text_color {
+            text_style_builder = text_style_builder.text_color(color);
+        }
+
+        Self {
+            text_style_builder,
+            ..Self::new(text_style.font)
         }
     }
 }
@@ -55,6 +89,17 @@ where
     /// Sets the text color.
     ///
     /// *Note:* once the text color is set, there is no way to reset it to transparent.
+    ///
+    /// # Example: text with transparent background.
+    ///
+    /// ```rust
+    /// use embedded_text::prelude::*;
+    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor};
+    ///
+    /// let style = TextBoxStyleBuilder::new(Font6x8)
+    ///     .text_color(BinaryColor::On)
+    ///     .build();
+    /// ```
     #[inline]
     #[must_use]
     pub fn text_color(self, text_color: C) -> Self {
@@ -71,10 +116,9 @@ where
     /// # Example: transparent text with background.
     ///
     /// ```rust
-    /// # use embedded_text::style::builder::TextBoxStyleBuilder;
-    /// # use embedded_graphics::fonts::Font6x8;
-    /// # use embedded_graphics::pixelcolor::BinaryColor;
-    /// #
+    /// use embedded_text::prelude::*;
+    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor};
+    ///
     /// let style = TextBoxStyleBuilder::new(Font6x8)
     ///     .background_color(BinaryColor::On)
     ///     .build();
@@ -89,8 +133,29 @@ where
     }
 
     /// Copies properties from an existing text style object.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use embedded_text::prelude::*;
+    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, style::TextStyleBuilder};
+    ///
+    /// let text_style = TextStyleBuilder::new(Font6x8)
+    ///     .background_color(BinaryColor::On)
+    ///     .build();
+    ///
+    /// let style = TextBoxStyleBuilder::new(Font6x8)
+    ///     .text_style(text_style)
+    ///     .build();
+    /// ```
+    ///
+    /// This method has been deprecated and will be removed in a later release. Use
+    /// [`TextBoxStyleBuilder::from_text_style`] instead.
+    ///
+    /// [`TextBoxStyleBuilder::from_text_style`]: #method.from_text_style
     #[inline]
     #[must_use]
+    #[deprecated]
     pub fn text_style(self, text_style: TextStyle<C, F>) -> Self {
         let mut text_style_builder = self.text_style_builder;
 
@@ -160,6 +225,7 @@ mod test {
     };
 
     #[test]
+    #[allow(deprecated)]
     fn test_text_style_copy() {
         let text_styles: [TextStyle<_, _>; 2] = [
             TextStyleBuilder::new(Font6x8)
@@ -174,6 +240,24 @@ mod test {
             let style = TextBoxStyleBuilder::new(Font6x8)
                 .text_style(text_style)
                 .build();
+
+            assert_eq!(style.text_style, text_style);
+        }
+    }
+
+    #[test]
+    fn test_text_style_copy_ctr() {
+        let text_styles: [TextStyle<_, _>; 2] = [
+            TextStyleBuilder::new(Font6x8)
+                .text_color(BinaryColor::On)
+                .build(),
+            TextStyleBuilder::new(Font6x8)
+                .background_color(BinaryColor::On)
+                .build(),
+        ];
+
+        for &text_style in text_styles.iter() {
+            let style = TextBoxStyleBuilder::from_text_style(text_style).build();
 
             assert_eq!(style.text_style, text_style);
         }

@@ -1,8 +1,13 @@
 Unreleased
 ==========
 
+## Added:
+
+ * `TextBoxStyleBuilder::from_text_style`
+
 ## Changed:
 
+ * Deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
  * **breaking** Moved `StyledTextBox` to the root module.
 
 0.2.0 (2020-08-15)
