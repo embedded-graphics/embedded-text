@@ -137,7 +137,7 @@ impl<'a> TextBox<'a> {
         Self { text, bounds }
     }
 
-    /// Attaches a [`TextBoxStyle`] to the textbox object.
+    /// Creates a [`StyledTextBox`] by attaching a [`TextBoxStyle`] to the `TextBox` object.
     #[inline]
     #[must_use]
     pub fn into_styled<C, F, A, V>(

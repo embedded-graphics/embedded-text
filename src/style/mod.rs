@@ -1,4 +1,18 @@
-//! Textbox styling.
+//! `TextBox` styling.
+//!
+//! By itself, a [`TextBox`] does not contain the information necessary to draw it on a display.
+//! This information is called "style" and it is contained in [`TextBoxStyle`] objects.
+//!
+//! To create a [`TextBoxStyle`], you can use the [`TextBoxStyle::new`] and
+//! [`TextBoxStyle::from_text_style`] constructors, or the [`TextBoxStyleBuilder`] builder object.
+//!
+//! To apply a style, call [`TextBox::into_styled`].
+//!
+//! [`TextBox`]: ../struct.TextBox.html
+//! [`TextBoxStyle::new`]: struct.TextBoxStyle.html#method.new
+//! [`TextBoxStyle::from_text_style`]: struct.TextBoxStyle.html#method.from_text_style
+//! [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
+//! [`TextBox::into_styled`]: ../struct.TextBox.html#method.into_styled
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 pub mod builder;
