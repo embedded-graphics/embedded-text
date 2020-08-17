@@ -12,20 +12,15 @@ fn main() -> Result<(), core::convert::Infallible> {
         .alignment(Justified)
         .text_color(BinaryColor::On)
         .background_color(BinaryColor::Off)
+        .height_mode(FitToText)
         .build();
 
-    let height = textbox_style.measure_text_height(text, 129);
+    let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Point::new(128, 0)))
+        .into_styled(textbox_style);
 
     // Create a window just tall enough to fit the text.
-    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, height));
-
-    TextBox::new(
-        text,
-        Rectangle::new(Point::zero(), Point::new(128, height as i32 - 1)),
-    )
-    .into_styled(textbox_style)
-    .draw(&mut display)
-    .unwrap();
+    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(text_box.size());
+    text_box.draw(&mut display).unwrap();
 
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)

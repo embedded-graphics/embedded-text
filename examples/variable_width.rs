@@ -11,13 +11,15 @@ fn main() -> Result<(), core::convert::Infallible> {
 
     let textbox_style = TextBoxStyleBuilder::new(Font6x6)
         .text_color(BinaryColor::On)
+        .height_mode(FitToText)
         .build();
 
-    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, 129));
-    TextBox::new(text, Rectangle::new(Point::zero(), Point::new(128, 128)))
-        .into_styled(textbox_style)
-        .draw(&mut display)
-        .unwrap();
+    let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Point::new(128, 0)))
+        .into_styled(textbox_style);
+
+    // Create a window just tall enough to fit the text.
+    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(text_box.size());
+    text_box.draw(&mut display).unwrap();
 
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
