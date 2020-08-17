@@ -4,15 +4,15 @@
 //! `Rectangle` using [embedded-graphics].
 //!
 //! [`TextBox`] supports the common text alignments:
-//!  - [`LeftAligned`]
-//!  - [`RightAligned`]
-//!  - [`CenterAligned`]
-//!  - [`Justified`]
-//!
-//! [`TextBox`] also supports the common vertical text alignments:
-//!  - [`TopAligned`]
-//!  - [`CenterAligned`]
-//!  - [`BottomAligned`]
+//!  - Horizontal:
+//!      - [`LeftAligned`]
+//!      - [`RightAligned`]
+//!      - [`CenterAligned`]
+//!      - [`Justified`]
+//!  - Vertical:
+//!      - [`TopAligned`]
+//!      - [`CenterAligned`]
+//!      - [`BottomAligned`]
 //!
 //! ## Example
 //!

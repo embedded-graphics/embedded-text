@@ -1,20 +1,20 @@
 # embedded-text [![crates.io](https://img.shields.io/crates/v/embedded_text.svg)](https://crates.io/crates/embedded_text) [![docs.rs](https://docs.rs/embedded-text/badge.svg)](https://docs.rs/embedded-text/) ![Rust](https://github.com/bugadani/embedded-text/workflows/Rust/badge.svg)
 
-TextBox for embedded-graphics
+TextBox for embedded-graphics.
 
 This crate provides a configurable `TextBox` to render multiline text inside a bounding
 `Rectangle` using [embedded-graphics].
 
-`TextBox` supports the common horizontal text alignments:
- - `LeftAligned`
- - `RightAligned`
- - `CenterAligned`
- - `Justified`
-
-`TextBox` also supports the common vertical text alignments:
- - `TopAligned`
- - `CenterAligned`
- - `BottomAligned`
+`TextBox` supports the common text alignments:
+ - Horizontal:
+     - `LeftAligned`
+     - `RightAligned`
+     - `CenterAligned`
+     - `Justified`
+ - Vertical:
+     - `TopAligned`
+     - `CenterAligned`
+     - `BottomAligned`
 
 ### Example
 
