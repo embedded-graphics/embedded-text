@@ -1,9 +1,8 @@
-//! Height adjustment options
+//! Height adjustment options.
 //!
-//! This module defines various options to handle height adjustment of a [`StyledTextBox`].
-//! Although it is necessary to specify the size of the bounding box when constructing a
-//! [`TextBox`], sometimes we may want the text to stretch the text box. Height modes help us
-//! achieve this.
+//! This module defines various options to set the height of a [`StyledTextBox`]. Although it is
+//! necessary to specify the size of a [`TextBox`], sometimes we may want the text to stretch or
+//! shrink the text box. Height modes help us achieve this.
 //!
 //! [`TextBox`]: ../../struct.TextBox.html
 use embedded_graphics::prelude::*;
@@ -32,7 +31,7 @@ pub trait HeightMode: Copy {
         H: HeightMode;
 }
 
-/// Keep the original height set while constructing the [`TextBox`].
+/// Keep the original [`TextBox`] height.
 ///
 /// # Example:
 ///
@@ -144,7 +143,7 @@ impl HeightMode for FitToText {
     }
 }
 
-/// If the text doesn't fill the original height, shrink the [`StyledTextBox`] to be as tall as the
+/// If the text does not fill the bounding box, shrink the [`StyledTextBox`] to be as tall as the
 /// text.
 ///
 /// # Example: `ShrinkToText` does not grow the [`TextBox`].

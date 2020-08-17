@@ -152,6 +152,7 @@ impl<'a> TextBox<'a> {
     ///  * Set the text color to `BinaryColor::On`
     ///  * Leave the background color transparent
     ///  * Leave text alignment top/left
+    ///  * Set [`ShrinkToText`] [`HeightMode`] to shrink the [`TextBox`] when possible.
     ///
     /// ```rust
     /// use embedded_text::prelude::*;
