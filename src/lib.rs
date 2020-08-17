@@ -138,6 +138,38 @@ impl<'a> TextBox<'a> {
     }
 
     /// Creates a [`StyledTextBox`] by attaching a [`TextBoxStyle`] to the `TextBox` object.
+    ///
+    /// By default, the size of the [`StyledTextBox`] is equal to the size of the [`TextBox`]. Use
+    /// [`HeightMode`] options to change this.
+    ///
+    /// # Example:
+    ///
+    /// In this example, we make a [`TextBox`] and give it all our available space as size.
+    /// We create a [`TextBoxStyle`] object to set how our [`TextBox`] should be drawn.
+    ///  * Set the 6x8 font
+    ///  * Set the text color to `BinaryColor::On`
+    ///  * Leave the background color transparent
+    ///  * Leave text alignment top/left
+    ///
+    /// ```rust
+    /// use embedded_text::prelude::*;
+    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+    ///
+    /// let text_box = TextBox::new(
+    ///     "Two lines\nof text",
+    ///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+    /// );
+    /// let style = TextBoxStyleBuilder::new(Font6x8)
+    ///     .height_mode(ShrinkToText)
+    ///     .text_color(BinaryColor::On)
+    ///     .build();
+    ///
+    /// let styled_text_box = text_box.into_styled(style);
+    /// assert_eq!(16, styled_text_box.size().height);
+    /// ```
+    ///
+    /// [`HeightMode`]: style/height_mode/trait.HeightMode.html
+    /// [`ShrinkToText`]: style/height_mode/struct.ShrinkToText.html
     #[inline]
     #[must_use]
     pub fn into_styled<C, F, A, V>(
