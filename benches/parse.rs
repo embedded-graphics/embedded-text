@@ -33,27 +33,25 @@ impl<'a> Iterator for OriginalParser<'a> {
                 '\n' => Some(Token::NewLine),
                 c if c.is_whitespace() => {
                     let mut n = 1;
-                    let mut lookahead = self.inner.clone();
-                    while let Some((_, c)) = lookahead.next() {
-                        if c.is_whitespace() {
-                            self.inner.next();
-                            n += 1;
-                        } else {
+                    for (_, c) in self.inner.clone() {
+                        if !c.is_whitespace() {
                             break;
                         }
+
+                        n += 1;
+                        self.inner.next();
                     }
                     Some(Token::Whitespace(n))
                 }
                 _ => {
-                    let mut lookahead = self.inner.clone();
                     let mut end = idx;
-                    while let Some((idx, c)) = lookahead.next() {
+                    for (idx, c) in self.inner.clone() {
                         if c.is_whitespace() {
                             break;
-                        } else {
-                            end = idx;
-                            self.inner.next();
                         }
+
+                        end = idx;
+                        self.inner.next();
                     }
 
                     Some(Token::Word(&self.text[idx..=end]))
