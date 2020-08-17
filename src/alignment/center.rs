@@ -7,6 +7,7 @@ use crate::{
         line::{StyledLineIterator, UniformSpaceConfig},
         StateFactory, StyledTextBoxIterator,
     },
+    style::height_mode::HeightMode,
     utils::font_ext::FontExt,
     StyledTextBox,
 };
@@ -36,11 +37,12 @@ where
     DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, CenterAligned>),
 }
 
-impl<'a, C, F, V> StateFactory<'a, F> for StyledTextBox<'a, C, F, CenterAligned, V>
+impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, CenterAligned, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     type PixelIteratorState = State<'a, C, F>;
 
@@ -51,11 +53,12 @@ where
     }
 }
 
-impl<C, F, V> Iterator for StyledTextBoxIterator<'_, C, F, CenterAligned, V>
+impl<C, F, V, H> Iterator for StyledTextBoxIterator<'_, C, F, CenterAligned, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     type Item = Pixel<C>;
 
@@ -108,13 +111,14 @@ where
 
 impl VerticalTextAlignment for CenterAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, C, F, A>(
+    fn apply_vertical_alignment<'a, C, F, A, H>(
         cursor: &mut Cursor<F>,
-        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self>,
+        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
     ) where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
+        H: HeightMode,
     {
         let text_height = styled_text_box
             .style

@@ -7,6 +7,9 @@ use embedded_graphics::{prelude::*, primitives::Rectangle};
 pub trait RectExt {
     /// Returns the (correct) size of a [`Rectangle`].
     fn size(self) -> Size;
+
+    /// Sorts the coordinates of a [`Rectangle`] so that `top` < `bottom` and `left` < `right`.
+    fn into_well_formed(self) -> Rectangle;
 }
 
 impl RectExt for Rectangle {
@@ -18,5 +21,33 @@ impl RectExt for Rectangle {
         let height = (self.bottom_right.y - self.top_left.y) as u32 + 1;
 
         Size::new(width, height)
+    }
+
+    #[inline]
+    #[must_use]
+    fn into_well_formed(self) -> Rectangle {
+        Rectangle::new(
+            Point::new(
+                self.top_left.x.min(self.bottom_right.x),
+                self.top_left.y.min(self.bottom_right.y),
+            ),
+            Point::new(
+                self.top_left.x.max(self.bottom_right.x),
+                self.top_left.y.max(self.bottom_right.y),
+            ),
+        )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_well_formed() {
+        assert_eq!(
+            Rectangle::new(Point::new(0, -4), Point::new(3, 0)),
+            Rectangle::new(Point::new(3, -4), Point::zero()).into_well_formed()
+        );
     }
 }

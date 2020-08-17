@@ -1,7 +1,7 @@
 //! This example draws text into a bounding box that can be modified by
 //! clicking and dragging on the display.
 //!
-//! Press spacebar to switch text alignment
+//! Press spacebar to switch between height modes
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
@@ -58,10 +58,10 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
+fn demo_loop<H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
 where
-    A: HorizontalTextAlignment + core::fmt::Debug,
-    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact>:
+    H: HeightMode + std::fmt::Debug,
+    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact>:
         Drawable<BinaryColor>,
 {
     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting \
@@ -71,21 +71,20 @@ where
         let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
 
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(alignment)
             .text_color(BinaryColor::On)
+            .height_mode(height_mode)
             .build();
 
-        TextBox::new(text, *bounds)
-            .into_styled(textbox_style)
-            .draw(&mut display)
-            .unwrap();
+        let tb = TextBox::new(text, *bounds).into_styled(textbox_style);
+        tb.draw(&mut display).unwrap();
 
-        bounds
+        tb.text_box
+            .bounds
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
             .draw(&mut display)
             .unwrap();
 
-        let height_text = format!("Alignment: {:?}", alignment);
+        let height_text = format!("Mode: {:?}", height_mode);
 
         Text::new(&height_text, Point::zero())
             .into_styled(textbox_style.text_style)
@@ -95,7 +94,10 @@ where
         window.update(&display);
         for event in window.events() {
             match ProcessedEvent::new(event) {
-                ProcessedEvent::Resize(bottom_right) => bounds.bottom_right = bottom_right,
+                ProcessedEvent::Resize(bottom_right) => {
+                    bounds.bottom_right.x = bottom_right.x.max(bounds.top_left.x);
+                    bounds.bottom_right.y = bottom_right.y.max(bounds.top_left.y);
+                }
                 ProcessedEvent::Quit => return false,
                 ProcessedEvent::Next => return true,
                 ProcessedEvent::Nothing => {}
@@ -114,16 +116,13 @@ fn main() -> Result<(), core::convert::Infallible> {
     let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 200));
 
     'running: loop {
-        if !demo_loop(&mut window, &mut bounds, Justified) {
+        if !demo_loop(&mut window, &mut bounds, Exact) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, LeftAligned) {
+        if !demo_loop(&mut window, &mut bounds, FitToText) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, CenterAligned) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, RightAligned) {
+        if !demo_loop(&mut window, &mut bounds, ShrinkToText) {
             break 'running;
         }
     }

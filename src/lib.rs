@@ -35,21 +35,16 @@
 //!
 //!     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
 //!         .alignment(CenterAligned)
+//!         .height_mode(FitToText)
 //!         .text_color(BinaryColor::On)
 //!         .build();
 //!
-//!     let height = textbox_style.measure_text_height(text, 129);
+//!     let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Point::new(128, 0)))
+//!         .into_styled(textbox_style);
 //!
 //!     // Create a window just tall enough to fit the text.
-//!     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(129, height));
-//!
-//!     TextBox::new(
-//!         text,
-//!         Rectangle::new(Point::zero(), Point::new(128, height as i32 - 1)),
-//!     )
-//!     .into_styled(textbox_style)
-//!     .draw(&mut display)
-//!     .unwrap();
+//!     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(text_box.size());
+//!     text_box.draw(&mut display).unwrap();
 //!
 //!     let output_settings = OutputSettingsBuilder::new()
 //!         .theme(BinaryColorTheme::OledBlue)
@@ -85,7 +80,8 @@ pub mod utils;
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 use rendering::{StateFactory, StyledTextBoxIterator};
-use style::TextBoxStyle;
+use style::{height_mode::HeightMode, TextBoxStyle};
+use utils::rect_ext::RectExt;
 
 /// Prelude.
 ///
@@ -95,7 +91,10 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
         alignment::*,
-        style::{TextBoxStyle, TextBoxStyleBuilder},
+        style::{
+            height_mode::{Exact, FitToText, HeightMode, ShrinkToText},
+            TextBoxStyle, TextBoxStyleBuilder,
+        },
         StyledTextBox, TextBox,
     };
 
@@ -134,7 +133,10 @@ impl<'a> TextBox<'a> {
     #[inline]
     #[must_use]
     pub fn new(text: &'a str, bounds: Rectangle) -> Self {
-        Self { text, bounds }
+        Self {
+            text,
+            bounds: bounds.into_well_formed(),
+        }
     }
 
     /// Creates a [`StyledTextBox`] by attaching a [`TextBoxStyle`] to the `TextBox` object.
@@ -150,6 +152,7 @@ impl<'a> TextBox<'a> {
     ///  * Set the text color to `BinaryColor::On`
     ///  * Leave the background color transparent
     ///  * Leave text alignment top/left
+    ///  * Set [`ShrinkToText`] [`HeightMode`] to shrink the [`TextBox`] when possible.
     ///
     /// ```rust
     /// use embedded_text::prelude::*;
@@ -172,20 +175,24 @@ impl<'a> TextBox<'a> {
     /// [`ShrinkToText`]: style/height_mode/struct.ShrinkToText.html
     #[inline]
     #[must_use]
-    pub fn into_styled<C, F, A, V>(
+    pub fn into_styled<C, F, A, V, H>(
         self,
-        style: TextBoxStyle<C, F, A, V>,
-    ) -> StyledTextBox<'a, C, F, A, V>
+        style: TextBoxStyle<C, F, A, V, H>,
+    ) -> StyledTextBox<'a, C, F, A, V, H>
     where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
+        H: HeightMode,
     {
-        StyledTextBox {
+        let mut styled = StyledTextBox {
             text_box: self,
             style,
-        }
+        };
+        H::apply(&mut styled);
+
+        styled
     }
 }
 
@@ -223,7 +230,7 @@ impl Dimensions for TextBox<'_> {
     #[inline]
     #[must_use]
     fn size(&self) -> Size {
-        crate::utils::rect_ext::RectExt::size(self.bounds)
+        RectExt::size(self.bounds)
     }
 }
 
@@ -232,32 +239,71 @@ impl Dimensions for TextBox<'_> {
 /// This structure is constructed by calling the [`into_styled`] method of a [`TextBox`] object.
 /// Use the [`draw`] method to draw the textbox on a display.
 ///
+/// [`TextBox`]: struct.TextBox.html
 /// [`into_styled`]: struct.TextBox.html#method.into_styled
 /// [`draw`]: #method.draw
-pub struct StyledTextBox<'a, C, F, A, V>
+pub struct StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
-    //
-    /// [`TextBoxStyle`]: struct.TextBoxStyle.html
+    ///
+    /// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
     pub text_box: TextBox<'a>,
 
     /// The style of the [`TextBox`].
-    pub style: TextBoxStyle<C, F, A, V>,
+    pub style: TextBoxStyle<C, F, A, V, H>,
 }
 
-impl<'a, C, F, A, V> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V>
+impl<C, F, A, V, H> StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBoxIterator<'a, C, F, A, V>: Iterator<Item = Pixel<C>>,
-    StyledTextBox<'a, C, F, A, V>: StateFactory<'a, F>,
+    H: HeightMode,
+{
+    /// Sets the height of the [`StyledTextBox`] to the height of the text.
+    #[inline]
+    pub fn fit_height(&mut self) -> &mut Self {
+        self.fit_height_limited(u32::max_value())
+    }
+
+    /// Sets the height of the [`StyledTextBox`] to the height of the text, limited to `max_height`.
+    ///
+    /// This method allows you to set a maximum height. The [`StyledTextBox`] will take up at most
+    /// `max_height` pixel vertical space.
+    #[inline]
+    pub fn fit_height_limited(&mut self, max_height: u32) -> &mut Self {
+        // Measure text given the width of the textbox
+        let text_height = self
+            .style
+            .measure_text_height(self.text_box.text, self.text_box.size().width)
+            .min(max_height)
+            .min(i32::max_value() as u32) as i32;
+
+        // Apply height
+        let y = self.text_box.bounds.top_left.y;
+        let new_y = y.saturating_add(text_height - 1);
+        self.text_box.bounds.bottom_right.y = new_y;
+
+        self
+    }
+}
+
+impl<'a, C, F, A, V, H> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V, H>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
+    StyledTextBoxIterator<'a, C, F, A, V, H>: Iterator<Item = Pixel<C>>,
+    StyledTextBox<'a, C, F, A, V, H>: StateFactory<'a, F>,
+    H: HeightMode,
 {
     #[inline]
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
@@ -265,12 +311,13 @@ where
     }
 }
 
-impl<C, F, A, V> Transform for StyledTextBox<'_, C, F, A, V>
+impl<C, F, A, V, H> Transform for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     #[inline]
     #[must_use]
@@ -289,12 +336,13 @@ where
     }
 }
 
-impl<C, F, A, V> Dimensions for StyledTextBox<'_, C, F, A, V>
+impl<C, F, A, V, H> Dimensions for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
+    H: HeightMode,
 {
     #[inline]
     #[must_use]
