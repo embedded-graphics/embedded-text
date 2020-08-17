@@ -40,7 +40,7 @@ where
     ///  - [`TopAligned`]
     ///  - Text color: transparent
     ///  - Background color: transparent
-    ///  - Height mode: exact size
+    ///  - Height mode: [`Exact`]
     #[inline]
     #[must_use]
     pub fn new(font: F) -> Self {
