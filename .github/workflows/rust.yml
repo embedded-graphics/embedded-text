@@ -23,6 +23,7 @@ jobs:
         include:
           - rust: nightly
             check_docs: true
+            check_fmt: true
 
     steps:
     - name: install_dependencies
@@ -42,6 +43,7 @@ jobs:
 
     - name: Check formatting
       run: cargo fmt --all -- --check
+      if: matrix.check_fmt
 
     - name: Build
       run: cargo build --verbose
@@ -54,7 +56,7 @@ jobs:
         cargo install cargo-deadlinks
         cargo doc
         cargo deadlinks
-      if: matrix.rust.check_docs
+      if: matrix.check_docs
 
     - name: Run tests
       run: |
