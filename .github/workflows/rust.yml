@@ -20,6 +20,9 @@ jobs:
           - beta
           - nightly
           - 1.40.0  # MSRV
+        include:
+          - rust: nightly
+            check_docs: true
 
     steps:
     - name: install_dependencies
@@ -51,6 +54,7 @@ jobs:
         cargo install cargo-deadlinks
         cargo doc
         cargo deadlinks
+      if: matrix.rust.check_docs
 
     - name: Run tests
       run: |
