@@ -8,7 +8,7 @@ use crate::{
 use embedded_graphics::prelude::*;
 
 /// Align text to the bottom of the TextBox.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct BottomAligned;
 
 impl VerticalTextAlignment for BottomAligned {
@@ -24,12 +24,13 @@ impl VerticalTextAlignment for BottomAligned {
     {
         let text_height = styled_text_box
             .style
-            .measure_text_height(styled_text_box.text_box.text, cursor.line_width());
+            .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
+            as i32;
 
-        let box_height = styled_text_box.size().height;
+        let box_height = styled_text_box.size().height as i32;
         let offset = box_height - text_height;
 
-        cursor.position.y += offset as i32
+        cursor.position.y += offset
     }
 }
 
@@ -75,6 +76,46 @@ mod test {
                 "#.#.#.#...#.#.....#...#.",
                 ".#.#...###..#......####.",
                 "........................",
+            ])
+        );
+    }
+
+    #[test]
+    fn test_bottom_alignment_tall_text() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .vertical_alignment(BottomAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::new(
+            "word1 word2 word3 word4",
+            Rectangle::new(Point::zero(), Point::new(30, 15)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "......................#..###..",
+                "......................#.#...#.",
+                "#...#..###..#.##...##.#.....#.",
+                "#...#.#...#.##..#.#..##...##..",
+                "#.#.#.#...#.#.....#...#.....#.",
+                "#.#.#.#...#.#.....#...#.#...#.",
+                ".#.#...###..#......####..###..",
+                "..............................",
+                "......................#....#..",
+                "......................#...##..",
+                "#...#..###..#.##...##.#..#.#..",
+                "#...#.#...#.##..#.#..##.#..#..",
+                "#.#.#.#...#.#.....#...#.#####.",
+                "#.#.#.#...#.#.....#...#....#..",
+                ".#.#...###..#......####....#..",
+                "..............................",
             ])
         );
     }

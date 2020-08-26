@@ -122,12 +122,13 @@ impl VerticalTextAlignment for CenterAligned {
     {
         let text_height = styled_text_box
             .style
-            .measure_text_height(styled_text_box.text_box.text, cursor.line_width());
+            .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
+            as i32;
 
-        let box_height = styled_text_box.size().height;
+        let box_height = styled_text_box.size().height as i32;
         let offset = (box_height - text_height) / 2;
 
-        cursor.position.y += offset as i32;
+        cursor.position.y += offset;
     }
 }
 
