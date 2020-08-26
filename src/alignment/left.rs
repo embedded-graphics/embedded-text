@@ -65,10 +65,6 @@ where
         loop {
             match self.state {
                 State::NextLine(ref carried_token, cursor, ref parser) => {
-                    if !cursor.in_display_area() {
-                        break None;
-                    }
-
                     if carried_token.is_none() && parser.is_empty() {
                         break None;
                     }

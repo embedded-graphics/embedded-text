@@ -8,7 +8,7 @@ use crate::{
 use embedded_graphics::prelude::*;
 
 /// Align text to the top of the TextBox.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TopAligned;
 
 impl VerticalTextAlignment for TopAligned {
