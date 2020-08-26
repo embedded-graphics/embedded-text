@@ -23,7 +23,6 @@ jobs:
         include:
           - rust: nightly
             check_docs: true
-            check_fmt: true
 
     steps:
     - name: install_dependencies
@@ -40,10 +39,6 @@ jobs:
         toolchain: ${{ matrix.rust }}
         override: true
         components: rustfmt, clippy
-
-    - name: Check formatting
-      run: cargo fmt --all -- --check
-      if: matrix.check_fmt
 
     - name: Build
       run: cargo build --verbose
