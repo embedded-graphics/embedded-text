@@ -13,6 +13,11 @@ Unreleased
  * **breaking** Moved `StyledTextBox` to the root module.
  * Added `StyledTextBox::fit_height` and `StyledTextBox::fit_height_limited` to adjust height to text
  
+## Fixed:
+
+ * Fix `CenterAligned` and `BottomAligned` vertical alignments crashing the program when text is
+   taller than the `TextBox`.
+ 
 0.2.0 (2020-08-15)
 ==================
 
