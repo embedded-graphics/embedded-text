@@ -1,5 +1,6 @@
 //! Character rendering.
 use core::marker::PhantomData;
+use core::ops::Range;
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Represents a glyph (a symbol) to be drawn.
@@ -66,7 +67,7 @@ where
     style: TextStyle<C, F>,
     pos: Point,
     char_walk: Point,
-    max_x: i32,
+    max_coordinates: Point,
 }
 
 impl<C, F> StyledCharacterIterator<C, F>
@@ -77,13 +78,13 @@ where
     /// Creates a new pixel iterator to draw the given character.
     #[inline]
     #[must_use]
-    pub fn new(character: char, pos: Point, style: TextStyle<C, F>) -> Self {
+    pub fn new(character: char, pos: Point, style: TextStyle<C, F>, rows: Range<i32>) -> Self {
         Self {
             character: Glyph::new(character),
             style,
             pos,
-            char_walk: Point::zero(),
-            max_x: F::char_width(character) as i32 - 1,
+            char_walk: Point::new(0, rows.start),
+            max_coordinates: Point::new(F::char_width(character) as i32 - 1, rows.end),
         }
     }
 }
@@ -98,13 +99,13 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.char_walk.y >= F::CHARACTER_SIZE.height as i32 {
+            if self.char_walk.y >= self.max_coordinates.y {
                 // Done with this char, move on to the next one
                 break None;
             }
             let pos = self.char_walk;
 
-            if pos.x < self.max_x {
+            if pos.x < self.max_coordinates.x {
                 self.char_walk.x += 1;
             } else {
                 self.char_walk.x = 0;
@@ -141,9 +142,14 @@ mod test {
             .background_color(BinaryColor::On)
             .build();
 
-        StyledCharacterIterator::new('A', Point::zero(), style)
-            .draw(&mut display)
-            .unwrap();
+        StyledCharacterIterator::new(
+            'A',
+            Point::zero(),
+            style,
+            0..Font6x8::CHARACTER_SIZE.height as i32,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         assert_eq!(
             display,
@@ -156,6 +162,37 @@ mod test {
                 " ### #   ",
                 " ### #   ",
                 "######   "
+            ])
+        );
+    }
+
+    #[test]
+    fn partial_draw() {
+        let mut display = MockDisplay::new();
+        let style = TextStyleBuilder::new(Font6x8)
+            .background_color(BinaryColor::On)
+            .build();
+
+        StyledCharacterIterator::new(
+            'A',
+            Point::zero(),
+            style,
+            2..Font6x8::CHARACTER_SIZE.height as i32 - 2,
+        )
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "         ",
+                "         ",
+                " ### #   ",
+                "     #   ",
+                " ### #   ",
+                " ### #   ",
+                "         ",
+                "         "
             ])
         );
     }

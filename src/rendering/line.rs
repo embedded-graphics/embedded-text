@@ -156,7 +156,15 @@ where
 
                 if self.cursor.advance(char_width) {
                     return if self.cursor.in_display_area() {
-                        State::WordChar(lookahead, StyledCharacterIterator::new(c, pos, self.style))
+                        State::WordChar(
+                            lookahead,
+                            StyledCharacterIterator::new(
+                                c,
+                                pos,
+                                self.style,
+                                0..F::CHARACTER_SIZE.height as i32,
+                            ),
+                        )
                     } else {
                         State::ProcessToken(Token::Word(lookahead.as_str()))
                     };
