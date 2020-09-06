@@ -75,7 +75,7 @@ where
                         UniformSpaceConfig {
                             space_width: F::total_char_width(' '),
                         },
-                        self.style.text_style,
+                        self.style,
                         carried_token.clone(),
                     ));
                 }

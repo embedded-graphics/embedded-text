@@ -139,7 +139,7 @@ where
                         parser_clone,
                         cursor,
                         space_info,
-                        self.style.text_style,
+                        self.style,
                         carried_token.clone(),
                     ));
                 }
