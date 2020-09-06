@@ -105,7 +105,11 @@ where
         carried_token: Option<Token<'a>>,
     ) -> Self {
         // TODO calculate this based on cursor and vertical overdraw mode
-        let display_range = 0..F::CHARACTER_SIZE.height as i32;
+        let display_range = if cursor.in_display_area() {
+            0..F::CHARACTER_SIZE.height as i32
+        } else {
+            0..0
+        };
 
         Self {
             parser,
@@ -137,7 +141,7 @@ where
     }
 
     fn is_anything_displayed(&self) -> bool {
-        self.cursor.in_display_area()
+        self.display_range.start < self.display_range.end
     }
 
     fn try_draw_next_character(&mut self, word: &'a str) -> State<'a, C, F> {
