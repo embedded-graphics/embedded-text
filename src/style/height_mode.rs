@@ -157,6 +157,13 @@ impl HeightMode for FitToText {
     {
         text_box.fit_height();
     }
+
+    #[inline]
+    fn calculate_displayed_row_range<F: Font>(_: &Cursor<F>) -> Range<i32> {
+        // FitToText always sets the bounding box to the exact size of the text, so every row is
+        // always fully displayed
+        0..F::CHARACTER_SIZE.height as i32
+    }
 }
 
 /// If the text does not fill the bounding box, shrink the [`StyledTextBox`] to be as tall as the
