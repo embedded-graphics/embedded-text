@@ -8,6 +8,7 @@
 use core::ops::Range;
 use embedded_graphics::prelude::*;
 
+use crate::style::vertical_overdraw::VerticalOverdraw;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
@@ -74,9 +75,12 @@ pub trait HeightMode: Copy {
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
 #[derive(Copy, Clone, Debug)]
-pub struct Exact;
+pub struct Exact<OV: VerticalOverdraw>(pub OV);
 
-impl HeightMode for Exact {
+impl<OV> HeightMode for Exact<OV>
+where
+    OV: VerticalOverdraw,
+{
     #[inline]
     fn apply<C, F, A, V, H>(_text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
@@ -172,7 +176,7 @@ impl HeightMode for FitToText {
 /// # Example: `ShrinkToText` does not grow the [`TextBox`].
 ///
 /// ```rust
-/// use embedded_text::prelude::*;
+/// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 ///
 /// // This TextBox contains two lines of text, but is 1px high
@@ -183,7 +187,7 @@ impl HeightMode for FitToText {
 ///
 /// // Set style, use 6x8 font so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
-///     .height_mode(ShrinkToText)
+///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
@@ -194,7 +198,7 @@ impl HeightMode for FitToText {
 /// # Example: `ShrinkToText` shrinks the [`TextBox`].
 ///
 /// ```rust
-/// use embedded_text::prelude::*;
+/// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 ///
 /// // This TextBox contains two lines of text, but is 60px high
@@ -205,7 +209,7 @@ impl HeightMode for FitToText {
 ///
 /// // Set style, use 6x8 font so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
-///     .height_mode(ShrinkToText)
+///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
@@ -215,9 +219,12 @@ impl HeightMode for FitToText {
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
 #[derive(Copy, Clone, Debug)]
-pub struct ShrinkToText;
+pub struct ShrinkToText<OV: VerticalOverdraw>(pub OV);
 
-impl HeightMode for ShrinkToText {
+impl<OV> HeightMode for ShrinkToText<OV>
+where
+    OV: VerticalOverdraw,
+{
     #[inline]
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where

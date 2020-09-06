@@ -155,7 +155,7 @@ impl<'a> TextBox<'a> {
     ///  * Set [`ShrinkToText`] [`HeightMode`] to shrink the [`TextBox`] when possible.
     ///
     /// ```rust
-    /// use embedded_text::prelude::*;
+    /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
     /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
     ///
     /// let text_box = TextBox::new(
@@ -163,7 +163,7 @@ impl<'a> TextBox<'a> {
     ///     Rectangle::new(Point::zero(), Point::new(59, 59)),
     /// );
     /// let style = TextBoxStyleBuilder::new(Font6x8)
-    ///     .height_mode(ShrinkToText)
+    ///     .height_mode(ShrinkToText(FullRowsOnly))
     ///     .text_color(BinaryColor::On)
     ///     .build();
     ///

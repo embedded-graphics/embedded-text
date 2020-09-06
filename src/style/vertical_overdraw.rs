@@ -1,17 +1,20 @@
 //! Vertical overdraw options.
 
 /// Implementors of this trait specify how drawing vertically outside the bounding box is handled.
-pub trait VerticalOverdraw {}
+pub trait VerticalOverdraw: Copy {}
 
 /// Only render full rows of text.
+#[derive(Copy, Clone, Debug)]
 pub struct FullRowsOnly;
 impl VerticalOverdraw for FullRowsOnly {}
 
 /// Render partially visible rows, but only inside the bounding box.
+#[derive(Copy, Clone, Debug)]
 pub struct Hidden;
 impl VerticalOverdraw for Hidden {}
 
 /// Display text even if it's outside the bounding box.
+#[derive(Copy, Clone, Debug)]
 pub struct Visible;
 impl VerticalOverdraw for Visible {}
 

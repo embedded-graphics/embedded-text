@@ -12,7 +12,7 @@ use embedded_graphics::{
     prelude::*,
     style::PrimitiveStyle,
 };
-use embedded_text::prelude::*;
+use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
@@ -61,7 +61,7 @@ impl ProcessedEvent {
 fn demo_loop<H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
 where
     H: HeightMode + std::fmt::Debug,
-    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact>:
+    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact<FullRowsOnly>>:
         Drawable<BinaryColor>,
 {
     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting \
@@ -116,13 +116,13 @@ fn main() -> Result<(), core::convert::Infallible> {
     let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 200));
 
     'running: loop {
-        if !demo_loop(&mut window, &mut bounds, Exact) {
+        if !demo_loop(&mut window, &mut bounds, Exact(FullRowsOnly)) {
             break 'running;
         }
         if !demo_loop(&mut window, &mut bounds, FitToText) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, ShrinkToText) {
+        if !demo_loop(&mut window, &mut bounds, ShrinkToText(FullRowsOnly)) {
             break 'running;
         }
     }

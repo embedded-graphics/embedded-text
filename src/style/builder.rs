@@ -3,6 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     style::{
         height_mode::{Exact, HeightMode},
+        vertical_overdraw::FullRowsOnly,
         TextBoxStyle,
     },
 };
@@ -28,7 +29,7 @@ where
     height_mode: H,
 }
 
-impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact>
+impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact<FullRowsOnly>>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -48,7 +49,7 @@ where
             text_style_builder: TextStyleBuilder::new(font),
             alignment: LeftAligned,
             vertical_alignment: TopAligned,
-            height_mode: Exact,
+            height_mode: Exact(FullRowsOnly),
         }
     }
 
