@@ -7,7 +7,7 @@ use crate::{
     },
     utils::font_ext::FontExt,
 };
-use core::{marker::PhantomData, str::Chars};
+use core::{marker::PhantomData, ops::Range, str::Chars};
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Internal state used to render a line.
@@ -84,6 +84,7 @@ where
     style: TextStyle<C, F>,
     first_word: bool,
     alignment: PhantomData<A>,
+    display_range: Range<i32>,
 }
 
 impl<'a, C, F, SP, A> StyledLineIterator<'a, C, F, SP, A>
@@ -103,6 +104,9 @@ where
         style: TextStyle<C, F>,
         carried_token: Option<Token<'a>>,
     ) -> Self {
+        // TODO calculate this based on cursor and vertical overdraw mode
+        let display_range = 0..F::CHARACTER_SIZE.height as i32;
+
         Self {
             parser,
             current_token: carried_token.map_or(State::FetchNext, State::ProcessToken),
@@ -111,6 +115,7 @@ where
             style,
             first_word: true,
             alignment: PhantomData,
+            display_range,
         }
     }
 
@@ -131,6 +136,10 @@ where
         self.cursor.fits_in_line(width)
     }
 
+    fn is_anything_displayed(&self) -> bool {
+        self.cursor.in_display_area()
+    }
+
     fn try_draw_next_character(&mut self, word: &'a str) -> State<'a, C, F> {
         let mut lookahead = word.chars();
         let pos = self.cursor.position;
@@ -141,7 +150,7 @@ where
 
                 if self.cursor.advance(sp_width) {
                     self.config.consume(1); // we have peeked the value, consume it
-                    return if self.cursor.in_display_area() {
+                    return if self.is_anything_displayed() {
                         State::WordSpace(
                             lookahead,
                             EmptySpaceIterator::new(sp_width, pos, self.style),
@@ -155,14 +164,14 @@ where
                 let char_width = F::total_char_width(c);
 
                 if self.cursor.advance(char_width) {
-                    return if self.cursor.in_display_area() {
+                    return if self.is_anything_displayed() {
                         State::WordChar(
                             lookahead,
                             StyledCharacterIterator::new(
                                 c,
                                 pos,
                                 self.style,
-                                0..F::CHARACTER_SIZE.height as i32,
+                                self.display_range.clone(),
                             ),
                         )
                     } else {
@@ -270,7 +279,7 @@ where
                                     let pos = self.cursor.position;
                                     let space_width = self.config.consume(spaces_to_render);
                                     self.cursor.advance_unchecked(space_width);
-                                    if self.cursor.in_display_area() {
+                                    if self.is_anything_displayed() {
                                         State::Whitespace(
                                             n - spaces_to_render,
                                             EmptySpaceIterator::new(space_width, pos, self.style),
