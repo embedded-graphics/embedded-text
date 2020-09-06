@@ -5,10 +5,12 @@
 //! shrink the text box. Height modes help us achieve this.
 //!
 //! [`TextBox`]: ../../struct.TextBox.html
+use core::ops::Range;
 use embedded_graphics::prelude::*;
 
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
+    rendering::cursor::Cursor,
     StyledTextBox,
 };
 
@@ -29,6 +31,20 @@ pub trait HeightMode: Copy {
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode;
+
+    /// Calculate the range of rows of the current line that can be drawn.
+    ///
+    /// If a line does not fully fit in the bounding box, some `HeightMode` options allow drawing
+    /// partial lines. For a partial line, this function calculates, which rows of each character
+    /// should be displayed.
+    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+        // TODO this default code only covers the "full lines only" mode.
+        if cursor.in_display_area() {
+            0..F::CHARACTER_SIZE.height as i32
+        } else {
+            0..0
+        }
+    }
 }
 
 /// Keep the original [`TextBox`] height.

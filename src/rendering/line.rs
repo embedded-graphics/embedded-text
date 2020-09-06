@@ -110,11 +110,7 @@ where
         H: HeightMode,
     {
         // TODO calculate this based on cursor and vertical overdraw mode
-        let display_range = if cursor.in_display_area() {
-            0..F::CHARACTER_SIZE.height as i32
-        } else {
-            0..0
-        };
+        let display_range = H::calculate_displayed_row_range(&cursor);
 
         Self {
             parser,
