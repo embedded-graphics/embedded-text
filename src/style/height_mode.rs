@@ -5,15 +5,14 @@
 //! shrink the text box. Height modes help us achieve this.
 //!
 //! [`TextBox`]: ../../struct.TextBox.html
-use core::ops::Range;
-use embedded_graphics::prelude::*;
-
 use crate::style::vertical_overdraw::VerticalOverdraw;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
     StyledTextBox,
 };
+use core::ops::Range;
+use embedded_graphics::prelude::*;
 
 /// Specifies how the [`TextBox`]'s height is adjusted when it is turned into a [`StyledTextBox`].
 ///
@@ -38,14 +37,7 @@ pub trait HeightMode: Copy {
     /// If a line does not fully fit in the bounding box, some `HeightMode` options allow drawing
     /// partial lines. For a partial line, this function calculates, which rows of each character
     /// should be displayed.
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
-        // TODO this default code only covers the "full lines only" mode.
-        if cursor.in_display_area() {
-            0..F::CHARACTER_SIZE.height as i32
-        } else {
-            0..0
-        }
-    }
+    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32>;
 }
 
 /// Keep the original [`TextBox`] height.
@@ -90,6 +82,11 @@ where
         V: VerticalTextAlignment,
         H: HeightMode,
     {
+    }
+
+    #[inline]
+    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+        OV::calculate_displayed_row_range(cursor)
     }
 }
 
@@ -235,5 +232,10 @@ where
         H: HeightMode,
     {
         text_box.fit_height_limited(text_box.size().height);
+    }
+
+    #[inline]
+    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+        OV::calculate_displayed_row_range(cursor)
     }
 }
