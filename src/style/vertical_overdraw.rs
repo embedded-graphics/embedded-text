@@ -38,8 +38,8 @@ impl VerticalOverdraw for Hidden {
 pub struct Visible;
 impl VerticalOverdraw for Visible {
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
-        todo!()
+    fn calculate_displayed_row_range<F: Font>(_: &Cursor<F>) -> Range<i32> {
+        0..F::CHARACTER_SIZE.height as i32
     }
 }
 
