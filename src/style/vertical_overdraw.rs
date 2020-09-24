@@ -29,7 +29,14 @@ pub struct Hidden;
 impl VerticalOverdraw for Hidden {
     #[inline]
     fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
-        todo!()
+        let offset_top = (cursor.bounds.top_left.y - cursor.position.y).max(0);
+        // cursor bounds are one row shorter than real bounds for optimization
+        // purposes so use the real height here
+        let offset_bottom = (cursor.bounds.bottom_right.y + F::CHARACTER_SIZE.height as i32
+            - cursor.position.y)
+            .min(F::CHARACTER_SIZE.height as i32);
+
+        offset_top..offset_bottom
     }
 }
 
@@ -51,8 +58,8 @@ mod test {
     };
 
     use crate::{
-        alignment::{BottomAligned, LeftAligned},
-        style::TextBoxStyleBuilder,
+        alignment::*,
+        style::{height_mode::Exact, vertical_overdraw::*, TextBoxStyleBuilder},
         TextBox,
     };
 
@@ -85,6 +92,70 @@ mod test {
                 "# # # #   # #     #   #       #   # #   # #   #",
                 " # #   ###  #      ####        #### #   #  ####",
                 "                                               ",
+            ])
+        );
+    }
+
+    #[test]
+    fn visible_displays_regardless_of_bounds() {
+        // This test verifies that FullRowsOnly does not draw partial rows
+
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .vertical_alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .height_mode(Exact(Visible))
+            .build();
+
+        TextBox::new("word", Rectangle::new(Point::new(0, 2), Point::new(54, 5)))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "                      #",
+                "                      #",
+                "#   #  ###  # ##   ## #",
+                "#   # #   # ##  # #  ##",
+                "# # # #   # #     #   #",
+                "# # # #   # #     #   #",
+                " # #   ###  #      ####",
+                "                       ",
+            ])
+        );
+    }
+
+    #[test]
+    fn hidden_only_displays_visible_rows() {
+        // This test verifies that FullRowsOnly does not draw partial rows
+
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .vertical_alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .height_mode(Exact(Hidden))
+            .build();
+
+        TextBox::new("word", Rectangle::new(Point::new(0, 2), Point::new(54, 5)))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "                       ",
+                "                       ",
+                "#   #  ###  # ##   ## #",
+                "#   # #   # ##  # #  ##",
+                "# # # #   # #     #   #",
+                "# # # #   # #     #   #",
+                "                       ",
+                "                       ",
             ])
         );
     }
