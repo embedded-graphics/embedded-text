@@ -10,8 +10,10 @@ pub struct Cursor<F: Font> {
     /// Current cursor position
     pub position: Point,
 
+    /// TextBox bounding rectangle
+    pub bounds: Rectangle,
+
     _marker: PhantomData<F>,
-    bounds: Rectangle,
 }
 
 impl<F: Font> Cursor<F> {

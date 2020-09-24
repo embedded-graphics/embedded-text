@@ -17,6 +17,7 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 
 pub mod builder;
 pub mod height_mode;
+pub mod vertical_overdraw;
 
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},

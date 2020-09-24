@@ -12,7 +12,7 @@ use embedded_graphics::{
     prelude::*,
     style::PrimitiveStyle,
 };
-use embedded_text::prelude::*;
+use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
@@ -61,7 +61,7 @@ impl ProcessedEvent {
 fn demo_loop<V>(window: &mut Window, bounds: &mut Rectangle, alignment: V) -> bool
 where
     V: VerticalTextAlignment + std::fmt::Debug,
-    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact>:
+    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact<FullRowsOnly>>:
         Drawable<BinaryColor>,
 {
     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting \
