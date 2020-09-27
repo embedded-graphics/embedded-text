@@ -186,8 +186,8 @@ where
                     // eat the newline
                 }
 
-                Token::CarriageReturn => {
-                    // eat the \r since it's meaningless in the beginning of a line
+                Token::CarriageReturn | Token::Break => {
+                    // eat the \r and Break since it's meaningless in the beginning of a line
                 }
             }
         }
@@ -226,6 +226,12 @@ where
                     is_first_word = false;
                     last_space_width = 0;
                     last_spaces = 0;
+                }
+
+                Token::Break => {
+                    // At this moment, Break tokens just ensure that there are no consecutive Word
+                    // tokens. Later, they should be responsible for word wrapping if the next
+                    // Word token (or non-breaking token sequences) do not fit into the line.
                 }
 
                 Token::Whitespace(n) => {

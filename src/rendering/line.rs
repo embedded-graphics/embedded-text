@@ -222,6 +222,14 @@ where
             }
         }
     }
+
+    fn next_word_width(&mut self) -> Option<u32> {
+        if let Some(Token::Word(w)) = self.parser.peek() {
+            return Some(F::str_width_nocr(w));
+        }
+
+        None
+    }
 }
 
 impl<C, F, SP, A> Iterator for StyledLineIterator<'_, C, F, SP, A>
@@ -254,11 +262,9 @@ where
                                 A::STARTING_SPACES
                             } else if A::ENDING_SPACES {
                                 true
-                            } else if let Some(Token::Word(w)) = self.parser.peek() {
+                            } else if let Some(word_width) = self.next_word_width() {
                                 // Check if space + w fits in line, otherwise it's up to config
                                 let space_width = self.config.peek_next_width(n);
-                                let word_width = F::str_width_nocr(w);
-
                                 let fits = self.fits_in_line(space_width + word_width);
 
                                 would_wrap = !fits;
@@ -313,6 +319,14 @@ where
                                 // nothing, process next token
                                 State::FetchNext
                             }
+                        }
+
+                        Token::Break => {
+                            // At this moment, Break tokens just ensure that there are no consecutive
+                            // Word tokens. Later, they should be responsible for word wrapping if
+                            // the next Word token (or non-breaking token sequences) do not fit into
+                            // the line.
+                            State::FetchNext
                         }
 
                         Token::Word(w) => {
