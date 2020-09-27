@@ -177,7 +177,7 @@ mod test {
     }
 
     #[test]
-    fn parse_multibyte_last() {
+    fn parse_zwsp() {
         let text = "two\u{200B}words";
         assert_eq!(9, "two\u{200B}words".chars().count());
 
@@ -193,7 +193,7 @@ mod test {
     }
 
     #[test]
-    fn parse_zwsp() {
+    fn parse_multibyte_last() {
         let text = "test😅";
 
         assert_eq!(
