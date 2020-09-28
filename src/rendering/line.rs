@@ -224,11 +224,22 @@ where
     }
 
     fn next_word_width(&mut self) -> Option<u32> {
-        if let Some(Token::Word(w)) = self.parser.peek() {
-            return Some(F::str_width_nocr(w));
+        let mut width = None;
+        let mut lookahead = self.parser.clone();
+
+        'lookahead: loop {
+            let token = lookahead.next();
+            match token {
+                Some(Token::Word(w)) => {
+                    let w = F::str_width_nocr(w);
+
+                    width = width.map_or(Some(w), |acc| Some(acc + w));
+                }
+                _ => break 'lookahead,
+            };
         }
 
-        None
+        width
     }
 }
 
