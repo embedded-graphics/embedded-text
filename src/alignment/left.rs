@@ -3,8 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        cursor::Cursor,
-        line::{StyledLineIterator, UniformSpaceConfig},
+        cursor::Cursor, line::StyledLinePixelIterator, space_config::UniformSpaceConfig,
         StateFactory, StyledTextBoxIterator,
     },
     style::height_mode::HeightMode,
@@ -32,7 +31,7 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, UniformSpaceConfig, LeftAligned>),
+    DrawLine(StyledLinePixelIterator<'a, C, F, UniformSpaceConfig, LeftAligned>),
 }
 
 impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, LeftAligned, V, H>
@@ -69,7 +68,7 @@ where
                         break None;
                     }
 
-                    self.state = State::DrawLine(StyledLineIterator::new(
+                    self.state = State::DrawLine(StyledLinePixelIterator::new(
                         parser.clone(),
                         cursor,
                         UniformSpaceConfig {
@@ -88,7 +87,7 @@ where
                     self.state = State::NextLine(
                         line_iterator.remaining_token(),
                         line_iterator.cursor,
-                        line_iterator.parser.clone(),
+                        line_iterator.parser(),
                     );
                 }
             };
