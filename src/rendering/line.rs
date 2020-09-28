@@ -241,6 +241,18 @@ where
 
         width
     }
+
+    fn count_widest_space_seq(&mut self, n: u32) -> u32 {
+        // we could also binary search but I don't think it's worth it
+        let mut spaces_to_render = 0;
+        let available = self.cursor.space();
+        while spaces_to_render < n && self.config.peek_next_width(spaces_to_render + 1) < available
+        {
+            spaces_to_render += 1;
+        }
+
+        spaces_to_render
+    }
 }
 
 impl<C, F, SP, A> Iterator for StyledLineIterator<'_, C, F, SP, A>
@@ -287,15 +299,7 @@ where
 
                             if render_whitespace {
                                 // take as many spaces as possible and save the rest in state
-
-                                // we could also binary search but I don't think it's worth it
-                                let mut spaces_to_render = 0;
-                                let available = self.cursor.space();
-                                while spaces_to_render < n
-                                    && self.config.peek_next_width(spaces_to_render + 1) < available
-                                {
-                                    spaces_to_render += 1;
-                                }
+                                let spaces_to_render = self.count_widest_space_seq(n);
 
                                 if spaces_to_render > 0 {
                                     let pos = self.cursor.position;
