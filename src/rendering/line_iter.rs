@@ -13,9 +13,6 @@ use embedded_graphics::prelude::*;
 /// Internal state used to render a line.
 #[derive(Debug)]
 pub enum State<'a> {
-    /// Fetch next token.
-    FetchNext,
-
     /// Decide what to do next.
     ProcessToken(Token<'a>),
 
@@ -69,14 +66,23 @@ where
     #[inline]
     #[must_use]
     pub fn new(
-        parser: Parser<'a>,
-        cursor: Cursor<F>,
+        mut parser: Parser<'a>,
+        mut cursor: Cursor<F>,
         config: SP,
         carried_token: Option<Token<'a>>,
     ) -> Self {
+        let current_token = carried_token
+            .or_else(|| parser.next())
+            .or_else(|| {
+                cursor.new_line();
+                cursor.carriage_return();
+                None
+            })
+            .map_or(State::Done(None), State::ProcessToken);
+
         Self {
             parser,
-            current_token: carried_token.map_or(State::FetchNext, State::ProcessToken),
+            current_token,
             config,
             cursor,
             first_word: true,
@@ -85,7 +91,10 @@ where
     }
 
     fn next_token(&mut self) {
-        self.current_token = State::FetchNext;
+        match self.parser.next() {
+            None => self.finish(Token::NewLine),
+            Some(t) => self.current_token = State::ProcessToken(t),
+        }
     }
 
     /// When finished, this method returns the last partially processed [`Token`], or
@@ -101,66 +110,58 @@ where
         }
     }
 
-    fn fits_in_line(&self, width: u32) -> bool {
-        self.cursor.fits_in_line(width)
-    }
-
-    fn try_draw_next_character(&mut self, word: &'a str) -> State<'a> {
+    fn try_draw_next_character(&mut self, word: &'a str) {
         let mut lookahead = word.chars();
-        lookahead.next().map_or(State::FetchNext, |c| {
-            if c == '\u{A0}' {
-                // nbsp
-                let sp_width = self.config.peek_next_width(1);
+        match lookahead.next() {
+            None => self.next_token(),
+            Some(c) => {
+                if c == '\u{A0}' {
+                    // nbsp
+                    let sp_width = self.config.peek_next_width(1);
 
-                if self.cursor.advance(sp_width) {
-                    self.config.consume(1); // we have peeked the value, consume it
-                    return State::WordSpace(lookahead, sp_width);
-                }
-            } else {
-                // character done, move to the next one
-                let char_width = F::total_char_width(c);
+                    if self.cursor.advance(sp_width) {
+                        self.config.consume(1); // we have peeked the value, consume it
+                        self.current_token = State::WordSpace(lookahead, sp_width);
+                        return;
+                    }
+                } else {
+                    // character done, move to the next one
+                    let char_width = F::total_char_width(c);
 
-                if self.cursor.advance(char_width) {
-                    return State::WordChar(lookahead, c);
+                    if self.cursor.advance(char_width) {
+                        self.current_token = State::WordChar(lookahead, c);
+                        return;
+                    }
                 }
+
+                // word wrapping, this line is done
+                self.finish(Token::Word(word));
             }
-
-            // word wrapping, this line is done
-            Self::finish(&mut self.cursor, Token::Word(word))
-        })
+        };
     }
 
-    fn finish_draw_whitespace(cursor: &mut Cursor<F>, carried: u32) -> State<'a> {
-        if carried == 0 {
-            State::FetchNext
-        } else {
-            // n > 0 only if not every space was rendered
-            Self::finish(cursor, Token::Whitespace(carried))
-        }
-    }
-
-    fn finish(cursor: &mut Cursor<F>, t: Token<'a>) -> State<'a> {
-        match t {
+    fn finish(&mut self, t: Token<'a>) {
+        self.current_token = match t {
             Token::NewLine => {
-                cursor.new_line();
-                cursor.carriage_return();
+                self.cursor.new_line();
+                self.cursor.carriage_return();
 
                 State::Done(None)
             }
 
             Token::CarriageReturn => {
-                cursor.carriage_return();
+                self.cursor.carriage_return();
 
                 State::Done(None)
             }
 
             c => {
-                cursor.new_line();
-                cursor.carriage_return();
+                self.cursor.new_line();
+                self.cursor.carriage_return();
 
                 State::Done(Some(c))
             }
-        }
+        };
     }
 
     fn next_word_width(&mut self) -> Option<u32> {
@@ -208,16 +209,9 @@ where
         loop {
             match self.current_token {
                 // No token being processed, get next one
-                State::FetchNext => {
-                    self.current_token = self.parser.next().map_or_else(
-                        || Self::finish(&mut self.cursor, Token::NewLine),
-                        State::ProcessToken,
-                    );
-                }
-
                 State::ProcessToken(ref token) => {
                     let token = token.clone();
-                    self.current_token = match token {
+                    match token {
                         Token::Whitespace(n) => {
                             let mut would_wrap = false;
                             let render_whitespace = if self.first_word {
@@ -227,7 +221,7 @@ where
                             } else if let Some(word_width) = self.next_word_width() {
                                 // Check if space + w fits in line, otherwise it's up to config
                                 let space_width = self.config.peek_next_width(n);
-                                let fits = self.fits_in_line(space_width + word_width);
+                                let fits = self.cursor.fits_in_line(space_width + word_width);
 
                                 would_wrap = !fits;
 
@@ -243,30 +237,30 @@ where
                                 if spaces_to_render > 0 {
                                     let space_width = self.config.consume(spaces_to_render);
                                     self.cursor.advance_unchecked(space_width);
+                                    let carried = n - spaces_to_render;
 
-                                    self.current_token = Self::finish_draw_whitespace(
-                                        &mut self.cursor,
-                                        n - spaces_to_render,
-                                    );
+                                    if carried == 0 {
+                                        self.next_token();
+                                    } else {
+                                        // n > 0 only if not every space was rendered
+                                        self.finish(Token::Whitespace(carried));
+                                    }
 
                                     break Some(RenderElement::Space(space_width));
                                 } else {
                                     // there are spaces to render but none fit the line
                                     // eat one as a newline and stop
-                                    Self::finish(
-                                        &mut self.cursor,
-                                        if n > 1 {
-                                            Token::Whitespace(n - 1)
-                                        } else {
-                                            Token::NewLine
-                                        },
-                                    )
+                                    self.finish(if n > 1 {
+                                        Token::Whitespace(n - 1)
+                                    } else {
+                                        Token::NewLine
+                                    });
                                 }
                             } else if would_wrap {
-                                Self::finish(&mut self.cursor, Token::NewLine)
+                                self.finish(Token::NewLine);
                             } else {
                                 // nothing, process next token
-                                State::FetchNext
+                                self.next_token();
                             }
                         }
 
@@ -275,7 +269,7 @@ where
                             // Word tokens. Later, they should be responsible for word wrapping if
                             // the next Word token (or non-breaking token sequences) do not fit into
                             // the line.
-                            State::FetchNext
+                            self.next_token();
                         }
 
                         Token::Word(w) => {
@@ -283,17 +277,17 @@ where
                             if self.first_word {
                                 self.first_word = false;
 
-                                self.try_draw_next_character(w)
-                            } else if self.fits_in_line(F::str_width_nocr(w)) {
-                                self.try_draw_next_character(w)
+                                self.try_draw_next_character(w);
+                            } else if self.cursor.fits_in_line(F::str_width_nocr(w)) {
+                                self.try_draw_next_character(w);
                             } else {
-                                Self::finish(&mut self.cursor, token)
+                                self.finish(token);
                             }
                         }
 
                         Token::NewLine | Token::CarriageReturn => {
                             // we're done
-                            Self::finish(&mut self.cursor, token)
+                            self.finish(token);
                         }
                     }
                 }
@@ -301,7 +295,7 @@ where
                 State::WordChar(ref chars, ref c) => {
                     let c = *c;
                     let word = chars.as_str();
-                    self.current_token = self.try_draw_next_character(word);
+                    self.try_draw_next_character(word);
 
                     break Some(RenderElement::PrintedCharacter(c));
                 }
@@ -309,7 +303,7 @@ where
                 State::WordSpace(ref chars, ref width) => {
                     let width = *width;
                     let word = chars.as_str();
-                    self.current_token = self.try_draw_next_character(word);
+                    self.try_draw_next_character(word);
 
                     break Some(RenderElement::Space(width));
                 }
