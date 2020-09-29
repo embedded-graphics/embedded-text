@@ -155,17 +155,16 @@ where
                     if c == '\u{A0}' {
                         total_spaces += 1;
                     } else {
-                        total_spaces += last_spaces;
+                        total_spaces = last_spaces;
                         current_width += last_space_width;
 
                         last_space_width = 0;
-                        last_spaces = 0;
                     }
                 }
             }
         }
         if A::ENDING_SPACES {
-            total_spaces += last_spaces;
+            total_spaces = last_spaces;
             current_width += last_space_width;
         }
         let carried = iter.remaining_token();
