@@ -1,5 +1,6 @@
 //! Space rendering config
 
+use crate::utils::font_ext::FontExt;
 use core::marker::PhantomData;
 use embedded_graphics::fonts::Font;
 
@@ -31,7 +32,7 @@ impl<F: Font + Copy> Default for UniformSpaceConfig<F> {
     fn default() -> Self {
         Self {
             _font: PhantomData,
-            space_width: F::char_width(' '),
+            space_width: F::total_char_width(' '),
         }
     }
 }

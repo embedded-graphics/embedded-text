@@ -28,6 +28,7 @@ use crate::{
         space_config::UniformSpaceConfig,
     },
     style::height_mode::HeightMode,
+    utils::font_ext::FontExt,
 };
 pub use builder::TextBoxStyleBuilder;
 
@@ -149,7 +150,7 @@ where
                     last_space_width += sp_width;
                 }
                 RenderElement::PrintedCharacter(c) => {
-                    current_width += F::char_width(c);
+                    current_width += F::total_char_width(c);
 
                     if c == '\u{A0}' {
                         total_spaces += 1;
