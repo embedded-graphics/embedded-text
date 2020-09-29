@@ -154,7 +154,7 @@ where
         self.cursor.new_line();
         self.cursor.carriage_return();
 
-        self.current_token = State::Done(Some(Token::NewLine));
+        self.current_token = State::Done(Some(Token::Break));
     }
 
     fn finish(&mut self, t: Token<'a>) {
