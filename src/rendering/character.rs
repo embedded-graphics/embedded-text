@@ -54,9 +54,9 @@ where
 /// Pixel iterator to render a single styled character.
 ///
 /// This struct may be used to implement custom rendering algorithms. Internally, this pixel
-/// iterator is used by [`StyledLineIterator`] to render whitespace.
+/// iterator is used by [`StyledLinePixelIterator`] to render characters.
 ///
-/// [`StyledLineIterator`]: ../line/struct.StyledLineIterator.html
+/// [`StyledLinePixelIterator`]: ../line/struct.StyledLinePixelIterator.html
 #[derive(Clone, Debug)]
 pub struct StyledCharacterIterator<C, F>
 where
