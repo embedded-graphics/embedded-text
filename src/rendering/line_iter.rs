@@ -136,7 +136,12 @@ where
                 }
 
                 // word wrapping, this line is done
-                self.finish(Token::Word(word));
+                if self.cursor.position.x != self.cursor.bounds.top_left().x {
+                    self.finish(Token::Word(word));
+                } else {
+                    // weird case where width doesn't permit drawing anything
+                    self.next_token();
+                }
             }
         };
     }

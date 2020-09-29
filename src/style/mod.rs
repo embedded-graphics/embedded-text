@@ -236,6 +236,14 @@ mod test {
     };
 
     #[test]
+    fn no_infinite_loop() {
+        let _ = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .build()
+            .measure_text_height("a", 5);
+    }
+
+    #[test]
     fn test_measure_height() {
         let data = [
             ("", 0, 0),
