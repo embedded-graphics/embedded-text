@@ -208,26 +208,21 @@ where
         let mut current_height = 0;
         let mut parser = Parser::parse(text);
         let mut carry = None;
-        let mut was_cr = false;
 
         loop {
             let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
-            if t.is_some() {
-                if !was_cr {
-                    // if was_cr is true, we already counted the height
-                    current_height += F::CHARACTER_SIZE.height;
-                }
-                was_cr = t == Some(Token::CarriageReturn);
-                carry = t;
-            } else if w != 0 {
-                if !was_cr {
-                    // if was_cr is true, we already counted the height
-                    current_height += F::CHARACTER_SIZE.height;
-                }
-                return current_height;
-            } else {
+
+            if (w != 0 || t.is_some()) && carry != Some(Token::CarriageReturn) {
+                // something was in this line, increment height
+                // if last carried token was a carriage return, we already counted the height
+                current_height += F::CHARACTER_SIZE.height;
+            }
+
+            if t.is_none() {
                 return current_height;
             }
+
+            carry = t;
         }
     }
 }
