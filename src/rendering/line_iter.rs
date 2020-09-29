@@ -142,10 +142,14 @@ where
     }
 
     fn finish_end_of_string(&mut self) {
+        self.current_token = State::Done(None);
+    }
+
+    fn finish_wrapped(&mut self) {
         self.cursor.new_line();
         self.cursor.carriage_return();
 
-        self.current_token = State::Done(None);
+        self.current_token = State::Done(Some(Token::NewLine));
     }
 
     fn finish(&mut self, t: Token<'a>) {
@@ -261,14 +265,14 @@ where
                                 } else {
                                     // there are spaces to render but none fit the line
                                     // eat one as a newline and stop
-                                    self.finish(if n > 1 {
-                                        Token::Whitespace(n - 1)
+                                    if n > 1 {
+                                        self.finish(Token::Whitespace(n - 1));
                                     } else {
-                                        Token::NewLine
-                                    });
+                                        self.finish_wrapped();
+                                    }
                                 }
                             } else if would_wrap {
-                                self.finish(Token::NewLine);
+                                self.finish_wrapped();
                             } else {
                                 // nothing, process next token
                                 self.next_token();
