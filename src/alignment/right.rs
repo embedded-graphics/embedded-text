@@ -7,7 +7,6 @@ use crate::{
         StateFactory, StyledTextBoxIterator,
     },
     style::height_mode::HeightMode,
-    utils::font_ext::FontExt,
     StyledTextBox,
 };
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
@@ -31,7 +30,7 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
 
     /// Renders the processed line.
-    DrawLine(StyledLinePixelIterator<'a, C, F, UniformSpaceConfig, RightAligned>),
+    DrawLine(StyledLinePixelIterator<'a, C, F, UniformSpaceConfig<F>, RightAligned>),
 }
 
 impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, RightAligned, V, H>
@@ -78,9 +77,7 @@ where
                     self.state = State::DrawLine(StyledLinePixelIterator::new(
                         parser_clone,
                         cursor,
-                        UniformSpaceConfig {
-                            space_width: F::total_char_width(' '),
-                        },
+                        UniformSpaceConfig::default(),
                         self.style,
                         carried_token.clone(),
                     ));

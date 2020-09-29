@@ -41,7 +41,7 @@ pub struct StyledLinePixelIterator<'a, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     /// Position information.
@@ -57,7 +57,7 @@ impl<'a, C, F, SP, A> StyledLinePixelIterator<'a, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     /// Creates a new pixel iterator to draw the given character.
@@ -109,7 +109,7 @@ impl<C, F, SP, A> Iterator for StyledLinePixelIterator<'_, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     type Item = Pixel<C>;
@@ -197,7 +197,7 @@ mod test {
     #[test]
     fn simple_render() {
         let parser = Parser::parse(" Some sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
@@ -228,7 +228,7 @@ mod test {
     #[test]
     fn render_before_area() {
         let parser = Parser::parse(" Some sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
@@ -251,7 +251,7 @@ mod test {
     #[test]
     fn simple_render_nbsp() {
         let parser = Parser::parse("Some\u{A0}sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
@@ -282,7 +282,7 @@ mod test {
     #[test]
     fn simple_render_first_word_not_wrapped() {
         let parser = Parser::parse(" Some sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
@@ -313,7 +313,7 @@ mod test {
     #[test]
     fn newline_stops_render() {
         let parser = Parser::parse("Some \nsample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
@@ -348,7 +348,7 @@ mod test {
             .build();
 
         let parser = Parser::parse("Some  sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)));
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
