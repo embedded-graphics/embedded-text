@@ -67,18 +67,13 @@ where
     #[must_use]
     pub fn new(
         mut parser: Parser<'a>,
-        mut cursor: Cursor<F>,
+        cursor: Cursor<F>,
         config: SP,
         carried_token: Option<Token<'a>>,
     ) -> Self {
         let current_token = carried_token
             .filter(|t| ![Token::NewLine, Token::CarriageReturn].contains(t))
             .or_else(|| parser.next())
-            .or_else(|| {
-                cursor.new_line();
-                cursor.carriage_return();
-                None
-            })
             .map_or(State::Done(None), State::ProcessToken);
 
         Self {
