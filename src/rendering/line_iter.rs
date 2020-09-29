@@ -19,8 +19,8 @@ pub enum State<'a> {
     /// Render a character in a word. (remaining_characters, current_character)
     WordChar(Chars<'a>, char),
 
-    /// Render a printed space in a word. (remaining_characters, rendered_width)
-    WordSpace(Chars<'a>, u32),
+    /// Render a printed space in a word. (remaining_characters, rendered_width, space_count)
+    WordSpace(Chars<'a>, u32, u32),
 
     /// Signal that the renderer has finished, store the token that was consumed but not rendered.
     Done(Option<Token<'a>>),
@@ -29,8 +29,8 @@ pub enum State<'a> {
 /// What to draw
 #[derive(Copy, Clone, Debug)]
 pub enum RenderElement {
-    /// Render a whitespace block with the given width
-    Space(u32),
+    /// Render a whitespace block with the given width and count
+    Space(u32, u32),
 
     /// Render the given character
     PrintedCharacter(char),
@@ -41,7 +41,7 @@ pub enum RenderElement {
 pub struct LineElementIterator<'a, F, SP, A>
 where
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     /// Position information.
@@ -59,7 +59,7 @@ where
 impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
 where
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     /// Creates a new pixel iterator to draw the given character.
@@ -72,6 +72,7 @@ where
         carried_token: Option<Token<'a>>,
     ) -> Self {
         let current_token = carried_token
+            .filter(|t| ![Token::NewLine, Token::CarriageReturn].contains(t))
             .or_else(|| parser.next())
             .or_else(|| {
                 cursor.new_line();
@@ -92,7 +93,7 @@ where
 
     fn next_token(&mut self) {
         match self.parser.next() {
-            None => self.finish(Token::NewLine),
+            None => self.finish_end_of_string(),
             Some(t) => self.current_token = State::ProcessToken(t),
         }
     }
@@ -121,7 +122,7 @@ where
 
                     if self.cursor.advance(sp_width) {
                         self.config.consume(1); // we have peeked the value, consume it
-                        self.current_token = State::WordSpace(lookahead, sp_width);
+                        self.current_token = State::WordSpace(lookahead, sp_width, 1);
                         return;
                     }
                 } else {
@@ -140,19 +141,26 @@ where
         };
     }
 
+    fn finish_end_of_string(&mut self) {
+        self.cursor.new_line();
+        self.cursor.carriage_return();
+
+        self.current_token = State::Done(None);
+    }
+
     fn finish(&mut self, t: Token<'a>) {
         self.current_token = match t {
             Token::NewLine => {
                 self.cursor.new_line();
                 self.cursor.carriage_return();
 
-                State::Done(None)
+                State::Done(Some(Token::NewLine))
             }
 
             Token::CarriageReturn => {
                 self.cursor.carriage_return();
 
-                State::Done(None)
+                State::Done(Some(Token::CarriageReturn))
             }
 
             c => {
@@ -199,7 +207,7 @@ where
 impl<F, SP, A> Iterator for LineElementIterator<'_, F, SP, A>
 where
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     type Item = RenderElement;
@@ -246,7 +254,10 @@ where
                                         self.finish(Token::Whitespace(carried));
                                     }
 
-                                    break Some(RenderElement::Space(space_width));
+                                    break Some(RenderElement::Space(
+                                        space_width,
+                                        spaces_to_render,
+                                    ));
                                 } else {
                                     // there are spaces to render but none fit the line
                                     // eat one as a newline and stop
@@ -300,12 +311,13 @@ where
                     break Some(RenderElement::PrintedCharacter(c));
                 }
 
-                State::WordSpace(ref chars, ref width) => {
+                State::WordSpace(ref chars, ref width, ref count) => {
                     let width = *width;
+                    let count = *count;
                     let word = chars.as_str();
                     self.try_draw_next_character(word);
 
-                    break Some(RenderElement::Space(width));
+                    break Some(RenderElement::Space(width, count));
                 }
 
                 State::Done(_) => {

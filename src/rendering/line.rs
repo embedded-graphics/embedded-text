@@ -138,7 +138,7 @@ where
                             }
                         }
 
-                        Some(RenderElement::Space(space_width)) => {
+                        Some(RenderElement::Space(space_width, _)) => {
                             let pos = self.cursor.position;
                             self.cursor.advance_unchecked(space_width);
                             if self.is_anything_displayed() {
