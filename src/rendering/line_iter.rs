@@ -19,8 +19,8 @@ pub enum State<'a> {
     /// Render a character in a word. (remaining_characters, current_character)
     WordChar(Chars<'a>, char),
 
-    /// Render a printed space in a word. (remaining_characters, rendered_width, space_count)
-    WordSpace(Chars<'a>, u32, u32),
+    /// Render a printed space in a word. (remaining_characters, rendered_width)
+    WordSpace(Chars<'a>, u32),
 
     /// Signal that the renderer has finished, store the token that was consumed but not rendered.
     Done(Option<Token<'a>>),
@@ -122,7 +122,7 @@ where
 
                     if self.cursor.advance(sp_width) {
                         self.config.consume(1); // we have peeked the value, consume it
-                        self.current_token = State::WordSpace(lookahead, sp_width, 1);
+                        self.current_token = State::WordSpace(lookahead, sp_width);
                         return;
                     }
                 } else {
@@ -320,13 +320,12 @@ where
                     break Some(RenderElement::PrintedCharacter(c));
                 }
 
-                State::WordSpace(ref chars, ref width, ref count) => {
+                State::WordSpace(ref chars, ref width) => {
                     let width = *width;
-                    let count = *count;
                     let word = chars.as_str();
                     self.try_draw_next_character(word);
 
-                    break Some(RenderElement::Space(width, count));
+                    break Some(RenderElement::Space(width, 1));
                 }
 
                 State::Done(_) => {
