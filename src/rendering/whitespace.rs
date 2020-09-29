@@ -10,9 +10,9 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 /// Pixel iterator to render boxes using a single color.
 ///
 /// This struct may be used to implement custom rendering algorithms. Internally, this pixel
-/// iterator is used by [`StyledLineIterator`] to render whitespace.
+/// iterator is used by [`StyledLinePixelIterator`] to render whitespace.
 ///
-/// [`StyledLineIterator`]: ../line/struct.StyledLineIterator.html
+/// [`StyledLinePixelIterator`]: ../line/struct.StyledLinePixelIterator.html
 #[derive(Clone)]
 pub struct EmptySpaceIterator<C, F>
 where

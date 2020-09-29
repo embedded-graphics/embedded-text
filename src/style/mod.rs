@@ -13,7 +13,7 @@
 //! [`TextBoxStyle::from_text_style`]: struct.TextBoxStyle.html#method.from_text_style
 //! [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 //! [`TextBox::into_styled`]: ../struct.TextBox.html#method.into_styled
-use embedded_graphics::{prelude::*, style::TextStyle};
+use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
 
 pub mod builder;
 pub mod height_mode;
@@ -22,6 +22,11 @@ pub mod vertical_overdraw;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
+    rendering::{
+        cursor::Cursor,
+        line_iter::{LineElementIterator, RenderElement},
+        space_config::UniformSpaceConfig,
+    },
     style::height_mode::HeightMode,
     utils::font_ext::FontExt,
 };
@@ -105,30 +110,6 @@ where
         }
     }
 
-    /// Returns the size of a token if it fits the line, or the max size that fits and the remaining
-    /// unprocessed part.
-    fn measure_word(w: &str, max_width: u32) -> (u32, Option<&str>) {
-        let (width, consumed) = F::max_str_width_nocr(w, max_width);
-        let carried = if consumed == w {
-            None
-        } else {
-            Some(unsafe {
-                // consumed is the first part of w, so it's length must be
-                // on char boundary
-                w.get_unchecked(consumed.len()..)
-            })
-        };
-
-        (width, carried)
-    }
-
-    /// Counts the number of printed whitespaces in a word.
-    ///
-    /// This function only counts whitespaces that the `Parser` can include in a `Token::Word`.
-    fn count_printed_spaces(w: &str) -> u32 {
-        w.chars().filter(|&c| c == '\u{A0}').count() as u32
-    }
-
     /// Measure the width and count spaces in a single line of text.
     ///
     /// Returns (width, rendered space count, carried token)
@@ -144,125 +125,51 @@ where
         carried_token: Option<Token<'a>>,
         max_line_width: u32,
     ) -> (u32, u32, Option<Token<'a>>) {
+        let cursor: Cursor<F> = Cursor::new(Rectangle::new(
+            Point::zero(),
+            Point::new(
+                max_line_width.saturating_sub(1) as i32,
+                F::CHARACTER_SIZE.height.saturating_sub(1) as i32,
+            ),
+        ));
+        let mut iter: LineElementIterator<'_, F, _, A> = LineElementIterator::new(
+            parser.clone(),
+            cursor,
+            UniformSpaceConfig::default(),
+            carried_token.clone(),
+        );
+
         let mut current_width = 0;
         let mut last_spaces = 0;
         let mut last_space_width = 0;
-        let mut is_first_word = true;
-
-        if let Some(t) = carried_token {
-            match t {
-                Token::Word(w) => {
-                    let (width, carried) = Self::measure_word(w, max_line_width);
-
-                    if let Some(w) = carried {
-                        let spaces = Self::count_printed_spaces(w);
-                        return (width, spaces, Some(Token::Word(w)));
-                    }
-
-                    is_first_word = false;
-                    current_width = width;
-                }
-
-                Token::Whitespace(n) => {
-                    if A::STARTING_SPACES {
-                        let (width, consumed) = F::max_space_width(n, max_line_width);
-                        let carried = n - consumed;
-
-                        if carried != 0 {
-                            let token = Some(Token::Whitespace(carried - 1));
-                            return if A::ENDING_SPACES {
-                                (width, consumed, token)
-                            } else {
-                                (0, 0, token)
-                            };
-                        }
-
-                        last_spaces = n;
-                        last_space_width = width;
-                    }
-                }
-
-                Token::NewLine => {
-                    // eat the newline
-                }
-
-                Token::CarriageReturn | Token::Break => {
-                    // eat the \r and Break since it's meaningless in the beginning of a line
-                }
-            }
-        }
-
         let mut total_spaces = 0;
-        let mut carried_token = None;
-        for token in parser {
-            let available_space = max_line_width - current_width - last_space_width;
+        for token in &mut iter {
             match token {
-                Token::Word(w) => {
-                    let (width, carried) = Self::measure_word(w, available_space);
+                RenderElement::Space(sp_width, count) => {
+                    last_spaces += count;
+                    last_space_width += sp_width;
+                }
+                RenderElement::PrintedCharacter(c) => {
+                    current_width += F::total_char_width(c);
 
-                    if let Some(carried_w) = carried {
-                        let carried_word = if is_first_word {
-                            if width != 0 {
-                                let spaces =
-                                    Self::count_printed_spaces(&w[0..w.len() - carried_w.len()]);
-                                current_width += last_space_width + width;
-                                total_spaces += last_spaces + spaces;
-                            }
-                            // first word; break word into parts
-                            carried_w
-                        } else {
-                            // carry the whole word
-                            w
-                        };
-                        carried_token.replace(Token::Word(carried_word));
-                        break;
+                    if c == '\u{A0}' {
+                        total_spaces += 1;
+                    } else {
+                        total_spaces = last_spaces;
+                        current_width += last_space_width;
+
+                        last_space_width = 0;
                     }
-
-                    let spaces = Self::count_printed_spaces(w);
-                    // If there's no carried token, width != 0 assuming there are no empty words
-                    current_width += last_space_width + width;
-                    total_spaces += last_spaces + spaces;
-
-                    is_first_word = false;
-                    last_space_width = 0;
-                    last_spaces = 0;
-                }
-
-                Token::Break => {
-                    // At this moment, Break tokens just ensure that there are no consecutive Word
-                    // tokens. Later, they should be responsible for word wrapping if the next
-                    // Word token (or non-breaking token sequences) do not fit into the line.
-                }
-
-                Token::Whitespace(n) => {
-                    if A::STARTING_SPACES || !is_first_word {
-                        let (width, mut consumed) = F::max_space_width(n, available_space);
-
-                        // update before breaking, so that ENDING_SPACES can use data
-                        last_spaces += n;
-                        last_space_width += width;
-
-                        if n != consumed {
-                            if A::ENDING_SPACES {
-                                consumed += 1;
-                            }
-                            carried_token.replace(Token::Whitespace(n - consumed));
-                            break;
-                        }
-                    }
-                }
-
-                Token::NewLine | Token::CarriageReturn => {
-                    carried_token.replace(token);
-                    break;
                 }
             }
         }
         if A::ENDING_SPACES {
-            total_spaces += last_spaces;
+            total_spaces = last_spaces;
             current_width += last_space_width;
         }
-        (current_width, total_spaces, carried_token)
+        let carried = iter.remaining_token();
+        *parser = iter.parser;
+        (current_width, total_spaces, carried)
     }
 
     /// Measures text height when rendered using a given width.
@@ -301,24 +208,20 @@ where
         let mut current_height = 0;
         let mut parser = Parser::parse(text);
         let mut carry = None;
-        let mut bytes = parser.remaining();
 
         loop {
             let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
-            let remaining = parser.remaining();
-            // exit condition:
-            // - no more tokens to process
-            // - the same token is encountered twice
-            if t.is_none() || (t == carry && bytes == remaining) {
-                if w != 0 {
-                    current_height += F::CHARACTER_SIZE.height;
-                }
-                return current_height;
-            }
-            if t != Some(Token::CarriageReturn) {
+
+            if (w != 0 || t.is_some()) && carry != Some(Token::CarriageReturn) {
+                // something was in this line, increment height
+                // if last carried token was a carriage return, we already counted the height
                 current_height += F::CHARACTER_SIZE.height;
             }
-            bytes = remaining;
+
+            if t.is_none() {
+                return current_height;
+            }
+
             carry = t;
         }
     }
@@ -331,6 +234,14 @@ mod test {
         fonts::{Font, Font6x8},
         pixelcolor::BinaryColor,
     };
+
+    #[test]
+    fn no_infinite_loop() {
+        let _ = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .build()
+            .measure_text_height("a", 5);
+    }
 
     #[test]
     fn test_measure_height() {

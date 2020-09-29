@@ -69,12 +69,6 @@ impl<'a> Parser<'a> {
         self.inner.as_str().is_empty()
     }
 
-    /// Returns the number of unprocessed bytes.
-    #[inline]
-    pub fn remaining(&self) -> usize {
-        self.inner.as_str().len()
-    }
-
     fn is_word_char(c: char) -> bool {
         (!c.is_whitespace() || c == '\u{A0}') && c != '\u{200B}'
     }

@@ -3,14 +3,14 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        cursor::Cursor,
-        line::{SpaceConfig, StyledLineIterator},
-        StateFactory, StyledTextBoxIterator,
+        cursor::Cursor, line::StyledLinePixelIterator, space_config::SpaceConfig, StateFactory,
+        StyledTextBoxIterator,
     },
     style::height_mode::HeightMode,
     utils::font_ext::FontExt,
     StyledTextBox,
 };
+use core::marker::PhantomData;
 use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered fully justified.
@@ -29,7 +29,9 @@ impl HorizontalTextAlignment for Justified {
 /// width is used. This struct stores two width values so the whole line will always (at least if
 /// there's a space in the line) take up all available space.
 #[derive(Copy, Clone, Debug)]
-pub struct JustifiedSpaceConfig {
+pub struct JustifiedSpaceConfig<F: Font + Copy> {
+    _font: PhantomData<F>,
+
     /// The width of the whitespace characters.
     space_width: u32,
 
@@ -38,24 +40,29 @@ pub struct JustifiedSpaceConfig {
     space_count: u32,
 }
 
-impl JustifiedSpaceConfig {
-    #[inline]
-    #[must_use]
-    fn default<F: Font>() -> Self {
-        JustifiedSpaceConfig::new(F::total_char_width(' '), 0)
-    }
-
+impl<F: Font + Copy> JustifiedSpaceConfig<F> {
     #[inline]
     #[must_use]
     fn new(space_width: u32, extra_pixel_count: u32) -> Self {
         JustifiedSpaceConfig {
+            _font: PhantomData,
             space_width,
             space_count: extra_pixel_count,
         }
     }
 }
 
-impl SpaceConfig for JustifiedSpaceConfig {
+impl<F: Font + Copy> Default for JustifiedSpaceConfig<F> {
+    #[inline]
+    #[must_use]
+    fn default() -> Self {
+        Self::new(F::total_char_width(' '), 0)
+    }
+}
+
+impl<F: Font + Copy> SpaceConfig for JustifiedSpaceConfig<F> {
+    type Font = F;
+
     #[inline]
     fn peek_next_width(&self, whitespace_count: u32) -> u32 {
         whitespace_count * self.space_width + self.space_count.min(whitespace_count)
@@ -80,7 +87,7 @@ where
     NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
 
     /// Renders the processed line.
-    DrawLine(StyledLineIterator<'a, C, F, JustifiedSpaceConfig, Justified>),
+    DrawLine(StyledLinePixelIterator<'a, C, F, JustifiedSpaceConfig<F>, Justified>),
 }
 
 impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, Justified, V, H>
@@ -132,10 +139,10 @@ where
                         let extra_pixels = space % total_whitespace_count;
                         JustifiedSpaceConfig::new(space_width, extra_pixels)
                     } else {
-                        JustifiedSpaceConfig::default::<F>()
+                        JustifiedSpaceConfig::default()
                     };
 
-                    self.state = State::DrawLine(StyledLineIterator::new(
+                    self.state = State::DrawLine(StyledLinePixelIterator::new(
                         parser_clone,
                         cursor,
                         space_info,
@@ -152,7 +159,7 @@ where
                     self.state = State::NextLine(
                         line_iterator.remaining_token(),
                         line_iterator.cursor,
-                        line_iterator.parser.clone(),
+                        line_iterator.parser(),
                     );
                 }
             }

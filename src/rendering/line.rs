@@ -3,96 +3,61 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        character::StyledCharacterIterator, cursor::Cursor, whitespace::EmptySpaceIterator,
+        character::StyledCharacterIterator,
+        cursor::Cursor,
+        line_iter::{LineElementIterator, RenderElement},
+        space_config::*,
+        whitespace::EmptySpaceIterator,
     },
     style::{height_mode::HeightMode, TextBoxStyle},
     utils::font_ext::FontExt,
 };
-use core::{marker::PhantomData, ops::Range, str::Chars};
+use core::ops::Range;
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Internal state used to render a line.
 #[derive(Debug)]
-pub enum State<'a, C, F>
+pub enum State<C, F>
 where
     C: PixelColor,
     F: Font + Copy,
 {
-    /// Fetch next token.
+    /// Fetch next render element.
     FetchNext,
 
-    /// Decide what to do next.
-    ProcessToken(Token<'a>),
+    /// Render a character.
+    Char(StyledCharacterIterator<C, F>),
 
-    /// Render a character in a word.
-    WordChar(Chars<'a>, StyledCharacterIterator<C, F>),
+    /// Render a block of whitespace.
+    Space(EmptySpaceIterator<C, F>),
 
-    /// Render a printed space in a word.
-    WordSpace(Chars<'a>, EmptySpaceIterator<C, F>),
-
-    /// Render whitespace.
-    Whitespace(u32, EmptySpaceIterator<C, F>),
-
-    /// Signal that the renderer has finished, store the token that was consumed but not rendered.
-    Done(Option<Token<'a>>),
-}
-
-/// Retrieves size of space characters.
-pub trait SpaceConfig: Copy {
-    /// Look at the size of next n spaces, without advancing.
-    fn peek_next_width(&self, n: u32) -> u32;
-
-    /// Advance the internal state
-    fn consume(&mut self, n: u32) -> u32;
-}
-
-/// Contains the fixed width of a space character.
-#[derive(Copy, Clone, Debug)]
-pub struct UniformSpaceConfig {
-    /// Space width.
-    pub space_width: u32,
-}
-
-impl SpaceConfig for UniformSpaceConfig {
-    #[inline]
-    fn peek_next_width(&self, n: u32) -> u32 {
-        n * self.space_width
-    }
-
-    #[inline]
-    fn consume(&mut self, n: u32) -> u32 {
-        self.peek_next_width(n)
-    }
+    /// Signal that the renderer has finished.
+    Done,
 }
 
 /// Pixel iterator to render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineIterator<'a, C, F, SP, A>
+pub struct StyledLinePixelIterator<'a, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     /// Position information.
     pub cursor: Cursor<F>,
 
-    /// The text to draw.
-    pub parser: Parser<'a>,
-
-    current_token: State<'a, C, F>,
-    config: SP,
+    state: State<C, F>,
     style: TextStyle<C, F>,
-    first_word: bool,
-    alignment: PhantomData<A>,
     display_range: Range<i32>,
+    inner: LineElementIterator<'a, F, SP, A>,
 }
 
-impl<'a, C, F, SP, A> StyledLineIterator<'a, C, F, SP, A>
+impl<'a, C, F, SP, A> StyledLinePixelIterator<'a, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     /// Creates a new pixel iterator to draw the given character.
@@ -109,18 +74,12 @@ where
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        // TODO calculate this based on cursor and vertical overdraw mode
-        let display_range = H::calculate_displayed_row_range(&cursor);
-
         Self {
-            parser,
-            current_token: carried_token.map_or(State::FetchNext, State::ProcessToken),
-            config,
             cursor,
+            state: State::FetchNext,
             style: style.text_style,
-            first_word: true,
-            alignment: PhantomData,
-            display_range,
+            display_range: H::calculate_displayed_row_range(&cursor),
+            inner: LineElementIterator::new(parser, cursor, config, carried_token),
         }
     }
 
@@ -131,135 +90,26 @@ where
     #[must_use]
     #[inline]
     pub fn remaining_token(&self) -> Option<Token<'a>> {
-        match self.current_token {
-            State::Done(ref t) => t.clone(),
-            _ => None,
-        }
+        self.inner.remaining_token()
     }
 
-    fn fits_in_line(&self, width: u32) -> bool {
-        self.cursor.fits_in_line(width)
+    /// When finished, this method returns the text parser object.
+    #[must_use]
+    #[inline]
+    pub fn parser(&self) -> Parser<'a> {
+        self.inner.parser.clone()
     }
 
     fn is_anything_displayed(&self) -> bool {
         self.display_range.start < self.display_range.end
     }
-
-    fn try_draw_next_character(&mut self, word: &'a str) -> State<'a, C, F> {
-        let mut lookahead = word.chars();
-        let pos = self.cursor.position;
-        lookahead.next().map_or(State::FetchNext, |c| {
-            if c == '\u{A0}' {
-                // nbsp
-                let sp_width = self.config.peek_next_width(1);
-
-                if self.cursor.advance(sp_width) {
-                    self.config.consume(1); // we have peeked the value, consume it
-                    return if self.is_anything_displayed() {
-                        State::WordSpace(
-                            lookahead,
-                            EmptySpaceIterator::new(sp_width, pos, self.style),
-                        )
-                    } else {
-                        State::ProcessToken(Token::Word(lookahead.as_str()))
-                    };
-                }
-            } else {
-                // character done, move to the next one
-                let char_width = F::total_char_width(c);
-
-                if self.cursor.advance(char_width) {
-                    return if self.is_anything_displayed() {
-                        State::WordChar(
-                            lookahead,
-                            StyledCharacterIterator::new(
-                                c,
-                                pos,
-                                self.style,
-                                self.display_range.clone(),
-                            ),
-                        )
-                    } else {
-                        State::ProcessToken(Token::Word(lookahead.as_str()))
-                    };
-                }
-            }
-
-            // word wrapping, this line is done
-            Self::finish(&mut self.cursor, Token::Word(word))
-        })
-    }
-
-    fn finish_draw_whitespace(cursor: &mut Cursor<F>, carried: u32) -> State<'a, C, F> {
-        if carried == 0 {
-            State::FetchNext
-        } else {
-            // n > 0 only if not every space was rendered
-            Self::finish(cursor, Token::Whitespace(carried))
-        }
-    }
-
-    fn finish(cursor: &mut Cursor<F>, t: Token<'a>) -> State<'a, C, F> {
-        match t {
-            Token::NewLine => {
-                cursor.new_line();
-                cursor.carriage_return();
-
-                State::Done(None)
-            }
-
-            Token::CarriageReturn => {
-                cursor.carriage_return();
-
-                State::Done(None)
-            }
-
-            c => {
-                cursor.new_line();
-                cursor.carriage_return();
-
-                State::Done(Some(c))
-            }
-        }
-    }
-
-    fn next_word_width(&mut self) -> Option<u32> {
-        let mut width = None;
-        let mut lookahead = self.parser.clone();
-
-        'lookahead: loop {
-            let token = lookahead.next();
-            match token {
-                Some(Token::Word(w)) => {
-                    let w = F::str_width_nocr(w);
-
-                    width = width.map_or(Some(w), |acc| Some(acc + w));
-                }
-                _ => break 'lookahead,
-            };
-        }
-
-        width
-    }
-
-    fn count_widest_space_seq(&mut self, n: u32) -> u32 {
-        // we could also binary search but I don't think it's worth it
-        let mut spaces_to_render = 0;
-        let available = self.cursor.space();
-        while spaces_to_render < n && self.config.peek_next_width(spaces_to_render + 1) < available
-        {
-            spaces_to_render += 1;
-        }
-
-        spaces_to_render
-    }
 }
 
-impl<C, F, SP, A> Iterator for StyledLineIterator<'_, C, F, SP, A>
+impl<C, F, SP, A> Iterator for StyledLinePixelIterator<'_, C, F, SP, A>
 where
     C: PixelColor,
     F: Font + Copy,
-    SP: SpaceConfig,
+    SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
     type Item = Pixel<C>;
@@ -267,130 +117,61 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            match self.current_token {
+            match self.state {
                 // No token being processed, get next one
                 State::FetchNext => {
-                    self.current_token = self.parser.next().map_or_else(
-                        || Self::finish(&mut self.cursor, Token::NewLine),
-                        State::ProcessToken,
-                    );
-                }
+                    self.state = match self.inner.next() {
+                        Some(RenderElement::PrintedCharacter(c)) => {
+                            let char_width = F::total_char_width(c);
+                            let pos = self.cursor.position;
+                            self.cursor.advance_unchecked(char_width);
 
-                State::ProcessToken(ref token) => {
-                    let token = token.clone();
-                    self.current_token = match token {
-                        Token::Whitespace(n) => {
-                            let mut would_wrap = false;
-                            let render_whitespace = if self.first_word {
-                                A::STARTING_SPACES
-                            } else if A::ENDING_SPACES {
-                                true
-                            } else if let Some(word_width) = self.next_word_width() {
-                                // Check if space + w fits in line, otherwise it's up to config
-                                let space_width = self.config.peek_next_width(n);
-                                let fits = self.fits_in_line(space_width + word_width);
-
-                                would_wrap = !fits;
-
-                                fits
+                            if self.is_anything_displayed() {
+                                State::Char(StyledCharacterIterator::new(
+                                    c,
+                                    pos,
+                                    self.style,
+                                    self.display_range.clone(),
+                                ))
                             } else {
-                                false
-                            };
-
-                            if render_whitespace {
-                                // take as many spaces as possible and save the rest in state
-                                let spaces_to_render = self.count_widest_space_seq(n);
-
-                                if spaces_to_render > 0 {
-                                    let pos = self.cursor.position;
-                                    let space_width = self.config.consume(spaces_to_render);
-                                    self.cursor.advance_unchecked(space_width);
-                                    if self.is_anything_displayed() {
-                                        State::Whitespace(
-                                            n - spaces_to_render,
-                                            EmptySpaceIterator::new(space_width, pos, self.style),
-                                        )
-                                    } else {
-                                        Self::finish_draw_whitespace(
-                                            &mut self.cursor,
-                                            n - spaces_to_render,
-                                        )
-                                    }
-                                } else {
-                                    // there are spaces to render but none fit the line
-                                    // eat one as a newline and stop
-                                    Self::finish(
-                                        &mut self.cursor,
-                                        if n > 1 {
-                                            Token::Whitespace(n - 1)
-                                        } else {
-                                            Token::NewLine
-                                        },
-                                    )
-                                }
-                            } else if would_wrap {
-                                Self::finish(&mut self.cursor, Token::NewLine)
-                            } else {
-                                // nothing, process next token
                                 State::FetchNext
                             }
                         }
 
-                        Token::Break => {
-                            // At this moment, Break tokens just ensure that there are no consecutive
-                            // Word tokens. Later, they should be responsible for word wrapping if
-                            // the next Word token (or non-breaking token sequences) do not fit into
-                            // the line.
-                            State::FetchNext
-                        }
-
-                        Token::Word(w) => {
-                            // FIXME: this isn't exactly optimal when outside of the display area
-                            if self.first_word {
-                                self.first_word = false;
-
-                                self.try_draw_next_character(w)
-                            } else if self.fits_in_line(F::str_width_nocr(w)) {
-                                self.try_draw_next_character(w)
+                        Some(RenderElement::Space(space_width, _)) => {
+                            let pos = self.cursor.position;
+                            self.cursor.advance_unchecked(space_width);
+                            if self.is_anything_displayed() {
+                                State::Space(EmptySpaceIterator::new(space_width, pos, self.style))
                             } else {
-                                Self::finish(&mut self.cursor, token)
+                                State::FetchNext
                             }
                         }
 
-                        Token::NewLine | Token::CarriageReturn => {
-                            // we're done
-                            Self::finish(&mut self.cursor, token)
+                        None => {
+                            self.cursor = self.inner.cursor;
+                            State::Done
                         }
-                    }
+                    };
                 }
 
-                State::Whitespace(ref n, ref mut iter) => {
+                State::Char(ref mut iter) => {
                     if let pixel @ Some(_) = iter.next() {
                         break pixel;
                     }
 
-                    self.current_token = Self::finish_draw_whitespace(&mut self.cursor, *n);
+                    self.state = State::FetchNext;
                 }
 
-                State::WordChar(ref chars, ref mut iter) => {
+                State::Space(ref mut iter) => {
                     if let pixel @ Some(_) = iter.next() {
                         break pixel;
                     }
 
-                    let word = chars.as_str();
-                    self.current_token = self.try_draw_next_character(word);
+                    self.state = State::FetchNext;
                 }
 
-                State::WordSpace(ref chars, ref mut iter) => {
-                    if let pixel @ Some(_) = iter.next() {
-                        break pixel;
-                    }
-
-                    let word = chars.as_str();
-                    self.current_token = self.try_draw_next_character(word);
-                }
-
-                State::Done(_) => {
+                State::Done => {
                     break None;
                 }
             }
@@ -404,7 +185,7 @@ mod test {
         parser::{Parser, Token},
         rendering::{
             cursor::Cursor,
-            line::{StyledLineIterator, UniformSpaceConfig},
+            line::{StyledLinePixelIterator, UniformSpaceConfig},
         },
         style::TextBoxStyleBuilder,
     };
@@ -416,14 +197,14 @@ mod test {
     #[test]
     fn simple_render() {
         let parser = Parser::parse(" Some sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -447,7 +228,7 @@ mod test {
     #[test]
     fn render_before_area() {
         let parser = Parser::parse(" Some sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
@@ -456,7 +237,7 @@ mod test {
         let mut cursor = Cursor::new(Rectangle::new(Point::new(0, 8), Point::new(6 * 7 - 1, 16)));
         cursor.position.y -= 8;
 
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
 
         assert!(
             iter.next().is_none(),
@@ -470,14 +251,14 @@ mod test {
     #[test]
     fn simple_render_nbsp() {
         let parser = Parser::parse("Some\u{A0}sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -501,14 +282,14 @@ mod test {
     #[test]
     fn simple_render_first_word_not_wrapped() {
         let parser = Parser::parse(" Some sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 7)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -532,14 +313,14 @@ mod test {
     #[test]
     fn newline_stops_render() {
         let parser = Parser::parse("Some \nsample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -567,18 +348,18 @@ mod test {
             .build();
 
         let parser = Parser::parse("Some  sample text");
-        let config = UniformSpaceConfig { space_width: 6 };
+        let config = UniformSpaceConfig::default();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)));
-        let mut iter = StyledLineIterator::new(parser, cursor, config, style, None);
+        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
 
         assert_eq!(Some(Token::Whitespace(1)), iter.remaining_token());
 
-        let mut iter = StyledLineIterator::new(
-            iter.parser.clone(),
+        let mut iter = StyledLinePixelIterator::new(
+            iter.parser(),
             cursor,
             config,
             style,

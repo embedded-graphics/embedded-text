@@ -52,16 +52,16 @@ jobs:
       run: |
         mkdir -p ./target/screenshots
         EG_SIMULATOR_DUMP="./target/screenshots/left.png" cargo run --example left
-        EG_SIMULATOR_DUMP="./target/screenshots/right.png" cargo run --example right
-        EG_SIMULATOR_DUMP="./target/screenshots/center.png" cargo run --example center
-        EG_SIMULATOR_DUMP="./target/screenshots/justified.png" cargo run --example justified
-        EG_SIMULATOR_DUMP="./target/screenshots/specials.png" cargo run --example specials
-        EG_SIMULATOR_DUMP="./target/screenshots/variable_width.png" cargo run --example variable_width
-        EG_SIMULATOR_DUMP="./target/screenshots/vertical.png" cargo run --example vertical
         compare -metric AE ./assets/left.png ./target/screenshots/left.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/right.png" cargo run --example right
         compare -metric AE ./assets/right.png ./target/screenshots/right.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/center.png" cargo run --example center
         compare -metric AE ./assets/center.png ./target/screenshots/center.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/justified.png" cargo run --example justified
         compare -metric AE ./assets/justified.png ./target/screenshots/justified.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/specials.png" cargo run --example specials
         compare -metric AE ./assets/specials.png ./target/screenshots/specials.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/variable_width.png" cargo run --example variable_width
         compare -metric AE ./assets/variable_width.png ./target/screenshots/variable_width.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/vertical.png" cargo run --example vertical
         compare -metric AE ./assets/vertical.png ./target/screenshots/vertical.png result.png

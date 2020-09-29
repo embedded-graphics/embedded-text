@@ -3,6 +3,8 @@
 pub mod character;
 pub mod cursor;
 pub mod line;
+pub mod line_iter;
+pub mod space_config;
 pub mod whitespace;
 
 use crate::{
