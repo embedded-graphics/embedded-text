@@ -115,13 +115,7 @@ impl<'a> Iterator for Parser<'a> {
                     '\n' => Some(Token::NewLine),
                     '\r' => Some(Token::CarriageReturn),
                     '\u{200B}' => Some(Token::Break(None)),
-                    '\u{00AD}' => {
-                        // work around rustc issue #77417
-                        if iter.next() == Some('\u{00AD}') {
-                            self.inner = iter.clone();
-                        }
-                        Some(Token::Break(Some('-')))
-                    }
+                    '\u{00AD}' => Some(Token::Break(Some('-'))),
 
                     _ => {
                         let mut len = 1;
@@ -227,8 +221,8 @@ mod test {
 
     #[test]
     fn parse_shy_issue_42() {
-        let text = "f\u{AD}­cali";
-        println!("{:?}", "f\u{AD}­cali");
+        let text = "f\u{AD}cali";
+        println!("{:?}", "f\u{AD}cali");
 
         assert_eq!(
             Parser::parse(text).collect::<Vec<Token>>(),

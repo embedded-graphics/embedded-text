@@ -441,7 +441,7 @@ mod test {
     #[test]
     fn soft_hyphen_issue_42() {
         let parser =
-            Parser::parse("super\u{AD}­cali\u{AD}­fragi\u{AD}­listic\u{AD}­espeali\u{AD}­docious");
+            Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(5 * 6 - 1, 16)), 0);
