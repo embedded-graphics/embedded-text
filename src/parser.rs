@@ -35,6 +35,9 @@ pub enum Token<'a> {
 
     /// A possible wrapping point
     Break(Option<char>),
+
+    /// An extra character - used to carry soft breaking chars.
+    ExtraCharacter(char),
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.

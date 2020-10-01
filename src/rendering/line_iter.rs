@@ -299,15 +299,27 @@ where
                                         break Some(RenderElement::PrintedCharacter(c));
                                     } else {
                                         // this line is done
-                                        self.finish_wrapped();
+                                        self.finish(Token::ExtraCharacter(c));
                                     }
                                 } else {
                                     // this line is done
                                     self.finish_wrapped();
                                 }
                             } else {
-                                // next token is not a word
+                                // next token is not a word, ignore Break
                                 self.next_token();
+                            }
+                        }
+
+                        Token::ExtraCharacter(c) => {
+                            let char_width = F::total_char_width(c);
+                            if self.cursor.advance(char_width) {
+                                self.next_token();
+                                break Some(RenderElement::PrintedCharacter(c));
+                            } else {
+                                // ExtraCharacter currently may only be the first one.
+                                // If it doesn't fit, stop.
+                                self.finish_end_of_string();
                             }
                         }
 
