@@ -72,7 +72,7 @@ where
         carried_token: Option<Token<'a>>,
     ) -> Self {
         let current_token = carried_token
-            .filter(|t| ![Token::NewLine, Token::CarriageReturn].contains(t))
+            .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break].contains(t))
             .or_else(|| parser.next())
             .map_or(State::Done(None), State::ProcessToken);
 
@@ -188,6 +188,8 @@ where
 
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                 }
+                // TODO: later, Break tokens may contain characters to be displayed when wrapped.
+                // Add the contained character's width to the word width and stop.
                 _ => break 'lookahead,
             };
         }
@@ -280,11 +282,19 @@ where
                         }
 
                         Token::Break => {
-                            // At this moment, Break tokens just ensure that there are no consecutive
-                            // Word tokens. Later, they should be responsible for word wrapping if
-                            // the next Word token (or non-breaking token sequences) do not fit into
-                            // the line.
-                            self.next_token();
+                            // TODO: if a Break contains a character, display it if the next Word
+                            // token does not fit the line.
+                            if let Some(word_width) = self.next_word_width() {
+                                let fits = self.cursor.fits_in_line(word_width);
+                                if fits {
+                                    self.next_token();
+                                } else {
+                                    self.finish_wrapped();
+                                }
+                            } else {
+                                // next token is not a word
+                                self.finish_wrapped();
+                            }
                         }
 
                         Token::Word(w) => {
