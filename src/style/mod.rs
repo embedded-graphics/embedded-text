@@ -34,9 +34,9 @@ pub use builder::TextBoxStyleBuilder;
 
 /// Styling options of a [`TextBox`].
 ///
-/// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor`, [`HeightMode`],
-/// [`HorizontalTextAlignment`] and [`VerticalTextAlignment`] information necessary to draw a
-/// [`TextBox`].
+/// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor`, line spacing,
+/// [`HeightMode`], [`HorizontalTextAlignment`] and [`VerticalTextAlignment`] information necessary
+/// to draw a [`TextBox`].
 ///
 /// To construct a new `TextBoxStyle` object, use the [`new`] or [`from_text_style`] methods or
 /// the [`TextBoxStyleBuilder`] object.
@@ -67,6 +67,9 @@ where
 
     /// The height behaviour
     pub height_mode: H,
+
+    /// Desired space between lines, in pixels
+    pub line_spacing: i32,
 }
 
 impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
@@ -91,6 +94,7 @@ where
             alignment,
             vertical_alignment,
             height_mode,
+            line_spacing: 0,
         }
     }
 
@@ -107,6 +111,7 @@ where
             alignment,
             vertical_alignment,
             height_mode,
+            line_spacing: 0,
         }
     }
 
@@ -125,13 +130,16 @@ where
         carried_token: Option<Token<'a>>,
         max_line_width: u32,
     ) -> (u32, u32, Option<Token<'a>>) {
-        let cursor: Cursor<F> = Cursor::new(Rectangle::new(
-            Point::zero(),
-            Point::new(
-                max_line_width.saturating_sub(1) as i32,
-                F::CHARACTER_SIZE.height.saturating_sub(1) as i32,
+        let cursor: Cursor<F> = Cursor::new(
+            Rectangle::new(
+                Point::zero(),
+                Point::new(
+                    max_line_width.saturating_sub(1) as i32,
+                    F::CHARACTER_SIZE.height.saturating_sub(1) as i32,
+                ),
             ),
-        ));
+            self.line_spacing,
+        );
         let mut iter: LineElementIterator<'_, F, _, A> = LineElementIterator::new(
             parser.clone(),
             cursor,
@@ -205,7 +213,7 @@ where
     #[inline]
     #[must_use]
     pub fn measure_text_height(&self, text: &str, max_width: u32) -> u32 {
-        let mut current_height = 0;
+        let mut n_lines = 0_i32;
         let mut parser = Parser::parse(text);
         let mut carry = None;
 
@@ -215,11 +223,12 @@ where
             if (w != 0 || t.is_some()) && carry != Some(Token::CarriageReturn) {
                 // something was in this line, increment height
                 // if last carried token was a carriage return, we already counted the height
-                current_height += F::CHARACTER_SIZE.height;
+                n_lines += 1;
             }
 
             if t.is_none() {
-                return current_height;
+                return (n_lines * F::CHARACTER_SIZE.height as i32
+                    + n_lines.saturating_sub(1) * self.line_spacing) as u32;
             }
 
             carry = t;
@@ -341,5 +350,20 @@ mod test {
 
         let height = textbox_style.measure_text_height(text, 79);
         assert_eq!(height, 4 * Font6x8::CHARACTER_SIZE.height);
+    }
+
+    #[test]
+    fn height_with_line_spacing() {
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .line_spacing(2)
+            .build();
+
+        let height = style.measure_text_height(
+            "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
+            72,
+        );
+
+        assert_eq!(height, 7 * 8 + 6 * 2);
     }
 }

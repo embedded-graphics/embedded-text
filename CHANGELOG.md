@@ -7,18 +7,19 @@ Unreleased
  * Added `HeightMode` to select whether and how the `StyledTextBox` height should be aligned to the
    actual text height.
  * Added `Hidden`, `Visible` and `FullRowsOnly` overflow control modes to `Exact` and `ShrinkToText` height modes.
+ * Added line spacing support via `TextBoxStyleBuilder::line_spacing`
 
 ## Changed:
 
  * Deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
  * **breaking** Moved `StyledTextBox` to the root module.
  * Added `StyledTextBox::fit_height` and `StyledTextBox::fit_height_limited` to adjust height to text
- 
+
 ## Fixed:
 
  * Fix `CenterAligned` and `BottomAligned` vertical alignments crashing the program when text is
    taller than the `TextBox`.
- 
+
 0.2.0 (2020-08-15)
 ==================
 

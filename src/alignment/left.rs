@@ -238,6 +238,89 @@ mod test {
     }
 
     #[test]
+    fn simple_word_wrapping_with_line_spacing() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .line_spacing(2)
+            .build();
+
+        TextBox::new(
+            "wrapping word",
+            Rectangle::new(Point::zero(), Point::new(47, 50)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "................................#...............",
+                "................................................",
+                "#...#.#.##...###..####..####...##...#.##...####.",
+                "#...#.##..#.....#.#...#.#...#...#...##..#.#...#.",
+                "#.#.#.#......####.#...#.#...#...#...#...#.#...#.",
+                "#.#.#.#.....#...#.####..####....#...#...#..####.",
+                ".#.#..#......####.#.....#......###..#...#.....#.",
+                "..................#.....#..................###..",
+                "                                                ",
+                "                                                ",
+                "......................#.                        ",
+                "......................#.                        ",
+                "#...#..###..#.##...##.#.                        ",
+                "#...#.#...#.##..#.#..##.                        ",
+                "#.#.#.#...#.#.....#...#.                        ",
+                "#.#.#.#...#.#.....#...#.                        ",
+                ".#.#...###..#......####.                        ",
+                "........................                        ",
+            ])
+        );
+    }
+
+    #[test]
+    fn simple_word_wrapping_with_negative_line_spacing() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(LeftAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .line_spacing(-1)
+            .build();
+
+        TextBox::new(
+            "wrapping word",
+            Rectangle::new(Point::zero(), Point::new(47, 50)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "................................#...............",
+                "................................................",
+                "#...#.#.##...###..####..####...##...#.##...####.",
+                "#...#.##..#.....#.#...#.#...#...#...##..#.#...#.",
+                "#.#.#.#......####.#...#.#...#...#...#...#.#...#.",
+                "#.#.#.#.....#...#.####..####....#...#...#..####.",
+                ".#.#..#......####.#.....#......###..#...#.....#.",
+                "......................#.#..................###..", // note the first p being drawn over
+                "......................#.                        ",
+                "#...#..###..#.##...##.#.                        ",
+                "#...#.#...#.##..#.#..##.                        ",
+                "#.#.#.#...#.#.....#...#.                        ",
+                "#.#.#.#...#.#.....#...#.                        ",
+                ".#.#...###..#......####.                        ",
+                "........................                        ",
+            ])
+        );
+    }
+
+    #[test]
     fn whitespace_word_wrapping() {
         let mut display = MockDisplay::new();
         let style = TextBoxStyleBuilder::new(Font6x8)

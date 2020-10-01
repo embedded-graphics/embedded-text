@@ -27,6 +27,7 @@ where
     alignment: A,
     vertical_alignment: V,
     height_mode: H,
+    line_spacing: i32,
 }
 
 impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact<FullRowsOnly>>
@@ -42,6 +43,7 @@ where
     ///  - Text color: transparent
     ///  - Background color: transparent
     ///  - Height mode: [`Exact`]
+    ///  - Line spacing: 0px
     #[inline]
     #[must_use]
     pub fn new(font: F) -> Self {
@@ -50,6 +52,7 @@ where
             alignment: LeftAligned,
             vertical_alignment: TopAligned,
             height_mode: Exact(FullRowsOnly),
+            line_spacing: 0,
         }
     }
 
@@ -115,6 +118,29 @@ where
     pub fn text_color(self, text_color: C) -> Self {
         Self {
             text_style_builder: self.text_style_builder.text_color(text_color),
+            ..self
+        }
+    }
+    /// Sets the vertical space between lines, in pixels.
+    ///
+    /// *Note:* You can set negative values as line spacing if you wish your lines to overlap.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use embedded_text::prelude::*;
+    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor};
+    ///
+    /// let style = TextBoxStyleBuilder::new(Font6x8)
+    ///     .text_color(BinaryColor::On)
+    ///     .line_spacing(3)
+    ///     .build();
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn line_spacing(self, line_spacing: i32) -> Self {
+        Self {
+            line_spacing,
             ..self
         }
     }
@@ -193,6 +219,7 @@ where
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment,
+            line_spacing: self.line_spacing,
             vertical_alignment: self.vertical_alignment,
             height_mode: self.height_mode,
         }
@@ -208,6 +235,7 @@ where
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment: self.alignment,
+            line_spacing: self.line_spacing,
             vertical_alignment,
             height_mode: self.height_mode,
         }
@@ -223,6 +251,7 @@ where
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment: self.alignment,
+            line_spacing: self.line_spacing,
             vertical_alignment: self.vertical_alignment,
             height_mode,
         }
@@ -237,6 +266,7 @@ where
         TextBoxStyle {
             text_style: self.text_style_builder.build(),
             alignment: self.alignment,
+            line_spacing: self.line_spacing,
             vertical_alignment: self.vertical_alignment,
             height_mode: self.height_mode,
         }
