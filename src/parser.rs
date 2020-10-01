@@ -34,7 +34,7 @@ pub enum Token<'a> {
     Word(&'a str),
 
     /// A possible wrapping point
-    Break,
+    Break(Option<char>),
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.
@@ -70,7 +70,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_word_char(c: char) -> bool {
-        (!c.is_whitespace() || c == '\u{A0}') && c != '\u{200B}'
+        (!c.is_whitespace() || c == '\u{A0}') && !['\u{200B}', '\u{00AD}'].contains(&c)
     }
 
     fn is_space_char(c: char) -> bool {
@@ -111,7 +111,8 @@ impl<'a> Iterator for Parser<'a> {
                 match c {
                     '\n' => Some(Token::NewLine),
                     '\r' => Some(Token::CarriageReturn),
-                    '\u{200B}' => Some(Token::Break),
+                    '\u{200B}' => Some(Token::Break(None)),
+                    '\u{00AD}' => Some(Token::Break(Some('-'))),
 
                     _ => {
                         let mut len = 1;
@@ -146,7 +147,7 @@ mod test {
     #[test]
     fn parse() {
         // (At least) for now, \r is considered a whitespace
-        let text = "Lorem ipsum \r dolor sit amet, conse😅ctetur adipiscing\nelit";
+        let text = "Lorem ipsum \r dolor sit am\u{00AD}et, conse😅ctetur adipiscing\nelit";
 
         assert_eq!(
             Parser::parse(text).collect::<Vec<Token>>(),
@@ -161,7 +162,9 @@ mod test {
                 Token::Whitespace(1),
                 Token::Word("sit"),
                 Token::Whitespace(1),
-                Token::Word("amet,"),
+                Token::Word("am"),
+                Token::Break(Some('-')),
+                Token::Word("et,"),
                 Token::Whitespace(1),
                 Token::Word("conse😅ctetur"),
                 Token::Whitespace(1),
@@ -179,7 +182,7 @@ mod test {
 
         assert_eq!(
             Parser::parse(text).collect::<Vec<Token>>(),
-            vec![Token::Word("two"), Token::Break, Token::Word("words")]
+            vec![Token::Word("two"), Token::Break(None), Token::Word("words")]
         );
 
         assert_eq!(

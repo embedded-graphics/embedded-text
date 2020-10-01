@@ -27,7 +27,7 @@ pub enum State<'a> {
 }
 
 /// What to draw
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RenderElement {
     /// Render a whitespace block with the given width and count
     Space(u32, u32),
@@ -72,7 +72,7 @@ where
         carried_token: Option<Token<'a>>,
     ) -> Self {
         let current_token = carried_token
-            .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break].contains(t))
+            .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t))
             .or_else(|| parser.next())
             .map_or(State::Done(None), State::ProcessToken);
 
@@ -149,7 +149,7 @@ where
         self.cursor.new_line();
         self.cursor.carriage_return();
 
-        self.current_token = State::Done(Some(Token::Break));
+        self.current_token = State::Done(Some(Token::Break(None)));
     }
 
     fn finish(&mut self, t: Token<'a>) {
@@ -188,8 +188,11 @@ where
 
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                 }
-                // TODO: later, Break tokens may contain characters to be displayed when wrapped.
-                // Add the contained character's width to the word width and stop.
+                Some(Token::Break(Some(c))) => {
+                    let w = F::total_char_width(c);
+                    width = width.map_or(Some(w), |acc| Some(acc + w));
+                    break 'lookahead;
+                }
                 _ => break 'lookahead,
             };
         }
@@ -281,19 +284,30 @@ where
                             }
                         }
 
-                        Token::Break => {
-                            // TODO: if a Break contains a character, display it if the next Word
-                            // token does not fit the line.
+                        Token::Break(c) => {
                             if let Some(word_width) = self.next_word_width() {
                                 let fits = self.cursor.fits_in_line(word_width);
                                 if fits {
                                     self.next_token();
+                                } else if let Some(c) = c {
+                                    // If a Break contains a character, display it if the next
+                                    // Word token does not fit the line.
+                                    let char_width = F::total_char_width(c);
+
+                                    if self.cursor.advance(char_width) {
+                                        self.finish_wrapped();
+                                        break Some(RenderElement::PrintedCharacter(c));
+                                    } else {
+                                        // this line is done
+                                        self.finish_wrapped();
+                                    }
                                 } else {
+                                    // this line is done
                                     self.finish_wrapped();
                                 }
                             } else {
                                 // next token is not a word
-                                self.finish_wrapped();
+                                self.next_token();
                             }
                         }
 
@@ -338,5 +352,77 @@ where
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::alignment::LeftAligned;
+    use embedded_graphics::fonts::Font6x8;
+    use embedded_graphics::primitives::Rectangle;
+
+    #[test]
+    fn soft_hyphen_no_wrapping() {
+        let parser = Parser::parse("sam\u{00AD}ple");
+        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 6 - 1, 8)), 0);
+
+        let iter: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(parser, cursor, config, None);
+
+        assert_eq!(
+            iter.collect::<Vec<RenderElement>>(),
+            vec![
+                RenderElement::PrintedCharacter('s'),
+                RenderElement::PrintedCharacter('a'),
+                RenderElement::PrintedCharacter('m'),
+                RenderElement::PrintedCharacter('p'),
+                RenderElement::PrintedCharacter('l'),
+                RenderElement::PrintedCharacter('e'),
+            ]
+        );
+    }
+
+    #[test]
+    fn soft_hyphen() {
+        let parser = Parser::parse("sam\u{00AD}ple");
+        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 6 - 2, 16)), 0);
+
+        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(parser, cursor, config, None);
+
+        let mut v = Vec::new();
+        while let Some(re) = line1.next() {
+            v.push(re);
+        }
+
+        assert_eq!(
+            v,
+            vec![
+                RenderElement::PrintedCharacter('s'),
+                RenderElement::PrintedCharacter('a'),
+                RenderElement::PrintedCharacter('m'),
+                RenderElement::PrintedCharacter('-'),
+            ]
+        );
+
+        assert_eq!(line1.cursor.position, Point::new(0, 8));
+
+        let carried = line1.remaining_token();
+        let line2: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(line1.parser, line1.cursor, config, carried);
+
+        assert_eq!(
+            line2.collect::<Vec<RenderElement>>(),
+            vec![
+                RenderElement::PrintedCharacter('p'),
+                RenderElement::PrintedCharacter('l'),
+                RenderElement::PrintedCharacter('e'),
+            ]
+        );
     }
 }
