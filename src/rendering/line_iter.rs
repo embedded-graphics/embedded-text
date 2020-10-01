@@ -299,15 +299,27 @@ where
                                         break Some(RenderElement::PrintedCharacter(c));
                                     } else {
                                         // this line is done
-                                        self.finish_wrapped();
+                                        self.finish(Token::ExtraCharacter(c));
                                     }
                                 } else {
                                     // this line is done
                                     self.finish_wrapped();
                                 }
                             } else {
-                                // next token is not a word
+                                // next token is not a word, ignore Break
                                 self.next_token();
+                            }
+                        }
+
+                        Token::ExtraCharacter(c) => {
+                            let char_width = F::total_char_width(c);
+                            if self.cursor.advance(char_width) {
+                                self.next_token();
+                                break Some(RenderElement::PrintedCharacter(c));
+                            } else {
+                                // ExtraCharacter currently may only be the first one.
+                                // If it doesn't fit, stop.
+                                self.finish_end_of_string();
                             }
                         }
 
@@ -422,6 +434,51 @@ mod test {
                 RenderElement::PrintedCharacter('p'),
                 RenderElement::PrintedCharacter('l'),
                 RenderElement::PrintedCharacter('e'),
+            ]
+        );
+    }
+
+    #[test]
+    fn soft_hyphen_issue_42() {
+        let parser =
+            Parser::parse("super\u{AD}­cali\u{AD}­fragi\u{AD}­listic\u{AD}­espeali\u{AD}­docious");
+        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(5 * 6 - 1, 16)), 0);
+
+        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(parser, cursor, config, None);
+
+        let mut v = Vec::new();
+        while let Some(re) = line1.next() {
+            v.push(re);
+        }
+
+        assert_eq!(
+            v,
+            vec![
+                RenderElement::PrintedCharacter('s'),
+                RenderElement::PrintedCharacter('u'),
+                RenderElement::PrintedCharacter('p'),
+                RenderElement::PrintedCharacter('e'),
+                RenderElement::PrintedCharacter('r'),
+            ]
+        );
+
+        assert_eq!(line1.cursor.position, Point::new(0, 8));
+
+        let carried = line1.remaining_token();
+        let line2: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(line1.parser, line1.cursor, config, carried);
+
+        assert_eq!(
+            line2.collect::<Vec<RenderElement>>(),
+            vec![
+                RenderElement::PrintedCharacter('-'),
+                RenderElement::PrintedCharacter('c'),
+                RenderElement::PrintedCharacter('a'),
+                RenderElement::PrintedCharacter('l'),
+                RenderElement::PrintedCharacter('i'),
             ]
         );
     }

@@ -35,6 +35,9 @@ pub enum Token<'a> {
 
     /// A possible wrapping point
     Break(Option<char>),
+
+    /// An extra character - used to carry soft breaking chars.
+    ExtraCharacter(char),
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.
@@ -112,7 +115,13 @@ impl<'a> Iterator for Parser<'a> {
                     '\n' => Some(Token::NewLine),
                     '\r' => Some(Token::CarriageReturn),
                     '\u{200B}' => Some(Token::Break(None)),
-                    '\u{00AD}' => Some(Token::Break(Some('-'))),
+                    '\u{00AD}' => {
+                        // work around rustc issue #77417
+                        if iter.next() == Some('\u{00AD}') {
+                            self.inner = iter.clone();
+                        }
+                        Some(Token::Break(Some('-')))
+                    }
 
                     _ => {
                         let mut len = 1;
@@ -213,6 +222,21 @@ mod test {
         assert_eq!(
             Parser::parse(" \u{A0}word").collect::<Vec<Token>>(),
             vec![Token::Whitespace(1), Token::Word("\u{A0}word"),]
+        );
+    }
+
+    #[test]
+    fn parse_shy_issue_42() {
+        let text = "f\u{AD}­cali";
+        println!("{:?}", "f\u{AD}­cali");
+
+        assert_eq!(
+            Parser::parse(text).collect::<Vec<Token>>(),
+            vec![
+                Token::Word("f"),
+                Token::Break(Some('-')),
+                Token::Word("cali"),
+            ]
         );
     }
 }
