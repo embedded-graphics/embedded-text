@@ -13,6 +13,8 @@ pub struct Cursor<F: Font> {
     /// TextBox bounding rectangle
     pub bounds: Rectangle,
 
+    line_spacing: i32,
+
     _marker: PhantomData<F>,
 }
 
@@ -20,10 +22,11 @@ impl<F: Font> Cursor<F> {
     /// Creates a new `Cursor` object located at the top left of the given bounding [`Rectangle`].
     #[inline]
     #[must_use]
-    pub fn new(bounds: Rectangle) -> Self {
+    pub fn new(bounds: Rectangle, line_spacing: i32) -> Self {
         Self {
             _marker: PhantomData,
             position: bounds.top_left,
+            line_spacing,
             bounds: Rectangle::new(
                 bounds.top_left,
                 bounds.bottom_right + Point::new(1, 1 - F::CHARACTER_SIZE.height as i32),
@@ -41,7 +44,7 @@ impl<F: Font> Cursor<F> {
     /// Starts a new line.
     #[inline]
     pub fn new_line(&mut self) {
-        self.position.y += F::CHARACTER_SIZE.height as i32;
+        self.position.y += F::CHARACTER_SIZE.height as i32 + self.line_spacing;
     }
 
     /// Moves the cursor back to the start of the line.
@@ -102,7 +105,8 @@ mod test {
     #[test]
     fn fits_in_line() {
         // 6px width
-        let cursor: Cursor<Font6x8> = Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)));
+        let cursor: Cursor<Font6x8> =
+            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
 
         assert!(cursor.fits_in_line(6));
         assert!(!cursor.fits_in_line(7));
@@ -112,7 +116,7 @@ mod test {
     fn advance_moves_position() {
         // 6px width
         let mut cursor: Cursor<Font6x8> =
-            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)));
+            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
 
         assert!(cursor.fits_in_line(1));
         cursor.advance(6);
@@ -123,7 +127,7 @@ mod test {
     fn in_display_area() {
         // 6px width
         let mut cursor: Cursor<Font6x8> =
-            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)));
+            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
 
         let data = [(0, true), (-8, false), (-1, false), (1, false)];
         for &(pos, inside) in data.iter() {

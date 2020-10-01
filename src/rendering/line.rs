@@ -203,7 +203,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)), 0);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
@@ -234,7 +234,10 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut cursor = Cursor::new(Rectangle::new(Point::new(0, 8), Point::new(6 * 7 - 1, 16)));
+        let mut cursor = Cursor::new(
+            Rectangle::new(Point::new(0, 8), Point::new(6 * 7 - 1, 16)),
+            0,
+        );
         cursor.position.y -= 8;
 
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
@@ -257,7 +260,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)), 0);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
@@ -288,7 +291,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 7)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 7)), 0);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
@@ -319,7 +322,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)), 0);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
@@ -350,7 +353,7 @@ mod test {
         let parser = Parser::parse("Some  sample text");
         let config = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)));
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)), 0);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 

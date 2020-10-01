@@ -41,7 +41,10 @@ mod test {
         primitives::Rectangle,
     };
 
-    use crate::{alignment::BottomAligned, style::TextBoxStyleBuilder, TextBox};
+    use crate::{
+        alignment::BottomAligned, style::height_mode::Exact, style::vertical_overdraw::Visible,
+        style::TextBoxStyleBuilder, TextBox,
+    };
 
     #[test]
     fn test_bottom_alignment() {
@@ -108,6 +111,48 @@ mod test {
                 "#.#.#.#...#.#.....#...#.#...#.",
                 ".#.#...###..#......####..###..",
                 "..............................",
+                "......................#....#..",
+                "......................#...##..",
+                "#...#..###..#.##...##.#..#.#..",
+                "#...#.#...#.##..#.#..##.#..#..",
+                "#.#.#.#...#.#.....#...#.#####.",
+                "#.#.#.#...#.#.....#...#....#..",
+                ".#.#...###..#......####....#..",
+                "..............................",
+            ])
+        );
+    }
+
+    #[test]
+    fn test_bottom_alignment_tall_text_with_line_spacing() {
+        let mut display = MockDisplay::new();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .vertical_alignment(BottomAligned)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .height_mode(Exact(Visible))
+            .line_spacing(2)
+            .build();
+
+        TextBox::new(
+            "word1 word2 word3 word4",
+            Rectangle::new(Point::zero(), Point::new(30, 15)),
+        )
+        .into_styled(style)
+        .draw(&mut display)
+        .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "#...#..###..#.##...##.#.....#.",
+                "#...#.#...#.##..#.#..##...##..",
+                "#.#.#.#...#.#.....#...#.....#.",
+                "#.#.#.#...#.#.....#...#.#...#.",
+                ".#.#...###..#......####..###..",
+                "..............................",
+                "                              ",
+                "                              ",
                 "......................#....#..",
                 "......................#...##..",
                 "#...#..###..#.##...##.#..#.#..",
