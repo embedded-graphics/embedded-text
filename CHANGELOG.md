@@ -8,6 +8,7 @@ Unreleased
    actual text height.
  * Added `Hidden`, `Visible` and `FullRowsOnly` overflow control modes to `Exact` and `ShrinkToText` height modes.
  * Added line spacing support via `TextBoxStyleBuilder::line_spacing`
+ * Soft hyphen character support (`\u{AD}`), rendered as a normal `-`.
 
 ## Changed:
 
