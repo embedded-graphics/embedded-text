@@ -18,7 +18,7 @@ impl HorizontalTextAlignment for LeftAligned {
     const ENDING_SPACES: bool = true;
 }
 
-impl<'a, C, F, V, H> RendererFactory<'a, F, C> for StyledTextBox<'a, C, F, LeftAligned, V, H>
+impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, LeftAligned, V, H>
 where
     C: PixelColor,
     F: Font + Copy,

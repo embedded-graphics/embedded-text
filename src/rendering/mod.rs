@@ -35,7 +35,7 @@ where
 /// This trait is used to associate a renderer type to a horizontal alignment option.
 ///
 /// Implementing this trait is only necessary when creating new alignment algorithms.
-pub trait RendererFactory<'a, F: Font, C: PixelColor> {
+pub trait RendererFactory<'a, C: PixelColor> {
     /// The type of the pixel iterator.
     type Renderer: Iterator<Item = Pixel<C>>;
 

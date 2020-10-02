@@ -307,7 +307,7 @@ where
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBox<'a, C, F, A, V, H>: RendererFactory<'a, F, C>,
+    StyledTextBox<'a, C, F, A, V, H>: RendererFactory<'a, C>,
     H: HeightMode,
 {
     #[inline]

@@ -20,7 +20,7 @@ impl HorizontalTextAlignment for CenterAligned {
     const ENDING_SPACES: bool = false;
 }
 
-impl<'a, C, F, V, H> RendererFactory<'a, F, C> for StyledTextBox<'a, C, F, CenterAligned, V, H>
+impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, CenterAligned, V, H>
 where
     C: PixelColor,
     F: Font + Copy,

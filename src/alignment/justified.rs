@@ -76,7 +76,7 @@ impl<F: Font + Copy> SpaceConfig for JustifiedSpaceConfig<F> {
     }
 }
 
-impl<'a, C, F, V, H> RendererFactory<'a, F, C> for StyledTextBox<'a, C, F, Justified, V, H>
+impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, Justified, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
