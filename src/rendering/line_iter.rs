@@ -108,10 +108,7 @@ where
     }
 
     fn finish_wrapped(&mut self) {
-        self.cursor.new_line();
-        self.cursor.carriage_return();
-
-        self.current_token = State::Done(Some(Token::Break(None)));
+        self.finish(Token::Break(None));
     }
 
     fn finish(&mut self, t: Token<'a>) {
