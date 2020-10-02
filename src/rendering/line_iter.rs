@@ -106,6 +106,16 @@ where
         }
     }
 
+    fn try_draw_character(&mut self, c: char) -> Option<RenderElement> {
+        let char_width = F::total_char_width(c);
+        if self.cursor.advance(char_width) {
+            self.next_token();
+            Some(RenderElement::PrintedCharacter(c))
+        } else {
+            None
+        }
+    }
+
     fn try_draw_next_character(&mut self, word: &'a str) {
         let mut lookahead = word.chars();
         match lookahead.next() {
@@ -132,10 +142,14 @@ where
 
                 // word wrapping, this line is done
                 if self.cursor.position.x != self.cursor.bounds.top_left().x {
+                    // There's already something in this line, let's carry the whole word (the part
+                    // that wasn't consumed so far) to the next.
+                    // This can happen because words can be longer than the line itself.
                     self.finish(Token::Word(word));
                 } else {
-                    // weird case where width doesn't permit drawing anything
-                    self.next_token();
+                    // Weird case where width doesn't permit drawing anything. Consume token to
+                    // avoid infinite loop.
+                    self.finish_end_of_string();
                 }
             }
         };
@@ -230,6 +244,9 @@ where
                     let token = token.clone();
                     match token {
                         Token::Whitespace(n) => {
+                            // This mess decides if we want to render whitespace at all.
+                            // The current horizontal alignment can ignore spaces at the beginning
+                            // and end of a line.
                             let mut would_wrap = false;
                             let render_whitespace = if self.first_word {
                                 A::STARTING_SPACES
@@ -312,15 +329,13 @@ where
                         }
 
                         Token::ExtraCharacter(c) => {
-                            let char_width = F::total_char_width(c);
-                            if self.cursor.advance(char_width) {
-                                self.next_token();
-                                break Some(RenderElement::PrintedCharacter(c));
-                            } else {
-                                // ExtraCharacter currently may only be the first one.
-                                // If it doesn't fit, stop.
-                                self.finish_end_of_string();
+                            if let e @ Some(_) = self.try_draw_character(c) {
+                                break e;
                             }
+
+                            // ExtraCharacter currently may only be the first one.
+                            // If it doesn't fit, stop.
+                            self.finish_end_of_string();
                         }
 
                         Token::Word(w) => {

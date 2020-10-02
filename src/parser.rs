@@ -52,6 +52,18 @@ pub(crate) const SPEC_CHAR_NBSP: char = '\u{a0}';
 pub(crate) const SPEC_CHAR_ZWSP: char = '\u{200b}';
 pub(crate) const SPEC_CHAR_SHY: char = '\u{ad}';
 
+fn is_word_char(c: char) -> bool {
+    // Word tokens are terminated when a whitespace, zwsp or shy character is found. An exception
+    // to this rule is the nbsp, which is whitespace but is included in the word.
+    (!c.is_whitespace() || c == SPEC_CHAR_NBSP) && ![SPEC_CHAR_ZWSP, SPEC_CHAR_SHY].contains(&c)
+}
+
+fn is_space_char(c: char) -> bool {
+    // zero-width space breaks whitespace sequences - this works as long as
+    // space handling is symmetrical (i.e. starting == ending behaviour)
+    c.is_whitespace() && !['\n', '\r', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
+}
+
 impl<'a> Parser<'a> {
     /// Create a new parser object to process the given piece of text.
     #[inline]
@@ -62,13 +74,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Returns the next token without advancing.
-    #[inline]
-    #[must_use]
-    pub fn peek(&self) -> Option<Token> {
-        self.clone().next()
-    }
-
     /// Returns true if there are no tokens to process.
     #[inline]
     #[must_use]
@@ -76,14 +81,8 @@ impl<'a> Parser<'a> {
         self.inner.as_str().is_empty()
     }
 
-    fn is_word_char(c: char) -> bool {
-        (!c.is_whitespace() || c == SPEC_CHAR_NBSP) && ![SPEC_CHAR_ZWSP, SPEC_CHAR_SHY].contains(&c)
-    }
-
-    fn is_space_char(c: char) -> bool {
-        // '\u{200B}' (zero-width space) breaks whitespace sequences - this works as long as
-        // space handling is symmetrical (i.e. starting == ending behaviour)
-        c.is_whitespace() && !['\n', '\r', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
+    fn remaining(&self) -> usize {
+        self.inner.as_str().len()
     }
 }
 
@@ -97,12 +96,17 @@ impl<'a> Iterator for Parser<'a> {
         if let Some(c) = self.inner.next() {
             let mut iter = self.inner.clone();
 
-            if Self::is_word_char(c) {
+            if is_word_char(c) {
+                // find the longest consecutive slice of text for a Word token
                 while let Some(c) = iter.next() {
-                    if Self::is_word_char(c) {
+                    if is_word_char(c) {
+                        // Need to advance internal state here, otherwise we would need to store the
+                        // revious iterator state and overwrite self.inner in the current else
+                        // branch.
+                        // This copy seems unavoidable.
                         self.inner = iter.clone();
                     } else {
-                        let offset = string.len() - self.inner.as_str().len();
+                        let offset = string.len() - self.remaining();
                         return Some(Token::Word(unsafe {
                             // don't worry
                             string.get_unchecked(0..offset)
@@ -116,18 +120,21 @@ impl<'a> Iterator for Parser<'a> {
                 Some(Token::Word(&string))
             } else {
                 match c {
+                    // special characters
                     '\n' => Some(Token::NewLine),
                     '\r' => Some(Token::CarriageReturn),
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
                     SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
 
+                    // count consecutive whitespace
                     _ => {
                         let mut len = 1;
                         while let Some(c) = iter.next() {
-                            if Self::is_space_char(c) {
+                            if is_space_char(c) {
                                 if c != SPEC_CHAR_ZWSP {
                                     len += 1;
                                 }
+                                // Same as in the word case, this copy seems unavoidable.
                                 self.inner = iter.clone();
                             } else {
                                 // consume the whitespaces
