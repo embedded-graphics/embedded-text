@@ -1,6 +1,6 @@
 //! Line iterator.
 //!
-//! Provide tokens to render as long as they fit in the current line
+//! Provide elements (spaces or characters) to render as long as they fit in the current line
 use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
@@ -47,6 +47,7 @@ where
     /// The text to draw.
     pub parser: Parser<'a>,
 
+    pub(crate) pos: Point,
     current_token: State<'a>,
     config: SP,
     first_word: bool,
@@ -80,6 +81,7 @@ where
             cursor,
             first_word: true,
             alignment: PhantomData,
+            pos: Point::zero(),
         }
     }
 
@@ -214,6 +216,7 @@ where
 
                                 if spaces_to_render > 0 {
                                     let space_width = self.config.consume(spaces_to_render);
+                                    self.pos = self.cursor.position;
                                     self.cursor.advance_unchecked(space_width);
                                     let carried = n - spaces_to_render;
 
@@ -258,7 +261,9 @@ where
                             } else if let Some(c) = c {
                                 // If a Break contains a character, display it if the next
                                 // Word token does not fit the line.
+                                let pos = self.cursor.position;
                                 if self.cursor.advance(F::total_char_width(c)) {
+                                    self.pos = pos;
                                     self.finish_wrapped();
                                     break Some(RenderElement::PrintedCharacter(c));
                                 } else {
@@ -272,7 +277,9 @@ where
                         }
 
                         Token::ExtraCharacter(c) => {
+                            let pos = self.cursor.position;
                             if self.cursor.advance(F::total_char_width(c)) {
+                                self.pos = pos;
                                 self.next_token();
                                 break Some(RenderElement::PrintedCharacter(c));
                             }
@@ -306,34 +313,35 @@ where
 
                     match chars.next() {
                         Some(c) => {
+                            let mut ret_val = None;
+                            let pos = self.cursor.position;
+
                             if c == SPEC_CHAR_NBSP {
                                 // nbsp
                                 let sp_width = self.config.peek_next_width(1);
 
                                 if self.cursor.advance(sp_width) {
+                                    ret_val = Some(RenderElement::Space(sp_width, 1));
                                     self.config.consume(1); // we have peeked the value, consume it
-                                    self.current_token = State::Word(chars.clone());
-                                    break Some(RenderElement::Space(sp_width, 1));
                                 }
-                            } else {
-                                // character done, move to the next one
-                                let char_width = F::total_char_width(c);
-
-                                if self.cursor.advance(char_width) {
-                                    self.current_token = State::Word(chars.clone());
-                                    break Some(RenderElement::PrintedCharacter(c));
-                                }
+                            } else if self.cursor.advance(F::total_char_width(c)) {
+                                ret_val = Some(RenderElement::PrintedCharacter(c));
                             }
 
-                            // word wrapping, this line is done
-                            if self.cursor.position.x != self.cursor.bounds.top_left().x {
-                                // There's already something in this line, let's carry the whole word (the part
-                                // that wasn't consumed so far) to the next.
+                            if ret_val.is_some() {
+                                // We have something to return
+                                self.pos = pos;
+                                self.current_token = State::Word(chars.clone());
+
+                                break ret_val;
+                            } else if self.cursor.position.x != self.cursor.bounds.top_left().x {
+                                // There's already something in this line, let's carry the whole
+                                // word (the part that wasn't consumed so far) to the next.
                                 // This can happen because words can be longer than the line itself.
                                 self.finish(Token::Word(word));
                             } else {
-                                // Weird case where width doesn't permit drawing anything. Consume token to
-                                // avoid infinite loop.
+                                // Weird case where width doesn't permit drawing anything. Consume
+                                // token to avoid infinite loop.
                                 self.finish_end_of_string();
                             }
                         }
@@ -342,9 +350,7 @@ where
                     }
                 }
 
-                State::Done(_) => {
-                    break None;
-                }
+                State::Done(_) => break None,
             }
         }
     }

@@ -10,7 +10,6 @@ use crate::{
         whitespace::EmptySpaceIterator,
     },
     style::{height_mode::HeightMode, TextBoxStyle},
-    utils::font_ext::FontExt,
 };
 use core::ops::Range;
 use embedded_graphics::{prelude::*, style::TextStyle};
@@ -41,9 +40,6 @@ where
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
-    /// Position information.
-    pub cursor: Cursor<F>,
-
     state: State<C, F>,
     style: TextStyle<C, F>,
     display_range: Range<i32>,
@@ -72,7 +68,6 @@ where
         H: HeightMode,
     {
         Self {
-            cursor,
             state: State::FetchNext,
             style: style.text_style,
             display_range: H::calculate_displayed_row_range(&cursor),
@@ -97,6 +92,13 @@ where
         self.inner.parser.clone()
     }
 
+    /// When finished, this method returns the cursor object.
+    #[must_use]
+    #[inline]
+    pub fn cursor(&self) -> Cursor<F> {
+        self.inner.cursor
+    }
+
     fn is_anything_displayed(&self) -> bool {
         self.display_range.start < self.display_range.end
     }
@@ -119,14 +121,10 @@ where
                 State::FetchNext => {
                     match self.inner.next() {
                         Some(RenderElement::PrintedCharacter(c)) => {
-                            let char_width = F::total_char_width(c);
-                            let pos = self.cursor.position;
-                            self.cursor.advance_unchecked(char_width);
-
                             if self.is_anything_displayed() {
                                 self.state = State::Char(StyledCharacterIterator::new(
                                     c,
-                                    pos,
+                                    self.inner.pos,
                                     self.style,
                                     self.display_range.clone(),
                                 ));
@@ -136,12 +134,10 @@ where
                         }
 
                         Some(RenderElement::Space(space_width, _)) => {
-                            let pos = self.cursor.position;
-                            self.cursor.advance_unchecked(space_width);
                             if self.is_anything_displayed() {
                                 self.state = State::Space(EmptySpaceIterator::new(
                                     space_width,
-                                    pos,
+                                    self.inner.pos,
                                     self.style,
                                 ));
                             } else {
@@ -149,10 +145,7 @@ where
                             }
                         }
 
-                        None => {
-                            self.cursor = self.inner.cursor;
-                            break None;
-                        }
+                        None => break None,
                     };
                 }
 

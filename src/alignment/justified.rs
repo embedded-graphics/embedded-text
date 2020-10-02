@@ -158,7 +158,7 @@ where
 
                     self.state = State::NextLine(
                         line_iterator.remaining_token(),
-                        line_iterator.cursor,
+                        line_iterator.cursor(),
                         line_iterator.parser(),
                     );
                 }
