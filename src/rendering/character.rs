@@ -6,7 +6,7 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 #[derive(Copy, Clone, Debug)]
 pub struct Glyph<F: Font> {
     _font: PhantomData<F>,
-    char_idx: u32,
+    char_glyph_offset: u32,
 }
 
 impl<F> Glyph<F>
@@ -26,7 +26,7 @@ where
 
         Self {
             _font: PhantomData,
-            char_idx: char_x + char_y * F::FONT_IMAGE_WIDTH,
+            char_glyph_offset: char_x + char_y * F::FONT_IMAGE_WIDTH,
         }
     }
 
@@ -41,7 +41,8 @@ where
         // + Character row offset (row 0 = 0, row 1 = (192 * 8) = 1536)
         // + X offset for the pixel block that comprises this char
         // + Y offset for pixel block
-        let bitmap_bit_index = self.char_idx + p.x as u32 + p.y as u32 * F::FONT_IMAGE_WIDTH;
+        let bitmap_bit_index =
+            self.char_glyph_offset + p.x as u32 + p.y as u32 * F::FONT_IMAGE_WIDTH;
 
         let bitmap_byte = bitmap_bit_index / 8;
         let bitmap_bit = bitmap_bit_index % 8;
