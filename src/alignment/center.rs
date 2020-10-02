@@ -1,9 +1,9 @@
 //! Horizontal and vertical center aligned text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::{Parser, Token},
+    parser::Parser,
     rendering::{
-        cursor::Cursor, line::StyledLinePixelIterator, space_config::UniformSpaceConfig,
+        cursor::Cursor, line::StyledLinePixelIterator, space_config::UniformSpaceConfig, State,
         StateFactory, StyledTextBoxIterator,
     },
     style::height_mode::HeightMode,
@@ -21,20 +21,6 @@ impl HorizontalTextAlignment for CenterAligned {
     const ENDING_SPACES: bool = false;
 }
 
-/// State variable used by the center aligned text renderer.
-#[derive(Debug)]
-pub enum State<'a, C, F>
-where
-    C: PixelColor,
-    F: Font + Copy,
-{
-    /// Starts processing a line.
-    NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
-
-    /// Renders the processed line.
-    DrawLine(StyledLinePixelIterator<'a, C, F, UniformSpaceConfig<F>, CenterAligned>),
-}
-
 impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, CenterAligned, V, H>
 where
     C: PixelColor,
@@ -42,12 +28,12 @@ where
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    type PixelIteratorState = State<'a, C, F>;
+    type PixelIteratorState = State<'a, C, F, UniformSpaceConfig<F>, CenterAligned>;
 
     #[inline]
     #[must_use]
     fn create_state(&self, cursor: Cursor<F>, parser: Parser<'a>) -> Self::PixelIteratorState {
-        State::NextLine(None, cursor, parser)
+        State::new(cursor, parser)
     }
 }
 

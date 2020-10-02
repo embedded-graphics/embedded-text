@@ -9,12 +9,43 @@ pub mod whitespace;
 
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Parser,
-    rendering::cursor::Cursor,
+    parser::{Parser, Token},
+    rendering::{cursor::Cursor, line::StyledLinePixelIterator, space_config::SpaceConfig},
     style::{height_mode::HeightMode, TextBoxStyle},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
+
+/// State variable used by the right aligned text renderer.
+#[derive(Debug)]
+pub enum State<'a, C, F, SP, A>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    SP: SpaceConfig<Font = F>,
+    A: HorizontalTextAlignment,
+{
+    /// Starts processing a line.
+    NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
+
+    /// Renders the processed line.
+    DrawLine(StyledLinePixelIterator<'a, C, F, SP, A>),
+}
+
+impl<'a, C, F, SP, A> State<'a, C, F, SP, A>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    SP: SpaceConfig<Font = F>,
+    A: HorizontalTextAlignment,
+{
+    /// Create a new State object
+    #[inline]
+    #[must_use]
+    pub fn new(cursor: Cursor<F>, parser: Parser<'a>) -> Self {
+        State::NextLine(None, cursor, parser)
+    }
+}
 
 /// This trait is used to associate a state type to a horizontal alignment option.
 ///

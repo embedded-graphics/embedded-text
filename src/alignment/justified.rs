@@ -3,8 +3,8 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        cursor::Cursor, line::StyledLinePixelIterator, space_config::SpaceConfig, StateFactory,
-        StyledTextBoxIterator,
+        cursor::Cursor, line::StyledLinePixelIterator, space_config::SpaceConfig, State,
+        StateFactory, StyledTextBoxIterator,
     },
     style::height_mode::HeightMode,
     utils::font_ext::FontExt,
@@ -76,20 +76,6 @@ impl<F: Font + Copy> SpaceConfig for JustifiedSpaceConfig<F> {
     }
 }
 
-/// State variable used by the fully justified text renderer.
-#[derive(Debug)]
-pub enum State<'a, C, F>
-where
-    C: PixelColor,
-    F: Font + Copy,
-{
-    /// Starts processing a line.
-    NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
-
-    /// Renders the processed line.
-    DrawLine(StyledLinePixelIterator<'a, C, F, JustifiedSpaceConfig<F>, Justified>),
-}
-
 impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, Justified, V, H>
 where
     C: PixelColor,
@@ -97,12 +83,12 @@ where
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    type PixelIteratorState = State<'a, C, F>;
+    type PixelIteratorState = State<'a, C, F, JustifiedSpaceConfig<F>, Justified>;
 
     #[inline]
     #[must_use]
     fn create_state(&self, cursor: Cursor<F>, parser: Parser<'a>) -> Self::PixelIteratorState {
-        State::NextLine(None, cursor, parser)
+        State::new(cursor, parser)
     }
 }
 
