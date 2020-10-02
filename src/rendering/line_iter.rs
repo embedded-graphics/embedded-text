@@ -17,10 +17,7 @@ enum State<'a> {
     ProcessToken(Token<'a>),
 
     /// Render a character in a word. (remaining_characters, current_character)
-    WordChar(Chars<'a>, char),
-
-    /// Render a printed space in a word. (remaining_characters, rendered_width)
-    WordSpace(Chars<'a>, u32),
+    Word(Chars<'a>),
 
     /// Signal that the renderer has finished, store the token that was consumed but not rendered.
     Done(Option<Token<'a>>),
@@ -106,20 +103,10 @@ where
         }
     }
 
-    fn try_draw_character(&mut self, c: char) -> Option<RenderElement> {
-        let char_width = F::total_char_width(c);
-        if self.cursor.advance(char_width) {
-            self.next_token();
-            Some(RenderElement::PrintedCharacter(c))
-        } else {
-            None
-        }
-    }
-
-    fn try_draw_next_character(&mut self, word: &'a str) {
+    #[must_use]
+    fn try_draw_next_character(&mut self, word: &'a str) -> Option<RenderElement> {
         let mut lookahead = word.chars();
         match lookahead.next() {
-            None => self.next_token(),
             Some(c) => {
                 if c == SPEC_CHAR_NBSP {
                     // nbsp
@@ -127,16 +114,16 @@ where
 
                     if self.cursor.advance(sp_width) {
                         self.config.consume(1); // we have peeked the value, consume it
-                        self.current_token = State::WordSpace(lookahead, sp_width);
-                        return;
+                        self.current_token = State::Word(lookahead);
+                        return Some(RenderElement::Space(sp_width, 1));
                     }
                 } else {
                     // character done, move to the next one
                     let char_width = F::total_char_width(c);
 
                     if self.cursor.advance(char_width) {
-                        self.current_token = State::WordChar(lookahead, c);
-                        return;
+                        self.current_token = State::Word(lookahead);
+                        return Some(RenderElement::PrintedCharacter(c));
                     }
                 }
 
@@ -151,8 +138,15 @@ where
                     // avoid infinite loop.
                     self.finish_end_of_string();
                 }
+
+                None
             }
-        };
+
+            None => {
+                self.next_token();
+                None
+            }
+        }
     }
 
     fn finish_end_of_string(&mut self) {
@@ -329,8 +323,10 @@ where
                         }
 
                         Token::ExtraCharacter(c) => {
-                            if let e @ Some(_) = self.try_draw_character(c) {
-                                break e;
+                            let char_width = F::total_char_width(c);
+                            if self.cursor.advance(char_width) {
+                                self.next_token();
+                                break Some(RenderElement::PrintedCharacter(c));
                             }
 
                             // ExtraCharacter currently may only be the first one.
@@ -342,10 +338,9 @@ where
                             // FIXME: this isn't exactly optimal when outside of the display area
                             if self.first_word {
                                 self.first_word = false;
-
-                                self.try_draw_next_character(w);
+                                self.current_token = State::Word(w.chars());
                             } else if self.cursor.fits_in_line(F::str_width_nocr(w)) {
-                                self.try_draw_next_character(w);
+                                self.current_token = State::Word(w.chars());
                             } else {
                                 self.finish(token);
                             }
@@ -358,20 +353,11 @@ where
                     }
                 }
 
-                State::WordChar(ref chars, ref c) => {
-                    let c = *c;
+                State::Word(ref chars) => {
                     let word = chars.as_str();
-                    self.try_draw_next_character(word);
-
-                    break Some(RenderElement::PrintedCharacter(c));
-                }
-
-                State::WordSpace(ref chars, ref width) => {
-                    let width = *width;
-                    let word = chars.as_str();
-                    self.try_draw_next_character(word);
-
-                    break Some(RenderElement::Space(width, 1));
+                    if let e @ Some(_) = self.try_draw_next_character(word) {
+                        break e;
+                    }
                 }
 
                 State::Done(_) => {
