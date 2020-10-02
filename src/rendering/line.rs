@@ -30,9 +30,6 @@ where
 
     /// Render a block of whitespace.
     Space(EmptySpaceIterator<C, F>),
-
-    /// Signal that the renderer has finished.
-    Done,
 }
 
 /// Pixel iterator to render a single line of styled text.
@@ -120,21 +117,21 @@ where
             match self.state {
                 // No token being processed, get next one
                 State::FetchNext => {
-                    self.state = match self.inner.next() {
+                    match self.inner.next() {
                         Some(RenderElement::PrintedCharacter(c)) => {
                             let char_width = F::total_char_width(c);
                             let pos = self.cursor.position;
                             self.cursor.advance_unchecked(char_width);
 
                             if self.is_anything_displayed() {
-                                State::Char(StyledCharacterIterator::new(
+                                self.state = State::Char(StyledCharacterIterator::new(
                                     c,
                                     pos,
                                     self.style,
                                     self.display_range.clone(),
-                                ))
+                                ));
                             } else {
-                                State::FetchNext
+                                self.state = State::FetchNext;
                             }
                         }
 
@@ -142,15 +139,19 @@ where
                             let pos = self.cursor.position;
                             self.cursor.advance_unchecked(space_width);
                             if self.is_anything_displayed() {
-                                State::Space(EmptySpaceIterator::new(space_width, pos, self.style))
+                                self.state = State::Space(EmptySpaceIterator::new(
+                                    space_width,
+                                    pos,
+                                    self.style,
+                                ));
                             } else {
-                                State::FetchNext
+                                self.state = State::FetchNext;
                             }
                         }
 
                         None => {
                             self.cursor = self.inner.cursor;
-                            State::Done
+                            break None;
                         }
                     };
                 }
@@ -169,10 +170,6 @@ where
                     }
 
                     self.state = State::FetchNext;
-                }
-
-                State::Done => {
-                    break None;
                 }
             }
         }
