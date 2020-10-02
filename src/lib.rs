@@ -85,7 +85,7 @@ pub mod utils;
 
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
 use embedded_graphics::{prelude::*, primitives::Rectangle};
-use rendering::{StateFactory, StyledTextBoxIterator};
+use rendering::RendererFactory;
 use style::{height_mode::HeightMode, TextBoxStyle};
 use utils::rect_ext::RectExt;
 
@@ -307,13 +307,12 @@ where
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBoxIterator<'a, C, F, A, V, H>: Iterator<Item = Pixel<C>>,
-    StyledTextBox<'a, C, F, A, V, H>: StateFactory<'a, F>,
+    StyledTextBox<'a, C, F, A, V, H>: RendererFactory<'a, F, C>,
     H: HeightMode,
 {
     #[inline]
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
-        display.draw_iter(StyledTextBoxIterator::new(self))
+        display.draw_iter(StyledTextBox::create_renderer(self))
     }
 }
 

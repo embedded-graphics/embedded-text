@@ -1,10 +1,9 @@
 //! Horizontal and vertical center aligned text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Parser,
     rendering::{
-        cursor::Cursor, line::StyledLinePixelIterator, space_config::UniformSpaceConfig, State,
-        StateFactory, StyledTextBoxIterator,
+        cursor::Cursor, line::StyledLinePixelIterator, space_config::UniformSpaceConfig,
+        RendererFactory, StyledTextBoxIterator,
     },
     style::height_mode::HeightMode,
     StyledTextBox,
@@ -21,69 +20,32 @@ impl HorizontalTextAlignment for CenterAligned {
     const ENDING_SPACES: bool = false;
 }
 
-impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, CenterAligned, V, H>
+impl<'a, C, F, V, H> RendererFactory<'a, F, C> for StyledTextBox<'a, C, F, CenterAligned, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    type PixelIteratorState = State<'a, C, F, UniformSpaceConfig<F>, CenterAligned>;
+    type Renderer = StyledTextBoxIterator<'a, C, F, CenterAligned, V, H, UniformSpaceConfig<F>>;
 
     #[inline]
     #[must_use]
-    fn create_state(&self, cursor: Cursor<F>, parser: Parser<'a>) -> Self::PixelIteratorState {
-        State::new(cursor, parser)
-    }
-}
+    fn create_renderer(&self) -> Self::Renderer {
+        StyledTextBoxIterator::new(self, |style, carried, mut cursor, parser| {
+            let max_line_width = cursor.line_width();
+            let (width, _, _) =
+                style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
+            cursor.advance_unchecked((max_line_width - width + 1) / 2);
 
-impl<C, F, V, H> Iterator for StyledTextBoxIterator<'_, C, F, CenterAligned, V, H>
-where
-    C: PixelColor,
-    F: Font + Copy,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-{
-    type Item = Pixel<C>;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.state {
-                State::NextLine(ref carried_token, mut cursor, ref mut parser) => {
-                    if carried_token.is_none() && parser.is_empty() {
-                        break None;
-                    }
-
-                    let parser_clone = parser.clone();
-                    let max_line_width = cursor.line_width();
-                    let (width, _, _) =
-                        self.style
-                            .measure_line(parser, carried_token.clone(), max_line_width);
-                    cursor.advance_unchecked((max_line_width - width + 1) / 2);
-
-                    self.state = State::DrawLine(StyledLinePixelIterator::new(
-                        parser_clone,
-                        cursor,
-                        UniformSpaceConfig::default(),
-                        self.style,
-                        carried_token.clone(),
-                    ));
-                }
-
-                State::DrawLine(ref mut line_iterator) => {
-                    if let pixel @ Some(_) = line_iterator.next() {
-                        break pixel;
-                    }
-
-                    self.state = State::NextLine(
-                        line_iterator.remaining_token(),
-                        line_iterator.cursor(),
-                        line_iterator.parser(),
-                    );
-                }
-            }
-        }
+            StyledLinePixelIterator::new(
+                parser,
+                cursor,
+                UniformSpaceConfig::default(),
+                style,
+                carried,
+            )
+        })
     }
 }
 

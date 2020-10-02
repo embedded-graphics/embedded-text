@@ -1,15 +1,14 @@
 //! Left aligned text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Parser,
     rendering::{
-        cursor::Cursor, line::StyledLinePixelIterator, space_config::UniformSpaceConfig, State,
-        StateFactory, StyledTextBoxIterator,
+        line::StyledLinePixelIterator, space_config::UniformSpaceConfig, RendererFactory,
+        StyledTextBoxIterator,
     },
     style::height_mode::HeightMode,
     StyledTextBox,
 };
-use embedded_graphics::{drawable::Pixel, fonts::Font, pixelcolor::PixelColor};
+use embedded_graphics::{fonts::Font, pixelcolor::PixelColor};
 
 /// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
@@ -19,62 +18,27 @@ impl HorizontalTextAlignment for LeftAligned {
     const ENDING_SPACES: bool = true;
 }
 
-impl<'a, C, F, V, H> StateFactory<'a, F> for StyledTextBox<'a, C, F, LeftAligned, V, H>
+impl<'a, C, F, V, H> RendererFactory<'a, F, C> for StyledTextBox<'a, C, F, LeftAligned, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    type PixelIteratorState = State<'a, C, F, UniformSpaceConfig<F>, LeftAligned>;
+    type Renderer = StyledTextBoxIterator<'a, C, F, LeftAligned, V, H, UniformSpaceConfig<F>>;
 
     #[inline]
     #[must_use]
-    fn create_state(&self, cursor: Cursor<F>, parser: Parser<'a>) -> Self::PixelIteratorState {
-        State::new(cursor, parser)
-    }
-}
-
-impl<C, F, V, H> Iterator for StyledTextBoxIterator<'_, C, F, LeftAligned, V, H>
-where
-    C: PixelColor,
-    F: Font + Copy,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-{
-    type Item = Pixel<C>;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.state {
-                State::NextLine(ref carried_token, cursor, ref parser) => {
-                    if carried_token.is_none() && parser.is_empty() {
-                        break None;
-                    }
-
-                    self.state = State::DrawLine(StyledLinePixelIterator::new(
-                        parser.clone(),
-                        cursor,
-                        UniformSpaceConfig::default(),
-                        self.style,
-                        carried_token.clone(),
-                    ));
-                }
-
-                State::DrawLine(ref mut line_iterator) => {
-                    if let pixel @ Some(_) = line_iterator.next() {
-                        break pixel;
-                    }
-
-                    self.state = State::NextLine(
-                        line_iterator.remaining_token(),
-                        line_iterator.cursor(),
-                        line_iterator.parser(),
-                    );
-                }
-            };
-        }
+    fn create_renderer(&self) -> Self::Renderer {
+        StyledTextBoxIterator::new(self, |style, carried, cursor, parser| {
+            StyledLinePixelIterator::new(
+                parser,
+                cursor,
+                UniformSpaceConfig::default(),
+                style,
+                carried,
+            )
+        })
     }
 }
 
