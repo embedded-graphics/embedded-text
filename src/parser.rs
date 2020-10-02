@@ -48,9 +48,9 @@ pub struct Parser<'a> {
     inner: Chars<'a>,
 }
 
-const SPEC_CHAR_NBSP: char = '\u{a0}';
-const SPEC_CHAR_ZWSP: char = '\u{200b}';
-const SPEC_CHAR_SHY: char = '\u{ad}';
+pub(crate) const SPEC_CHAR_NBSP: char = '\u{a0}';
+pub(crate) const SPEC_CHAR_ZWSP: char = '\u{200b}';
+pub(crate) const SPEC_CHAR_SHY: char = '\u{ad}';
 
 impl<'a> Parser<'a> {
     /// Create a new parser object to process the given piece of text.

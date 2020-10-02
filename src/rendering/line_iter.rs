@@ -3,7 +3,7 @@
 //! Provide tokens to render as long as they fit in the current line
 use crate::{
     alignment::HorizontalTextAlignment,
-    parser::{Parser, Token},
+    parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::Cursor, space_config::*},
     utils::font_ext::FontExt,
 };
@@ -111,7 +111,7 @@ where
         match lookahead.next() {
             None => self.next_token(),
             Some(c) => {
-                if c == '\u{A0}' {
+                if c == SPEC_CHAR_NBSP {
                     // nbsp
                     let sp_width = self.config.peek_next_width(1);
 
@@ -479,6 +479,41 @@ mod test {
                 RenderElement::PrintedCharacter('a'),
                 RenderElement::PrintedCharacter('l'),
                 RenderElement::PrintedCharacter('i'),
+            ]
+        );
+    }
+
+    #[test]
+    fn nbsp_is_rendered_as_space() {
+        let text = "glued\u{a0}words";
+        let parser = Parser::parse(text);
+        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+
+        let cursor = Cursor::new(
+            Rectangle::new(
+                Point::zero(),
+                Point::new(text.chars().count() as i32 * 6 - 1, 16),
+            ),
+            0,
+        );
+
+        let line1: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(parser, cursor, config, None);
+
+        assert_eq!(
+            line1.collect::<Vec<RenderElement>>(),
+            vec![
+                RenderElement::PrintedCharacter('g'),
+                RenderElement::PrintedCharacter('l'),
+                RenderElement::PrintedCharacter('u'),
+                RenderElement::PrintedCharacter('e'),
+                RenderElement::PrintedCharacter('d'),
+                RenderElement::Space(6, 1),
+                RenderElement::PrintedCharacter('w'),
+                RenderElement::PrintedCharacter('o'),
+                RenderElement::PrintedCharacter('r'),
+                RenderElement::PrintedCharacter('d'),
+                RenderElement::PrintedCharacter('s'),
             ]
         );
     }

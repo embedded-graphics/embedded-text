@@ -1,6 +1,5 @@
 //! Character rendering.
-use core::marker::PhantomData;
-use core::ops::Range;
+use core::{marker::PhantomData, ops::Range};
 use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Represents a glyph (a symbol) to be drawn.
@@ -18,7 +17,7 @@ where
     #[inline]
     #[must_use]
     pub fn new(c: char) -> Self {
-        let char_offset = F::char_offset(if c == '\u{A0}' { ' ' } else { c });
+        let char_offset = F::char_offset(c);
         let char_per_row = F::FONT_IMAGE_WIDTH / F::CHARACTER_SIZE.width;
 
         // Top left corner of character, in pixels.
