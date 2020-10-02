@@ -103,52 +103,6 @@ where
         }
     }
 
-    #[must_use]
-    fn try_draw_next_character(&mut self, word: &'a str) -> Option<RenderElement> {
-        let mut lookahead = word.chars();
-        match lookahead.next() {
-            Some(c) => {
-                if c == SPEC_CHAR_NBSP {
-                    // nbsp
-                    let sp_width = self.config.peek_next_width(1);
-
-                    if self.cursor.advance(sp_width) {
-                        self.config.consume(1); // we have peeked the value, consume it
-                        self.current_token = State::Word(lookahead);
-                        return Some(RenderElement::Space(sp_width, 1));
-                    }
-                } else {
-                    // character done, move to the next one
-                    let char_width = F::total_char_width(c);
-
-                    if self.cursor.advance(char_width) {
-                        self.current_token = State::Word(lookahead);
-                        return Some(RenderElement::PrintedCharacter(c));
-                    }
-                }
-
-                // word wrapping, this line is done
-                if self.cursor.position.x != self.cursor.bounds.top_left().x {
-                    // There's already something in this line, let's carry the whole word (the part
-                    // that wasn't consumed so far) to the next.
-                    // This can happen because words can be longer than the line itself.
-                    self.finish(Token::Word(word));
-                } else {
-                    // Weird case where width doesn't permit drawing anything. Consume token to
-                    // avoid infinite loop.
-                    self.finish_end_of_string();
-                }
-
-                None
-            }
-
-            None => {
-                self.next_token();
-                None
-            }
-        }
-    }
-
     fn finish_end_of_string(&mut self) {
         self.current_token = State::Done(None);
     }
@@ -351,10 +305,44 @@ where
                     }
                 }
 
-                State::Word(ref chars) => {
+                State::Word(ref mut chars) => {
                     let word = chars.as_str();
-                    if let e @ Some(_) = self.try_draw_next_character(word) {
-                        break e;
+
+                    match chars.next() {
+                        Some(c) => {
+                            if c == SPEC_CHAR_NBSP {
+                                // nbsp
+                                let sp_width = self.config.peek_next_width(1);
+
+                                if self.cursor.advance(sp_width) {
+                                    self.config.consume(1); // we have peeked the value, consume it
+                                    self.current_token = State::Word(chars.clone());
+                                    break Some(RenderElement::Space(sp_width, 1));
+                                }
+                            } else {
+                                // character done, move to the next one
+                                let char_width = F::total_char_width(c);
+
+                                if self.cursor.advance(char_width) {
+                                    self.current_token = State::Word(chars.clone());
+                                    break Some(RenderElement::PrintedCharacter(c));
+                                }
+                            }
+
+                            // word wrapping, this line is done
+                            if self.cursor.position.x != self.cursor.bounds.top_left().x {
+                                // There's already something in this line, let's carry the whole word (the part
+                                // that wasn't consumed so far) to the next.
+                                // This can happen because words can be longer than the line itself.
+                                self.finish(Token::Word(word));
+                            } else {
+                                // Weird case where width doesn't permit drawing anything. Consume token to
+                                // avoid infinite loop.
+                                self.finish_end_of_string();
+                            }
+                        }
+
+                        None => self.next_token(),
                     }
                 }
 
