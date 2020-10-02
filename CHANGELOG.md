@@ -1,3 +1,16 @@
+Unreleased
+==========
+
+## Added:
+
+ * `RendererFactory` trait that can be used to create a pixel iterator.
+
+## Changed:
+
+ * **breaking** `rendering::line_iter::State` is no longer public
+ * **breaking** `rendering::line::State` is no longer public
+ * **breaking** Removed `StateFactory`
+
 0.3.0 (2020-10-02)
 ==================
 

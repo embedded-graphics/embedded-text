@@ -13,7 +13,6 @@
 //! [`TextBoxStyle::from_text_style`]: struct.TextBoxStyle.html#method.from_text_style
 //! [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 //! [`TextBox::into_styled`]: ../struct.TextBox.html#method.into_styled
-use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
 
 pub mod builder;
 pub mod height_mode;
@@ -28,8 +27,9 @@ use crate::{
         space_config::UniformSpaceConfig,
     },
     style::height_mode::HeightMode,
-    utils::font_ext::FontExt,
 };
+use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
+
 pub use builder::TextBoxStyleBuilder;
 
 /// Styling options of a [`TextBox`].
@@ -149,35 +149,40 @@ where
 
         let mut current_width = 0;
         let mut last_spaces = 0;
-        let mut last_space_width = 0;
         let mut total_spaces = 0;
-        for token in &mut iter {
+        while let Some(token) = iter.next() {
             match token {
-                RenderElement::Space(sp_width, count) => {
-                    last_spaces += count;
-                    last_space_width += sp_width;
+                RenderElement::Space(_, count) => {
+                    if A::ENDING_SPACES {
+                        // only track width if spaces are rendered at the end of a line
+                        current_width = iter.cursor.position.x;
+
+                        // in this case, count all spaces
+                        total_spaces += count;
+                    } else {
+                        // ... otherwise save the number of spaces and it will be tracked with
+                        // the next printed character, or it will be discarded
+                        last_spaces = total_spaces + count;
+                    }
                 }
                 RenderElement::PrintedCharacter(c) => {
-                    current_width += F::total_char_width(c);
+                    // the current width is always the position where the cursor is (left is 0)
+                    current_width = iter.cursor.position.x;
 
                     if c == '\u{A0}' {
                         total_spaces += 1;
-                    } else {
+                    } else if !A::ENDING_SPACES {
+                        // if ENDING_SPACES is true, spaces have already been counted and
+                        // last_spaces is 0
                         total_spaces = last_spaces;
-                        current_width += last_space_width;
-
-                        last_space_width = 0;
                     }
                 }
             }
         }
-        if A::ENDING_SPACES {
-            total_spaces = last_spaces;
-            current_width += last_space_width;
-        }
+
         let carried = iter.remaining_token();
         *parser = iter.parser;
-        (current_width, total_spaces, carried)
+        (current_width as u32, total_spaces, carried)
     }
 
     /// Measures text height when rendered using a given width.
@@ -311,6 +316,21 @@ mod test {
                 i, text, height, expected_height
             );
         }
+    }
+
+    #[test]
+    fn test_measure_line() {
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let mut text = Parser::parse("123 45 67");
+
+        let (w, s, _) =
+            textbox_style.measure_line(&mut text, None, 6 * Font6x8::CHARACTER_SIZE.width);
+        assert_eq!(w, 6 * Font6x8::CHARACTER_SIZE.width);
+        assert_eq!(s, 1);
     }
 
     #[test]

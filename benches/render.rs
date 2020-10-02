@@ -5,7 +5,7 @@ use embedded_graphics::{
     prelude::*,
     style::TextStyleBuilder,
 };
-use embedded_text::{prelude::*, rendering::StyledTextBoxIterator};
+use embedded_text::{prelude::*, rendering::RendererFactory};
 
 const TEXT: &str = "Benchmark text!";
 
@@ -34,7 +34,7 @@ fn benchmark_render_textbox(c: &mut Criterion) {
                 Rectangle::new(Point::zero(), Point::new(6 * 15 - 1, 7)),
             )
             .into_styled(style);
-            let object = StyledTextBoxIterator::new(&obj);
+            let object = obj.create_renderer();
             object.collect::<Vec<Pixel<BinaryColor>>>()
         })
     });
@@ -53,7 +53,7 @@ fn benchmark_render_textbox_aligned(c: &mut Criterion) {
                 Rectangle::new(Point::zero(), Point::new(6 * 15 - 1, 7)),
             )
             .into_styled(style);
-            let object = StyledTextBoxIterator::new(&obj);
+            let object = obj.create_renderer();
             object.collect::<Vec<Pixel<BinaryColor>>>()
         })
     });
@@ -72,7 +72,7 @@ fn benchmark_render_textbox_vertical_aligned(c: &mut Criterion) {
                 Rectangle::new(Point::zero(), Point::new(6 * 15 - 1, 7)),
             )
             .into_styled(style);
-            let object = StyledTextBoxIterator::new(&obj);
+            let object = obj.create_renderer();
             object.collect::<Vec<Pixel<BinaryColor>>>()
         })
     });
@@ -92,7 +92,7 @@ fn benchmark_render_textbox_both_aligned(c: &mut Criterion) {
                 Rectangle::new(Point::zero(), Point::new(6 * 15 - 1, 7)),
             )
             .into_styled(style);
-            let object = StyledTextBoxIterator::new(&obj);
+            let object = obj.create_renderer();
             object.collect::<Vec<Pixel<BinaryColor>>>()
         })
     });
