@@ -16,6 +16,12 @@ This crate provides a configurable `TextBox` to render multiline text inside a b
      - `CenterAligned`
      - `BottomAligned`
 
+`TextBox` also supports some special characters not handled by embedded-graphics' `Text`:
+ - non-breaking space (`\u{200b}`)
+ - zero-width space (`\u{a0}`)
+ - soft hyphen (`\u{ad}`)
+ - carriage return (`\r`)
+
 ### Example
 
 The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
