@@ -296,35 +296,33 @@ where
                         }
 
                         Token::Break(c) => {
-                            if let Some(word_width) = self.next_word_width() {
-                                let fits = self.cursor.fits_in_line(word_width);
-                                if fits {
-                                    self.next_token();
-                                } else if let Some(c) = c {
-                                    // If a Break contains a character, display it if the next
-                                    // Word token does not fit the line.
-                                    let char_width = F::total_char_width(c);
+                            let fits = if let Some(word_width) = self.next_word_width() {
+                                self.cursor.fits_in_line(word_width)
+                            } else {
+                                // Next token is not a Word, consume Break and continue
+                                true
+                            };
 
-                                    if self.cursor.advance(char_width) {
-                                        self.finish_wrapped();
-                                        break Some(RenderElement::PrintedCharacter(c));
-                                    } else {
-                                        // this line is done
-                                        self.finish(Token::ExtraCharacter(c));
-                                    }
+                            if fits {
+                                self.next_token();
+                            } else if let Some(c) = c {
+                                // If a Break contains a character, display it if the next
+                                // Word token does not fit the line.
+                                if self.cursor.advance(F::total_char_width(c)) {
+                                    self.finish_wrapped();
+                                    break Some(RenderElement::PrintedCharacter(c));
                                 } else {
                                     // this line is done
-                                    self.finish_wrapped();
+                                    self.finish(Token::ExtraCharacter(c));
                                 }
                             } else {
-                                // next token is not a word, ignore Break
-                                self.next_token();
+                                // this line is done
+                                self.finish_wrapped();
                             }
                         }
 
                         Token::ExtraCharacter(c) => {
-                            let char_width = F::total_char_width(c);
-                            if self.cursor.advance(char_width) {
+                            if self.cursor.advance(F::total_char_width(c)) {
                                 self.next_token();
                                 break Some(RenderElement::PrintedCharacter(c));
                             }
