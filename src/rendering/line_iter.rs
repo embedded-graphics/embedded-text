@@ -12,7 +12,7 @@ use embedded_graphics::prelude::*;
 
 /// Internal state used to render a line.
 #[derive(Debug)]
-pub enum State<'a> {
+enum State<'a> {
     /// Decide what to do next.
     ProcessToken(Token<'a>),
 

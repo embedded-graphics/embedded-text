@@ -17,7 +17,7 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 
 /// Internal state used to render a line.
 #[derive(Debug)]
-pub enum State<C, F>
+enum State<C, F>
 where
     C: PixelColor,
     F: Font + Copy,

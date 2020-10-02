@@ -1,6 +1,11 @@
 Unreleased
 ==========
 
+## Changed:
+
+ * **breaking** `rendering::line_iter::State` is no longer public
+ * **breaking** `rendering::line::State` is no longer public
+
 0.3.0 (2020-10-02)
 ==================
 
