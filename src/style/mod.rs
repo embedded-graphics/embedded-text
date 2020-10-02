@@ -13,7 +13,6 @@
 //! [`TextBoxStyle::from_text_style`]: struct.TextBoxStyle.html#method.from_text_style
 //! [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 //! [`TextBox::into_styled`]: ../struct.TextBox.html#method.into_styled
-use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
 
 pub mod builder;
 pub mod height_mode;
@@ -30,6 +29,8 @@ use crate::{
     style::height_mode::HeightMode,
     utils::font_ext::FontExt,
 };
+use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
+
 pub use builder::TextBoxStyleBuilder;
 
 /// Styling options of a [`TextBox`].

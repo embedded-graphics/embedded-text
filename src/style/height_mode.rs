@@ -5,10 +5,10 @@
 //! shrink the text box. Height modes help us achieve this.
 //!
 //! [`TextBox`]: ../../struct.TextBox.html
-use crate::style::vertical_overdraw::VerticalOverdraw;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
+    style::vertical_overdraw::VerticalOverdraw,
     StyledTextBox,
 };
 use core::ops::Range;
