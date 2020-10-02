@@ -48,6 +48,10 @@ pub struct Parser<'a> {
     inner: Chars<'a>,
 }
 
+const SPEC_CHAR_NBSP: char = '\u{a0}';
+const SPEC_CHAR_ZWSP: char = '\u{200b}';
+const SPEC_CHAR_SHY: char = '\u{ad}';
+
 impl<'a> Parser<'a> {
     /// Create a new parser object to process the given piece of text.
     #[inline]
@@ -73,13 +77,13 @@ impl<'a> Parser<'a> {
     }
 
     fn is_word_char(c: char) -> bool {
-        (!c.is_whitespace() || c == '\u{A0}') && !['\u{200B}', '\u{00AD}'].contains(&c)
+        (!c.is_whitespace() || c == SPEC_CHAR_NBSP) && ![SPEC_CHAR_ZWSP, SPEC_CHAR_SHY].contains(&c)
     }
 
     fn is_space_char(c: char) -> bool {
         // '\u{200B}' (zero-width space) breaks whitespace sequences - this works as long as
         // space handling is symmetrical (i.e. starting == ending behaviour)
-        c.is_whitespace() && !['\n', '\r', '\u{A0}', '\u{200B}'].contains(&c) || c == '\u{200B}'
+        c.is_whitespace() && !['\n', '\r', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
     }
 }
 
@@ -114,14 +118,14 @@ impl<'a> Iterator for Parser<'a> {
                 match c {
                     '\n' => Some(Token::NewLine),
                     '\r' => Some(Token::CarriageReturn),
-                    '\u{200B}' => Some(Token::Break(None)),
-                    '\u{00AD}' => Some(Token::Break(Some('-'))),
+                    SPEC_CHAR_ZWSP => Some(Token::Break(None)),
+                    SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
 
                     _ => {
                         let mut len = 1;
                         while let Some(c) = iter.next() {
                             if Self::is_space_char(c) {
-                                if c != '\u{200B}' {
+                                if c != SPEC_CHAR_ZWSP {
                                     len += 1;
                                 }
                                 self.inner = iter.clone();
