@@ -140,8 +140,7 @@ where
         let mut lookahead = self.parser.clone();
 
         'lookahead: loop {
-            let token = lookahead.next();
-            match token {
+            match lookahead.next() {
                 Some(Token::Word(w)) => {
                     let w = F::str_width_nocr(w);
 
@@ -153,7 +152,7 @@ where
                     break 'lookahead;
                 }
                 _ => break 'lookahead,
-            };
+            }
         }
 
         width
