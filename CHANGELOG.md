@@ -6,6 +6,7 @@ Unreleased
  * `RendererFactory` trait that can be used to create a pixel iterator.
  * Handle tabs `\t` with configurable tab size.
  * Added `TabSize` struct and related style builder method `tab_size`.
+ * Added possibility to change text and background color via [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
 
 ## Changed:
 
