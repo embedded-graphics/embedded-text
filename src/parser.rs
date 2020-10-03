@@ -27,6 +27,9 @@ pub enum Token<'a> {
     /// A \r character.
     CarriageReturn,
 
+    /// A \t character.
+    Tab,
+
     /// A number of whitespace characters.
     Whitespace(u32),
 
@@ -61,7 +64,7 @@ fn is_word_char(c: char) -> bool {
 fn is_space_char(c: char) -> bool {
     // zero-width space breaks whitespace sequences - this works as long as
     // space handling is symmetrical (i.e. starting == ending behaviour)
-    c.is_whitespace() && !['\n', '\r', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
+    c.is_whitespace() && !['\n', '\r', '\t', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
 }
 
 impl<'a> Parser<'a> {
@@ -123,6 +126,7 @@ impl<'a> Iterator for Parser<'a> {
                     // special characters
                     '\n' => Some(Token::NewLine),
                     '\r' => Some(Token::CarriageReturn),
+                    '\t' => Some(Token::Tab),
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
                     SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
 
@@ -161,7 +165,7 @@ mod test {
     #[test]
     fn parse() {
         // (At least) for now, \r is considered a whitespace
-        let text = "Lorem ipsum \r dolor sit am\u{00AD}et, conse😅ctetur adipiscing\nelit";
+        let text = "Lorem ipsum \r dolor sit am\u{00AD}et,\tconse😅ctetur adipiscing\nelit";
 
         assert_eq!(
             Parser::parse(text).collect::<Vec<Token>>(),
@@ -179,7 +183,7 @@ mod test {
                 Token::Word("am"),
                 Token::Break(Some('-')),
                 Token::Word("et,"),
-                Token::Whitespace(1),
+                Token::Tab,
                 Token::Word("conse😅ctetur"),
                 Token::Whitespace(1),
                 Token::Word("adipiscing"),

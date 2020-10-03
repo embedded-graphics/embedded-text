@@ -27,10 +27,57 @@ use crate::{
         space_config::UniformSpaceConfig,
     },
     style::height_mode::HeightMode,
+    utils::font_ext::FontExt,
 };
+use core::marker::PhantomData;
 use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
 
 pub use builder::TextBoxStyleBuilder;
+
+/// Tab size helper
+///
+/// This type makes it more obvious what unit is used to define the width of tabs.
+/// The default tab size is 4 spaces.
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct TabSize<F: Font> {
+    pub(crate) width: i32,
+    _font: PhantomData<F>,
+}
+
+impl<F: Font> Default for TabSize<F> {
+    #[inline]
+    fn default() -> Self {
+        Self::spaces(4)
+    }
+}
+
+impl<F: Font> TabSize<F> {
+    /// Calculate tab size from a number of spaces in the current font.
+    #[inline]
+    pub fn spaces(n: u32) -> Self {
+        let space = F::total_char_width(' ') as i32;
+        // make sure n is at least 1, and the multiplication doesn't overflow
+        let size = (n.max(1) as i32).checked_mul(space).unwrap_or(4 * space);
+
+        Self::pixels(size)
+    }
+
+    /// Define the tab size in pixels.
+    #[inline]
+    pub fn pixels(px: i32) -> Self {
+        Self {
+            width: px,
+            _font: PhantomData,
+        }
+    }
+
+    /// Calculate the rendered with of the next tab
+    #[inline]
+    pub fn next_width(self, pos: i32) -> u32 {
+        let next_tab_pos = (pos / self.width + 1) * self.width;
+        (next_tab_pos - pos) as u32
+    }
+}
 
 /// Styling options of a [`TextBox`].
 ///
@@ -70,6 +117,9 @@ where
 
     /// Desired space between lines, in pixels
     pub line_spacing: i32,
+
+    /// Desired column width for tabs
+    pub tab_size: TabSize<F>,
 }
 
 impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
@@ -95,6 +145,7 @@ where
             vertical_alignment,
             height_mode,
             line_spacing: 0,
+            tab_size: TabSize::default(),
         }
     }
 
@@ -112,6 +163,7 @@ where
             vertical_alignment,
             height_mode,
             line_spacing: 0,
+            tab_size: TabSize::default(),
         }
     }
 
@@ -145,6 +197,7 @@ where
             cursor,
             UniformSpaceConfig::default(),
             carried_token.clone(),
+            self.tab_size,
         );
 
         let mut current_width = 0;

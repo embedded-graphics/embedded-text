@@ -4,6 +4,8 @@ Unreleased
 ## Added:
 
  * `RendererFactory` trait that can be used to create a pixel iterator.
+ * Handle tabs `\t` with configurable tab size.
+ * Added `TabSize` struct and related style builder method `tab_size`.
 
 ## Changed:
 

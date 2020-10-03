@@ -5,6 +5,7 @@ use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::Cursor, space_config::*},
+    style::TabSize,
     utils::font_ext::FontExt,
 };
 use core::{marker::PhantomData, str::Chars};
@@ -52,6 +53,7 @@ where
     config: SP,
     first_word: bool,
     alignment: PhantomData<A>,
+    tab_size: TabSize<F>,
 }
 
 impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
@@ -68,6 +70,7 @@ where
         cursor: Cursor<F>,
         config: SP,
         carried_token: Option<Token<'a>>,
+        tab_size: TabSize<F>,
     ) -> Self {
         let current_token = carried_token
             .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t))
@@ -82,6 +85,7 @@ where
             first_word: true,
             alignment: PhantomData,
             pos: Point::zero(),
+            tab_size,
         }
     }
 
@@ -301,6 +305,23 @@ where
                             }
                         }
 
+                        Token::Tab => {
+                            let sp_width = self.tab_size.next_width(self.cursor.x_in_line());
+                            let tab_width = if self.cursor.advance(sp_width) {
+                                self.next_token();
+                                sp_width
+                            } else {
+                                // If we can't render the whole tab since we don't fit in the line,
+                                // render it using all the available space - it will be < tab size.
+                                let available_space = self.cursor.space();
+                                self.finish_wrapped();
+                                available_space
+                            };
+
+                            // don't count tabs as spaces
+                            break Some(RenderElement::Space(tab_width, 0));
+                        }
+
                         Token::NewLine | Token::CarriageReturn => {
                             // we're done
                             self.finish(token);
@@ -334,7 +355,7 @@ where
                                 self.current_token = State::Word(chars.clone());
 
                                 break ret_val;
-                            } else if self.cursor.position.x != self.cursor.bounds.top_left().x {
+                            } else if self.cursor.x_in_line() > 0 {
                                 // There's already something in this line, let's carry the whole
                                 // word (the part that wasn't consumed so far) to the next.
                                 // This can happen because words can be longer than the line itself.
@@ -371,7 +392,7 @@ mod test {
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 6 - 1, 8)), 0);
 
         let iter: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None);
+            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
 
         assert_eq!(
             iter.collect::<Vec<RenderElement>>(),
@@ -386,6 +407,13 @@ mod test {
         );
     }
 
+    fn collect_mut<I: Iterator<Item = T>, T>(iter: &mut I) -> Vec<T> {
+        let mut v = Vec::new();
+        v.extend(iter);
+
+        v
+    }
+
     #[test]
     fn soft_hyphen() {
         let parser = Parser::parse("sam\u{00AD}ple");
@@ -394,15 +422,10 @@ mod test {
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 6 - 2, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None);
-
-        let mut v = Vec::new();
-        while let Some(re) = line1.next() {
-            v.push(re);
-        }
+            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
 
         assert_eq!(
-            v,
+            collect_mut(&mut line1),
             vec![
                 RenderElement::PrintedCharacter('s'),
                 RenderElement::PrintedCharacter('a'),
@@ -414,8 +437,13 @@ mod test {
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
         let carried = line1.remaining_token();
-        let line2: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(line1.parser, line1.cursor, config, carried);
+        let line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
+            line1.parser,
+            line1.cursor,
+            config,
+            carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             line2.collect::<Vec<RenderElement>>(),
@@ -436,15 +464,10 @@ mod test {
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(5 * 6 - 1, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None);
-
-        let mut v = Vec::new();
-        while let Some(re) = line1.next() {
-            v.push(re);
-        }
+            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
 
         assert_eq!(
-            v,
+            collect_mut(&mut line1),
             vec![
                 RenderElement::PrintedCharacter('s'),
                 RenderElement::PrintedCharacter('u'),
@@ -457,8 +480,13 @@ mod test {
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
         let carried = line1.remaining_token();
-        let line2: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(line1.parser, line1.cursor, config, carried);
+        let line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
+            line1.parser,
+            line1.cursor,
+            config,
+            carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             line2.collect::<Vec<RenderElement>>(),
@@ -486,11 +514,11 @@ mod test {
             0,
         );
 
-        let line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None);
+        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
 
         assert_eq!(
-            line1.collect::<Vec<RenderElement>>(),
+            collect_mut(&mut line1),
             vec![
                 RenderElement::PrintedCharacter('g'),
                 RenderElement::PrintedCharacter('l'),
@@ -503,6 +531,58 @@ mod test {
                 RenderElement::PrintedCharacter('r'),
                 RenderElement::PrintedCharacter('d'),
                 RenderElement::PrintedCharacter('s'),
+            ]
+        );
+    }
+
+    #[test]
+    fn tabs() {
+        let text = "a\tword\nand\t\tanother\t";
+        let parser = Parser::parse(text);
+        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(16 * 6 - 1, 16)), 0);
+
+        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+
+        assert_eq!(
+            collect_mut(&mut line1),
+            vec![
+                RenderElement::PrintedCharacter('a'),
+                RenderElement::Space(6 * 3, 0),
+                RenderElement::PrintedCharacter('w'),
+                RenderElement::PrintedCharacter('o'),
+                RenderElement::PrintedCharacter('r'),
+                RenderElement::PrintedCharacter('d'),
+            ]
+        );
+
+        let carried = line1.remaining_token();
+        let mut line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
+            line1.parser,
+            line1.cursor,
+            config,
+            carried,
+            TabSize::default(),
+        );
+
+        assert_eq!(
+            collect_mut(&mut line2),
+            vec![
+                RenderElement::PrintedCharacter('a'),
+                RenderElement::PrintedCharacter('n'),
+                RenderElement::PrintedCharacter('d'),
+                RenderElement::Space(6, 0),
+                RenderElement::Space(6 * 4, 0),
+                RenderElement::PrintedCharacter('a'),
+                RenderElement::PrintedCharacter('n'),
+                RenderElement::PrintedCharacter('o'),
+                RenderElement::PrintedCharacter('t'),
+                RenderElement::PrintedCharacter('h'),
+                RenderElement::PrintedCharacter('e'),
+                RenderElement::PrintedCharacter('r'),
+                RenderElement::Space(6, 0),
             ]
         );
     }
