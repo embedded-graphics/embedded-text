@@ -23,12 +23,16 @@ This crate provides a configurable `TextBox` to render multiline text inside a b
  - carriage return (`\r`)
  - tab (`\t`) with configurable tab size
 
+`TextBox` also supports text coloring using [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
+
 ### Example
 
 The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
 `SDL2`. See the [simulator README] for more information.
 
 ![embedded-text example with center aligned text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/center.png)
+
+![embedded-text example with colored text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/colored_text.png)
 
 ```rust
 use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
