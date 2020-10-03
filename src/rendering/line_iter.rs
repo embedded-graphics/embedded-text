@@ -322,6 +322,8 @@ where
                             break Some(RenderElement::Space(tab_width, 0));
                         }
 
+                        Token::Escape => self.next_token(),
+
                         Token::NewLine | Token::CarriageReturn => {
                             // we're done
                             self.finish(token);

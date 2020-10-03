@@ -30,6 +30,9 @@ pub enum Token<'a> {
     /// A \t character.
     Tab,
 
+    /// A \x1b
+    Escape,
+
     /// A number of whitespace characters.
     Whitespace(u32),
 
@@ -69,8 +72,11 @@ fn is_space_char(c: char) -> bool {
     c.is_whitespace() && !['\n', '\r', '\t', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
 }
 
-fn try_parse_escape_seq<'a>(_chars: &mut Chars<'a>) -> Option<Token<'a>> {
-    None
+fn try_parse_escape_seq<'a>(chars: &mut Chars<'a>) -> Option<Token<'a>> {
+    chars.next().and_then(|c| match c {
+        SPEC_CHAR_ESCAPE => Some(Token::Escape),
+        _ => None,
+    })
 }
 
 impl<'a> Parser<'a> {
@@ -142,7 +148,7 @@ impl<'a> Iterator for Parser<'a> {
                             tok
                         } else {
                             // we don't have anything, so ignore the escape character and move on
-                            self.next()
+                            Some(Token::Escape)
                         }
                     }
 
@@ -267,11 +273,15 @@ mod test {
 
     #[test]
     fn escape_char_ignored_if_not_ansi_sequence() {
-        let text = "foo\x1bbar";
-
         assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
-            vec![Token::Word("foo"), Token::Word("bar"),]
+            Parser::parse("foo\x1bbar").collect::<Vec<Token>>(),
+            vec![Token::Word("foo"), Token::Escape, Token::Word("bar"),]
+        );
+
+        // can escape the escape char
+        assert_eq!(
+            Parser::parse("foo\x1b\x1bbar").collect::<Vec<Token>>(),
+            vec![Token::Word("foo"), Token::Escape, Token::Word("bar"),]
         );
     }
 }
