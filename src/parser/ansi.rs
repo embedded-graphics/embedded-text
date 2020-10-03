@@ -25,7 +25,7 @@ fn try_parse_8b_color<'a>(chars: &mut Chars<'a>) -> Option<Rgb888> {
     match color {
         //   0-  7:  standard colors (as in ESC [ 30–37 m)
         //   8- 15:  high intensity colors (as in ESC [ 90–97 m)
-        0..=15 => Some(standard_color_to_rgb(color)),
+        0..=15 => Some(standard_to_rgb(color)),
 
         //  16-231:  6 × 6 × 6 cube (216 colors): 16 + 36 × r + 6 × g + b (0 ≤ r, g, b ≤ 5)
         16..=231 => {
@@ -62,7 +62,7 @@ fn try_parse_rgb<'a>(chars: &mut Chars<'a>) -> Option<Rgb888> {
     Some(Rgb888::new(r, g, b))
 }
 
-fn standard_color_to_rgb(idx: u8) -> Rgb888 {
+fn standard_to_rgb(idx: u8) -> Rgb888 {
     // These colors are used in PowerShell 6 in Windows 10
     match idx {
         0 => Rgb888::new(12, 12, 12),
@@ -106,18 +106,18 @@ pub fn try_parse_escape_seq<'a>(chars: &mut Chars<'a>) -> Option<Token<'a>> {
                 // limitation: only a single attribute is supported at a time
 
                 let possible_token = match code {
-                    30..=37 => Some(Token::SetForeground(standard_color_to_rgb(code - 30))),
+                    30..=37 => Some(Token::ChangeTextColor(standard_to_rgb(code - 30))),
                     38 => {
                         let color = try_parse_color(chars)?;
-                        Some(Token::SetForeground(color))
+                        Some(Token::ChangeTextColor(color))
                     }
-                    90..=97 => Some(Token::SetForeground(standard_color_to_rgb(code - 82))),
-                    40..=47 => Some(Token::SetBackground(standard_color_to_rgb(code - 40))),
+                    90..=97 => Some(Token::ChangeTextColor(standard_to_rgb(code - 82))),
+                    40..=47 => Some(Token::ChangeBackgroundColor(standard_to_rgb(code - 40))),
                     48 => {
                         let color = try_parse_color(chars)?;
-                        Some(Token::SetBackground(color))
+                        Some(Token::ChangeBackgroundColor(color))
                     }
-                    100..=107 => Some(Token::SetBackground(standard_color_to_rgb(code - 92))),
+                    100..=107 => Some(Token::ChangeBackgroundColor(standard_to_rgb(code - 92))),
                     _ => None,
                 };
 

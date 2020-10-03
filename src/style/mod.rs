@@ -218,6 +218,7 @@ where
                         last_spaces = total_spaces + count;
                     }
                 }
+
                 RenderElement::PrintedCharacter(c) => {
                     // the current width is always the position where the cursor is (left is 0)
                     current_width = iter.cursor.position.x;
@@ -230,6 +231,9 @@ where
                         total_spaces = last_spaces;
                     }
                 }
+
+                // Ignore color changes
+                _ => {}
             }
         }
 

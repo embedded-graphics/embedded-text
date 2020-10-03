@@ -49,10 +49,10 @@ pub enum Token<'a> {
     ExtraCharacter(char),
 
     /// Sets the character color
-    SetForeground(Rgb888),
+    ChangeTextColor(Rgb888),
 
     /// Sets the background color
-    SetBackground(Rgb888),
+    ChangeBackgroundColor(Rgb888),
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.
@@ -311,7 +311,7 @@ mod test {
             "foo\x1b[34mbar",
             vec![
                 Token::Word("foo"),
-                Token::SetForeground(Rgb888::new(0, 55, 218)),
+                Token::ChangeTextColor(Rgb888::new(0, 55, 218)),
                 Token::Word("bar"),
             ],
         );
@@ -319,7 +319,7 @@ mod test {
             "foo\x1b[95mbar",
             vec![
                 Token::Word("foo"),
-                Token::SetForeground(Rgb888::new(180, 0, 158)),
+                Token::ChangeTextColor(Rgb888::new(180, 0, 158)),
                 Token::Word("bar"),
             ],
         );

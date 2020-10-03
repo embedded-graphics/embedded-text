@@ -145,6 +145,9 @@ where
                             }
                         }
 
+                        Some(RenderElement::ChangeTextColor(_)) => {}
+                        Some(RenderElement::ChangeBackgroundColor(_)) => {}
+
                         None => break None,
                     };
                 }

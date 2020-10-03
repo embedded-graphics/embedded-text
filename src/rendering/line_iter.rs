@@ -9,7 +9,7 @@ use crate::{
     utils::font_ext::FontExt,
 };
 use core::{marker::PhantomData, str::Chars};
-use embedded_graphics::prelude::*;
+use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
 
 /// Internal state used to render a line.
 #[derive(Debug)]
@@ -32,6 +32,12 @@ pub enum RenderElement {
 
     /// Render the given character
     PrintedCharacter(char),
+
+    /// Sets the character color
+    ChangeTextColor(Rgb888),
+
+    /// Sets the background color
+    ChangeBackgroundColor(Rgb888),
 }
 
 /// Pixel iterator to render a single line of styled text.
@@ -323,9 +329,11 @@ where
                         }
 
                         Token::Escape => self.next_token(),
-                        // ignore for now
-                        Token::SetForeground(_) => self.next_token(),
-                        Token::SetBackground(_) => self.next_token(),
+
+                        Token::ChangeTextColor(c) => break Some(RenderElement::ChangeTextColor(c)),
+                        Token::ChangeBackgroundColor(c) => {
+                            break Some(RenderElement::ChangeBackgroundColor(c))
+                        }
 
                         Token::NewLine | Token::CarriageReturn => {
                             // we're done
