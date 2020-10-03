@@ -6,7 +6,7 @@ use crate::{
         line::StyledLinePixelIterator, space_config::SpaceConfig, RendererFactory,
         StyledTextBoxIterator,
     },
-    style::height_mode::HeightMode,
+    style::{color::Rgb, height_mode::HeightMode},
     utils::font_ext::FontExt,
     StyledTextBox,
 };
@@ -78,7 +78,7 @@ impl<F: Font + Copy> SpaceConfig for JustifiedSpaceConfig<F> {
 
 impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, Justified, V, H>
 where
-    C: PixelColor,
+    C: PixelColor + From<Rgb>,
     F: Font + Copy,
     V: VerticalTextAlignment,
     H: HeightMode,

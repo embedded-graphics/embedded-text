@@ -5,11 +5,11 @@ use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::Cursor, space_config::*},
-    style::TabSize,
+    style::{color::Rgb, TabSize},
     utils::font_ext::FontExt,
 };
 use core::{marker::PhantomData, str::Chars};
-use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
+use embedded_graphics::prelude::*;
 
 /// Internal state used to render a line.
 #[derive(Debug)]
@@ -34,10 +34,10 @@ pub enum RenderElement {
     PrintedCharacter(char),
 
     /// Sets the character color
-    ChangeTextColor(Rgb888),
+    ChangeTextColor(Rgb),
 
     /// Sets the background color
-    ChangeBackgroundColor(Rgb888),
+    ChangeBackgroundColor(Rgb),
 }
 
 /// Pixel iterator to render a single line of styled text.

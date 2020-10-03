@@ -16,8 +16,8 @@
 //!     tokens
 //! );
 //! ```
+use crate::style::color::Rgb;
 use core::str::Chars;
-use embedded_graphics::pixelcolor::Rgb888;
 
 mod ansi;
 
@@ -49,10 +49,10 @@ pub enum Token<'a> {
     ExtraCharacter(char),
 
     /// Sets the character color
-    ChangeTextColor(Rgb888),
+    ChangeTextColor(Rgb),
 
     /// Sets the background color
-    ChangeBackgroundColor(Rgb888),
+    ChangeBackgroundColor(Rgb),
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.
@@ -212,7 +212,7 @@ impl<'a> Iterator for Parser<'a> {
 #[cfg(test)]
 mod test {
     use super::{Parser, Token};
-    use embedded_graphics::pixelcolor::Rgb888;
+    use crate::style::color::Rgb;
 
     fn assert_tokens(text: &str, tokens: Vec<Token>) {
         assert_eq!(Parser::parse(text).collect::<Vec<Token>>(), tokens)
@@ -311,7 +311,7 @@ mod test {
             "foo\x1b[34mbar",
             vec![
                 Token::Word("foo"),
-                Token::ChangeTextColor(Rgb888::new(0, 55, 218)),
+                Token::ChangeTextColor(Rgb::new(0, 55, 218)),
                 Token::Word("bar"),
             ],
         );
@@ -319,7 +319,7 @@ mod test {
             "foo\x1b[95mbar",
             vec![
                 Token::Word("foo"),
-                Token::ChangeTextColor(Rgb888::new(180, 0, 158)),
+                Token::ChangeTextColor(Rgb::new(180, 0, 158)),
                 Token::Word("bar"),
             ],
         );

@@ -15,6 +15,7 @@
 //! [`TextBox::into_styled`]: ../struct.TextBox.html#method.into_styled
 
 pub mod builder;
+pub mod color;
 pub mod height_mode;
 pub mod vertical_overdraw;
 
