@@ -19,6 +19,7 @@
 //!  - zero-width space (`\u{a0}`)
 //!  - soft hyphen (`\u{ad}`)
 //!  - carriage return (`\r`)
+//!  - tab (`\t`) with configurable tab size
 //!
 //! ## Example
 //!

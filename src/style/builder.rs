@@ -4,9 +4,8 @@ use crate::{
     style::{
         height_mode::{Exact, HeightMode},
         vertical_overdraw::FullRowsOnly,
-        TextBoxStyle,
+        TabSize, TextBoxStyle,
     },
-    utils::font_ext::FontExt,
 };
 use embedded_graphics::{
     prelude::*,
@@ -29,7 +28,7 @@ where
     vertical_alignment: V,
     height_mode: H,
     line_spacing: i32,
-    tab_size: u32,
+    tab_size: TabSize<F>,
 }
 
 impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact<FullRowsOnly>>
@@ -55,7 +54,7 @@ where
             vertical_alignment: TopAligned,
             height_mode: Exact(FullRowsOnly),
             line_spacing: 0,
-            tab_size: F::default_tab_size(),
+            tab_size: TabSize::default(),
         }
     }
 
@@ -263,22 +262,11 @@ where
         }
     }
 
-    /// Sets the tab size as the width of a number of space characters.
+    /// Sets the tab size.
     #[inline]
     #[must_use]
-    pub fn tab_size(self, tab_space_count: u32) -> Self {
-        self.tab_size_px(
-            F::total_char_width(' ')
-                .checked_mul(tab_space_count)
-                .unwrap_or(F::default_tab_size()),
-        )
-    }
-
-    /// Sets the tab size in pixels.
-    #[inline]
-    #[must_use]
-    pub fn tab_size_px(self, tab_size: u32) -> Self {
-        TextBoxStyleBuilder { tab_size, ..self }
+    pub fn tab_size(self, tab_size: TabSize<F>) -> Self {
+        Self { tab_size, ..self }
     }
 
     /// Builds the [`TextBoxStyle`].
