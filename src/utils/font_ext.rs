@@ -45,6 +45,12 @@ pub trait FontExt {
     /// Returns the width of the spaces that fit into the given space and the number of spaces that
     /// fit.
     fn max_space_width(n: u32, max_width: u32) -> (u32, u32);
+
+    /// Returns the default tab size, which is the width of 4 spaces
+    #[inline]
+    fn default_tab_size() -> u32 {
+        4 * Self::total_char_width(' ')
+    }
 }
 
 /// Result of a `measure_line` function call.

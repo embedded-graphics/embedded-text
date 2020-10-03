@@ -27,6 +27,7 @@ use crate::{
         space_config::UniformSpaceConfig,
     },
     style::height_mode::HeightMode,
+    utils::font_ext::FontExt,
 };
 use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
 
@@ -70,6 +71,9 @@ where
 
     /// Desired space between lines, in pixels
     pub line_spacing: i32,
+
+    /// Desired column width for tabs
+    pub tab_size: u32,
 }
 
 impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
@@ -95,6 +99,7 @@ where
             vertical_alignment,
             height_mode,
             line_spacing: 0,
+            tab_size: F::default_tab_size(),
         }
     }
 
@@ -112,6 +117,7 @@ where
             vertical_alignment,
             height_mode,
             line_spacing: 0,
+            tab_size: F::default_tab_size(),
         }
     }
 
@@ -145,6 +151,7 @@ where
             cursor,
             UniformSpaceConfig::default(),
             carried_token.clone(),
+            self.tab_size,
         );
 
         let mut current_width = 0;

@@ -71,7 +71,7 @@ where
             state: State::FetchNext,
             style: style.text_style,
             display_range: H::calculate_displayed_row_range(&cursor),
-            inner: LineElementIterator::new(parser, cursor, config, carried_token),
+            inner: LineElementIterator::new(parser, cursor, config, carried_token, style.tab_size),
         }
     }
 

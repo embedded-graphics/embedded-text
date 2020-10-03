@@ -6,6 +6,7 @@ use crate::{
         vertical_overdraw::FullRowsOnly,
         TextBoxStyle,
     },
+    utils::font_ext::FontExt,
 };
 use embedded_graphics::{
     prelude::*,
@@ -28,6 +29,7 @@ where
     vertical_alignment: V,
     height_mode: H,
     line_spacing: i32,
+    tab_size: u32,
 }
 
 impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact<FullRowsOnly>>
@@ -53,6 +55,7 @@ where
             vertical_alignment: TopAligned,
             height_mode: Exact(FullRowsOnly),
             line_spacing: 0,
+            tab_size: F::default_tab_size(),
         }
     }
 
@@ -222,6 +225,7 @@ where
             line_spacing: self.line_spacing,
             vertical_alignment: self.vertical_alignment,
             height_mode: self.height_mode,
+            tab_size: self.tab_size,
         }
     }
 
@@ -238,6 +242,7 @@ where
             line_spacing: self.line_spacing,
             vertical_alignment,
             height_mode: self.height_mode,
+            tab_size: self.tab_size,
         }
     }
 
@@ -254,7 +259,26 @@ where
             line_spacing: self.line_spacing,
             vertical_alignment: self.vertical_alignment,
             height_mode,
+            tab_size: self.tab_size,
         }
+    }
+
+    /// Sets the tab size as the width of a number of space characters.
+    #[inline]
+    #[must_use]
+    pub fn tab_size(self, tab_space_count: u32) -> Self {
+        self.tab_size_px(
+            F::total_char_width(' ')
+                .checked_mul(tab_space_count)
+                .unwrap_or(F::default_tab_size()),
+        )
+    }
+
+    /// Sets the tab size in pixels.
+    #[inline]
+    #[must_use]
+    pub fn tab_size_px(self, tab_size: u32) -> Self {
+        TextBoxStyleBuilder { tab_size, ..self }
     }
 
     /// Builds the [`TextBoxStyle`].
@@ -269,6 +293,7 @@ where
             line_spacing: self.line_spacing,
             vertical_alignment: self.vertical_alignment,
             height_mode: self.height_mode,
+            tab_size: self.tab_size,
         }
     }
 }

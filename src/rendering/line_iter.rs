@@ -52,6 +52,7 @@ where
     config: SP,
     first_word: bool,
     alignment: PhantomData<A>,
+    tab_size: u32,
 }
 
 impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
@@ -68,6 +69,7 @@ where
         cursor: Cursor<F>,
         config: SP,
         carried_token: Option<Token<'a>>,
+        tab_size: u32,
     ) -> Self {
         let current_token = carried_token
             .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t))
@@ -82,6 +84,7 @@ where
             first_word: true,
             alignment: PhantomData,
             pos: Point::zero(),
+            tab_size,
         }
     }
 
@@ -301,6 +304,28 @@ where
                             }
                         }
 
+                        Token::Tab => {
+                            // Special consideration necessary for fully justified alignment
+                            let tab_size =
+                                if self.tab_size == 0 || self.tab_size > i32::max_value() as u32 {
+                                    F::default_tab_size()
+                                } else {
+                                    self.tab_size
+                                } as i32;
+
+                            let x = self.cursor.x_in_line();
+
+                            let next_tab_pos = (x / tab_size + 1) * tab_size;
+                            let sp_width = (next_tab_pos - x) as u32;
+
+                            if self.cursor.advance(sp_width) {
+                                self.next_token();
+                                break Some(RenderElement::Space(sp_width, 1));
+                            } else {
+                                self.finish_wrapped();
+                            }
+                        }
+
                         Token::NewLine | Token::CarriageReturn => {
                             // we're done
                             self.finish(token);
@@ -359,7 +384,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::alignment::LeftAligned;
+    use crate::{alignment::LeftAligned, utils::font_ext::FontExt};
     use embedded_graphics::fonts::Font6x8;
     use embedded_graphics::primitives::Rectangle;
 
@@ -371,7 +396,7 @@ mod test {
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 6 - 1, 8)), 0);
 
         let iter: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None);
+            LineElementIterator::new(parser, cursor, config, None, Font6x8::default_tab_size());
 
         assert_eq!(
             iter.collect::<Vec<RenderElement>>(),
@@ -394,7 +419,7 @@ mod test {
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 6 - 2, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None);
+            LineElementIterator::new(parser, cursor, config, None, Font6x8::default_tab_size());
 
         let mut v = Vec::new();
         while let Some(re) = line1.next() {
@@ -414,8 +439,13 @@ mod test {
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
         let carried = line1.remaining_token();
-        let line2: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(line1.parser, line1.cursor, config, carried);
+        let line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
+            line1.parser,
+            line1.cursor,
+            config,
+            carried,
+            Font6x8::default_tab_size(),
+        );
 
         assert_eq!(
             line2.collect::<Vec<RenderElement>>(),
@@ -436,7 +466,7 @@ mod test {
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(5 * 6 - 1, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None);
+            LineElementIterator::new(parser, cursor, config, None, Font6x8::default_tab_size());
 
         let mut v = Vec::new();
         while let Some(re) = line1.next() {
@@ -457,8 +487,13 @@ mod test {
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
         let carried = line1.remaining_token();
-        let line2: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(line1.parser, line1.cursor, config, carried);
+        let line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
+            line1.parser,
+            line1.cursor,
+            config,
+            carried,
+            Font6x8::default_tab_size(),
+        );
 
         assert_eq!(
             line2.collect::<Vec<RenderElement>>(),
@@ -487,7 +522,7 @@ mod test {
         );
 
         let line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None);
+            LineElementIterator::new(parser, cursor, config, None, Font6x8::default_tab_size());
 
         assert_eq!(
             line1.collect::<Vec<RenderElement>>(),
