@@ -69,6 +69,10 @@ fn is_space_char(c: char) -> bool {
     c.is_whitespace() && !['\n', '\r', '\t', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
 }
 
+fn try_parse_escape_seq<'a>(_chars: &mut Chars<'a>) -> Option<Token<'a>> {
+    None
+}
+
 impl<'a> Parser<'a> {
     /// Create a new parser object to process the given piece of text.
     #[inline]
@@ -131,7 +135,16 @@ impl<'a> Iterator for Parser<'a> {
                     '\t' => Some(Token::Tab),
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
                     SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
-                    SPEC_CHAR_ESCAPE => self.next(),
+                    SPEC_CHAR_ESCAPE => {
+                        let mut lookahead = self.inner.clone();
+                        if let tok @ Some(_) = try_parse_escape_seq(&mut lookahead) {
+                            self.inner = lookahead;
+                            tok
+                        } else {
+                            // we don't have anything, so ignore the escape character and move on
+                            self.next()
+                        }
+                    }
 
                     // count consecutive whitespace
                     _ => {
