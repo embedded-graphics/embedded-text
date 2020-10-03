@@ -148,6 +148,7 @@ where
                         Some(RenderElement::ChangeTextColor(color)) => {
                             self.style.text_color = Some(color.into())
                         }
+
                         Some(RenderElement::ChangeBackgroundColor(color)) => {
                             self.style.background_color = Some(color.into())
                         }
