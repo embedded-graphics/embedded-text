@@ -323,6 +323,9 @@ where
                         }
 
                         Token::Escape => self.next_token(),
+                        // ignore for now
+                        Token::SetForeground(_) => self.next_token(),
+                        Token::SetBackground(_) => self.next_token(),
 
                         Token::NewLine | Token::CarriageReturn => {
                             // we're done
