@@ -313,7 +313,9 @@ where
                                 // don't count tabs as spaces
                                 break Some(RenderElement::Space(sp_width, 0));
                             } else {
+                                let sp_width = self.cursor.space();
                                 self.finish_wrapped();
+                                break Some(RenderElement::Space(sp_width, 0));
                             }
                         }
 
@@ -532,7 +534,7 @@ mod test {
 
     #[test]
     fn tabs() {
-        let text = "a\tword\nand\t\tanother";
+        let text = "a\tword\nand\t\tanother\t";
         let parser = Parser::parse(text);
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
@@ -577,6 +579,7 @@ mod test {
                 RenderElement::PrintedCharacter('h'),
                 RenderElement::PrintedCharacter('e'),
                 RenderElement::PrintedCharacter('r'),
+                RenderElement::Space(6, 0),
             ]
         );
     }
