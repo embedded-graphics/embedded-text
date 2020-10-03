@@ -54,11 +54,13 @@ pub struct Parser<'a> {
 pub(crate) const SPEC_CHAR_NBSP: char = '\u{a0}';
 pub(crate) const SPEC_CHAR_ZWSP: char = '\u{200b}';
 pub(crate) const SPEC_CHAR_SHY: char = '\u{ad}';
+pub(crate) const SPEC_CHAR_ESCAPE: char = '\x1b';
 
 fn is_word_char(c: char) -> bool {
     // Word tokens are terminated when a whitespace, zwsp or shy character is found. An exception
     // to this rule is the nbsp, which is whitespace but is included in the word.
-    (!c.is_whitespace() || c == SPEC_CHAR_NBSP) && ![SPEC_CHAR_ZWSP, SPEC_CHAR_SHY].contains(&c)
+    (!c.is_whitespace() || c == SPEC_CHAR_NBSP)
+        && ![SPEC_CHAR_ZWSP, SPEC_CHAR_SHY, SPEC_CHAR_ESCAPE].contains(&c)
 }
 
 fn is_space_char(c: char) -> bool {
@@ -129,6 +131,7 @@ impl<'a> Iterator for Parser<'a> {
                     '\t' => Some(Token::Tab),
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
                     SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
+                    SPEC_CHAR_ESCAPE => self.next(),
 
                     // count consecutive whitespace
                     _ => {
@@ -246,6 +249,16 @@ mod test {
                 Token::Break(Some('-')),
                 Token::Word("cali"),
             ]
+        );
+    }
+
+    #[test]
+    fn escape_char_ignored_if_not_ansi_sequence() {
+        let text = "foo\x1bbar";
+
+        assert_eq!(
+            Parser::parse(text).collect::<Vec<Token>>(),
+            vec![Token::Word("foo"), Token::Word("bar"),]
         );
     }
 }
