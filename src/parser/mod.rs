@@ -323,5 +323,13 @@ mod test {
                 Token::Word("bar"),
             ],
         );
+        assert_tokens(
+            "foo\x1b[48;5;16mbar",
+            vec![
+                Token::Word("foo"),
+                Token::ChangeBackgroundColor(Rgb::new(0, 0, 0)),
+                Token::Word("bar"),
+            ],
+        );
     }
 }

@@ -88,12 +88,13 @@ fn standard_to_rgb(idx: u8) -> Rgb {
 }
 
 fn try_parse_color<'a>(chars: &mut Chars<'a>) -> Option<Rgb> {
+    expect(chars, ';')?;
     let color_type = try_parse_u8(chars)?;
     expect(chars, ';')?;
 
     match color_type {
-        2 => try_parse_8b_color(chars),
-        5 => try_parse_rgb(chars),
+        2 => try_parse_rgb(chars),
+        5 => try_parse_8b_color(chars),
 
         _ => None,
     }
