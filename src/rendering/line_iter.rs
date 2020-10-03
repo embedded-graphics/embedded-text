@@ -306,10 +306,7 @@ where
                         }
 
                         Token::Tab => {
-                            let x = self.cursor.x_in_line();
-                            let tab_size = self.tab_size.width;
-                            let next_tab_pos = (x / tab_size + 1) * tab_size;
-                            let sp_width = (next_tab_pos - x) as u32;
+                            let sp_width = self.tab_size.next_width(self.cursor.x_in_line());
 
                             if self.cursor.advance(sp_width) {
                                 self.next_token();
@@ -353,7 +350,7 @@ where
                                 self.current_token = State::Word(chars.clone());
 
                                 break ret_val;
-                            } else if self.cursor.position.x != self.cursor.bounds.top_left().x {
+                            } else if self.cursor.x_in_line() > 0 {
                                 // There's already something in this line, let's carry the whole
                                 // word (the part that wasn't consumed so far) to the next.
                                 // This can happen because words can be longer than the line itself.

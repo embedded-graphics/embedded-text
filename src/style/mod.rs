@@ -70,6 +70,13 @@ impl<F: Font> TabSize<F> {
             _font: PhantomData,
         }
     }
+
+    /// Calculate the rendered with of the next tab
+    #[inline]
+    pub fn next_width(self, pos: i32) -> u32 {
+        let next_tab_pos = (pos / self.width + 1) * self.width;
+        (next_tab_pos - pos) as u32
+    }
 }
 
 /// Styling options of a [`TextBox`].

@@ -85,7 +85,7 @@ impl<F: Font> Cursor<F> {
         self.position.x += by as i32;
     }
 
-    /// Returns the x coordinate relative to the left side.
+    /// Returns the current horizontal offset relative to the left side.
     #[inline]
     pub fn x_in_line(&self) -> i32 {
         self.position.x - self.bounds.top_left.x
