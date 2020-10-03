@@ -307,16 +307,17 @@ where
 
                         Token::Tab => {
                             let sp_width = self.tab_size.next_width(self.cursor.x_in_line());
-
-                            if self.cursor.advance(sp_width) {
+                            let tab_width = if self.cursor.advance(sp_width) {
                                 self.next_token();
-                                // don't count tabs as spaces
-                                break Some(RenderElement::Space(sp_width, 0));
+                                sp_width
                             } else {
-                                let sp_width = self.cursor.space();
+                                let available_space = self.cursor.space();
                                 self.finish_wrapped();
-                                break Some(RenderElement::Space(sp_width, 0));
-                            }
+                                available_space
+                            };
+
+                            // don't count tabs as spaces
+                            break Some(RenderElement::Space(tab_width, 0));
                         }
 
                         Token::NewLine | Token::CarriageReturn => {
