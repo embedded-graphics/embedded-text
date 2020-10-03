@@ -184,13 +184,16 @@ impl<'a> Iterator for Parser<'a> {
 #[cfg(test)]
 mod test {
     use super::{Parser, Token};
-    #[test]
-    fn parse() {
-        // (At least) for now, \r is considered a whitespace
-        let text = "Lorem ipsum \r dolor sit am\u{00AD}et,\tconse😅ctetur adipiscing\nelit";
 
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
+    fn assert_tokens(text: &str, tokens: Vec<Token>) {
+        assert_eq!(Parser::parse(text).collect::<Vec<Token>>(), tokens)
+    }
+
+    #[test]
+    fn test_parse() {
+        // (At least) for now, \r is considered a whitespace
+        assert_tokens(
+            "Lorem ipsum \r dolor sit am\u{00AD}et,\tconse😅ctetur adipiscing\nelit",
             vec![
                 Token::Word("Lorem"),
                 Token::Whitespace(1),
@@ -211,77 +214,60 @@ mod test {
                 Token::Word("adipiscing"),
                 Token::NewLine,
                 Token::Word("elit"),
-            ]
+            ],
         );
     }
 
     #[test]
     fn parse_zwsp() {
-        let text = "two\u{200B}words";
         assert_eq!(9, "two\u{200B}words".chars().count());
 
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
-            vec![Token::Word("two"), Token::Break(None), Token::Word("words")]
+        assert_tokens(
+            "two\u{200B}words",
+            vec![Token::Word("two"), Token::Break(None), Token::Word("words")],
         );
 
-        assert_eq!(
-            Parser::parse("  \u{200B} ").collect::<Vec<Token>>(),
-            vec![Token::Whitespace(3)]
-        );
+        assert_tokens("  \u{200B} ", vec![Token::Whitespace(3)]);
     }
 
     #[test]
     fn parse_multibyte_last() {
-        let text = "test😅";
-
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
-            vec![Token::Word("test😅"),]
-        );
+        assert_tokens("test😅", vec![Token::Word("test😅")]);
     }
 
     #[test]
     fn parse_nbsp_as_word_char() {
-        let text = "test\u{A0}word";
-
         assert_eq!(9, "test\u{A0}word".chars().count());
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
-            vec![Token::Word("test\u{A0}word"),]
-        );
-        assert_eq!(
-            Parser::parse(" \u{A0}word").collect::<Vec<Token>>(),
-            vec![Token::Whitespace(1), Token::Word("\u{A0}word"),]
+        assert_tokens("test\u{A0}word", vec![Token::Word("test\u{A0}word")]);
+        assert_tokens(
+            " \u{A0}word",
+            vec![Token::Whitespace(1), Token::Word("\u{A0}word")],
         );
     }
 
     #[test]
     fn parse_shy_issue_42() {
-        let text = "f\u{AD}cali";
-        println!("{:?}", "f\u{AD}cali");
-
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
+        assert_tokens(
+            "foo\u{AD}bar",
             vec![
-                Token::Word("f"),
+                Token::Word("foo"),
                 Token::Break(Some('-')),
-                Token::Word("cali"),
-            ]
+                Token::Word("bar"),
+            ],
         );
     }
 
     #[test]
     fn escape_char_ignored_if_not_ansi_sequence() {
-        assert_eq!(
-            Parser::parse("foo\x1bbar").collect::<Vec<Token>>(),
-            vec![Token::Word("foo"), Token::Escape, Token::Word("bar"),]
+        assert_tokens(
+            "foo\x1bbar",
+            vec![Token::Word("foo"), Token::Escape, Token::Word("bar")],
         );
 
         // can escape the escape char
-        assert_eq!(
-            Parser::parse("foo\x1b\x1bbar").collect::<Vec<Token>>(),
-            vec![Token::Word("foo"), Token::Escape, Token::Word("bar"),]
+        assert_tokens(
+            "foo\x1b\x1bbar",
+            vec![Token::Word("foo"), Token::Escape, Token::Word("bar")],
         );
     }
 }
