@@ -311,6 +311,8 @@ where
                                 self.next_token();
                                 sp_width
                             } else {
+                                // If we can't render the whole tab since we don't fit in the line,
+                                // render it using all the available space - it will be < tab size.
                                 let available_space = self.cursor.space();
                                 self.finish_wrapped();
                                 available_space
