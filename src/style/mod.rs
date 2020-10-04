@@ -39,26 +39,34 @@
 //! Standard color codes
 //! --------------------
 //!
+//! <style>
+//! .ansi_color {
+//!     display: block;
+//!     text-align: center;
+//!     color: white;
+//! }
+//! </style>
+//!
 //! The standard color codes option is the simplest, and least flexible way to set color.
 //!
-//! | Color name          | Text color | Background color | RGB888                                                                                                           |
-//! |---------------------|------------|------------------|------------------------------------------------------------------------------------------------------------------|
-//! | Black               | `\x1b[30m` | `\x1b[40m`       | <span style="text-align: center; display: block; background: rgb(12,12,12);">12,12,12</span>                     |
-//! | Red                 | `\x1b[31m` | `\x1b[41m`       | <span style="text-align: center; display: block; background: rgb(197,15,31);">197,15,31</span>                   |
-//! | Green               | `\x1b[32m` | `\x1b[42m`       | <span style="text-align: center; display: block; background: rgb(19,161,14);">19,161,14</span>                   |
-//! | Yellow              | `\x1b[33m` | `\x1b[43m`       | <span style="text-align: center; display: block; background: rgb(193,156,0);">193,156,0</span>                   |
-//! | Blue                | `\x1b[34m` | `\x1b[44m`       | <span style="text-align: center; display: block; background: rgb(0,55,218);">0,55,218</span>                     |
-//! | Magenta             | `\x1b[35m` | `\x1b[45m`       | <span style="text-align: center; display: block; background: rgb(136,23,152);">136,23,152</span>                 |
-//! | Cyan                | `\x1b[36m` | `\x1b[46m`       | <span style="text-align: center; display: block; background: rgb(58,150,221);">58,150,221</span>                 |
-//! | White               | `\x1b[37m` | `\x1b[47m`       | <span style="text-align: center; display: block; background: rgb(204,204,204); color: black;">204,204,204</span> |
-//! | Gray (Bright Black) | `\x1b[90m` | `\x1b[100m`      | <span style="text-align: center; display: block; background: rgb(118,118,118); color: black;">118,118,118</span> |
-//! | Bright Red          | `\x1b[91m` | `\x1b[101m`      | <span style="text-align: center; display: block; background: rgb(231,72,86);">231,72,86</span>                   |
-//! | Bright Green        | `\x1b[92m` | `\x1b[102m`      | <span style="text-align: center; display: block; background: rgb(22,198,12); color: black;">22,198,12</span>     |
-//! | Bright Yellow       | `\x1b[93m` | `\x1b[103m`      | <span style="text-align: center; display: block; background: rgb(249,241,165); color: black;">249,241,165</span> |
-//! | Bright Blue         | `\x1b[94m` | `\x1b[104m`      | <span style="text-align: center; display: block; background: rgb(59,120,255);">59,120,255</span>                 |
-//! | Bright Magenta      | `\x1b[95m` | `\x1b[105m`      | <span style="text-align: center; display: block; background: rgb(180,0,158);">180,0,158</span>                   |
-//! | Bright Cyan         | `\x1b[96m` | `\x1b[106m`      | <span style="text-align: center; display: block; background: rgb(97,214,214); color: black;">97,214,214</span>   |
-//! | Bright White        | `\x1b[97m` | `\x1b[107m`      | <span style="text-align: center; display: block; background: rgb(242,242,242); color: black;">242,242,242</span> |
+//! | Color name          | Text color | Background color | RGB888                                                                                          |
+//! |---------------------|------------|------------------|-------------------------------------------------------------------------------------------------|
+//! | Black               | `\x1b[30m` | `\x1b[40m`       | <span class="ansi_color" style="background: rgb(12,12,12);"> 12,12,12 </span>                     |
+//! | Red                 | `\x1b[31m` | `\x1b[41m`       | <span class="ansi_color" style="background: rgb(197,15,31);"> 197,15,31 </span>                   |
+//! | Green               | `\x1b[32m` | `\x1b[42m`       | <span class="ansi_color" style="background: rgb(19,161,14);"> 19,161,14 </span>                   |
+//! | Yellow              | `\x1b[33m` | `\x1b[43m`       | <span class="ansi_color" style="background: rgb(193,156,0);"> 193,156,0 </span>                   |
+//! | Blue                | `\x1b[34m` | `\x1b[44m`       | <span class="ansi_color" style="background: rgb(0,55,218);"> 0,55,218 </span>                     |
+//! | Magenta             | `\x1b[35m` | `\x1b[45m`       | <span class="ansi_color" style="background: rgb(136,23,152);"> 136,23,152 </span>                 |
+//! | Cyan                | `\x1b[36m` | `\x1b[46m`       | <span class="ansi_color" style="background: rgb(58,150,221);"> 58,150,221 </span>                 |
+//! | White               | `\x1b[37m` | `\x1b[47m`       | <span class="ansi_color" style="background: rgb(204,204,204); color: black;"> 204,204,204 </span> |
+//! | Gray (Bright Black) | `\x1b[90m` | `\x1b[100m`      | <span class="ansi_color" style="background: rgb(118,118,118); color: black;"> 118,118,118 </span> |
+//! | Bright Red          | `\x1b[91m` | `\x1b[101m`      | <span class="ansi_color" style="background: rgb(231,72,86);"> 231,72,86 </span>                   |
+//! | Bright Green        | `\x1b[92m` | `\x1b[102m`      | <span class="ansi_color" style="background: rgb(22,198,12); color: black;"> 22,198,12 </span>     |
+//! | Bright Yellow       | `\x1b[93m` | `\x1b[103m`      | <span class="ansi_color" style="background: rgb(249,241,165); color: black;"> 249,241,165 </span> |
+//! | Bright Blue         | `\x1b[94m` | `\x1b[104m`      | <span class="ansi_color" style="background: rgb(59,120,255);"> 59,120,255 </span>                 |
+//! | Bright Magenta      | `\x1b[95m` | `\x1b[105m`      | <span class="ansi_color" style="background: rgb(180,0,158);"> 180,0,158 </span>                   |
+//! | Bright Cyan         | `\x1b[96m` | `\x1b[106m`      | <span class="ansi_color" style="background: rgb(97,214,214); color: black;"> 97,214,214 </span>   |
+//! | Bright White        | `\x1b[97m` | `\x1b[107m`      | <span class="ansi_color" style="background: rgb(242,242,242); color: black;"> 242,242,242 </span> |
 //!
 //! 8 bit colors
 //! ------------
