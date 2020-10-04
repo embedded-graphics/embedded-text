@@ -11,7 +11,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{cursor::Cursor, line::StyledLinePixelIterator, space_config::SpaceConfig},
-    style::{height_mode::HeightMode, TextBoxStyle},
+    style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
@@ -97,7 +97,7 @@ where
 
 impl<'a, C, F, A, V, H, SP> Iterator for StyledTextBoxIterator<'a, C, F, A, V, H, SP>
 where
-    C: PixelColor,
+    C: PixelColor + From<Rgb>,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
@@ -129,6 +129,7 @@ where
                         break pixel;
                     }
 
+                    self.style.text_style = line_iterator.style;
                     self.state = State::NextLine(
                         line_iterator.remaining_token(),
                         line_iterator.cursor(),

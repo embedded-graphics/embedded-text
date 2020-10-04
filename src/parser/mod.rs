@@ -16,7 +16,10 @@
 //!     tokens
 //! );
 //! ```
+use crate::style::color::Rgb;
 use core::str::Chars;
+
+mod ansi;
 
 /// A text token
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -30,6 +33,9 @@ pub enum Token<'a> {
     /// A \t character.
     Tab,
 
+    /// A \x1b
+    Escape,
+
     /// A number of whitespace characters.
     Whitespace(u32),
 
@@ -41,6 +47,12 @@ pub enum Token<'a> {
 
     /// An extra character - used to carry soft breaking chars.
     ExtraCharacter(char),
+
+    /// Sets the character color
+    ChangeTextColor(Rgb),
+
+    /// Sets the background color
+    ChangeBackgroundColor(Rgb),
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.
@@ -54,17 +66,52 @@ pub struct Parser<'a> {
 pub(crate) const SPEC_CHAR_NBSP: char = '\u{a0}';
 pub(crate) const SPEC_CHAR_ZWSP: char = '\u{200b}';
 pub(crate) const SPEC_CHAR_SHY: char = '\u{ad}';
+pub(crate) const SPEC_CHAR_ESCAPE: char = '\x1b';
 
 fn is_word_char(c: char) -> bool {
     // Word tokens are terminated when a whitespace, zwsp or shy character is found. An exception
     // to this rule is the nbsp, which is whitespace but is included in the word.
-    (!c.is_whitespace() || c == SPEC_CHAR_NBSP) && ![SPEC_CHAR_ZWSP, SPEC_CHAR_SHY].contains(&c)
+    (!c.is_whitespace() || c == SPEC_CHAR_NBSP)
+        && ![SPEC_CHAR_ZWSP, SPEC_CHAR_SHY, SPEC_CHAR_ESCAPE].contains(&c)
 }
 
 fn is_space_char(c: char) -> bool {
     // zero-width space breaks whitespace sequences - this works as long as
     // space handling is symmetrical (i.e. starting == ending behaviour)
     c.is_whitespace() && !['\n', '\r', '\t', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
+}
+
+fn try_parse<'a, T>(
+    chars: &mut Chars<'a>,
+    f: impl FnOnce(&mut Chars<'a>) -> Option<T>,
+) -> Option<T> {
+    let mut lookahead = chars.clone();
+    let res = f(&mut lookahead);
+
+    if res.is_some() {
+        *chars = lookahead;
+    }
+
+    res
+}
+
+fn try_parse_digit<'a>(chars: &mut Chars<'a>) -> Option<u8> {
+    try_parse(chars, |chars| {
+        chars.next().and_then(|c| match c {
+            '0'..='9' => Some((c as u32 - '0' as u32) as u8),
+            _ => None,
+        })
+    })
+}
+
+fn expect<'a>(chars: &mut Chars<'a>, c: char) -> Option<()> {
+    try_parse(chars, |chars| {
+        if chars.next() == Some(c) {
+            Some(())
+        } else {
+            None
+        }
+    })
 }
 
 impl<'a> Parser<'a> {
@@ -129,6 +176,9 @@ impl<'a> Iterator for Parser<'a> {
                     '\t' => Some(Token::Tab),
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
                     SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
+                    SPEC_CHAR_ESCAPE => {
+                        ansi::try_parse_escape_seq(&mut self.inner).or(Some(Token::Escape))
+                    }
 
                     // count consecutive whitespace
                     _ => {
@@ -162,13 +212,17 @@ impl<'a> Iterator for Parser<'a> {
 #[cfg(test)]
 mod test {
     use super::{Parser, Token};
-    #[test]
-    fn parse() {
-        // (At least) for now, \r is considered a whitespace
-        let text = "Lorem ipsum \r dolor sit am\u{00AD}et,\tconse😅ctetur adipiscing\nelit";
+    use crate::style::color::Rgb;
 
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
+    fn assert_tokens(text: &str, tokens: Vec<Token>) {
+        assert_eq!(Parser::parse(text).collect::<Vec<Token>>(), tokens)
+    }
+
+    #[test]
+    fn test_parse() {
+        // (At least) for now, \r is considered a whitespace
+        assert_tokens(
+            "Lorem ipsum \r dolor sit am\u{00AD}et,\tconse😅ctetur adipiscing\nelit",
             vec![
                 Token::Word("Lorem"),
                 Token::Whitespace(1),
@@ -189,63 +243,93 @@ mod test {
                 Token::Word("adipiscing"),
                 Token::NewLine,
                 Token::Word("elit"),
-            ]
+            ],
         );
     }
 
     #[test]
     fn parse_zwsp() {
-        let text = "two\u{200B}words";
         assert_eq!(9, "two\u{200B}words".chars().count());
 
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
-            vec![Token::Word("two"), Token::Break(None), Token::Word("words")]
+        assert_tokens(
+            "two\u{200B}words",
+            vec![Token::Word("two"), Token::Break(None), Token::Word("words")],
         );
 
-        assert_eq!(
-            Parser::parse("  \u{200B} ").collect::<Vec<Token>>(),
-            vec![Token::Whitespace(3)]
-        );
+        assert_tokens("  \u{200B} ", vec![Token::Whitespace(3)]);
     }
 
     #[test]
     fn parse_multibyte_last() {
-        let text = "test😅";
-
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
-            vec![Token::Word("test😅"),]
-        );
+        assert_tokens("test😅", vec![Token::Word("test😅")]);
     }
 
     #[test]
     fn parse_nbsp_as_word_char() {
-        let text = "test\u{A0}word";
-
         assert_eq!(9, "test\u{A0}word".chars().count());
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
-            vec![Token::Word("test\u{A0}word"),]
-        );
-        assert_eq!(
-            Parser::parse(" \u{A0}word").collect::<Vec<Token>>(),
-            vec![Token::Whitespace(1), Token::Word("\u{A0}word"),]
+        assert_tokens("test\u{A0}word", vec![Token::Word("test\u{A0}word")]);
+        assert_tokens(
+            " \u{A0}word",
+            vec![Token::Whitespace(1), Token::Word("\u{A0}word")],
         );
     }
 
     #[test]
     fn parse_shy_issue_42() {
-        let text = "f\u{AD}cali";
-        println!("{:?}", "f\u{AD}cali");
-
-        assert_eq!(
-            Parser::parse(text).collect::<Vec<Token>>(),
+        assert_tokens(
+            "foo\u{AD}bar",
             vec![
-                Token::Word("f"),
+                Token::Word("foo"),
                 Token::Break(Some('-')),
-                Token::Word("cali"),
-            ]
+                Token::Word("bar"),
+            ],
+        );
+    }
+
+    #[test]
+    fn escape_char_ignored_if_not_ansi_sequence() {
+        assert_tokens(
+            "foo\x1bbar",
+            vec![Token::Word("foo"), Token::Escape, Token::Word("bar")],
+        );
+
+        assert_tokens(
+            "foo\x1b[bar",
+            vec![Token::Word("foo"), Token::Escape, Token::Word("[bar")],
+        );
+
+        // can escape the escape char
+        assert_tokens(
+            "foo\x1b\x1bbar",
+            vec![Token::Word("foo"), Token::Escape, Token::Word("bar")],
+        );
+    }
+
+    #[test]
+    fn escape_char_colors() {
+        assert_tokens(
+            "foo\x1b[34mbar",
+            vec![
+                Token::Word("foo"),
+                Token::ChangeTextColor(Rgb::new(0, 55, 218)),
+                Token::Word("bar"),
+            ],
+        );
+        assert_tokens(
+            "foo\x1b[95mbar",
+            vec![
+                Token::Word("foo"),
+                Token::ChangeTextColor(Rgb::new(180, 0, 158)),
+                Token::Word("bar"),
+            ],
+        );
+        assert_tokens(
+            "foo\x1b[48;5;16mbar",
+            vec![
+                Token::Word("foo"),
+                Token::ChangeBackgroundColor(Rgb::new(0, 0, 0)),
+                Token::Word("bar"),
+            ],
         );
     }
 }

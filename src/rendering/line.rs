@@ -9,7 +9,7 @@ use crate::{
         space_config::*,
         whitespace::EmptySpaceIterator,
     },
-    style::{height_mode::HeightMode, TextBoxStyle},
+    style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
 use core::ops::Range;
 use embedded_graphics::{prelude::*, style::TextStyle};
@@ -41,14 +41,14 @@ where
     A: HorizontalTextAlignment,
 {
     state: State<C, F>,
-    style: TextStyle<C, F>,
+    pub(crate) style: TextStyle<C, F>,
     display_range: Range<i32>,
     inner: LineElementIterator<'a, F, SP, A>,
 }
 
 impl<'a, C, F, SP, A> StyledLinePixelIterator<'a, C, F, SP, A>
 where
-    C: PixelColor,
+    C: PixelColor + From<Rgb>,
     F: Font + Copy,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
@@ -106,7 +106,7 @@ where
 
 impl<C, F, SP, A> Iterator for StyledLinePixelIterator<'_, C, F, SP, A>
 where
-    C: PixelColor,
+    C: PixelColor + From<Rgb>,
     F: Font + Copy,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
@@ -143,6 +143,14 @@ where
                             } else {
                                 self.state = State::FetchNext;
                             }
+                        }
+
+                        Some(RenderElement::ChangeTextColor(color)) => {
+                            self.style.text_color = Some(color.into())
+                        }
+
+                        Some(RenderElement::ChangeBackgroundColor(color)) => {
+                            self.style.background_color = Some(color.into())
                         }
 
                         None => break None,

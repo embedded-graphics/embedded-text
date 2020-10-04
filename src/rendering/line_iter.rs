@@ -5,7 +5,7 @@ use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::Cursor, space_config::*},
-    style::TabSize,
+    style::{color::Rgb, TabSize},
     utils::font_ext::FontExt,
 };
 use core::{marker::PhantomData, str::Chars};
@@ -32,6 +32,12 @@ pub enum RenderElement {
 
     /// Render the given character
     PrintedCharacter(char),
+
+    /// Sets the character color
+    ChangeTextColor(Rgb),
+
+    /// Sets the background color
+    ChangeBackgroundColor(Rgb),
 }
 
 /// Pixel iterator to render a single line of styled text.
@@ -152,11 +158,17 @@ where
 
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                 }
+
                 Some(Token::Break(Some(c))) => {
                     let w = F::total_char_width(c);
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                     break 'lookahead;
                 }
+
+                Some(Token::Escape)
+                | Some(Token::ChangeTextColor(_))
+                | Some(Token::ChangeBackgroundColor(_)) => {}
+
                 _ => break 'lookahead,
             }
         }
@@ -188,6 +200,7 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
+            self.pos = self.cursor.position;
             match self.current_token {
                 // No token being processed, get next one
                 State::ProcessToken(ref token) => {
@@ -220,7 +233,6 @@ where
 
                                 if spaces_to_render > 0 {
                                     let space_width = self.config.consume(spaces_to_render);
-                                    self.pos = self.cursor.position;
                                     self.cursor.advance_unchecked(space_width);
                                     let carried = n - spaces_to_render;
 
@@ -265,9 +277,7 @@ where
                             } else if let Some(c) = c {
                                 // If a Break contains a character, display it if the next
                                 // Word token does not fit the line.
-                                let pos = self.cursor.position;
                                 if self.cursor.advance(F::total_char_width(c)) {
-                                    self.pos = pos;
                                     self.finish_wrapped();
                                     break Some(RenderElement::PrintedCharacter(c));
                                 } else {
@@ -281,9 +291,7 @@ where
                         }
 
                         Token::ExtraCharacter(c) => {
-                            let pos = self.cursor.position;
                             if self.cursor.advance(F::total_char_width(c)) {
-                                self.pos = pos;
                                 self.next_token();
                                 break Some(RenderElement::PrintedCharacter(c));
                             }
@@ -320,6 +328,18 @@ where
 
                             // don't count tabs as spaces
                             break Some(RenderElement::Space(tab_width, 0));
+                        }
+
+                        Token::Escape => self.next_token(),
+
+                        Token::ChangeTextColor(c) => {
+                            self.next_token();
+                            break Some(RenderElement::ChangeTextColor(c));
+                        }
+
+                        Token::ChangeBackgroundColor(c) => {
+                            self.next_token();
+                            break Some(RenderElement::ChangeBackgroundColor(c));
                         }
 
                         Token::NewLine | Token::CarriageReturn => {
@@ -583,6 +603,39 @@ mod test {
                 RenderElement::PrintedCharacter('e'),
                 RenderElement::PrintedCharacter('r'),
                 RenderElement::Space(6, 0),
+            ]
+        );
+    }
+
+    #[test]
+    fn colors() {
+        let text = "Lorem \x1b[92mIpsum";
+        let parser = Parser::parse(text);
+        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+
+        let cursor = Cursor::new(
+            Rectangle::new(Point::zero(), Point::new(100 * 6 - 1, 16)),
+            0,
+        );
+
+        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+
+        assert_eq!(
+            collect_mut(&mut line1),
+            vec![
+                RenderElement::PrintedCharacter('L'),
+                RenderElement::PrintedCharacter('o'),
+                RenderElement::PrintedCharacter('r'),
+                RenderElement::PrintedCharacter('e'),
+                RenderElement::PrintedCharacter('m'),
+                RenderElement::Space(6, 1),
+                RenderElement::ChangeTextColor(Rgb::new(22, 198, 12)),
+                RenderElement::PrintedCharacter('I'),
+                RenderElement::PrintedCharacter('p'),
+                RenderElement::PrintedCharacter('s'),
+                RenderElement::PrintedCharacter('u'),
+                RenderElement::PrintedCharacter('m'),
             ]
         );
     }

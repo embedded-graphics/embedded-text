@@ -5,7 +5,7 @@ use crate::{
         cursor::Cursor, line::StyledLinePixelIterator, space_config::UniformSpaceConfig,
         RendererFactory, StyledTextBoxIterator,
     },
-    style::height_mode::HeightMode,
+    style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
@@ -22,7 +22,7 @@ impl HorizontalTextAlignment for CenterAligned {
 
 impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, CenterAligned, V, H>
 where
-    C: PixelColor,
+    C: PixelColor + From<Rgb>,
     F: Font + Copy,
     V: VerticalTextAlignment,
     H: HeightMode,

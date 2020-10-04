@@ -5,7 +5,7 @@ use crate::{
         line::StyledLinePixelIterator, space_config::UniformSpaceConfig, RendererFactory,
         StyledTextBoxIterator,
     },
-    style::height_mode::HeightMode,
+    style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
 use embedded_graphics::{fonts::Font, pixelcolor::PixelColor};
@@ -20,7 +20,7 @@ impl HorizontalTextAlignment for RightAligned {
 
 impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, RightAligned, V, H>
 where
-    C: PixelColor,
+    C: PixelColor + From<Rgb>,
     F: Font + Copy,
     V: VerticalTextAlignment,
     H: HeightMode,
