@@ -20,7 +20,7 @@ impl Rgb {
 impl From<Rgb> for BinaryColor {
     #[inline]
     fn from(rgb: Rgb) -> Self {
-        if rgb == Rgb::new(255, 255, 255) {
+        if rgb.r > 127 && rgb.g > 127 && rgb.b > 127 {
             Self::On
         } else {
             Self::Off
