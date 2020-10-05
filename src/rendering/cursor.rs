@@ -69,7 +69,8 @@ impl<F: Font> Cursor<F> {
     #[inline]
     #[must_use]
     pub fn fits_in_line(&self, width: u32) -> bool {
-        width <= self.space()
+        let target = self.position.x + width as i32;
+        target <= self.bounds.bottom_right.x
     }
 
     /// Returns the amount of empty space in the line.
@@ -96,6 +97,18 @@ impl<F: Font> Cursor<F> {
     pub fn advance(&mut self, by: u32) -> bool {
         if self.fits_in_line(by) {
             self.advance_unchecked(by);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Rewinds the cursor by a given amount.
+    #[inline]
+    pub fn rewind(&mut self, by: u32) -> bool {
+        let target = self.position.x - by as i32;
+        if self.bounds.top_left.x <= target {
+            self.position.x = target;
             true
         } else {
             false

@@ -353,6 +353,14 @@ where
                                     break Some(RenderElement::Space(width, 0));
                                 }
 
+                                AnsiSequence::CursorBackward(n) => {
+                                    let delta = n * F::total_char_width(' ');
+                                    if !self.cursor.rewind(delta) {
+                                        self.cursor.carriage_return();
+                                    }
+                                    // no spaces rendered here
+                                }
+
                                 _ => {
                                     // ignore for now
                                 }
