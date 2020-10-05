@@ -112,6 +112,15 @@
 //!  * If the value of all three color channels are greater than `127`, the resulting color in `On`
 //!  * Otherwise, the color is converted to `Off`.
 //!
+//! Other supported ANSI escape codes
+//! ---------------------------------
+//!
+//! Besides changing font color, you can also move the cursor using ANSI escape codes!
+//! You have the following options:
+//!
+//!  - Move the cursor forward `<n>` characters: `\x1b[<n>C`. This command will stop at the end of
+//!    line, so you can use it to simulate a highlighted line, for example.
+//!
 //! [`Rgb`]: ./color/struct.Rgb.html
 //! [`TextBox`]: ../struct.TextBox.html
 //! [`TextBoxStyle`]: struct.TextBoxStyle.html

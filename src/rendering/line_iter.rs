@@ -344,6 +344,18 @@ where
                                     }
                                 }
 
+                                AnsiSequence::CursorForward(n) => {
+                                    let delta = n * F::total_char_width(' ');
+                                    let width = if self.cursor.advance(delta) {
+                                        delta
+                                    } else {
+                                        let space = self.cursor.space();
+                                        self.cursor.advance_unchecked(space);
+                                        space
+                                    };
+                                    break Some(RenderElement::Space(width, 0));
+                                }
+
                                 _ => {
                                     // ignore for now
                                 }
