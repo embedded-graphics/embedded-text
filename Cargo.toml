@@ -24,7 +24,7 @@ harness = false
 
 [dependencies]
 embedded-graphics = "0.6.2"
-ansi-parser = { git = "https://gitlab.com/daniel.buga/ansi-parser.git", branch="no_std" }
+ansi-parser = "0.7.0"
 as-slice = "0.1.4"
 
 [dev-dependencies]
