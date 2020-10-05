@@ -1,5 +1,6 @@
 //! Pixel iterators used for text rendering.
 
+mod ansi;
 pub mod character;
 pub mod cursor;
 pub mod line;
