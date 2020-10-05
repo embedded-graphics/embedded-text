@@ -24,8 +24,11 @@ harness = false
 
 [dependencies]
 embedded-graphics = "0.6.2"
+ansi-parser = "0.7.0"
+as-slice = "0.1.4"
 
 [dev-dependencies]
 embedded-graphics-simulator = "0.2.1"
 sdl2 = "0.32.2"
 criterion = "0.3.3"
+heapless = "0.5.6"

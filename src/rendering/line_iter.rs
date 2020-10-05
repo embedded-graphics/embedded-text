@@ -1,6 +1,7 @@
 //! Line iterator.
 //!
 //! Provide elements (spaces or characters) to render as long as they fit in the current line
+use super::ansi::try_parse_ansi_color;
 use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
@@ -8,6 +9,8 @@ use crate::{
     style::{color::Rgb, TabSize},
     utils::font_ext::FontExt,
 };
+use ansi_parser::AnsiSequence;
+use as_slice::AsSlice;
 use core::{marker::PhantomData, str::Chars};
 use embedded_graphics::prelude::*;
 
@@ -165,9 +168,7 @@ where
                     break 'lookahead;
                 }
 
-                Some(Token::Escape)
-                | Some(Token::ChangeTextColor(_))
-                | Some(Token::ChangeBackgroundColor(_)) => {}
+                Some(Token::Escape) | Some(Token::EscapeSequence(_)) => {}
 
                 _ => break 'lookahead,
             }
@@ -332,14 +333,21 @@ where
 
                         Token::Escape => self.next_token(),
 
-                        Token::ChangeTextColor(c) => {
+                        Token::EscapeSequence(seq) => {
                             self.next_token();
-                            break Some(RenderElement::ChangeTextColor(c));
-                        }
+                            match seq {
+                                AnsiSequence::SetGraphicsMode(vec) => {
+                                    if let render_element @ Some(_) =
+                                        try_parse_ansi_color(vec.as_slice())
+                                    {
+                                        break render_element;
+                                    }
+                                }
 
-                        Token::ChangeBackgroundColor(c) => {
-                            self.next_token();
-                            break Some(RenderElement::ChangeBackgroundColor(c));
+                                _ => {
+                                    // ignore for now
+                                }
+                            }
                         }
 
                         Token::NewLine | Token::CarriageReturn => {
