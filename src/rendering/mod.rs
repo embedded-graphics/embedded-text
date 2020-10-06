@@ -5,6 +5,7 @@ pub mod character;
 pub mod cursor;
 pub mod line;
 pub mod line_iter;
+pub mod modified_whitespace;
 pub mod space_config;
 pub mod whitespace;
 
@@ -19,18 +20,20 @@ use embedded_graphics::prelude::*;
 
 /// State variable used by the right aligned text renderer.
 #[derive(Debug)]
-pub enum State<'a, C, F, SP, A>
+pub enum State<'a, C, F, SP, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
+    H: HeightMode,
 {
     /// Starts processing a line.
     NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
 
     /// Renders the processed line.
-    DrawLine(StyledLinePixelIterator<'a, C, F, SP, A>),
+    DrawLine(StyledLinePixelIterator<'a, C, F, SP, A, V, H>),
 }
 
 /// This trait is used to associate a renderer type to a horizontal alignment option.
@@ -44,12 +47,13 @@ pub trait RendererFactory<'a, C: PixelColor> {
     fn create_renderer(&self) -> Self::Renderer;
 }
 
-type LineIteratorSource<'a, C, F, A, V, H, SP> = fn(
-    TextBoxStyle<C, F, A, V, H>,
-    Option<Token<'a>>,
-    Cursor<F>,
-    Parser<'a>,
-) -> StyledLinePixelIterator<'a, C, F, SP, A>;
+type LineIteratorSource<'a, C, F, A, V, H, SP> =
+    fn(
+        TextBoxStyle<C, F, A, V, H>,
+        Option<Token<'a>>,
+        Cursor<F>,
+        Parser<'a>,
+    ) -> StyledLinePixelIterator<'a, C, F, SP, A, V, H>;
 
 /// Pixel iterator for styled text.
 pub struct StyledTextBoxIterator<'a, C, F, A, V, H, SP>
@@ -62,7 +66,7 @@ where
     SP: SpaceConfig<Font = F>,
 {
     style: TextBoxStyle<C, F, A, V, H>,
-    state: State<'a, C, F, SP, A>,
+    state: State<'a, C, F, SP, A, V, H>,
     next_line_fn: LineIteratorSource<'a, C, F, A, V, H, SP>,
 }
 
@@ -130,7 +134,7 @@ where
                         break pixel;
                     }
 
-                    self.style.text_style = line_iterator.style;
+                    self.style = line_iterator.style;
                     self.state = State::NextLine(
                         line_iterator.remaining_token(),
                         line_iterator.cursor(),

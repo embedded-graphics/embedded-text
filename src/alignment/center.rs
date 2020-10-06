@@ -34,7 +34,7 @@ where
     fn create_renderer(&self) -> Self::Renderer {
         StyledTextBoxIterator::new(self, |style, carried, mut cursor, parser| {
             let max_line_width = cursor.line_width();
-            let (width, _, _) =
+            let (width, _, _, _) =
                 style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
             cursor.advance_unchecked((max_line_width - width + 1) / 2);
 

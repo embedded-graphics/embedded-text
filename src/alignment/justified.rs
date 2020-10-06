@@ -90,7 +90,7 @@ where
     fn create_renderer(&self) -> Self::Renderer {
         StyledTextBoxIterator::new(self, |style, carried, cursor, parser| {
             let max_line_width = cursor.line_width();
-            let (width, total_whitespace_count, t) =
+            let (width, total_whitespace_count, t, _) =
                 style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
 
             let space =

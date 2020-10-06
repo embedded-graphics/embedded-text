@@ -67,3 +67,5 @@ jobs:
         compare -metric AE ./assets/vertical.png ./target/screenshots/vertical.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/colored_text.png" cargo run --example colored_text
         compare -metric AE ./assets/colored_text.png ./target/screenshots/colored_text.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/extra_styles.png" cargo run --example extra_styles
+        compare -metric AE ./assets/extra_styles.png ./target/screenshots/extra_styles.png result.png

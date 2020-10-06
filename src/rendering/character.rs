@@ -1,4 +1,5 @@
 //! Character rendering.
+use crate::utils::font_ext::FontExt;
 use core::{marker::PhantomData, ops::Range};
 use embedded_graphics::{prelude::*, style::TextStyle};
 
@@ -68,6 +69,8 @@ where
     pos: Point,
     char_walk: Point,
     max_coordinates: Point,
+    underline_offset: Option<u32>,
+    strikethrough_offset: Option<u32>,
 }
 
 impl<C, F> CharacterIterator<C, F>
@@ -78,13 +81,37 @@ where
     /// Creates a new pixel iterator to draw the given character.
     #[inline]
     #[must_use]
-    pub fn new(character: char, pos: Point, style: TextStyle<C, F>, rows: Range<i32>) -> Self {
+    pub fn new(
+        character: char,
+        pos: Point,
+        style: TextStyle<C, F>,
+        rows: Range<i32>,
+        underline: bool,
+        strikethrough: bool,
+    ) -> Self {
+        let mut max_height = (F::CHARACTER_SIZE.height as i32).min(rows.end);
+        let underline_offset = if underline {
+            // adjust height if whole character is displayed for underline
+            if rows.end == max_height {
+                max_height += 1;
+            }
+            Some(F::CHARACTER_SIZE.height)
+        } else {
+            None
+        };
+        let strikethrough_offset = if strikethrough {
+            Some(F::strikethrough_pos())
+        } else {
+            None
+        };
         Self {
             character: Glyph::new(character),
             style,
             pos,
             char_walk: Point::new(0, rows.start),
-            max_coordinates: Point::new(F::char_width(character) as i32 - 1, rows.end),
+            max_coordinates: Point::new(F::char_width(character) as i32 - 1, max_height),
+            underline_offset,
+            strikethrough_offset,
         }
     }
 }
@@ -105,6 +132,9 @@ where
             }
             let pos = self.char_walk;
 
+            let is_extra_line = Some(self.char_walk.y as u32) == self.underline_offset
+                || Some(self.char_walk.y as u32) == self.strikethrough_offset;
+
             if pos.x < self.max_coordinates.x {
                 self.char_walk.x += 1;
             } else {
@@ -112,7 +142,7 @@ where
                 self.char_walk.y += 1;
             }
 
-            let color = if self.character.point(pos) {
+            let color = if is_extra_line || self.character.point(pos) {
                 self.style.text_color
             } else {
                 self.style.background_color
@@ -147,6 +177,8 @@ mod test {
             Point::zero(),
             style,
             0..Font6x8::CHARACTER_SIZE.height as i32,
+            false,
+            false,
         )
         .draw(&mut display)
         .unwrap();
@@ -178,6 +210,8 @@ mod test {
             Point::zero(),
             style,
             2..Font6x8::CHARACTER_SIZE.height as i32 - 2,
+            false,
+            false,
         )
         .draw(&mut display)
         .unwrap();

@@ -226,6 +226,12 @@ where
 
     /// Desired column width for tabs
     pub tab_size: TabSize<F>,
+
+    /// If true, the text will be underlined
+    pub underlined: bool,
+
+    /// If true, the text will be crossed out
+    pub strikethrough: bool,
 }
 
 impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
@@ -252,6 +258,8 @@ where
             height_mode,
             line_spacing: 0,
             tab_size: TabSize::default(),
+            underlined: false,
+            strikethrough: false,
         }
     }
 
@@ -270,6 +278,8 @@ where
             height_mode,
             line_spacing: 0,
             tab_size: TabSize::default(),
+            underlined: false,
+            strikethrough: false,
         }
     }
 
@@ -287,7 +297,7 @@ where
         parser: &mut Parser<'a>,
         carried_token: Option<Token<'a>>,
         max_line_width: u32,
-    ) -> (u32, u32, Option<Token<'a>>) {
+    ) -> (u32, u32, Option<Token<'a>>, bool) {
         let cursor: Cursor<F> = Cursor::new(
             Rectangle::new(
                 Point::zero(),
@@ -309,6 +319,7 @@ where
         let mut current_width = 0;
         let mut last_spaces = 0;
         let mut total_spaces = 0;
+        let underlined = self.underlined;
         while let Some(token) = iter.next() {
             match token {
                 RenderElement::Space(_, count) => {
@@ -345,7 +356,7 @@ where
 
         let carried = iter.remaining_token();
         *parser = iter.parser;
-        (current_width as u32, total_spaces, carried)
+        (current_width as u32, total_spaces, carried, underlined)
     }
 
     /// Measures text height when rendered using a given width.
@@ -386,7 +397,7 @@ where
         let mut carry = None;
 
         loop {
-            let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
+            let (w, _, t, underlined) = self.measure_line(&mut parser, carry.clone(), max_width);
 
             if (w != 0 || t.is_some()) && carry != Some(Token::CarriageReturn) {
                 // something was in this line, increment height
@@ -395,8 +406,15 @@ where
             }
 
             if t.is_none() {
-                return (n_lines * F::CHARACTER_SIZE.height as i32
-                    + n_lines.saturating_sub(1) * self.line_spacing) as u32;
+                let mut height = (n_lines * F::CHARACTER_SIZE.height as i32
+                    + n_lines.saturating_sub(1) * self.line_spacing)
+                    as u32;
+
+                if underlined {
+                    height += 1;
+                }
+
+                return height;
             }
 
             carry = t;
@@ -490,7 +508,7 @@ mod test {
 
         let mut text = Parser::parse("123 45 67");
 
-        let (w, s, _) =
+        let (w, s, _, _) =
             textbox_style.measure_line(&mut text, None, 6 * Font6x8::CHARACTER_SIZE.width);
         assert_eq!(w, 6 * Font6x8::CHARACTER_SIZE.width);
         assert_eq!(s, 1);
@@ -505,7 +523,7 @@ mod test {
 
         let mut text = Parser::parse("123\u{A0}45");
 
-        let (w, s, _) =
+        let (w, s, _, _) =
             textbox_style.measure_line(&mut text, None, 5 * Font6x8::CHARACTER_SIZE.width);
         assert_eq!(w, 5 * Font6x8::CHARACTER_SIZE.width);
         assert_eq!(s, 1);

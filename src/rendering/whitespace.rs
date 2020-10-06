@@ -4,6 +4,7 @@ use core::{
     fmt::{Debug, Formatter, Result},
     marker::PhantomData,
     mem::MaybeUninit,
+    ops::Range,
 };
 use embedded_graphics::{prelude::*, style::TextStyle};
 
@@ -52,7 +53,7 @@ where
     /// Creates a new pixel iterator to draw empty spaces.
     #[inline]
     #[must_use]
-    pub fn new(width: u32, position: Point, style: TextStyle<C, F>) -> Self {
+    pub fn new(width: u32, position: Point, style: TextStyle<C, F>, rows: Range<i32>) -> Self {
         if width == 0 || style.background_color.is_none() {
             Self {
                 _font: PhantomData,
@@ -63,13 +64,13 @@ where
             }
         } else {
             let walk_max_x = position.x + width as i32 - 1;
-            let walk_max_y = position.y + F::CHARACTER_SIZE.height as i32;
+            let walk_max_y = position.y + rows.end;
 
             Self {
                 _font: PhantomData,
                 color: MaybeUninit::new(style.background_color.unwrap()),
                 pos: Point::new(position.x, walk_max_y),
-                char_walk: position,
+                char_walk: Point::new(position.x, position.y + rows.start),
                 walk_max_x,
             }
         }
@@ -123,7 +124,16 @@ mod test {
             .background_color(BinaryColor::On)
             .build();
 
-        assert_eq!(0, EmptySpaceIterator::new(0, Point::zero(), style).count());
+        assert_eq!(
+            0,
+            EmptySpaceIterator::new(
+                0,
+                Point::zero(),
+                style,
+                0..Font6x8::CHARACTER_SIZE.height as i32
+            )
+            .count()
+        );
     }
 
     #[test]
@@ -132,7 +142,16 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        assert_eq!(0, EmptySpaceIterator::new(10, Point::zero(), style).count());
+        assert_eq!(
+            0,
+            EmptySpaceIterator::new(
+                10,
+                Point::zero(),
+                style,
+                0..Font6x8::CHARACTER_SIZE.height as i32
+            )
+            .count()
+        );
     }
 
     #[test]
@@ -144,7 +163,10 @@ mod test {
         let pos = Point::new(8, 6);
         assert_eq!(
             pos,
-            EmptySpaceIterator::new(10, pos, style).next().unwrap().0
+            EmptySpaceIterator::new(10, pos, style, 0..Font6x8::CHARACTER_SIZE.height as i32)
+                .next()
+                .unwrap()
+                .0
         );
     }
 
@@ -157,7 +179,24 @@ mod test {
 
         assert_eq!(
             80,
-            EmptySpaceIterator::new(10, Point::zero(), style).count()
+            EmptySpaceIterator::new(
+                10,
+                Point::zero(),
+                style,
+                0..Font6x8::CHARACTER_SIZE.height as i32
+            )
+            .count()
+        );
+
+        assert_eq!(
+            40,
+            EmptySpaceIterator::new(
+                10,
+                Point::zero(),
+                style,
+                2..Font6x8::CHARACTER_SIZE.height as i32 - 2
+            )
+            .count()
         );
 
         let style = TextStyleBuilder::new(Font6x6)
@@ -167,7 +206,13 @@ mod test {
 
         assert_eq!(
             60,
-            EmptySpaceIterator::new(10, Point::zero(), style).count()
+            EmptySpaceIterator::new(
+                10,
+                Point::zero(),
+                style,
+                0..Font6x6::CHARACTER_SIZE.height as i32
+            )
+            .count()
         );
     }
 }

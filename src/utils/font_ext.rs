@@ -45,6 +45,9 @@ pub trait FontExt {
     /// Returns the width of the spaces that fit into the given space and the number of spaces that
     /// fit.
     fn max_space_width(n: u32, max_width: u32) -> (u32, u32);
+
+    /// Returns the y offset for the strikethrough line.
+    fn strikethrough_pos() -> u32;
 }
 
 /// Result of a `measure_line` function call.
@@ -167,6 +170,11 @@ where
         let num_spaces = (max_width / space_width).min(n);
 
         (num_spaces * space_width, num_spaces)
+    }
+
+    #[inline]
+    fn strikethrough_pos() -> u32 {
+        F::CHARACTER_SIZE.height / 2
     }
 }
 

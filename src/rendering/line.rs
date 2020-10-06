@@ -6,13 +6,14 @@ use crate::{
         character::CharacterIterator,
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
+        modified_whitespace::ModifiedEmptySpaceIterator,
         space_config::*,
         whitespace::EmptySpaceIterator,
     },
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
 use core::ops::Range;
-use embedded_graphics::{prelude::*, style::TextStyle};
+use embedded_graphics::prelude::*;
 
 /// Internal state used to render a line.
 #[derive(Debug)]
@@ -29,47 +30,50 @@ where
 
     /// Render a block of whitespace.
     Space(EmptySpaceIterator<C, F>),
+
+    /// Render a block of whitespace with underlined or strikethrough effect.
+    ModifiedSpace(ModifiedEmptySpaceIterator<C, F>),
 }
 
 /// Pixel iterator to render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLinePixelIterator<'a, C, F, SP, A>
+pub struct StyledLinePixelIterator<'a, C, F, SP, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
+    H: HeightMode,
 {
     state: State<C, F>,
-    pub(crate) style: TextStyle<C, F>,
+    pub(crate) style: TextBoxStyle<C, F, A, V, H>,
     display_range: Range<i32>,
     inner: LineElementIterator<'a, F, SP, A>,
 }
 
-impl<'a, C, F, SP, A> StyledLinePixelIterator<'a, C, F, SP, A>
+impl<'a, C, F, SP, A, V, H> StyledLinePixelIterator<'a, C, F, SP, A, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: Font + Copy,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
+    H: HeightMode,
 {
     /// Creates a new pixel iterator to draw the given character.
     #[inline]
     #[must_use]
-    pub fn new<V, H>(
+    pub fn new(
         parser: Parser<'a>,
         cursor: Cursor<F>,
         config: SP,
         style: TextBoxStyle<C, F, A, V, H>,
         carried_token: Option<Token<'a>>,
-    ) -> Self
-    where
-        V: VerticalTextAlignment,
-        H: HeightMode,
-    {
+    ) -> Self {
         Self {
             state: State::FetchNext,
-            style: style.text_style,
+            style,
             display_range: H::calculate_displayed_row_range(&cursor),
             inner: LineElementIterator::new(parser, cursor, config, carried_token, style.tab_size),
         }
@@ -104,12 +108,14 @@ where
     }
 }
 
-impl<C, F, SP, A> Iterator for StyledLinePixelIterator<'_, C, F, SP, A>
+impl<C, F, SP, A, V, H> Iterator for StyledLinePixelIterator<'_, C, F, SP, A, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: Font + Copy,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
+    H: HeightMode,
 {
     type Item = Pixel<C>;
 
@@ -125,8 +131,10 @@ where
                                 self.state = State::Char(CharacterIterator::new(
                                     c,
                                     self.inner.pos,
-                                    self.style,
+                                    self.style.text_style,
                                     self.display_range.clone(),
+                                    self.style.underlined,
+                                    self.style.strikethrough,
                                 ));
                             } else {
                                 self.state = State::FetchNext;
@@ -135,22 +143,34 @@ where
 
                         Some(RenderElement::Space(space_width, _)) => {
                             if self.is_anything_displayed() {
-                                self.state = State::Space(EmptySpaceIterator::new(
-                                    space_width,
-                                    self.inner.pos,
-                                    self.style,
-                                ));
+                                self.state = if self.style.underlined || self.style.strikethrough {
+                                    State::ModifiedSpace(ModifiedEmptySpaceIterator::new(
+                                        space_width,
+                                        self.inner.pos,
+                                        self.style.text_style,
+                                        self.display_range.clone(),
+                                        self.style.underlined,
+                                        self.style.strikethrough,
+                                    ))
+                                } else {
+                                    State::Space(EmptySpaceIterator::new(
+                                        space_width,
+                                        self.inner.pos,
+                                        self.style.text_style,
+                                        self.display_range.clone(),
+                                    ))
+                                };
                             } else {
                                 self.state = State::FetchNext;
                             }
                         }
 
                         Some(RenderElement::ChangeTextColor(color)) => {
-                            self.style.text_color = Some(color.into())
+                            self.style.text_style.text_color = Some(color.into())
                         }
 
                         Some(RenderElement::ChangeBackgroundColor(color)) => {
-                            self.style.background_color = Some(color.into())
+                            self.style.text_style.background_color = Some(color.into())
                         }
 
                         None => break None,
@@ -166,6 +186,14 @@ where
                 }
 
                 State::Space(ref mut iter) => {
+                    if let pixel @ Some(_) = iter.next() {
+                        break pixel;
+                    }
+
+                    self.state = State::FetchNext;
+                }
+
+                State::ModifiedSpace(ref mut iter) => {
                     if let pixel @ Some(_) = iter.next() {
                         break pixel;
                     }

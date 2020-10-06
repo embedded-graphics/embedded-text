@@ -29,6 +29,8 @@ where
     height_mode: H,
     line_spacing: i32,
     tab_size: TabSize<F>,
+    underlined: bool,
+    strikethrough: bool,
 }
 
 impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact<FullRowsOnly>>
@@ -55,6 +57,8 @@ where
             height_mode: Exact(FullRowsOnly),
             line_spacing: 0,
             tab_size: TabSize::default(),
+            underlined: false,
+            strikethrough: false,
         }
     }
 
@@ -225,6 +229,8 @@ where
             vertical_alignment: self.vertical_alignment,
             height_mode: self.height_mode,
             tab_size: self.tab_size,
+            underlined: self.underlined,
+            strikethrough: self.strikethrough,
         }
     }
 
@@ -242,6 +248,8 @@ where
             vertical_alignment,
             height_mode: self.height_mode,
             tab_size: self.tab_size,
+            underlined: self.underlined,
+            strikethrough: self.strikethrough,
         }
     }
 
@@ -259,6 +267,8 @@ where
             vertical_alignment: self.vertical_alignment,
             height_mode,
             tab_size: self.tab_size,
+            underlined: self.underlined,
+            strikethrough: self.strikethrough,
         }
     }
 
@@ -267,6 +277,23 @@ where
     #[must_use]
     pub fn tab_size(self, tab_size: TabSize<F>) -> Self {
         Self { tab_size, ..self }
+    }
+
+    /// Enables or disables underlined text.
+    #[inline]
+    #[must_use]
+    pub fn underlined(self, underlined: bool) -> Self {
+        Self { underlined, ..self }
+    }
+
+    /// Enables or disables strikethrough text.
+    #[inline]
+    #[must_use]
+    pub fn strikethrough(self, strikethrough: bool) -> Self {
+        Self {
+            strikethrough,
+            ..self
+        }
     }
 
     /// Builds the [`TextBoxStyle`].
@@ -282,6 +309,8 @@ where
             vertical_alignment: self.vertical_alignment,
             height_mode: self.height_mode,
             tab_size: self.tab_size,
+            underlined: self.underlined,
+            strikethrough: self.strikethrough,
         }
     }
 }
