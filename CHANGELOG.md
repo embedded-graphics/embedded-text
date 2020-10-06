@@ -10,6 +10,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Renamed `StyledCharacterIterator` to `CharacterIterator`
  * **breaking** Increase the Minimum Supported Rust Version to `1.41.0`
  * **breaking** `rendering::line_iter::State` is no longer public
  * **breaking** `rendering::line::State` is no longer public

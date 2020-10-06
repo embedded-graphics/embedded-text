@@ -58,7 +58,7 @@ where
 ///
 /// [`StyledLinePixelIterator`]: ../line/struct.StyledLinePixelIterator.html
 #[derive(Clone, Debug)]
-pub struct StyledCharacterIterator<C, F>
+pub struct CharacterIterator<C, F>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -70,7 +70,7 @@ where
     max_coordinates: Point,
 }
 
-impl<C, F> StyledCharacterIterator<C, F>
+impl<C, F> CharacterIterator<C, F>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -89,7 +89,7 @@ where
     }
 }
 
-impl<C, F> Iterator for StyledCharacterIterator<C, F>
+impl<C, F> Iterator for CharacterIterator<C, F>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -129,7 +129,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::StyledCharacterIterator;
+    use super::CharacterIterator;
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
         style::TextStyleBuilder,
@@ -142,7 +142,7 @@ mod test {
             .background_color(BinaryColor::On)
             .build();
 
-        StyledCharacterIterator::new(
+        CharacterIterator::new(
             'A',
             Point::zero(),
             style,
@@ -173,7 +173,7 @@ mod test {
             .background_color(BinaryColor::On)
             .build();
 
-        StyledCharacterIterator::new(
+        CharacterIterator::new(
             'A',
             Point::zero(),
             style,

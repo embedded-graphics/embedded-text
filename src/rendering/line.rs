@@ -3,7 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        character::StyledCharacterIterator,
+        character::CharacterIterator,
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
         space_config::*,
@@ -25,7 +25,7 @@ where
     FetchNext,
 
     /// Render a character.
-    Char(StyledCharacterIterator<C, F>),
+    Char(CharacterIterator<C, F>),
 
     /// Render a block of whitespace.
     Space(EmptySpaceIterator<C, F>),
@@ -122,7 +122,7 @@ where
                     match self.inner.next() {
                         Some(RenderElement::PrintedCharacter(c)) => {
                             if self.is_anything_displayed() {
-                                self.state = State::Char(StyledCharacterIterator::new(
+                                self.state = State::Char(CharacterIterator::new(
                                     c,
                                     self.inner.pos,
                                     self.style,
