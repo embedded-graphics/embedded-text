@@ -115,10 +115,15 @@
 //! Other text styling options
 //! --------------------------
 //!
+//! The following [`Sgr`] sequences are supported:
+//!
+//!  * `\x1b[0m`: Reset everything
 //!  * `\x1b[4m`: Underlined text
 //!  * `\x1b[24m`: Turn off text underline
 //!  * `\x1b[9m`: Crossed out/strikethrough text
 //!  * `\x1b[29m`: Turn off strikethrough
+//!  * `\x1b[39m`: Reset text color
+//!  * `\x1b[49m`: Reset background color
 //!
 //! Reset style options to default
 //! ------------------------------
@@ -127,7 +132,7 @@
 //! `Default background color` (`\x1b[49m`) codes. These codes can be used to reset colors to
 //! *transparent* (i.e. no pixels drawn for text or background).
 //!
-//! In addition, `Reset all` turns off the underline and strikethrough styles.
+//! In addition, `Reset all` turns off the underlined and crossed out styles.
 //!
 //! Other supported ANSI escape codes
 //! ---------------------------------
@@ -138,6 +143,7 @@
 //!  - Move the cursor forward `<n>` characters: `\x1b[<n>C`. This command will stop at the end of
 //!    line, so you can use it to simulate a highlighted line, for example.
 //!
+//! [`Sgr`]: ../rendering/ansi/enum.Sgr.html
 //! [`Rgb`]: ./color/struct.Rgb.html
 //! [`TextBox`]: ../struct.TextBox.html
 //! [`TextBoxStyle`]: struct.TextBoxStyle.html
