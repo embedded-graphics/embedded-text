@@ -1,4 +1,10 @@
-use crate::{rendering::line_iter::RenderElement, style::color::Rgb};
+use crate::style::color::Rgb;
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Sgr {
+    ChangeTextColor(Rgb),
+    ChangeBackgroundColor(Rgb),
+}
 
 fn try_parse_8b_color(v: &[u8]) -> Option<Rgb> {
     let color = *v.get(0)?;
@@ -74,25 +80,21 @@ fn try_parse_color(v: &[u8]) -> Option<Rgb> {
     }
 }
 
-pub fn try_parse_ansi_color(v: &[u8]) -> Option<RenderElement> {
+pub fn try_parse_sgr(v: &[u8]) -> Option<Sgr> {
     let code = *v.get(0)?;
     match code {
-        30..=37 => Some(RenderElement::ChangeTextColor(standard_to_rgb(code - 30))),
+        30..=37 => Some(Sgr::ChangeTextColor(standard_to_rgb(code - 30))),
         38 => {
             let color = try_parse_color(&v[1..])?;
-            Some(RenderElement::ChangeTextColor(color))
+            Some(Sgr::ChangeTextColor(color))
         }
-        90..=97 => Some(RenderElement::ChangeTextColor(standard_to_rgb(code - 82))),
-        40..=47 => Some(RenderElement::ChangeBackgroundColor(standard_to_rgb(
-            code - 40,
-        ))),
+        90..=97 => Some(Sgr::ChangeTextColor(standard_to_rgb(code - 82))),
+        40..=47 => Some(Sgr::ChangeBackgroundColor(standard_to_rgb(code - 40))),
         48 => {
             let color = try_parse_color(&v[1..])?;
-            Some(RenderElement::ChangeBackgroundColor(color))
+            Some(Sgr::ChangeBackgroundColor(color))
         }
-        100..=107 => Some(RenderElement::ChangeBackgroundColor(standard_to_rgb(
-            code - 92,
-        ))),
+        100..=107 => Some(Sgr::ChangeBackgroundColor(standard_to_rgb(code - 92))),
         _ => None,
     }
 }

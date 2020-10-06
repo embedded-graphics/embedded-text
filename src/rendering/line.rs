@@ -3,6 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
+        ansi::Sgr,
         character::CharacterIterator,
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
@@ -165,13 +166,14 @@ where
                             }
                         }
 
-                        Some(RenderElement::ChangeTextColor(color)) => {
-                            self.style.text_style.text_color = Some(color.into())
-                        }
-
-                        Some(RenderElement::ChangeBackgroundColor(color)) => {
-                            self.style.text_style.background_color = Some(color.into())
-                        }
+                        Some(RenderElement::Sgr(sgr)) => match sgr {
+                            Sgr::ChangeTextColor(color) => {
+                                self.style.text_color = Some(color.into());
+                            }
+                            Sgr::ChangeBackgroundColor(color) => {
+                                self.style.background_color = Some(color.into());
+                            }
+                        },
 
                         None => break None,
                     };
