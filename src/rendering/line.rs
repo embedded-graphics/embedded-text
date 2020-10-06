@@ -238,17 +238,18 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                ".......###..........................",
-                "......#...#.........................",
-                "......#......###..##.#...###........",
-                ".......###..#...#.#.#.#.#...#.......",
-                "..........#.#...#.#...#.#####.......",
-                "......#...#.#...#.#...#.#...........",
-                ".......###...###..#...#..###........",
-                "....................................",
+                ".......###....................",
+                "......#...#...................",
+                "......#......###..##.#...###..",
+                ".......###..#...#.#.#.#.#...#.",
+                "..........#.#...#.#...#.#####.",
+                "......#...#.#...#.#...#.#.....",
+                ".......###...###..#...#..###..",
+                "..............................",
             ])
         );
-        assert_eq!(Some(Token::Word("sample")), iter.remaining_token());
+        assert_eq!(Some(Token::Break(None)), iter.remaining_token());
+        assert_eq!(Some(Token::Word("sample")), iter.inner.parser.next());
     }
 
     #[test]
@@ -274,7 +275,7 @@ mod test {
         );
 
         // even though nothing was drawn, the text should be consumed
-        assert_eq!(Some(Token::Word("sample")), iter.remaining_token());
+        assert_eq!(Some(Token::Break(None)), iter.remaining_token());
     }
 
     #[test]
@@ -310,14 +311,14 @@ mod test {
 
     #[test]
     fn simple_render_first_word_not_wrapped() {
-        let parser = Parser::parse(" Some sample text");
+        let parser = Parser::parse("Some sample text");
         let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 3 - 1, 7)), 0);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 2 - 1, 7)), 0);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
@@ -326,14 +327,14 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                ".......###........",
-                "......#...#.......",
-                "......#......###..",
-                ".......###..#...#.",
-                "..........#.#...#.",
-                "......#...#.#...#.",
-                ".......###...###..",
-                "..................",
+                ".###........",
+                "#...#.......",
+                "#......###..",
+                ".###..#...#.",
+                "....#.#...#.",
+                "#...#.#...#.",
+                ".###...###..",
+                "............",
             ])
         );
         assert_eq!(Some(Token::Word("me")), iter.remaining_token());
@@ -385,7 +386,8 @@ mod test {
 
         iter.draw(&mut display).unwrap();
 
-        assert_eq!(Some(Token::Whitespace(1)), iter.remaining_token());
+        // eat one space, so one is rendered at the end of line and nothing in the next
+        assert_eq!(Some(Token::Break(None)), iter.remaining_token());
 
         let mut iter = StyledLinePixelIterator::new(
             iter.parser(),
@@ -401,14 +403,14 @@ mod test {
         assert_eq!(
             display,
             MockDisplay::from_pattern(&[
-                "..............................",
-                "..............................",
-                ".......####..###..##.#..####..",
-                "......#.........#.#.#.#.#...#.",
-                ".......###...####.#...#.#...#.",
-                "..........#.#...#.#...#.####..",
-                "......####...####.#...#.#.....",
-                "........................#.....",
+                ".........................##...",
+                "..........................#...",
+                ".####..###..##.#..####....#...",
+                "#.........#.#.#.#.#...#...#...",
+                ".###...####.#...#.#...#...#...",
+                "....#.#...#.#...#.####....#...",
+                "####...####.#...#.#......###..",
+                "..................#...........",
             ])
         );
     }
