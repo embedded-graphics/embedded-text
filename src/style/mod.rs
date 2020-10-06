@@ -154,6 +154,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
+        ansi::Sgr,
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
         space_config::UniformSpaceConfig,
@@ -345,7 +346,7 @@ where
         let mut current_width = 0;
         let mut last_spaces = 0;
         let mut total_spaces = 0;
-        let underlined = self.underlined;
+        let mut underlined = self.underlined;
         while let Some(token) = iter.next() {
             match token {
                 RenderElement::Space(_, count) => {
@@ -374,6 +375,8 @@ where
                         total_spaces = last_spaces;
                     }
                 }
+
+                RenderElement::Sgr(Sgr::Underline) => underlined = true,
 
                 // Ignore color changes
                 _ => {}

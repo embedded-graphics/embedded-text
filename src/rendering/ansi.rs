@@ -1,15 +1,34 @@
+//! ANSI escape sequence related types and functions.
 use crate::style::color::Rgb;
 
+/// List of supported SGR (Select Graphics Rendition) sequences
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Sgr {
+    /// Reset all styling options
     Reset,
+
+    /// Draw a line under the text
     Underline,
+
+    /// Cross out the text
     CrossedOut,
+
+    /// Disable drawing underline
     UnderlineOff,
+
+    /// Disable crossing out
     NotCrossedOut,
+
+    /// Change the text color
     ChangeTextColor(Rgb),
+
+    /// Reset the text color to transparent
     DefaultTextColor,
+
+    /// Change the background color
     ChangeBackgroundColor(Rgb),
+
+    /// Reset the background color to transparent
     DefaultBackgroundColor,
 }
 
@@ -87,6 +106,8 @@ fn try_parse_color(v: &[u8]) -> Option<Rgb> {
     }
 }
 
+/// Parse a set of SGR parameter numbers into a more convenient type
+#[inline]
 pub fn try_parse_sgr(v: &[u8]) -> Option<Sgr> {
     let code = *v.get(0)?;
     match code {
