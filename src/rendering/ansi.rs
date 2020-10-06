@@ -1,4 +1,36 @@
-use crate::{rendering::line_iter::RenderElement, style::color::Rgb};
+//! ANSI escape sequence related types and functions.
+use crate::style::color::Rgb;
+
+/// List of supported SGR (Select Graphics Rendition) sequences
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Sgr {
+    /// Reset all styling options
+    Reset,
+
+    /// Draw a line under the text
+    Underline,
+
+    /// Cross out the text
+    CrossedOut,
+
+    /// Disable drawing underline
+    UnderlineOff,
+
+    /// Disable crossing out
+    NotCrossedOut,
+
+    /// Change the text color
+    ChangeTextColor(Rgb),
+
+    /// Reset the text color to transparent
+    DefaultTextColor,
+
+    /// Change the background color
+    ChangeBackgroundColor(Rgb),
+
+    /// Reset the background color to transparent
+    DefaultBackgroundColor,
+}
 
 fn try_parse_8b_color(v: &[u8]) -> Option<Rgb> {
     let color = *v.get(0)?;
@@ -74,25 +106,30 @@ fn try_parse_color(v: &[u8]) -> Option<Rgb> {
     }
 }
 
-pub fn try_parse_ansi_color(v: &[u8]) -> Option<RenderElement> {
+/// Parse a set of SGR parameter numbers into a more convenient type
+#[inline]
+pub fn try_parse_sgr(v: &[u8]) -> Option<Sgr> {
     let code = *v.get(0)?;
     match code {
-        30..=37 => Some(RenderElement::ChangeTextColor(standard_to_rgb(code - 30))),
+        0 => Some(Sgr::Reset),
+        4 => Some(Sgr::Underline),
+        9 => Some(Sgr::CrossedOut),
+        24 => Some(Sgr::UnderlineOff),
+        29 => Some(Sgr::NotCrossedOut),
+        39 => Some(Sgr::DefaultTextColor),
+        49 => Some(Sgr::DefaultBackgroundColor),
+        30..=37 => Some(Sgr::ChangeTextColor(standard_to_rgb(code - 30))),
         38 => {
             let color = try_parse_color(&v[1..])?;
-            Some(RenderElement::ChangeTextColor(color))
+            Some(Sgr::ChangeTextColor(color))
         }
-        90..=97 => Some(RenderElement::ChangeTextColor(standard_to_rgb(code - 82))),
-        40..=47 => Some(RenderElement::ChangeBackgroundColor(standard_to_rgb(
-            code - 40,
-        ))),
+        90..=97 => Some(Sgr::ChangeTextColor(standard_to_rgb(code - 82))),
+        40..=47 => Some(Sgr::ChangeBackgroundColor(standard_to_rgb(code - 40))),
         48 => {
             let color = try_parse_color(&v[1..])?;
-            Some(RenderElement::ChangeBackgroundColor(color))
+            Some(Sgr::ChangeBackgroundColor(color))
         }
-        100..=107 => Some(RenderElement::ChangeBackgroundColor(standard_to_rgb(
-            code - 92,
-        ))),
+        100..=107 => Some(Sgr::ChangeBackgroundColor(standard_to_rgb(code - 92))),
         _ => None,
     }
 }

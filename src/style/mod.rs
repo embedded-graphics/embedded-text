@@ -112,6 +112,38 @@
 //!  * If the value of all three color channels are greater than `127`, the resulting color in `On`
 //!  * Otherwise, the color is converted to `Off`.
 //!
+//! Other text styling options
+//! --------------------------
+//!
+//! The following [`Sgr`] sequences are supported:
+//!
+//!  * `\x1b[0m`: Reset everything
+//!  * `\x1b[4m`: Underlined text
+//!  * `\x1b[24m`: Turn off text underline
+//!  * `\x1b[9m`: Crossed out/strikethrough text
+//!  * `\x1b[29m`: Turn off strikethrough
+//!  * `\x1b[39m`: Reset text color
+//!  * `\x1b[49m`: Reset background color
+//!
+//! Reset style options to default
+//! ------------------------------
+//!
+//! `embedded-text` supports the `Reset all` (`\x1b[0m`), `Default text color` (`\x1b[39m`) and
+//! `Default background color` (`\x1b[49m`) codes. These codes can be used to reset colors to
+//! *transparent* (i.e. no pixels drawn for text or background).
+//!
+//! In addition, `Reset all` turns off the underlined and crossed out styles.
+//!
+//! Other supported ANSI escape codes
+//! ---------------------------------
+//!
+//! Besides changing text style, you can also move the cursor using ANSI escape codes!
+//! You have the following options:
+//!
+//!  - Move the cursor forward `<n>` characters: `\x1b[<n>C`. This command will stop at the end of
+//!    line, so you can use it to simulate a highlighted line, for example.
+//!
+//! [`Sgr`]: ../rendering/ansi/enum.Sgr.html
 //! [`Rgb`]: ./color/struct.Rgb.html
 //! [`TextBox`]: ../struct.TextBox.html
 //! [`TextBoxStyle`]: struct.TextBoxStyle.html
@@ -128,6 +160,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
+        ansi::Sgr,
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
         space_config::UniformSpaceConfig,
@@ -319,7 +352,7 @@ where
         let mut current_width = 0;
         let mut last_spaces = 0;
         let mut total_spaces = 0;
-        let underlined = self.underlined;
+        let mut underlined = self.underlined;
         while let Some(token) = iter.next() {
             match token {
                 RenderElement::Space(_, count) => {
@@ -348,6 +381,8 @@ where
                         total_spaces = last_spaces;
                     }
                 }
+
+                RenderElement::Sgr(Sgr::Underline) => underlined = true,
 
                 // Ignore color changes
                 _ => {}

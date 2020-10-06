@@ -1,12 +1,12 @@
 //! Line iterator.
 //!
 //! Provide elements (spaces or characters) to render as long as they fit in the current line
-use super::ansi::try_parse_ansi_color;
+use super::ansi::{try_parse_sgr, Sgr};
 use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::Cursor, space_config::*},
-    style::{color::Rgb, TabSize},
+    style::TabSize,
     utils::font_ext::FontExt,
 };
 use ansi_parser::AnsiSequence;
@@ -36,11 +36,8 @@ pub enum RenderElement {
     /// Render the given character
     PrintedCharacter(char),
 
-    /// Sets the character color
-    ChangeTextColor(Rgb),
-
-    /// Sets the background color
-    ChangeBackgroundColor(Rgb),
+    /// A Select Graphic Rendition code
+    Sgr(Sgr),
 }
 
 /// Pixel iterator to render a single line of styled text.
@@ -337,11 +334,21 @@ where
                             self.next_token();
                             match seq {
                                 AnsiSequence::SetGraphicsMode(vec) => {
-                                    if let render_element @ Some(_) =
-                                        try_parse_ansi_color(vec.as_slice())
-                                    {
-                                        break render_element;
+                                    if let Some(sgr) = try_parse_sgr(vec.as_slice()) {
+                                        break Some(RenderElement::Sgr(sgr));
                                     }
+                                }
+
+                                AnsiSequence::CursorForward(n) => {
+                                    let delta = n * F::total_char_width(' ');
+                                    let width = if self.cursor.advance(delta) {
+                                        delta
+                                    } else {
+                                        let space = self.cursor.space();
+                                        self.cursor.advance_unchecked(space);
+                                        space
+                                    };
+                                    break Some(RenderElement::Space(width, 0));
                                 }
 
                                 _ => {
@@ -408,7 +415,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::alignment::LeftAligned;
+    use crate::{alignment::LeftAligned, style::color::Rgb};
     use embedded_graphics::fonts::Font6x8;
     use embedded_graphics::primitives::Rectangle;
 
@@ -638,7 +645,7 @@ mod test {
                 RenderElement::PrintedCharacter('e'),
                 RenderElement::PrintedCharacter('m'),
                 RenderElement::Space(6, 1),
-                RenderElement::ChangeTextColor(Rgb::new(22, 198, 12)),
+                RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
                 RenderElement::PrintedCharacter('I'),
                 RenderElement::PrintedCharacter('p'),
                 RenderElement::PrintedCharacter('s'),

@@ -3,6 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
+        ansi::Sgr,
         character::CharacterIterator,
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
@@ -165,13 +166,38 @@ where
                             }
                         }
 
-                        Some(RenderElement::ChangeTextColor(color)) => {
-                            self.style.text_style.text_color = Some(color.into())
-                        }
-
-                        Some(RenderElement::ChangeBackgroundColor(color)) => {
-                            self.style.text_style.background_color = Some(color.into())
-                        }
+                        Some(RenderElement::Sgr(sgr)) => match sgr {
+                            Sgr::Reset => {
+                                self.style.text_style.text_color = None;
+                                self.style.text_style.background_color = None;
+                                self.style.underlined = false;
+                                self.style.strikethrough = false;
+                            }
+                            Sgr::ChangeTextColor(color) => {
+                                self.style.text_style.text_color = Some(color.into());
+                            }
+                            Sgr::DefaultTextColor => {
+                                self.style.text_style.text_color = None;
+                            }
+                            Sgr::ChangeBackgroundColor(color) => {
+                                self.style.text_style.background_color = Some(color.into());
+                            }
+                            Sgr::DefaultBackgroundColor => {
+                                self.style.text_style.background_color = None;
+                            }
+                            Sgr::Underline => {
+                                self.style.underlined = true;
+                            }
+                            Sgr::UnderlineOff => {
+                                self.style.underlined = false;
+                            }
+                            Sgr::CrossedOut => {
+                                self.style.strikethrough = true;
+                            }
+                            Sgr::NotCrossedOut => {
+                                self.style.strikethrough = false;
+                            }
+                        },
 
                         None => break None,
                     };
