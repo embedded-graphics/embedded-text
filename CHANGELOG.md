@@ -3,6 +3,7 @@ Unreleased
 
 ## Added:
 
+ * Added support for strikethrough and underlined text.
  * `RendererFactory` trait that can be used to create a pixel iterator.
  * Handle tabs `\t` with configurable tab size.
  * Added `TabSize` struct and related style builder method `tab_size`.
@@ -10,6 +11,8 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** `TextBoxStyle::measure_line` now returns whether the line is underlined.
+ * **breaking** Renamed `StyledCharacterIterator` to `CharacterIterator`
  * **breaking** Increase the Minimum Supported Rust Version to `1.41.0`
  * **breaking** `rendering::line_iter::State` is no longer public
  * **breaking** `rendering::line::State` is no longer public
