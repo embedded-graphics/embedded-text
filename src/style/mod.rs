@@ -112,10 +112,27 @@
 //!  * If the value of all three color channels are greater than `127`, the resulting color in `On`
 //!  * Otherwise, the color is converted to `Off`.
 //!
+//! Other text styling options
+//! --------------------------
+//!
+//!  * `\x1b[4m`: Underlined text
+//!  * `\x1b[24m`: Turn off text underline
+//!  * `\x1b[9m`: Crossed out/strikethrough text
+//!  * `\x1b[29m`: Turn off strikethrough
+//!
+//! Reset style options to default
+//! ------------------------------
+//!
+//! `embedded-text` supports the `Reset all` (`\x1b[0m`), `Default text color` (`\x1b[39m`) and
+//! `Default background color` (`\x1b[49m`) codes. These codes can be used to reset colors to
+//! *transparent* (i.e. no pixels drawn for text or background).
+//!
+//! In addition, `Reset all` turns off the underline and strikethrough styles.
+//!
 //! Other supported ANSI escape codes
 //! ---------------------------------
 //!
-//! Besides changing font color, you can also move the cursor using ANSI escape codes!
+//! Besides changing text style, you can also move the cursor using ANSI escape codes!
 //! You have the following options:
 //!
 //!  - Move the cursor forward `<n>` characters: `\x1b[<n>C`. This command will stop at the end of

@@ -2,8 +2,15 @@ use crate::style::color::Rgb;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Sgr {
+    Reset,
+    Underline,
+    CrossedOut,
+    UnderlineOff,
+    NotCrossedOut,
     ChangeTextColor(Rgb),
+    DefaultTextColor,
     ChangeBackgroundColor(Rgb),
+    DefaultBackgroundColor,
 }
 
 fn try_parse_8b_color(v: &[u8]) -> Option<Rgb> {
@@ -83,6 +90,13 @@ fn try_parse_color(v: &[u8]) -> Option<Rgb> {
 pub fn try_parse_sgr(v: &[u8]) -> Option<Sgr> {
     let code = *v.get(0)?;
     match code {
+        0 => Some(Sgr::Reset),
+        4 => Some(Sgr::Underline),
+        9 => Some(Sgr::CrossedOut),
+        24 => Some(Sgr::UnderlineOff),
+        29 => Some(Sgr::NotCrossedOut),
+        39 => Some(Sgr::DefaultTextColor),
+        49 => Some(Sgr::DefaultBackgroundColor),
         30..=37 => Some(Sgr::ChangeTextColor(standard_to_rgb(code - 30))),
         38 => {
             let color = try_parse_color(&v[1..])?;

@@ -167,12 +167,27 @@ where
                         }
 
                         Some(RenderElement::Sgr(sgr)) => match sgr {
+                            Sgr::Reset => {
+                                self.style.text_style.text_color = None;
+                                self.style.text_style.background_color = None;
+                                // TODO: turn off underline/cross out
+                            }
                             Sgr::ChangeTextColor(color) => {
-                                self.style.text_color = Some(color.into());
+                                self.style.text_style.text_color = Some(color.into());
+                            }
+                            Sgr::DefaultTextColor => {
+                                self.style.text_style.text_color = None;
                             }
                             Sgr::ChangeBackgroundColor(color) => {
-                                self.style.background_color = Some(color.into());
+                                self.style.text_style.background_color = Some(color.into());
                             }
+                            Sgr::DefaultBackgroundColor => {
+                                self.style.text_style.background_color = None;
+                            }
+                            Sgr::Underline => {}
+                            Sgr::UnderlineOff => {}
+                            Sgr::CrossedOut => {}
+                            Sgr::NotCrossedOut => {}
                         },
 
                         None => break None,
