@@ -11,6 +11,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Left aligned text now eats a single white space at the end of a wrapped line. This changes some height measurements and rendering output.
  * **breaking** `TextBoxStyle::measure_line` now returns whether the line is underlined.
  * **breaking** Renamed `StyledCharacterIterator` to `CharacterIterator`
  * **breaking** Increase the Minimum Supported Rust Version to `1.41.0`

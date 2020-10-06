@@ -210,9 +210,10 @@ where
                             // and end of a line.
                             let mut would_wrap = false;
                             let render_whitespace = if self.first_word {
+                                if A::STARTING_SPACES {
+                                    self.first_word = false;
+                                }
                                 A::STARTING_SPACES
-                            } else if A::ENDING_SPACES {
-                                true
                             } else if let Some(word_width) = self.next_word_width() {
                                 // Check if space + w fits in line, otherwise it's up to config
                                 let space_width = self.config.peek_next_width(n);
@@ -220,13 +221,14 @@ where
 
                                 would_wrap = !fits;
 
-                                fits
+                                A::ENDING_SPACES || fits
                             } else {
-                                false
+                                A::ENDING_SPACES
                             };
 
                             if render_whitespace {
                                 // take as many spaces as possible and save the rest in state
+                                let n = if would_wrap { n.saturating_sub(1) } else { n };
                                 let spaces_to_render = self.count_widest_space_seq(n);
 
                                 if spaces_to_render > 0 {
