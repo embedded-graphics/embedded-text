@@ -113,7 +113,7 @@ impl<'a> Iterator for Parser<'a> {
                 while let Some(c) = iter.next() {
                     if is_word_char(c) {
                         // Need to advance internal state here, otherwise we would need to store the
-                        // revious iterator state and overwrite self.inner in the current else
+                        // previous iterator state and overwrite `self.inner` in the current else
                         // branch.
                         // This copy seems unavoidable.
                         self.inner = iter.clone();
