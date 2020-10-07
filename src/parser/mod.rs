@@ -31,9 +31,6 @@ pub enum Token<'a> {
     /// A \t character.
     Tab,
 
-    /// A \x1b
-    Escape,
-
     /// A number of whitespace characters.
     Whitespace(u32),
 
@@ -92,10 +89,6 @@ impl<'a> Parser<'a> {
     pub fn is_empty(&self) -> bool {
         self.inner.as_str().is_empty()
     }
-
-    fn remaining(&self) -> usize {
-        self.inner.as_str().len()
-    }
 }
 
 impl<'a> Iterator for Parser<'a> {
@@ -106,30 +99,31 @@ impl<'a> Iterator for Parser<'a> {
         let string = self.inner.as_str();
 
         if let Some(c) = self.inner.next() {
-            let mut iter = self.inner.clone();
-
             if is_word_char(c) {
                 // find the longest consecutive slice of text for a Word token
-                while let Some(c) = iter.next() {
-                    if is_word_char(c) {
-                        // Need to advance internal state here, otherwise we would need to store the
-                        // revious iterator state and overwrite self.inner in the current else
-                        // branch.
-                        // This copy seems unavoidable.
-                        self.inner = iter.clone();
-                    } else {
-                        let offset = string.len() - self.remaining();
+                while let Some(c) = self.inner.next() {
+                    if !is_word_char(c) {
+                        // pointer arithmetic to get the offset of `c` relative to `string`
+                        let offset = {
+                            let ptr_start = string.as_ptr() as usize;
+                            let ptr_cur = self.inner.as_str().as_ptr() as usize;
+                            ptr_cur - ptr_start - c.len_utf8()
+                        };
+                        self.inner = unsafe {
+                            // SAFETY: we only work with character boundaries and
+                            // offset is <= length
+                            string.get_unchecked(offset..).chars()
+                        };
                         return Some(Token::Word(unsafe {
-                            // don't worry
+                            // SAFETY: we only work with character boundaries and
+                            // offset is <= length
                             string.get_unchecked(0..offset)
                         }));
                     }
                 }
 
-                // consume all the text
-                self.inner = "".chars();
-
-                Some(Token::Word(&string))
+                // consumed all the text
+                Some(Token::Word(string))
             } else {
                 match c {
                     // special characters
@@ -139,7 +133,7 @@ impl<'a> Iterator for Parser<'a> {
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
                     SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
                     SPEC_CHAR_ESCAPE => ansi_parser::parse_escape(string).map_or(
-                        Some(Token::Escape),
+                        Some(Token::EscapeSequence(AnsiSequence::Escape)),
                         |(string, output)| {
                             self.inner = string.chars();
                             Some(Token::EscapeSequence(output))
@@ -149,22 +143,29 @@ impl<'a> Iterator for Parser<'a> {
                     // count consecutive whitespace
                     _ => {
                         let mut len = 1;
-                        while let Some(c) = iter.next() {
+                        while let Some(c) = self.inner.next() {
                             if is_space_char(c) {
                                 if c != SPEC_CHAR_ZWSP {
                                     len += 1;
                                 }
-                                // Same as in the word case, this copy seems unavoidable.
-                                self.inner = iter.clone();
                             } else {
+                                // pointer arithmetic to get the offset of `c` relative to `string`
+                                let offset = {
+                                    let ptr_start = string.as_ptr() as usize;
+                                    let ptr_cur = self.inner.as_str().as_ptr() as usize;
+                                    ptr_cur - ptr_start - c.len_utf8()
+                                };
                                 // consume the whitespaces
+                                self.inner = unsafe {
+                                    // SAFETY: we only work with character boundaries and
+                                    // offset is <= length
+                                    string.get_unchecked(offset..).chars()
+                                };
                                 return Some(Token::Whitespace(len));
                             }
                         }
 
-                        // consume all the text
-                        self.inner = "".chars();
-
+                        // consumed all the text
                         Some(Token::Whitespace(len))
                     }
                 }
@@ -190,7 +191,6 @@ mod test {
 
     #[test]
     fn test_parse() {
-        // (At least) for now, \r is considered a whitespace
         assert_tokens(
             "Lorem ipsum \r dolor sit am\u{00AD}et,\tconse😅ctetur adipiscing\nelit",
             vec![
@@ -260,20 +260,31 @@ mod test {
     fn escape_char_ignored_if_not_ansi_sequence() {
         assert_tokens(
             "foo\x1bbar",
-            vec![Token::Word("foo"), Token::Escape, Token::Word("bar")],
+            vec![
+                Token::Word("foo"),
+                Token::EscapeSequence(AnsiSequence::Escape),
+                Token::Word("bar"),
+            ],
         );
 
         assert_tokens(
             "foo\x1b[bar",
-            vec![Token::Word("foo"), Token::Escape, Token::Word("[bar")],
+            vec![
+                Token::Word("foo"),
+                Token::EscapeSequence(AnsiSequence::Escape),
+                Token::Word("[bar"),
+            ],
         );
 
         // can escape the escape char
-        // FIXME: right now, ansi-parser doesn't do this
-        /*assert_tokens(
+        assert_tokens(
             "foo\x1b\x1bbar",
-            vec![Token::Word("foo"), Token::Escape, Token::Word("bar")],
-        );*/
+            vec![
+                Token::Word("foo"),
+                Token::EscapeSequence(AnsiSequence::Escape),
+                Token::Word("bar"),
+            ],
+        );
     }
 
     #[test]
