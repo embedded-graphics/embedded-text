@@ -165,7 +165,7 @@ where
                     break 'lookahead;
                 }
 
-                Some(Token::Escape) | Some(Token::EscapeSequence(_)) => {}
+                Some(Token::EscapeSequence(_)) => {}
 
                 _ => break 'lookahead,
             }
@@ -329,8 +329,6 @@ where
                             // don't count tabs as spaces
                             break Some(RenderElement::Space(tab_width, 0));
                         }
-
-                        Token::Escape => self.next_token(),
 
                         Token::EscapeSequence(seq) => {
                             self.next_token();

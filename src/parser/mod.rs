@@ -31,9 +31,6 @@ pub enum Token<'a> {
     /// A \t character.
     Tab,
 
-    /// A \x1b
-    Escape,
-
     /// A number of whitespace characters.
     Whitespace(u32),
 
@@ -139,7 +136,7 @@ impl<'a> Iterator for Parser<'a> {
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
                     SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
                     SPEC_CHAR_ESCAPE => ansi_parser::parse_escape(string).map_or(
-                        Some(Token::Escape),
+                        Some(Token::EscapeSequence(AnsiSequence::Escape)),
                         |(string, output)| {
                             self.inner = string.chars();
                             Some(Token::EscapeSequence(output))
@@ -260,20 +257,32 @@ mod test {
     fn escape_char_ignored_if_not_ansi_sequence() {
         assert_tokens(
             "foo\x1bbar",
-            vec![Token::Word("foo"), Token::Escape, Token::Word("bar")],
+            vec![
+                Token::Word("foo"),
+                Token::EscapeSequence(AnsiSequence::Escape),
+                Token::Word("bar"),
+            ],
         );
 
         assert_tokens(
             "foo\x1b[bar",
-            vec![Token::Word("foo"), Token::Escape, Token::Word("[bar")],
+            vec![
+                Token::Word("foo"),
+                Token::EscapeSequence(AnsiSequence::Escape),
+                Token::Word("[bar"),
+            ],
         );
 
         // can escape the escape char
         // FIXME: right now, ansi-parser doesn't do this
-        /*assert_tokens(
+        assert_tokens(
             "foo\x1b\x1bbar",
-            vec![Token::Word("foo"), Token::Escape, Token::Word("bar")],
-        );*/
+            vec![
+                Token::Word("foo"),
+                Token::EscapeSequence(AnsiSequence::Escape),
+                Token::Word("bar"),
+            ],
+        );
     }
 
     #[test]
