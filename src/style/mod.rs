@@ -142,6 +142,8 @@
 //!
 //!  - Move the cursor forward `<n>` characters: `\x1b[<n>C`. This command will stop at the end of
 //!    line, so you can use it to simulate a highlighted line, for example.
+//!    *Note:* Moving the cursor *forward* fills the line with the background color. If you want to
+//!    avoid this, make sure to reset the background color before moving the cursor!
 //!  - Move the cursor backward `<n>` characters: `\x1b[<n>D`. This command will stop at the start
 //!    of line.
 //!
