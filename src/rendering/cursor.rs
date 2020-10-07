@@ -143,6 +143,22 @@ mod test {
     }
 
     #[test]
+    fn rewind_moves_position_back() {
+        // 6px width
+        let mut cursor: Cursor<Font6x8> =
+            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
+
+        cursor.advance(6);
+        assert_eq!(6, cursor.position.x);
+        assert!(cursor.rewind(3));
+        assert_eq!(3, cursor.position.x);
+        assert!(cursor.rewind(3));
+        assert_eq!(0, cursor.position.x);
+        assert!(!cursor.rewind(3));
+        assert_eq!(0, cursor.position.x);
+    }
+
+    #[test]
     fn in_display_area() {
         // 6px width
         let mut cursor: Cursor<Font6x8> =

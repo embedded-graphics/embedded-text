@@ -397,6 +397,36 @@ mod test {
     }
 
     #[test]
+    fn ansi_cursor_backwards() {
+        let parser = Parser::parse("foo\x1b[2Dsample");
+        let config = UniformSpaceConfig::default();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)), 0);
+        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
+        let mut display = MockDisplay::new();
+
+        iter.draw(&mut display).unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "..##...........................##.........",
+                ".#..#...........................#.........",
+                ".#.....####..###..##.#..####....#....###..",
+                "###...#.........#.#.#.#.#...#...#...#...#.",
+                ".#.....###...####.#...#.#...#...#...#####.",
+                ".#........#.#...#.#...#.####....#...#.....",
+                ".#....####...####.#...#.#......###...###..",
+                "........................#.................",
+            ])
+        );
+    }
+
+    #[test]
     fn carried_over_spaces() {
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
