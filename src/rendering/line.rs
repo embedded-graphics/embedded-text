@@ -447,4 +447,39 @@ mod test {
             ])
         );
     }
+
+    #[test]
+    fn underline_outside_of_textbox() {
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .underlined(true)
+            .build();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 - 1, 7)), 0);
+        let mut iter = StyledLinePixelIterator::new(
+            Parser::parse("s"),
+            cursor,
+            UniformSpaceConfig::default(),
+            style,
+            None,
+        );
+        let mut display = MockDisplay::new();
+
+        iter.draw(&mut display).unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "......             ",
+                "......             ",
+                ".####.             ",
+                "#.....             ",
+                ".###..             ",
+                "....#.             ",
+                "####..             ",
+                "......             ",
+            ])
+        );
+    }
 }
