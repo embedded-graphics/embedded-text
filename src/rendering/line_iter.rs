@@ -174,7 +174,7 @@ where
         width
     }
 
-    fn count_widest_space_seq(&mut self, n: u32) -> u32 {
+    fn count_widest_space_seq(&self, n: u32) -> u32 {
         // we could also binary search but I don't think it's worth it
         let mut spaces_to_render = 0;
         let available = self.cursor.space();

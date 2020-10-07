@@ -191,7 +191,6 @@ mod test {
 
     #[test]
     fn test_parse() {
-        // (At least) for now, \r is considered a whitespace
         assert_tokens(
             "Lorem ipsum \r dolor sit am\u{00AD}et,\tconse😅ctetur adipiscing\nelit",
             vec![
@@ -278,7 +277,6 @@ mod test {
         );
 
         // can escape the escape char
-        // FIXME: right now, ansi-parser doesn't do this
         assert_tokens(
             "foo\x1b\x1bbar",
             vec![
