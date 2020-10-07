@@ -126,6 +126,13 @@ where
             match self.state {
                 // No token being processed, get next one
                 State::FetchNext => {
+                    // HACK: avoid drawing the underline outside of the text box
+                    let underlined = if self.style.underlined {
+                        self.inner.cursor.position.y < self.inner.cursor.bounds.bottom_right.y
+                    } else {
+                        false
+                    };
+
                     match self.inner.next() {
                         Some(RenderElement::PrintedCharacter(c)) => {
                             if self.is_anything_displayed() {
@@ -134,7 +141,7 @@ where
                                     self.inner.pos,
                                     self.style.text_style,
                                     self.display_range.clone(),
-                                    self.style.underlined,
+                                    underlined,
                                     self.style.strikethrough,
                                 ));
                             } else {
@@ -150,7 +157,7 @@ where
                                         self.inner.pos,
                                         self.style.text_style,
                                         self.display_range.clone(),
-                                        self.style.underlined,
+                                        underlined,
                                         self.style.strikethrough,
                                     ))
                                 } else {
@@ -234,36 +241,58 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
+        alignment::{HorizontalTextAlignment, VerticalTextAlignment},
         parser::{Parser, Token},
         rendering::{
             cursor::Cursor,
             line::{StyledLinePixelIterator, UniformSpaceConfig},
         },
-        style::TextBoxStyleBuilder,
+        style::{color::Rgb, height_mode::HeightMode, TextBoxStyle, TextBoxStyleBuilder},
     };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
         primitives::Rectangle,
     };
 
-    #[test]
-    fn simple_render() {
-        let parser = Parser::parse(" Some sample text");
+    fn test_rendered_text<'a, C, F, A, V, H>(
+        text: &'a str,
+        bounds: Rectangle,
+        style: TextBoxStyle<C, F, A, V, H>,
+        pattern: &[&str],
+    ) -> StyledLinePixelIterator<'a, C, F, UniformSpaceConfig<F>, A, V, H>
+    where
+        C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping<C>,
+        F: Font + Copy,
+        A: HorizontalTextAlignment,
+        V: VerticalTextAlignment,
+        H: HeightMode,
+    {
+        let parser = Parser::parse(text);
         let config = UniformSpaceConfig::default();
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)), 0);
+        let cursor = Cursor::new(bounds, style.line_spacing);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
 
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
+        assert_eq!(display, MockDisplay::from_pattern(pattern));
+
+        iter
+    }
+
+    #[test]
+    fn simple_render() {
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let mut iter = test_rendered_text(
+            " Some sample text",
+            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)),
+            style,
+            &[
                 ".......###....................",
                 "......#...#...................",
                 "......#......###..##.#...###..",
@@ -272,7 +301,7 @@ mod test {
                 "......#...#.#...#.#...#.#.....",
                 ".......###...###..#...#..###..",
                 "..............................",
-            ])
+            ],
         );
         assert_eq!(Some(Token::Break(None)), iter.remaining_token());
         assert_eq!(Some(Token::Word("sample")), iter.inner.parser.next());
@@ -289,7 +318,7 @@ mod test {
 
         let mut cursor = Cursor::new(
             Rectangle::new(Point::new(0, 8), Point::new(6 * 7 - 1, 16)),
-            0,
+            style.line_spacing,
         );
         cursor.position.y -= 8;
 
@@ -306,22 +335,16 @@ mod test {
 
     #[test]
     fn simple_render_nbsp() {
-        let parser = Parser::parse("Some\u{A0}sample text");
-        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)), 0);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
-        let mut display = MockDisplay::new();
-
-        iter.draw(&mut display).unwrap();
-
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
+        let iter = test_rendered_text(
+            "Some\u{A0}sample text",
+            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)),
+            style,
+            &[
                 ".###......................................",
                 "#...#.....................................",
                 "#......###..##.#...###.........####..###..",
@@ -330,29 +353,23 @@ mod test {
                 "#...#.#...#.#...#.#...............#.#...#.",
                 ".###...###..#...#..###........####...####.",
                 "..........................................",
-            ])
+            ],
         );
         assert_eq!(Some(Token::Word("mple")), iter.remaining_token());
     }
 
     #[test]
     fn simple_render_first_word_not_wrapped() {
-        let parser = Parser::parse("Some sample text");
-        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 2 - 1, 7)), 0);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
-        let mut display = MockDisplay::new();
-
-        iter.draw(&mut display).unwrap();
-
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
+        let iter = test_rendered_text(
+            "Some sample text",
+            Rectangle::new(Point::zero(), Point::new(6 * 2 - 1, 7)),
+            style,
+            &[
                 ".###........",
                 "#...#.......",
                 "#......###..",
@@ -361,29 +378,23 @@ mod test {
                 "#...#.#...#.",
                 ".###...###..",
                 "............",
-            ])
+            ],
         );
         assert_eq!(Some(Token::Word("me")), iter.remaining_token());
     }
 
     #[test]
     fn newline_stops_render() {
-        let parser = Parser::parse("Some \nsample text");
-        let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)), 0);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
-        let mut display = MockDisplay::new();
-
-        iter.draw(&mut display).unwrap();
-
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
+        test_rendered_text(
+            "Some \nsample text",
+            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)),
+            style,
+            &[
                 ".###..........................",
                 "#...#.........................",
                 "#......###..##.#...###........",
@@ -392,7 +403,7 @@ mod test {
                 "#...#.#...#.#...#.#...........",
                 ".###...###..#...#..###........",
                 "..............................",
-            ])
+            ],
         );
     }
 
@@ -405,8 +416,8 @@ mod test {
 
         let parser = Parser::parse("Some  sample text");
         let config = UniformSpaceConfig::default();
-
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)), 0);
+        let bounds = Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7));
+        let cursor = Cursor::new(bounds, style.line_spacing);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
@@ -438,6 +449,31 @@ mod test {
                 "####...####.#...#.#......###..",
                 "..................#...........",
             ])
+        );
+    }
+
+    #[test]
+    fn underline_outside_of_textbox() {
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .underlined(true)
+            .build();
+
+        test_rendered_text(
+            "s",
+            Rectangle::new(Point::zero(), Point::new(6 - 1, 7)),
+            style,
+            &[
+                "......             ",
+                "......             ",
+                ".####.             ",
+                "#.....             ",
+                ".###..             ",
+                "....#.             ",
+                "####..             ",
+                "......             ",
+            ],
         );
     }
 }
