@@ -69,7 +69,8 @@ impl<F: Font> Cursor<F> {
     #[inline]
     #[must_use]
     pub fn fits_in_line(&self, width: u32) -> bool {
-        width <= self.space()
+        let target = self.position.x + width as i32;
+        target <= self.bounds.bottom_right.x
     }
 
     /// Returns the amount of empty space in the line.
@@ -101,6 +102,18 @@ impl<F: Font> Cursor<F> {
             false
         }
     }
+
+    /// Rewinds the cursor by a given amount.
+    #[inline]
+    pub fn rewind(&mut self, by: u32) -> bool {
+        let target = self.position.x - by as i32;
+        if self.bounds.top_left.x <= target {
+            self.position.x = target;
+            true
+        } else {
+            false
+        }
+    }
 }
 
 #[cfg(test)]
@@ -127,6 +140,22 @@ mod test {
         assert!(cursor.fits_in_line(1));
         cursor.advance(6);
         assert!(!cursor.fits_in_line(1));
+    }
+
+    #[test]
+    fn rewind_moves_position_back() {
+        // 6px width
+        let mut cursor: Cursor<Font6x8> =
+            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
+
+        cursor.advance(6);
+        assert_eq!(6, cursor.position.x);
+        assert!(cursor.rewind(3));
+        assert_eq!(3, cursor.position.x);
+        assert!(cursor.rewind(3));
+        assert_eq!(0, cursor.position.x);
+        assert!(!cursor.rewind(3));
+        assert_eq!(0, cursor.position.x);
     }
 
     #[test]

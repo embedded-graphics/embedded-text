@@ -142,6 +142,8 @@
 //!
 //!  - Move the cursor forward `<n>` characters: `\x1b[<n>C`. This command will stop at the end of
 //!    line, so you can use it to simulate a highlighted line, for example.
+//!  - Move the cursor backward `<n>` characters: `\x1b[<n>D`. This command will stop at the start
+//!    of line.
 //!
 //! [`Sgr`]: ../rendering/ansi/enum.Sgr.html
 //! [`Rgb`]: ./color/struct.Rgb.html
