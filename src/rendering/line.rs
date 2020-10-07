@@ -126,6 +126,13 @@ where
             match self.state {
                 // No token being processed, get next one
                 State::FetchNext => {
+                    // HACK: avoid drawing the underline outside of the text box
+                    let underlined = if self.style.underlined {
+                        self.inner.cursor.position.y < self.inner.cursor.bounds.bottom_right.y
+                    } else {
+                        false
+                    };
+
                     match self.inner.next() {
                         Some(RenderElement::PrintedCharacter(c)) => {
                             if self.is_anything_displayed() {
@@ -134,7 +141,7 @@ where
                                     self.inner.pos,
                                     self.style.text_style,
                                     self.display_range.clone(),
-                                    self.style.underlined,
+                                    underlined,
                                     self.style.strikethrough,
                                 ));
                             } else {
@@ -150,7 +157,7 @@ where
                                         self.inner.pos,
                                         self.style.text_style,
                                         self.display_range.clone(),
-                                        self.style.underlined,
+                                        underlined,
                                         self.style.strikethrough,
                                     ))
                                 } else {
