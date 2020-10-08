@@ -128,7 +128,7 @@ where
                 State::FetchNext => {
                     // HACK: avoid drawing the underline outside of the text box
                     let underlined = if self.style.underlined {
-                        self.inner.cursor.position.y < self.inner.cursor.bounds.bottom_right.y
+                        self.display_range.end > F::CHARACTER_SIZE.height as i32
                     } else {
                         false
                     };
