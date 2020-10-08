@@ -151,7 +151,7 @@ where
 
                         Some(RenderElement::Space(space_width, _)) => {
                             if self.is_anything_displayed() {
-                                self.state = if self.style.underlined || self.style.strikethrough {
+                                self.state = if underlined || self.style.strikethrough {
                                     State::ModifiedSpace(ModifiedEmptySpaceIterator::new(
                                         space_width,
                                         self.inner.pos,
