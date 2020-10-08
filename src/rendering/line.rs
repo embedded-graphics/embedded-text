@@ -144,8 +144,6 @@ where
                                     underlined,
                                     self.style.strikethrough,
                                 ));
-                            } else {
-                                self.state = State::FetchNext;
                             }
                         }
 
@@ -168,8 +166,6 @@ where
                                         self.display_range.clone(),
                                     ))
                                 };
-                            } else {
-                                self.state = State::FetchNext;
                             }
                         }
 
