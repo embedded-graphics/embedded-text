@@ -69,8 +69,8 @@ where
     pos: Point,
     char_walk: Point,
     max_coordinates: Point,
-    underline_offset: Option<u32>,
-    strikethrough_offset: Option<u32>,
+    underline: bool,
+    strikethrough: bool,
 }
 
 impl<C, F> CharacterIterator<C, F>
@@ -90,28 +90,20 @@ where
         strikethrough: bool,
     ) -> Self {
         let mut max_height = (F::CHARACTER_SIZE.height as i32).min(rows.end);
-        let underline_offset = if underline {
+        if underline {
             // adjust height if whole character is displayed for underline
             if rows.end == max_height {
                 max_height += 1;
             }
-            Some(F::CHARACTER_SIZE.height)
-        } else {
-            None
-        };
-        let strikethrough_offset = if strikethrough {
-            Some(F::strikethrough_pos())
-        } else {
-            None
-        };
+        }
         Self {
             character: Glyph::new(character),
             style,
             pos,
             char_walk: Point::new(0, rows.start),
             max_coordinates: Point::new(F::char_width(character) as i32 - 1, max_height),
-            underline_offset,
-            strikethrough_offset,
+            underline,
+            strikethrough,
         }
     }
 }
@@ -132,9 +124,6 @@ where
             }
             let pos = self.char_walk;
 
-            let is_extra_line = Some(self.char_walk.y as u32) == self.underline_offset
-                || Some(self.char_walk.y as u32) == self.strikethrough_offset;
-
             if pos.x < self.max_coordinates.x {
                 self.char_walk.x += 1;
             } else {
@@ -142,7 +131,10 @@ where
                 self.char_walk.y += 1;
             }
 
-            let color = if is_extra_line || self.character.point(pos) {
+            let is_underline = self.underline && pos.y as u32 == F::CHARACTER_SIZE.height;
+            let is_strikethrough = self.strikethrough && pos.y as u32 == F::strikethrough_pos();
+
+            let color = if is_underline || is_strikethrough || self.character.point(pos) {
                 self.style.text_color
             } else {
                 self.style.background_color
