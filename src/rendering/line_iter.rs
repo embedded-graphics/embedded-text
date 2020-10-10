@@ -662,4 +662,51 @@ mod test {
             ]
         );
     }
+
+    #[test]
+    fn ansi_code_does_not_break_word() {
+        let text = "Lorem foo\x1b[92mbarum";
+        let parser = Parser::parse(text);
+        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(8 * 6 - 1, 16)), 0);
+
+        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
+            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+
+        assert_eq!(
+            collect_mut(&mut line1),
+            vec![
+                RenderElement::PrintedCharacter('L'),
+                RenderElement::PrintedCharacter('o'),
+                RenderElement::PrintedCharacter('r'),
+                RenderElement::PrintedCharacter('e'),
+                RenderElement::PrintedCharacter('m'),
+            ]
+        );
+
+        let carried = line1.remaining_token();
+        let mut line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
+            line1.parser,
+            line1.cursor,
+            config,
+            carried,
+            TabSize::default(),
+        );
+
+        assert_eq!(
+            collect_mut(&mut line2),
+            vec![
+                RenderElement::PrintedCharacter('f'),
+                RenderElement::PrintedCharacter('o'),
+                RenderElement::PrintedCharacter('o'),
+                RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
+                RenderElement::PrintedCharacter('b'),
+                RenderElement::PrintedCharacter('a'),
+                RenderElement::PrintedCharacter('r'),
+                RenderElement::PrintedCharacter('u'),
+                RenderElement::PrintedCharacter('m'),
+            ]
+        );
+    }
 }
