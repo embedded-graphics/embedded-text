@@ -158,6 +158,7 @@
 pub mod builder;
 pub mod color;
 pub mod height_mode;
+pub mod horizontal_overdraw;
 pub mod vertical_overdraw;
 
 use crate::{
