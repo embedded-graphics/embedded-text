@@ -13,14 +13,16 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{cursor::Cursor, line::StyledLinePixelIterator, space_config::SpaceConfig},
-    style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
+    style::{
+        color::Rgb, height_mode::HeightMode, horizontal_overdraw::HorizontalOverdraw, TextBoxStyle,
+    },
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
 
 /// State variable used by the right aligned text renderer.
 #[derive(Debug)]
-pub enum State<'a, C, F, SP, A, V, H>
+pub enum State<'a, C, F, SP, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -28,12 +30,13 @@ where
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     /// Starts processing a line.
     NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
 
     /// Renders the processed line.
-    DrawLine(StyledLinePixelIterator<'a, C, F, SP, A, V, H>),
+    DrawLine(StyledLinePixelIterator<'a, C, F, SP, A, V, H, HO>),
 }
 
 /// This trait is used to associate a renderer type to a horizontal alignment option.
@@ -47,16 +50,16 @@ pub trait RendererFactory<'a, C: PixelColor> {
     fn create_renderer(&self) -> Self::Renderer;
 }
 
-type LineIteratorSource<'a, C, F, A, V, H, SP> =
+type LineIteratorSource<'a, C, F, A, V, H, SP, HO> =
     fn(
-        TextBoxStyle<C, F, A, V, H>,
+        TextBoxStyle<C, F, A, V, H, HO>,
         Option<Token<'a>>,
         Cursor<F>,
         Parser<'a>,
-    ) -> StyledLinePixelIterator<'a, C, F, SP, A, V, H>;
+    ) -> StyledLinePixelIterator<'a, C, F, SP, A, V, H, HO>;
 
 /// Pixel iterator for styled text.
-pub struct StyledTextBoxIterator<'a, C, F, A, V, H, SP>
+pub struct StyledTextBoxIterator<'a, C, F, A, V, H, SP, HO>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -64,13 +67,14 @@ where
     V: VerticalTextAlignment,
     H: HeightMode,
     SP: SpaceConfig<Font = F>,
+    HO: HorizontalOverdraw,
 {
-    style: TextBoxStyle<C, F, A, V, H>,
-    state: State<'a, C, F, SP, A, V, H>,
-    next_line_fn: LineIteratorSource<'a, C, F, A, V, H, SP>,
+    style: TextBoxStyle<C, F, A, V, H, HO>,
+    state: State<'a, C, F, SP, A, V, H, HO>,
+    next_line_fn: LineIteratorSource<'a, C, F, A, V, H, SP, HO>,
 }
 
-impl<'a, C, F, A, V, H, SP> StyledTextBoxIterator<'a, C, F, A, V, H, SP>
+impl<'a, C, F, A, V, H, SP, HO> StyledTextBoxIterator<'a, C, F, A, V, H, SP, HO>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -78,6 +82,7 @@ where
     V: VerticalTextAlignment,
     H: HeightMode,
     SP: SpaceConfig<Font = F>,
+    HO: HorizontalOverdraw,
 {
     /// Creates a new pixel iterator to render the styled [`TextBox`].
     ///
@@ -85,8 +90,8 @@ where
     #[inline]
     #[must_use]
     pub fn new(
-        styled: &StyledTextBox<'a, C, F, A, V, H>,
-        f: LineIteratorSource<'a, C, F, A, V, H, SP>,
+        styled: &StyledTextBox<'a, C, F, A, V, H, HO>,
+        f: LineIteratorSource<'a, C, F, A, V, H, SP, HO>,
     ) -> Self {
         let mut cursor = Cursor::new(styled.text_box.bounds, styled.style.line_spacing);
 
@@ -100,7 +105,7 @@ where
     }
 }
 
-impl<'a, C, F, A, V, H, SP> Iterator for StyledTextBoxIterator<'a, C, F, A, V, H, SP>
+impl<'a, C, F, A, V, H, SP, HO> Iterator for StyledTextBoxIterator<'a, C, F, A, V, H, SP, HO>
 where
     C: PixelColor + From<Rgb>,
     F: Font + Copy,
@@ -108,6 +113,7 @@ where
     V: VerticalTextAlignment,
     H: HeightMode,
     SP: SpaceConfig<Font = F>,
+    HO: HorizontalOverdraw,
 {
     type Item = Pixel<C>;
 

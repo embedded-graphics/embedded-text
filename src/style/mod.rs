@@ -170,7 +170,10 @@ use crate::{
         line_iter::{LineElementIterator, RenderElement},
         space_config::UniformSpaceConfig,
     },
-    style::height_mode::HeightMode,
+    style::{
+        height_mode::HeightMode,
+        horizontal_overdraw::{HorizontalOverdraw, Wrap},
+    },
     utils::font_ext::FontExt,
 };
 use core::marker::PhantomData;
@@ -238,14 +241,15 @@ impl<F: Font> TabSize<F> {
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct TextBoxStyle<C, F, A, V, H>
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub struct TextBoxStyle<C, F, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     /// Style properties for text.
     pub text_style: TextStyle<C, F>,
@@ -270,9 +274,12 @@ where
 
     /// If true, the text will be crossed out
     pub strikethrough: bool,
+
+    /// Horizontal overdraw behavior when a word is wider than the line
+    pub horizontal_overdraw: HO,
 }
 
-impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
+impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H, Wrap>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -298,6 +305,7 @@ where
             tab_size: TabSize::default(),
             underlined: false,
             strikethrough: false,
+            horizontal_overdraw: Wrap,
         }
     }
 
@@ -318,9 +326,20 @@ where
             tab_size: TabSize::default(),
             underlined: false,
             strikethrough: false,
+            horizontal_overdraw: Wrap,
         }
     }
+}
 
+impl<C, F, A, V, H, HO> TextBoxStyle<C, F, A, V, H, HO>
+where
+    C: PixelColor,
+    F: Font + Copy,
+    A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
+    H: HeightMode,
+    HO: HorizontalOverdraw,
+{
     /// Measure the width and count spaces in a single line of text.
     ///
     /// Returns (width, rendered space count, carried token)

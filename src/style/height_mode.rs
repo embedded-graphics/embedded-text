@@ -8,7 +8,7 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::vertical_overdraw::VerticalOverdraw,
+    style::{horizontal_overdraw::HorizontalOverdraw, vertical_overdraw::VerticalOverdraw},
     StyledTextBox,
 };
 use core::ops::Range;
@@ -24,13 +24,14 @@ pub trait HeightMode: Copy {
     /// called manually.
     ///
     /// [`TextBox::into_styled`]: ../../struct.TextBox.html#method.into_styled
-    fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
+    fn apply<C, F, A, V, H, HO>(text_box: &mut StyledTextBox<'_, C, F, A, V, H, HO>)
     where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
-        H: HeightMode;
+        H: HeightMode,
+        HO: HorizontalOverdraw;
 
     /// Calculate the range of rows of the current line that can be drawn.
     ///
@@ -74,13 +75,14 @@ where
     OV: VerticalOverdraw,
 {
     #[inline]
-    fn apply<C, F, A, V, H>(_text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
+    fn apply<C, F, A, V, H, HO>(_text_box: &mut StyledTextBox<'_, C, F, A, V, H, HO>)
     where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
+        HO: HorizontalOverdraw,
     {
     }
 
@@ -148,13 +150,14 @@ pub struct FitToText;
 
 impl HeightMode for FitToText {
     #[inline]
-    fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
+    fn apply<C, F, A, V, H, HO>(text_box: &mut StyledTextBox<'_, C, F, A, V, H, HO>)
     where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
+        HO: HorizontalOverdraw,
     {
         text_box.fit_height();
     }
@@ -223,13 +226,14 @@ where
     OV: VerticalOverdraw,
 {
     #[inline]
-    fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
+    fn apply<C, F, A, V, H, HO>(text_box: &mut StyledTextBox<'_, C, F, A, V, H, HO>)
     where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
+        HO: HorizontalOverdraw,
     {
         text_box.fit_height_limited(text_box.size().height);
     }

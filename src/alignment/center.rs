@@ -5,7 +5,7 @@ use crate::{
         cursor::Cursor, line::StyledLinePixelIterator, space_config::UniformSpaceConfig,
         RendererFactory, StyledTextBoxIterator,
     },
-    style::{color::Rgb, height_mode::HeightMode},
+    style::{color::Rgb, height_mode::HeightMode, horizontal_overdraw::HorizontalOverdraw},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
@@ -20,14 +20,15 @@ impl HorizontalTextAlignment for CenterAligned {
     const ENDING_SPACES: bool = false;
 }
 
-impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, CenterAligned, V, H>
+impl<'a, C, F, V, H, HO> RendererFactory<'a, C> for StyledTextBox<'a, C, F, CenterAligned, V, H, HO>
 where
     C: PixelColor + From<Rgb>,
     F: Font + Copy,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
-    type Renderer = StyledTextBoxIterator<'a, C, F, CenterAligned, V, H, UniformSpaceConfig<F>>;
+    type Renderer = StyledTextBoxIterator<'a, C, F, CenterAligned, V, H, UniformSpaceConfig<F>, HO>;
 
     #[inline]
     #[must_use]
@@ -51,14 +52,15 @@ where
 
 impl VerticalTextAlignment for CenterAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, C, F, A, H>(
+    fn apply_vertical_alignment<'a, C, F, A, H, HO>(
         cursor: &mut Cursor<F>,
-        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
+        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H, HO>,
     ) where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         H: HeightMode,
+        HO: HorizontalOverdraw,
     {
         let text_height = styled_text_box
             .style

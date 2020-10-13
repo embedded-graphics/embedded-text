@@ -5,7 +5,7 @@ use crate::{
         line::StyledLinePixelIterator, space_config::UniformSpaceConfig, RendererFactory,
         StyledTextBoxIterator,
     },
-    style::{color::Rgb, height_mode::HeightMode},
+    style::{color::Rgb, height_mode::HeightMode, horizontal_overdraw::HorizontalOverdraw},
     StyledTextBox,
 };
 use embedded_graphics::{fonts::Font, pixelcolor::PixelColor};
@@ -18,14 +18,15 @@ impl HorizontalTextAlignment for LeftAligned {
     const ENDING_SPACES: bool = true;
 }
 
-impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, LeftAligned, V, H>
+impl<'a, C, F, V, H, HO> RendererFactory<'a, C> for StyledTextBox<'a, C, F, LeftAligned, V, H, HO>
 where
     C: PixelColor + From<Rgb>,
     F: Font + Copy,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
-    type Renderer = StyledTextBoxIterator<'a, C, F, LeftAligned, V, H, UniformSpaceConfig<F>>;
+    type Renderer = StyledTextBoxIterator<'a, C, F, LeftAligned, V, H, UniformSpaceConfig<F>, HO>;
 
     #[inline]
     #[must_use]

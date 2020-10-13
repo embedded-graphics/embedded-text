@@ -11,7 +11,9 @@ use crate::{
         space_config::*,
         whitespace::EmptySpaceIterator,
     },
-    style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
+    style::{
+        color::Rgb, height_mode::HeightMode, horizontal_overdraw::HorizontalOverdraw, TextBoxStyle,
+    },
 };
 use core::ops::Range;
 use embedded_graphics::prelude::*;
@@ -38,7 +40,7 @@ where
 
 /// Pixel iterator to render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLinePixelIterator<'a, C, F, SP, A, V, H>
+pub struct StyledLinePixelIterator<'a, C, F, SP, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -46,14 +48,15 @@ where
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     state: State<C, F>,
-    pub(crate) style: TextBoxStyle<C, F, A, V, H>,
+    pub(crate) style: TextBoxStyle<C, F, A, V, H, HO>,
     display_range: Range<i32>,
     inner: LineElementIterator<'a, F, SP, A>,
 }
 
-impl<'a, C, F, SP, A, V, H> StyledLinePixelIterator<'a, C, F, SP, A, V, H>
+impl<'a, C, F, SP, A, V, H, HO> StyledLinePixelIterator<'a, C, F, SP, A, V, H, HO>
 where
     C: PixelColor + From<Rgb>,
     F: Font + Copy,
@@ -61,6 +64,7 @@ where
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     /// Creates a new pixel iterator to draw the given character.
     #[inline]
@@ -69,7 +73,7 @@ where
         parser: Parser<'a>,
         cursor: Cursor<F>,
         config: SP,
-        style: TextBoxStyle<C, F, A, V, H>,
+        style: TextBoxStyle<C, F, A, V, H, HO>,
         carried_token: Option<Token<'a>>,
     ) -> Self {
         Self {
@@ -109,7 +113,7 @@ where
     }
 }
 
-impl<C, F, SP, A, V, H> Iterator for StyledLinePixelIterator<'_, C, F, SP, A, V, H>
+impl<C, F, SP, A, V, H, HO> Iterator for StyledLinePixelIterator<'_, C, F, SP, A, V, H, HO>
 where
     C: PixelColor + From<Rgb>,
     F: Font + Copy,
@@ -117,6 +121,7 @@ where
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     type Item = Pixel<C>;
 
@@ -243,25 +248,29 @@ mod test {
             cursor::Cursor,
             line::{StyledLinePixelIterator, UniformSpaceConfig},
         },
-        style::{color::Rgb, height_mode::HeightMode, TextBoxStyle, TextBoxStyleBuilder},
+        style::{
+            color::Rgb, height_mode::HeightMode, horizontal_overdraw::HorizontalOverdraw,
+            TextBoxStyle, TextBoxStyleBuilder,
+        },
     };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
         primitives::Rectangle,
     };
 
-    fn test_rendered_text<'a, C, F, A, V, H>(
+    fn test_rendered_text<'a, C, F, A, V, H, HO>(
         text: &'a str,
         bounds: Rectangle,
-        style: TextBoxStyle<C, F, A, V, H>,
+        style: TextBoxStyle<C, F, A, V, H, HO>,
         pattern: &[&str],
-    ) -> StyledLinePixelIterator<'a, C, F, UniformSpaceConfig<F>, A, V, H>
+    ) -> StyledLinePixelIterator<'a, C, F, UniformSpaceConfig<F>, A, V, H, HO>
     where
         C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping<C>,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
+        HO: HorizontalOverdraw,
     {
         let parser = Parser::parse(text);
         let config = UniformSpaceConfig::default();

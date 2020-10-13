@@ -3,6 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     style::{
         height_mode::{Exact, HeightMode},
+        horizontal_overdraw::{HorizontalOverdraw, Wrap},
         vertical_overdraw::FullRowsOnly,
         TabSize, TextBoxStyle,
     },
@@ -15,13 +16,14 @@ use embedded_graphics::{
 /// [`TextBoxStyle`] builder object.
 ///
 /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
-pub struct TextBoxStyleBuilder<C, F, A, V, H>
+pub struct TextBoxStyleBuilder<C, F, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     text_style_builder: TextStyleBuilder<C, F>,
     alignment: A,
@@ -31,9 +33,10 @@ where
     tab_size: TabSize<F>,
     underlined: bool,
     strikethrough: bool,
+    horizontal_overdraw: HO,
 }
 
-impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact<FullRowsOnly>>
+impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact<FullRowsOnly>, Wrap>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -59,6 +62,7 @@ where
             tab_size: TabSize::default(),
             underlined: false,
             strikethrough: false,
+            horizontal_overdraw: Wrap,
         }
     }
 
@@ -97,13 +101,14 @@ where
     }
 }
 
-impl<C, F, A, V, H> TextBoxStyleBuilder<C, F, A, V, H>
+impl<C, F, A, V, H, HO> TextBoxStyleBuilder<C, F, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     /// Sets the text color.
     ///
@@ -221,7 +226,7 @@ where
     pub fn alignment<TA: HorizontalTextAlignment>(
         self,
         alignment: TA,
-    ) -> TextBoxStyleBuilder<C, F, TA, V, H> {
+    ) -> TextBoxStyleBuilder<C, F, TA, V, H, HO> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment,
@@ -231,6 +236,7 @@ where
             tab_size: self.tab_size,
             underlined: self.underlined,
             strikethrough: self.strikethrough,
+            horizontal_overdraw: self.horizontal_overdraw,
         }
     }
 
@@ -240,7 +246,7 @@ where
     pub fn vertical_alignment<VA: VerticalTextAlignment>(
         self,
         vertical_alignment: VA,
-    ) -> TextBoxStyleBuilder<C, F, A, VA, H> {
+    ) -> TextBoxStyleBuilder<C, F, A, VA, H, HO> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment: self.alignment,
@@ -250,6 +256,7 @@ where
             tab_size: self.tab_size,
             underlined: self.underlined,
             strikethrough: self.strikethrough,
+            horizontal_overdraw: self.horizontal_overdraw,
         }
     }
 
@@ -259,7 +266,7 @@ where
     pub fn height_mode<HM: HeightMode>(
         self,
         height_mode: HM,
-    ) -> TextBoxStyleBuilder<C, F, A, V, HM> {
+    ) -> TextBoxStyleBuilder<C, F, A, V, HM, HO> {
         TextBoxStyleBuilder {
             text_style_builder: self.text_style_builder,
             alignment: self.alignment,
@@ -269,6 +276,7 @@ where
             tab_size: self.tab_size,
             underlined: self.underlined,
             strikethrough: self.strikethrough,
+            horizontal_overdraw: self.horizontal_overdraw,
         }
     }
 
@@ -301,7 +309,7 @@ where
     /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
     #[inline]
     #[must_use]
-    pub fn build(self) -> TextBoxStyle<C, F, A, V, H> {
+    pub fn build(self) -> TextBoxStyle<C, F, A, V, H, HO> {
         TextBoxStyle {
             text_style: self.text_style_builder.build(),
             alignment: self.alignment,
@@ -311,6 +319,7 @@ where
             tab_size: self.tab_size,
             underlined: self.underlined,
             strikethrough: self.strikethrough,
+            horizontal_overdraw: self.horizontal_overdraw,
         }
     }
 }

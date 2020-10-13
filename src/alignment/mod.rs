@@ -1,5 +1,8 @@
 //! Text alignment options.
-use crate::{rendering::cursor::Cursor, style::height_mode::HeightMode, StyledTextBox};
+use crate::{
+    rendering::cursor::Cursor, style::height_mode::HeightMode,
+    style::horizontal_overdraw::HorizontalOverdraw, StyledTextBox,
+};
 use embedded_graphics::prelude::*;
 
 pub mod bottom;
@@ -31,14 +34,15 @@ pub trait HorizontalTextAlignment: Copy {
 /// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
 pub trait VerticalTextAlignment: Copy {
     /// Set the cursor's initial vertical position
-    fn apply_vertical_alignment<'a, C, F, A, H>(
+    fn apply_vertical_alignment<'a, C, F, A, H, HO>(
         cursor: &mut Cursor<F>,
-        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
+        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H, HO>,
     ) where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
-        H: HeightMode;
+        H: HeightMode,
+        HO: HorizontalOverdraw;
 }
 
 pub use bottom::BottomAligned;

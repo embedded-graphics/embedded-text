@@ -91,7 +91,7 @@ pub mod utils;
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
 use embedded_graphics::{prelude::*, primitives::Rectangle};
 use rendering::RendererFactory;
-use style::{height_mode::HeightMode, TextBoxStyle};
+use style::{height_mode::HeightMode, horizontal_overdraw::HorizontalOverdraw, TextBoxStyle};
 use utils::rect_ext::RectExt;
 
 /// Prelude.
@@ -186,16 +186,17 @@ impl<'a> TextBox<'a> {
     /// [`ShrinkToText`]: style/height_mode/struct.ShrinkToText.html
     #[inline]
     #[must_use]
-    pub fn into_styled<C, F, A, V, H>(
+    pub fn into_styled<C, F, A, V, H, HO>(
         self,
-        style: TextBoxStyle<C, F, A, V, H>,
-    ) -> StyledTextBox<'a, C, F, A, V, H>
+        style: TextBoxStyle<C, F, A, V, H, HO>,
+    ) -> StyledTextBox<'a, C, F, A, V, H, HO>
     where
         C: PixelColor,
         F: Font + Copy,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
+        HO: HorizontalOverdraw,
     {
         let mut styled = StyledTextBox {
             text_box: self,
@@ -253,13 +254,14 @@ impl Dimensions for TextBox<'_> {
 /// [`TextBox`]: struct.TextBox.html
 /// [`into_styled`]: struct.TextBox.html#method.into_styled
 /// [`draw`]: #method.draw
-pub struct StyledTextBox<'a, C, F, A, V, H>
+pub struct StyledTextBox<'a, C, F, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
     ///
@@ -267,16 +269,17 @@ where
     pub text_box: TextBox<'a>,
 
     /// The style of the [`TextBox`].
-    pub style: TextBoxStyle<C, F, A, V, H>,
+    pub style: TextBoxStyle<C, F, A, V, H, HO>,
 }
 
-impl<C, F, A, V, H> StyledTextBox<'_, C, F, A, V, H>
+impl<C, F, A, V, H, HO> StyledTextBox<'_, C, F, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     /// Sets the height of the [`StyledTextBox`] to the height of the text.
     #[inline]
@@ -306,14 +309,15 @@ where
     }
 }
 
-impl<'a, C, F, A, V, H> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V, H>
+impl<'a, C, F, A, V, H, HO> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    StyledTextBox<'a, C, F, A, V, H>: RendererFactory<'a, C>,
+    StyledTextBox<'a, C, F, A, V, H, HO>: RendererFactory<'a, C>,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     #[inline]
     fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
@@ -321,13 +325,14 @@ where
     }
 }
 
-impl<C, F, A, V, H> Transform for StyledTextBox<'_, C, F, A, V, H>
+impl<C, F, A, V, H, HO> Transform for StyledTextBox<'_, C, F, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     #[inline]
     #[must_use]
@@ -346,13 +351,14 @@ where
     }
 }
 
-impl<C, F, A, V, H> Dimensions for StyledTextBox<'_, C, F, A, V, H>
+impl<C, F, A, V, H, HO> Dimensions for StyledTextBox<'_, C, F, A, V, H, HO>
 where
     C: PixelColor,
     F: Font + Copy,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    HO: HorizontalOverdraw,
 {
     #[inline]
     #[must_use]
