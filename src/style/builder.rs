@@ -19,9 +19,6 @@ pub struct TextBoxStyleBuilder<C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
 {
     text_style_builder: TextStyleBuilder<C, F>,
     alignment: A,

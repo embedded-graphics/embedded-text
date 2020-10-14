@@ -18,14 +18,17 @@ pub trait SpaceConfig: Copy + Default {
 
 /// Contains the fixed width of a space character.
 #[derive(Copy, Clone, Debug)]
-pub struct UniformSpaceConfig<F: Font + Copy> {
+pub struct UniformSpaceConfig<F> {
     _font: PhantomData<F>,
 
     /// Space width.
     pub space_width: u32,
 }
 
-impl<F: Font + Copy> Default for UniformSpaceConfig<F> {
+impl<F> Default for UniformSpaceConfig<F>
+where
+    F: Font + Copy,
+{
     /// Creates a default space configuration object based on the current font.
     #[inline]
     #[must_use]
@@ -37,7 +40,10 @@ impl<F: Font + Copy> Default for UniformSpaceConfig<F> {
     }
 }
 
-impl<F: Font + Copy> SpaceConfig for UniformSpaceConfig<F> {
+impl<F> SpaceConfig for UniformSpaceConfig<F>
+where
+    F: Font + Copy,
+{
     type Font = F;
 
     #[inline]
