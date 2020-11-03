@@ -28,9 +28,9 @@
 //! The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
 //! `SDL2`. See the [simulator README] for more information.
 //!
-//! ![embedded-text example with center aligned text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/center.png)
+//! ![embedded-text example with center aligned text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/center.png)
 //!
-//! ![embedded-text example with colored text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/colored_text.png)
+//! ![embedded-text example with colored text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/colored_text.png)
 //!
 //! ```rust,no_run
 //! use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
@@ -65,9 +65,9 @@
 //! }
 //! ```
 //!
-//! [embedded-graphics]: https://github.com/jamwaffles/embedded-graphics/
-//! [the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
-//! [simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
+//! [embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
+//! [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
+//! [simulator README]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator#usage-without-sdl2
 //! [`TextBox`]: ./struct.TextBox.html
 //! [`LeftAligned`]: ./alignment/left/struct.LeftAligned.html
 //! [`RightAligned`]: ./alignment/right/struct.RightAligned.html
