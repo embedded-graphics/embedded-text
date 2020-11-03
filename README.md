@@ -1,4 +1,4 @@
-# embedded-text [![crates.io](https://img.shields.io/crates/v/embedded_text.svg)](https://crates.io/crates/embedded_text) [![docs.rs](https://docs.rs/embedded-text/badge.svg)](https://docs.rs/embedded-text/) ![Rust](https://github.com/bugadani/embedded-text/workflows/Rust/badge.svg)
+# embedded-text [![crates.io](https://img.shields.io/crates/v/embedded_text.svg)](https://crates.io/crates/embedded_text) [![docs.rs](https://docs.rs/embedded-text/badge.svg)](https://docs.rs/embedded-text/) ![Rust](https://github.com/embedded-graphics/embedded-text/workflows/Rust/badge.svg)
 
 TextBox for embedded-graphics.
 
@@ -30,9 +30,9 @@ This crate provides a configurable `TextBox` to render multiline text inside a b
 The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
 `SDL2`. See the [simulator README] for more information.
 
-![embedded-text example with center aligned text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/center.png)
+![embedded-text example with center aligned text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/center.png)
 
-![embedded-text example with colored text](https://raw.githubusercontent.com/bugadani/embedded-text/master/assets/colored_text.png)
+![embedded-text example with colored text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/colored_text.png)
 
 ```rust
 use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
@@ -67,9 +67,9 @@ fn main() -> Result<(), core::convert::Infallible> {
 }
 ```
 
-[embedded-graphics]: https://github.com/jamwaffles/embedded-graphics/
-[the embedded-graphics simulator]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator
-[simulator README]: https://github.com/jamwaffles/embedded-graphics/tree/master/simulator#usage-without-sdl2
+[embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
+[the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
+[simulator README]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator#usage-without-sdl2
 
 ## Development setup
 
