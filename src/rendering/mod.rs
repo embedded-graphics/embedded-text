@@ -24,10 +24,6 @@ pub enum State<'a, C, F, SP, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
-    SP: SpaceConfig<Font = F>,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
 {
     /// Starts processing a line.
     NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
@@ -60,10 +56,6 @@ pub struct StyledTextBoxIterator<'a, C, F, A, V, H, SP>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-    SP: SpaceConfig<Font = F>,
 {
     style: TextBoxStyle<C, F, A, V, H>,
     state: State<'a, C, F, SP, A, V, H>,

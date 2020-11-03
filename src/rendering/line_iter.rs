@@ -42,12 +42,7 @@ pub enum RenderElement {
 
 /// Pixel iterator to render a single line of styled text.
 #[derive(Debug)]
-pub struct LineElementIterator<'a, F, SP, A>
-where
-    F: Font + Copy,
-    SP: SpaceConfig<Font = F>,
-    A: HorizontalTextAlignment,
-{
+pub struct LineElementIterator<'a, F, SP, A> {
     /// Position information.
     pub cursor: Cursor<F>,
 

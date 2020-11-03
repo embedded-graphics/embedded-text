@@ -182,7 +182,7 @@ pub use builder::TextBoxStyleBuilder;
 /// This type makes it more obvious what unit is used to define the width of tabs.
 /// The default tab size is 4 spaces.
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct TabSize<F: Font> {
+pub struct TabSize<F> {
     pub(crate) width: i32,
     _font: PhantomData<F>,
 }
@@ -242,9 +242,6 @@ pub struct TextBoxStyle<C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
 {
     /// Style properties for text.
     pub text_style: TextStyle<C, F>,

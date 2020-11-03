@@ -17,8 +17,7 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 #[derive(Clone)]
 pub struct EmptySpaceIterator<C, F>
 where
-    C: PixelColor,
-    F: Font + Copy,
+    C: Copy,
 {
     _font: PhantomData<F>,
     color: MaybeUninit<C>,
@@ -80,7 +79,6 @@ where
 impl<C, F> Iterator for EmptySpaceIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
 {
     type Item = Pixel<C>;
 

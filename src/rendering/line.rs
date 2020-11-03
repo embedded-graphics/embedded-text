@@ -42,10 +42,6 @@ pub struct StyledLinePixelIterator<'a, C, F, SP, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
-    SP: SpaceConfig<Font = F>,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
 {
     state: State<C, F>,
     pub(crate) style: TextBoxStyle<C, F, A, V, H>,

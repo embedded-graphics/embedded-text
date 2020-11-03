@@ -6,7 +6,7 @@ use embedded_graphics::{fonts::Font, geometry::Point, primitives::Rectangle};
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
 #[derive(Copy, Clone, Debug)]
-pub struct Cursor<F: Font> {
+pub struct Cursor<F> {
     /// Current cursor position
     pub position: Point,
 
@@ -18,7 +18,10 @@ pub struct Cursor<F: Font> {
     _marker: PhantomData<F>,
 }
 
-impl<F: Font> Cursor<F> {
+impl<F> Cursor<F>
+where
+    F: Font,
+{
     /// Creates a new `Cursor` object located at the top left of the given bounding [`Rectangle`].
     #[inline]
     #[must_use]
