@@ -352,14 +352,15 @@ where
 
         let mut current_width = 0;
         let mut last_spaces = 0;
+        let mut last_spaces_width = 0;
         let mut total_spaces = 0;
         let mut underlined = self.underlined;
         while let Some(token) = iter.next() {
             match token {
-                RenderElement::Space(_, count) => {
+                RenderElement::Space(width, count) => {
                     if A::ENDING_SPACES {
                         // only track width if spaces are rendered at the end of a line
-                        current_width = iter.cursor.position.x;
+                        current_width += width;
 
                         // in this case, count all spaces
                         total_spaces += count;
@@ -367,18 +368,21 @@ where
                         // ... otherwise save the number of spaces and it will be tracked with
                         // the next printed character, or it will be discarded
                         last_spaces = total_spaces + count;
+                        last_spaces_width = width;
                     }
                 }
 
                 RenderElement::PrintedCharacter(c) => {
-                    // the current width is always the position where the cursor is (left is 0)
-                    current_width = iter.cursor.position.x;
+                    // must not rely on cursor position because it can get reset to 0 at line breaks
+                    current_width += F::total_char_width(c);
 
                     if c == '\u{A0}' {
                         total_spaces += 1;
                     } else if !A::ENDING_SPACES {
                         // if ENDING_SPACES is true, spaces have already been counted and
                         // last_spaces is 0
+                        current_width += last_spaces_width;
+                        last_spaces_width = 0;
                         total_spaces = last_spaces;
                     }
                 }
@@ -602,5 +606,17 @@ mod test {
         );
 
         assert_eq!(height, 7 * 8 + 6 * 2);
+    }
+
+    #[test]
+    fn soft_hyphenated_line_width_includes_hyphen_width() {
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .line_spacing(2)
+            .build();
+
+        let (width, _, _, _) = style.measure_line(&mut Parser::parse("soft\u{AD}hyphen"), None, 50);
+
+        assert_eq!(width, 30);
     }
 }
