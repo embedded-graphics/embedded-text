@@ -311,4 +311,44 @@ mod test_vertical {
             ])
         );
     }
+
+    #[test]
+    fn soft_hyphen_rendering() {
+        let text = "soft\u{AD}hyphen";
+
+        let mut display = MockDisplay::new();
+
+        let bounds = Rectangle::new(Point::new(0, 0), Point::new(35, 30));
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(CenterAligned)
+            .text_color(BinaryColor::On)
+            .build();
+
+        TextBox::new(text, bounds)
+            .into_styled(textbox_style)
+            .draw(&mut display)
+            .unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "                 ##   #             ",
+                "                #  #  #             ",
+                "    ####  ###   #    ###            ",
+                "   #     #   # ###    #    #####    ",
+                "    ###  #   #  #     #             ",
+                "       # #   #  #     #  #          ",
+                "   ####   ###   #      ##           ",
+                "                                    ",
+                "#                 #                 ",
+                "#                 #                 ",
+                "# ##  #   # ####  # ##   ###  # ##  ",
+                "##  # #   # #   # ##  # #   # ##  # ",
+                "#   # #   # #   # #   # ##### #   # ",
+                "#   #  #### ####  #   # #     #   # ",
+                "#   #     # #     #   #  ###  #   # ",
+                "       ###  #                       "
+            ])
+        );
+    }
 }

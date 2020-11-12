@@ -606,4 +606,16 @@ mod test {
 
         assert_eq!(height, 7 * 8 + 6 * 2);
     }
+
+    #[test]
+    fn soft_hyphenated_line_width_includes_hyphen_width() {
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .line_spacing(2)
+            .build();
+
+        let (width, _, _, _) = style.measure_line(&mut Parser::parse("soft\u{AD}hyphen"), None, 50);
+
+        assert_eq!(width, 30);
+    }
 }
