@@ -125,6 +125,9 @@ fn main() -> Result<(), core::convert::Infallible> {
         if !demo_loop(&mut window, &mut bounds, BottomAligned) {
             break 'running;
         }
+        if !demo_loop(&mut window, &mut bounds, Scrolling) {
+            break 'running;
+        }
     }
 
     Ok(())

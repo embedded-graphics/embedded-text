@@ -15,6 +15,7 @@ This crate provides a configurable `TextBox` to render multiline text inside a b
      - `TopAligned`
      - `CenterAligned`
      - `BottomAligned`
+     - `Scrolling`
 
 `TextBox` also supports some special characters not handled by embedded-graphics' `Text`:
  - non-breaking space (`\u{200b}`)

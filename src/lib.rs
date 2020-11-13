@@ -13,6 +13,7 @@
 //!      - [`TopAligned`]
 //!      - [`CenterAligned`]
 //!      - [`BottomAligned`]
+//!      - [`Scrolling`]
 //!
 //! [`TextBox`] also supports some special characters not handled by embedded-graphics' `Text`:
 //!  - non-breaking space (`\u{200b}`)
@@ -75,6 +76,7 @@
 //! [`Justified`]: ./alignment/justified/struct.Justified.html
 //! [`TopAligned`]: ./alignment/top/struct.TopAligned.html
 //! [`BottomAligned`]: ./alignment/bottom/struct.BottomAligned.html
+//! [`Scrolling`]: ./alignment/scrolling/struct.Scrolling.html
 
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]

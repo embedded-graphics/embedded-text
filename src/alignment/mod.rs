@@ -7,6 +7,7 @@ pub mod center;
 pub mod justified;
 pub mod left;
 pub mod right;
+pub mod scrolling;
 pub mod top;
 
 /// Horizontal text alignment base trait.
@@ -46,4 +47,5 @@ pub use center::CenterAligned;
 pub use justified::Justified;
 pub use left::LeftAligned;
 pub use right::RightAligned;
+pub use scrolling::Scrolling;
 pub use top::TopAligned;
