@@ -2,7 +2,7 @@ use embedded_graphics::{fonts::Font6x8, pixelcolor::Rgb888, prelude::*};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::prelude::*;
 
-fn main() -> Result<(), core::convert::Infallible> {
+fn main() {
     let text = format!(
         "{comment}/// Comment\n\
         {base_text}#[{attribute}derive{base_text}(Debug)]\n\
@@ -42,5 +42,4 @@ fn main() -> Result<(), core::convert::Infallible> {
 
     let output_settings = OutputSettingsBuilder::new().scale(3).build();
     Window::new("Hello TextBox with text background color", &output_settings).show_static(&display);
-    Ok(())
 }

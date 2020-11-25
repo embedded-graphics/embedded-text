@@ -4,7 +4,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::prelude::*;
 
-fn main() -> Result<(), core::convert::Infallible> {
+fn main() {
     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(192, 129));
 
     let text = "The quick brown fox jumped over the lazy dog.";
@@ -38,5 +38,4 @@ fn main() -> Result<(), core::convert::Infallible> {
         .theme(BinaryColorTheme::OledBlue)
         .build();
     Window::new("Hello TextBox", &output_settings).show_static(&display);
-    Ok(())
 }

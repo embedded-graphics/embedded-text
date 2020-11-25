@@ -9,7 +9,7 @@ use sdl2::keyboard::{Keycode, Mod};
 use std::collections::HashMap;
 use std::{thread, time::Duration};
 
-fn main() -> Result<(), core::convert::Infallible> {
+fn main() {
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
@@ -113,6 +113,4 @@ fn main() -> Result<(), core::convert::Infallible> {
         }
         thread::sleep(Duration::from_millis(10));
     }
-
-    Ok(())
 }

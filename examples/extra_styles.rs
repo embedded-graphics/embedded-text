@@ -4,7 +4,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::prelude::*;
 
-fn main() -> Result<(), core::convert::Infallible> {
+fn main() {
     let text = "Lorem Ipsum is simply dummy text of the printing and typesetting industry.";
 
     let base_style = TextBoxStyleBuilder::new(Font6x8)
@@ -33,5 +33,4 @@ fn main() -> Result<(), core::convert::Infallible> {
         .theme(BinaryColorTheme::OledBlue)
         .build();
     Window::new("Hello TextBox", &output_settings).show_static(&display);
-    Ok(())
 }

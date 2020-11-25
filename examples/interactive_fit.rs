@@ -107,7 +107,7 @@ where
     }
 }
 
-fn main() -> Result<(), core::convert::Infallible> {
+fn main() {
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
@@ -126,6 +126,4 @@ fn main() -> Result<(), core::convert::Infallible> {
             break 'running;
         }
     }
-
-    Ok(())
 }
