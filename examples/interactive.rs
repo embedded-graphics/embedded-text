@@ -67,7 +67,7 @@ where
     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting \
     industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
     an unknown printer took a galley of type and scrambled it to make a type specimen book. \n\
-    super\u{AD}­cali\u{AD}­fragi\u{AD}­listic\u{AD}­espeali\u{AD}­docious";
+    super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious";
     loop {
         let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
 
