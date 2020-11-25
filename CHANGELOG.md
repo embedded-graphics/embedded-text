@@ -9,6 +9,7 @@ Unreleased
  * Added `TabSize` struct and related style builder method `tab_size`.
  * Added partial support for [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
  * `Scrolling` vertical alignment
+ * `TextBoxStyleBuilder` now implements `Copy` and `Clone`
 
 ## Changed:
 

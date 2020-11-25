@@ -9,20 +9,11 @@ fn main() -> Result<(), core::convert::Infallible> {
 
     let text = "The quick brown fox jumped over the lazy dog.";
 
-    let textbox_style_top = TextBoxStyleBuilder::new(Font6x8)
-        .text_color(BinaryColor::On)
-        .vertical_alignment(TopAligned)
-        .build();
+    let base_style = TextBoxStyleBuilder::new(Font6x8).text_color(BinaryColor::On);
 
-    let textbox_style_center = TextBoxStyleBuilder::new(Font6x8)
-        .text_color(BinaryColor::On)
-        .vertical_alignment(CenterAligned)
-        .build();
-
-    let textbox_style_bottom = TextBoxStyleBuilder::new(Font6x8)
-        .text_color(BinaryColor::On)
-        .vertical_alignment(BottomAligned)
-        .build();
+    let textbox_style_top = base_style.vertical_alignment(TopAligned).build();
+    let textbox_style_center = base_style.vertical_alignment(CenterAligned).build();
+    let textbox_style_bottom = base_style.vertical_alignment(BottomAligned).build();
 
     let bounds_top = Rectangle::new(Point::zero(), Point::new(63, 128));
     let bounds_center = Rectangle::new(Point::new(64, 0), Point::new(127, 128));

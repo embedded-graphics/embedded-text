@@ -7,18 +7,13 @@ use embedded_text::prelude::*;
 fn main() -> Result<(), core::convert::Infallible> {
     let text = "Lorem Ipsum is simply dummy text of the printing and typesetting industry.";
 
-    let underlined_style = TextBoxStyleBuilder::new(Font6x8)
+    let base_style = TextBoxStyleBuilder::new(Font6x8)
         .text_color(BinaryColor::On)
         .height_mode(FitToText)
-        .underlined(true)
-        .line_spacing(2)
-        .build();
-    let strikethrough_style = TextBoxStyleBuilder::new(Font6x8)
-        .text_color(BinaryColor::On)
-        .height_mode(FitToText)
-        .strikethrough(true)
-        .line_spacing(2)
-        .build();
+        .line_spacing(2);
+
+    let underlined_style = base_style.underlined(true).build();
+    let strikethrough_style = base_style.strikethrough(true).build();
 
     let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Point::new(96, 0)))
         .into_styled(underlined_style);
