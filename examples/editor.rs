@@ -14,7 +14,7 @@ fn main() {
         .theme(BinaryColorTheme::OledBlue)
         .build();
     let mut window = Window::new("TextBox input demonstration", &output_settings);
-    let bounds = Rectangle::new(Point::new(0, 0), Point::new(128, 640));
+    let bounds = Rectangle::new(Point::new(0, 0), Point::new(128, 64));
 
     let inputs: HashMap<Keycode, (&str, &str, &str, &str)> = [
         // (Keycode, (NO, SHIFT, CAPS, ALT_GR))
@@ -68,13 +68,14 @@ fn main() {
     let mut text = String::from("Hello, world!");
 
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+        .vertical_alignment(Scrolling)
         .text_color(BinaryColor::On)
         .build();
 
     'running: loop {
         let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(bounds.size());
 
-        TextBox::new(&text, bounds)
+        TextBox::new(&format!("{}_", text), bounds)
             .into_styled(textbox_style)
             .draw(&mut display)
             .unwrap();
