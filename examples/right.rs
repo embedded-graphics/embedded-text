@@ -15,6 +15,8 @@ fn main() {
         .height_mode(FitToText)
         .build();
 
+    // Create the text box. Note that the size is set to 129x0. The `FitToText` height mode will
+    // measure and adjust the height of the text box in `into_styled()`.
     let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Point::new(128, 0)))
         .into_styled(textbox_style);
 

@@ -15,6 +15,7 @@ fn main() {
     let textbox_style_center = base_style.vertical_alignment(CenterAligned).build();
     let textbox_style_bottom = base_style.vertical_alignment(BottomAligned).build();
 
+    // Divide the screen into 3 64px wide columns
     let bounds_top = Rectangle::new(Point::zero(), Point::new(63, 128));
     let bounds_center = Rectangle::new(Point::new(64, 0), Point::new(127, 128));
     let bounds_bottom = Rectangle::new(Point::new(128, 0), Point::new(191, 128));
