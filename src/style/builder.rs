@@ -15,6 +15,7 @@ use embedded_graphics::{
 /// [`TextBoxStyle`] builder object.
 ///
 /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct TextBoxStyleBuilder<C, F, A, V, H>
 where
     C: PixelColor,
