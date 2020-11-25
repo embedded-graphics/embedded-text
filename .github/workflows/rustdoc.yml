@@ -26,5 +26,4 @@ jobs:
     - name: Check doc links
       run: |
         cargo install cargo-deadlinks
-        cargo doc
-        cargo deadlinks
+        cargo deadlinks --ignore-fragments
