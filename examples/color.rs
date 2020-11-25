@@ -13,7 +13,7 @@ fn main() {
         .background_color(Rgb565::GREEN)
         .build();
 
-    let mut display: SimulatorDisplay<Rgb565> = SimulatorDisplay::new(Size::new(129, 129));
+    let mut display = SimulatorDisplay::new(Size::new(129, 129));
 
     TextBox::new(text, Rectangle::new(Point::zero(), Point::new(128, 128)))
         .into_styled(textbox_style)

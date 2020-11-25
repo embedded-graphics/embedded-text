@@ -22,7 +22,7 @@ fn main() {
         .into_styled(strikethrough_style);
 
     // Create a window just tall enough to fit the text.
-    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(
+    let mut display = SimulatorDisplay::new(Size::new(
         text_box.size().width + text_box2.size().width,
         text_box.size().height.max(text_box2.size().height),
     ));

@@ -68,7 +68,7 @@ where
     industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
     loop {
-        let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
+        let mut display = SimulatorDisplay::new(Size::new(255, 255));
 
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .vertical_alignment(alignment)

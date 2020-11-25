@@ -33,7 +33,7 @@ fn main() {
         .build();
 
     let bounds = Rectangle::new(Point::zero(), Point::new(240, 96));
-    let mut display: SimulatorDisplay<Rgb888> = SimulatorDisplay::new(bounds.size());
+    let mut display = SimulatorDisplay::new(bounds.size());
 
     TextBox::new(&text, bounds)
         .into_styled(textbox_style)

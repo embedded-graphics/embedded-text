@@ -69,7 +69,7 @@ where
     an unknown printer took a galley of type and scrambled it to make a type specimen book. \n\
     super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious";
     loop {
-        let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
+        let mut display = SimulatorDisplay::new(Size::new(255, 255));
 
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .alignment(alignment)

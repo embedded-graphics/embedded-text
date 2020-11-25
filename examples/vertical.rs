@@ -5,7 +5,7 @@ use embedded_graphics_simulator::{
 use embedded_text::prelude::*;
 
 fn main() {
-    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(192, 129));
+    let mut display = SimulatorDisplay::new(Size::new(192, 129));
 
     let text = "The quick brown fox jumped over the lazy dog.";
 

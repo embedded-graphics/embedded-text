@@ -19,7 +19,7 @@ fn main() {
         .into_styled(textbox_style);
 
     // Create a window just tall enough to fit the text.
-    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(text_box.size());
+    let mut display = SimulatorDisplay::new(text_box.size());
     text_box.draw(&mut display).unwrap();
 
     let output_settings = OutputSettingsBuilder::new()
