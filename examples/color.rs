@@ -9,8 +9,8 @@ fn main() {
 
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
         .alignment(Justified)
-        .text_color(Rgb565::RED)
-        .background_color(Rgb565::GREEN)
+        .text_color(Rgb565::CYAN)
+        .background_color(Rgb565::new(10, 20, 10)) // a gray background
         .build();
 
     let mut display = SimulatorDisplay::new(Size::new(129, 129));
@@ -20,6 +20,6 @@ fn main() {
         .draw(&mut display)
         .unwrap();
 
-    let output_settings = OutputSettingsBuilder::new().build();
+    let output_settings = OutputSettingsBuilder::new().scale(2).build();
     Window::new("Hello TextBox with text background color", &output_settings).show_static(&display);
 }
