@@ -65,9 +65,10 @@ where
     for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact<FullRowsOnly>>:
         Drawable<BinaryColor>,
 {
-    let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting \
-    industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
-    an unknown printer took a galley of type and scrambled it to make a type specimen book. \n\
+    let text = "Hello, World!\n\
+    Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
+    Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
+    an unknown printer took a galley of type and scrambled it to make a type specimen book.\n\
     super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious";
 
     loop {
