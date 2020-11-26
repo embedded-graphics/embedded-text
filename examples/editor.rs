@@ -1,4 +1,7 @@
-//! This example demonstrates a simple text input
+//! This example demonstrates a simple text "editor" that lets you type and delete characters.
+//!
+//! The demo uses the "Scrolling" vertical layout which is especially useful for
+//! editor type applications.
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
@@ -6,17 +9,33 @@ use embedded_graphics_simulator::{
 use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 use embedded_text::prelude::*;
 use sdl2::keyboard::{Keycode, Mod};
-use std::collections::HashMap;
-use std::{thread, time::Duration};
+use std::{collections::HashMap, thread, time::Duration};
 
-fn main() -> Result<(), core::convert::Infallible> {
-    let output_settings = OutputSettingsBuilder::new()
-        .theme(BinaryColorTheme::OledBlue)
-        .build();
-    let mut window = Window::new("TextBox input demonstration", &output_settings);
-    let bounds = Rectangle::new(Point::new(0, 0), Point::new(128, 640));
+trait Selector {
+    /// Select inserted characters based on key modifiers.
+    ///
+    /// Some key combinations don't insert characters, so we have to work with strings.
+    fn select_modified(&self, keymod: Mod) -> &str;
+}
 
-    let inputs: HashMap<Keycode, (&str, &str, &str, &str)> = [
+impl Selector for (&str, &str, &str, &str) {
+    #[inline]
+    fn select_modified(&self, keymod: Mod) -> &str {
+        if keymod.contains(Mod::RALTMOD) {
+            self.3
+        } else if keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD) {
+            self.1
+        } else if keymod.contains(Mod::CAPSMOD) {
+            self.2
+        } else {
+            self.0
+        }
+    }
+}
+
+fn main() {
+    // Special characters are mapped as they appear on Hungarian layouts. Sorry 😅
+    let inputs: HashMap<_, _> = [
         // (Keycode, (NO, SHIFT, CAPS, ALT_GR))
         (Keycode::A, ("a", "A", "A", "ä")),
         (Keycode::B, ("b", "B", "B", "{")),
@@ -65,21 +84,45 @@ fn main() -> Result<(), core::convert::Infallible> {
     .cloned()
     .collect();
 
-    let mut text = String::from("Hello, world!");
+    // Specify the bounding box.
+    let bounds = Rectangle::new(Point::new(0, 0), Point::new(127, 63));
 
+    // Specify the styling options:
+    // * Use the 6x8 font from embedded-graphics.
+    // * Draw the text horizontally left aligned (default option, not specified here).
+    // * Use `Scrolling` vertical layout - this will make sure the cursor is always in view.
+    // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+        .vertical_alignment(Scrolling)
         .text_color(BinaryColor::On)
         .build();
 
+    // Set up the window.
+    let output_settings = OutputSettingsBuilder::new()
+        .theme(BinaryColorTheme::OledBlue)
+        .build();
+    let mut window = Window::new("TextBox input demonstration", &output_settings);
+
+    // Text buffer. The contents of this string will be modified while typing.
+    let mut text = String::from("Hello, world!");
+
     'running: loop {
-        let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(bounds.size());
+        // Display an underscore for the "cursor"
+        let text_and_cursor = format!("{}_", text);
 
-        TextBox::new(&text, bounds)
-            .into_styled(textbox_style)
-            .draw(&mut display)
-            .unwrap();
+        // Create the text box and apply styling options.
+        let text_box = TextBox::new(&text_and_cursor, bounds).into_styled(textbox_style);
 
+        // Create a simulated display with the dimensions of the text box.
+        let mut display = SimulatorDisplay::new(text_box.size());
+
+        // Draw the text box.
+        text_box.draw(&mut display).unwrap();
+
+        // Update the window.
         window.update(&display);
+
+        // Handle key events.
         for event in window.events() {
             match event {
                 SimulatorEvent::Quit => break 'running,
@@ -89,21 +132,11 @@ fn main() -> Result<(), core::convert::Infallible> {
                 } => match keycode {
                     Keycode::Escape => break 'running,
                     Keycode::Backspace => {
-                        if text.len() > 0 {
-                            text = String::from(&text[0..text.len() - 1]);
-                        }
+                        text.pop();
                     }
                     _ => {
                         inputs.get(&keycode).map(|k| {
-                            if keymod.contains(Mod::RALTMOD) {
-                                text += k.3;
-                            } else if keymod.intersects(Mod::LSHIFTMOD | Mod::RSHIFTMOD) {
-                                text += k.1;
-                            } else if keymod.contains(Mod::CAPSMOD) {
-                                text += k.2;
-                            } else {
-                                text += k.0;
-                            }
+                            text += k.select_modified(keymod);
                         });
                     }
                 },
@@ -111,8 +144,8 @@ fn main() -> Result<(), core::convert::Infallible> {
                 _ => {}
             }
         }
+
+        // Wait for a little while.
         thread::sleep(Duration::from_millis(10));
     }
-
-    Ok(())
 }

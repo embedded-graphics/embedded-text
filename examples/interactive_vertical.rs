@@ -1,7 +1,7 @@
 //! This example draws text into a bounding box that can be modified by
 //! clicking and dragging on the display.
 //!
-//! Press spacebar to switch between height modes
+//! Press spacebar to switch between vertical alignment modes.
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
@@ -24,6 +24,7 @@ enum ProcessedEvent {
 }
 
 impl ProcessedEvent {
+    /// Translates simulator events to logical events used by the example.
     pub fn new(event: SimulatorEvent) -> Self {
         unsafe {
             // This is fine for a demo
@@ -66,32 +67,48 @@ where
 {
     let text = "Hello, World!\nLorem Ipsum is simply dummy text of the printing and typesetting \
     industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
-    an unknown printer took a galley of type and scrambled it to make a type specimen book.";
-    loop {
-        let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(255, 255));
+    an unknown printer took a galley of type and scrambled it to make a type specimen book. \n\
+    super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious";
 
+    loop {
+        // Create a simulated display.
+        let mut display = SimulatorDisplay::new(Size::new(255, 255));
+
+        // Specify the styling options:
+        // * Use the 6x8 font from embedded-graphics.
+        // * Draw the text horizontally left aligned (default option, not specified here).
+        // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
+        // * Use the vertical alignmnet mode that was given to the `demo_loop()` function.
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .vertical_alignment(alignment)
             .text_color(BinaryColor::On)
             .build();
 
-        let tb = TextBox::new(text, *bounds).into_styled(textbox_style);
-        tb.draw(&mut display).unwrap();
+        // Create the text box and apply styling options.
+        let text_box = TextBox::new(text, *bounds).into_styled(textbox_style);
 
-        tb.text_box
+        // Draw the text box.
+        text_box.draw(&mut display).unwrap();
+
+        // Draw the bounding box of the text box.
+        text_box
+            .text_box
             .bounds
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
             .draw(&mut display)
             .unwrap();
 
-        let height_text = format!("Vertical Alignment: {:?}", alignment);
-
-        Text::new(&height_text, Point::zero())
+        // Display the name of the vertical alignment mode above the text box.
+        let vertical_alignment_text = format!("Vertical Alignment: {:?}", alignment);
+        Text::new(&vertical_alignment_text, Point::zero())
             .into_styled(textbox_style.text_style)
             .draw(&mut display)
             .unwrap();
 
+        // Update the window.
         window.update(&display);
+
+        // Handle key and mouse events.
         for event in window.events() {
             match ProcessedEvent::new(event) {
                 ProcessedEvent::Resize(bottom_right) => {
@@ -103,16 +120,20 @@ where
                 ProcessedEvent::Nothing => {}
             }
         }
+
+        // Wait for a little while.
         thread::sleep(Duration::from_millis(10));
     }
 }
 
-fn main() -> Result<(), core::convert::Infallible> {
+fn main() {
+    // Set up the window.
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
+    // Specify the bounding box. Leave 8px of space above.
     let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 200));
 
     'running: loop {
@@ -129,6 +150,4 @@ fn main() -> Result<(), core::convert::Infallible> {
             break 'running;
         }
     }
-
-    Ok(())
 }
