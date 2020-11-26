@@ -10,6 +10,7 @@ Unreleased
  * Added partial support for [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
  * `Scrolling` vertical alignment
  * `TextBoxStyleBuilder` now implements `Copy` and `Clone`
+ * `TextBox` and `StyledTextBox` now implements `Copy`, `Clone`, `Debug`, `Eq`, `PartialEq` and `Hash`
 
 ## Changed:
 
