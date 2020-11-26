@@ -10,6 +10,7 @@ Unreleased
  * Added partial support for [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
  * `Scrolling` vertical alignment
  * `TextBoxStyleBuilder` now implements `Copy` and `Clone`
+ * `TextBox` and `StyledTextBox` now implements `Copy`, `Clone`, `Debug`, `Eq`, `PartialEq` and `Hash`
 
 ## Changed:
 
@@ -20,6 +21,8 @@ Unreleased
  * **breaking** `rendering::line_iter::State` is no longer public
  * **breaking** `rendering::line::State` is no longer public
  * **breaking** Removed `StateFactory`
+ * **breaking** Removed `FontExt::str_width`, `FontExt::max_str_width` and `FontExt::max_str_width_nocr`
+ * **breaking** `TextBoxStyle` and `TextBoxStyleBuilder` no longer derives `Ord` and `PartialOrd`
 
 0.3.0 (2020-10-02)
 ==================

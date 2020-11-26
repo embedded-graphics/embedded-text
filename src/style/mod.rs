@@ -237,7 +237,7 @@ impl<F: Font> TabSize<F> {
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct TextBoxStyle<C, F, A, V, H>
 where
     C: PixelColor,
@@ -285,16 +285,12 @@ where
         vertical_alignment: V,
         height_mode: H,
     ) -> Self {
-        Self {
-            text_style: TextStyle::new(font, text_color),
+        Self::from_text_style(
+            TextStyle::new(font, text_color),
             alignment,
             vertical_alignment,
             height_mode,
-            line_spacing: 0,
-            tab_size: TabSize::default(),
-            underlined: false,
-            strikethrough: false,
-        }
+        )
     }
 
     /// Creates a `TextBoxStyle` object from the given text style and alignment.
@@ -499,6 +495,8 @@ mod test {
             ("some verylongword", 50, 24),
             ("1 23456 12345 61234 561", 36, 40),
             ("    Word      ", 36, 24),
+            ("\rcr", 36, 8),
+            ("Longer\r", 36, 8),
             ("Longer\rnowrap", 36, 8),
         ];
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)

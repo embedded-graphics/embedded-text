@@ -147,6 +147,7 @@ pub mod prelude {
 /// [`StyledTextBox`]: struct.StyledTextBox.html
 /// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
 /// [module-level documentation]: index.html
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct TextBox<'a> {
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
@@ -269,6 +270,7 @@ impl Dimensions for TextBox<'_> {
 /// [`TextBox`]: struct.TextBox.html
 /// [`into_styled`]: struct.TextBox.html#method.into_styled
 /// [`draw`]: #method.draw
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
