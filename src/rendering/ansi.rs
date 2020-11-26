@@ -41,16 +41,17 @@ fn try_parse_8b_color(v: &[u8]) -> Option<Rgb> {
 
         //  16-231:  6 × 6 × 6 cube (216 colors): 16 + 36 × r + 6 × g + b (0 ≤ r, g, b ≤ 5)
         16..=231 => {
-            let color = color - 16;
-            let extend_6 = |c| c * 51;
+            fn extract_ch(source: u8) -> (u8, u8) {
+                let ch = (source % 6) * 51; // 5 * 51 = 255
+                let remainder = source / 6;
 
-            let b = extend_6(color % 6);
-            let color = color / 6;
+                (ch, remainder)
+            }
 
-            let g = extend_6(color % 6);
-            let color = color / 6;
-
-            let r = extend_6(color % 6);
+            let source_rgb = color - 16;
+            let (b, source_rg) = extract_ch(source_rgb);
+            let (g, source_r) = extract_ch(source_rg);
+            let (r, _) = extract_ch(source_r);
 
             Some(Rgb::new(r, g, b))
         }
