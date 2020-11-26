@@ -84,28 +84,45 @@ fn main() {
     .cloned()
     .collect();
 
-    let output_settings = OutputSettingsBuilder::new()
-        .theme(BinaryColorTheme::OledBlue)
-        .build();
-    let bounds = Rectangle::new(Point::new(0, 0), Point::new(128, 64));
+    // Specify the bounding box.
+    let bounds = Rectangle::new(Point::new(0, 0), Point::new(127, 63));
+
+    // Specify the styling options:
+    // * Use the 6x8 font from embedded-graphics.
+    // * Draw the text horizontally left aligned (default option, not specified here).
+    // * Use `Scrolling` vertical layout - this will make sure the cursor is always in view.
+    // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
         .vertical_alignment(Scrolling)
         .text_color(BinaryColor::On)
         .build();
 
+    // Set up the window.
+    let output_settings = OutputSettingsBuilder::new()
+        .theme(BinaryColorTheme::OledBlue)
+        .build();
     let mut window = Window::new("TextBox input demonstration", &output_settings);
+
+    // Text buffer. The contents of this string will be modified while typing.
     let mut text = String::from("Hello, world!");
 
     'running: loop {
-        let mut display = SimulatorDisplay::new(bounds.size());
-
         // Display an underscore for the "cursor"
-        TextBox::new(&format!("{}_", text), bounds)
-            .into_styled(textbox_style)
-            .draw(&mut display)
-            .unwrap();
+        let text_and_cursor = format!("{}_", text);
 
+        // Create the text box and apply styling options.
+        let text_box = TextBox::new(&text_and_cursor, bounds).into_styled(textbox_style);
+
+        // Create a simulated display with the dimensions of the text box.
+        let mut display = SimulatorDisplay::new(text_box.size());
+
+        // Draw the text box.
+        text_box.draw(&mut display).unwrap();
+
+        // Update the window.
         window.update(&display);
+
+        // Handle key events.
         for event in window.events() {
             match event {
                 SimulatorEvent::Quit => break 'running,
@@ -127,6 +144,8 @@ fn main() {
                 _ => {}
             }
         }
+
+        // Wait for a little while.
         thread::sleep(Duration::from_millis(10));
     }
 }
