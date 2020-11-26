@@ -20,6 +20,7 @@ Unreleased
  * **breaking** `rendering::line_iter::State` is no longer public
  * **breaking** `rendering::line::State` is no longer public
  * **breaking** Removed `StateFactory`
+ * **breaking** Removed `FontExt::str_width`, `FontExt::max_str_width` and `FontExt::max_str_width_nocr`
 
 0.3.0 (2020-10-02)
 ==================
