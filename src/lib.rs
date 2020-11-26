@@ -120,7 +120,7 @@ pub mod prelude {
         alignment::*,
         style::{
             height_mode::{Exact, FitToText, HeightMode, ShrinkToText},
-            TextBoxStyle, TextBoxStyleBuilder,
+            TabSize, TextBoxStyle, TextBoxStyleBuilder,
         },
         StyledTextBox, TextBox,
     };
