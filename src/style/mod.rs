@@ -499,6 +499,8 @@ mod test {
             ("some verylongword", 50, 24),
             ("1 23456 12345 61234 561", 36, 40),
             ("    Word      ", 36, 24),
+            ("\rcr", 36, 8),
+            ("Longer\r", 36, 8),
             ("Longer\rnowrap", 36, 8),
         ];
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
