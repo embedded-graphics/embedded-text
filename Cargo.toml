@@ -24,7 +24,7 @@ harness = false
 
 [dependencies]
 embedded-graphics = "0.6.2"
-ansi-parser = "0.7.0"
+ansi-parser = { version = "0.7.0", default-features = false }
 as-slice = "0.1.4"
 
 [dev-dependencies]
