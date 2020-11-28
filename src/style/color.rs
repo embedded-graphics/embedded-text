@@ -4,9 +4,14 @@ use embedded_graphics::pixelcolor::{BinaryColor, Rgb555, Rgb565, Rgb888};
 /// 24bit RGB color
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Rgb {
-    pub(crate) r: u8,
-    pub(crate) g: u8,
-    pub(crate) b: u8,
+    /// Red channel value
+    pub r: u8,
+
+    /// Green channel value
+    pub g: u8,
+
+    /// Blue channel value
+    pub b: u8,
 }
 
 impl Rgb {
