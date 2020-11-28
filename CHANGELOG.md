@@ -4,6 +4,7 @@ Unreleased
 ## Changed:
 
  * ANSI sequence support now requires the `ansi` feature which is on by default.
+ * Fields of the `style::color::Rgb` struct are now public.
 
 0.4.0 (2020-11-26)
 ==================
