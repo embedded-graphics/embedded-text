@@ -3,7 +3,6 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        ansi::Sgr,
         character::CharacterIterator,
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
@@ -15,6 +14,9 @@ use crate::{
 };
 use core::ops::Range;
 use embedded_graphics::prelude::*;
+
+#[cfg(feature = "ansi")]
+use crate::rendering::ansi::Sgr;
 
 /// Internal state used to render a line.
 #[derive(Debug)]
@@ -165,6 +167,7 @@ where
                             }
                         }
 
+                        #[cfg(feature = "ansi")]
                         Some(RenderElement::Sgr(sgr)) => match sgr {
                             Sgr::Reset => {
                                 self.style.text_style.text_color = None;
@@ -400,36 +403,6 @@ mod test {
     }
 
     #[test]
-    fn ansi_cursor_backwards() {
-        let parser = Parser::parse("foo\x1b[2Dsample");
-        let config = UniformSpaceConfig::default();
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
-
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)), 0);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
-        let mut display = MockDisplay::new();
-
-        iter.draw(&mut display).unwrap();
-
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                "..##...........................##.........",
-                ".#..#...........................#.........",
-                ".#.....####..###..##.#..####....#....###..",
-                "###...#.........#.#.#.#.#...#...#...#...#.",
-                ".#.....###...####.#...#.#...#...#...#####.",
-                ".#........#.#...#.#...#.####....#...#.....",
-                ".#....####...####.#...#.#......###...###..",
-                "........................#.................",
-            ])
-        );
-    }
-
-    #[test]
     fn carried_over_spaces() {
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
@@ -496,6 +469,52 @@ mod test {
                 "####..             ",
                 "......             ",
             ],
+        );
+    }
+}
+
+#[cfg(all(test, feature = "ansi"))]
+mod ansi_parser_tests {
+    use crate::{
+        parser::Parser,
+        rendering::{
+            cursor::Cursor,
+            line::{StyledLinePixelIterator, UniformSpaceConfig},
+        },
+        style::TextBoxStyleBuilder,
+    };
+    use embedded_graphics::{
+        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        primitives::Rectangle,
+    };
+
+    #[test]
+    fn ansi_cursor_backwards() {
+        let parser = Parser::parse("foo\x1b[2Dsample");
+        let config = UniformSpaceConfig::default();
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)), 0);
+        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
+        let mut display = MockDisplay::new();
+
+        iter.draw(&mut display).unwrap();
+
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "..##...........................##.........",
+                ".#..#...........................#.........",
+                ".#.....####..###..##.#..####....#....###..",
+                "###...#.........#.#.#.#.#...#...#...#...#.",
+                ".#.....###...####.#...#.#...#...#...#####.",
+                ".#........#.#...#.#...#.####....#...#.....",
+                ".#....####...####.#...#.#......###...###..",
+                "........................#.................",
+            ])
         );
     }
 }

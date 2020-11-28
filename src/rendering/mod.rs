@@ -1,5 +1,5 @@
 //! Pixel iterators used for text rendering.
-
+#[cfg(feature = "ansi")]
 pub mod ansi;
 pub mod character;
 pub mod cursor;

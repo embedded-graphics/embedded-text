@@ -164,7 +164,6 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        ansi::Sgr,
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
         space_config::UniformSpaceConfig,
@@ -174,6 +173,9 @@ use crate::{
 };
 use core::marker::PhantomData;
 use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
+
+#[cfg(feature = "ansi")]
+use crate::rendering::ansi::Sgr;
 
 pub use builder::TextBoxStyleBuilder;
 
@@ -350,7 +352,13 @@ where
         let mut last_spaces = 0;
         let mut last_spaces_width = 0;
         let mut total_spaces = 0;
+
+        #[cfg(feature = "ansi")]
         let mut underlined = self.underlined;
+
+        #[cfg(not(feature = "ansi"))]
+        let underlined = self.underlined;
+
         while let Some(token) = iter.next() {
             match token {
                 RenderElement::Space(width, count) => {
@@ -383,10 +391,12 @@ where
                     }
                 }
 
+                #[cfg(feature = "ansi")]
                 RenderElement::Sgr(Sgr::Underline) => underlined = true,
 
                 // Ignore color changes
-                _ => {}
+                #[cfg(feature = "ansi")]
+                RenderElement::Sgr(_) => {}
             }
         }
 
