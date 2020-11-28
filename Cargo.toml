@@ -15,7 +15,7 @@ exclude = [
 ]
 
 [features]
-ansi = ["ansi-parser"]
+ansi = ["ansi-parser", "as-slice"]
 default = ["ansi"]
 
 [[bench]]
@@ -29,7 +29,7 @@ harness = false
 [dependencies]
 embedded-graphics = "0.6.2"
 ansi-parser = { version = "0.7.0", default-features = false, optional = true }
-as-slice = "0.1.4"
+as-slice = { version = "0.1.4", optional = true }
 
 [dev-dependencies]
 embedded-graphics-simulator = "0.2.1"
