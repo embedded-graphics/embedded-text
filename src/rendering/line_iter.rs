@@ -1,7 +1,6 @@
 //! Line iterator.
 //!
 //! Provide elements (spaces or characters) to render as long as they fit in the current line
-use super::ansi::{try_parse_sgr, Sgr};
 use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
@@ -9,10 +8,15 @@ use crate::{
     style::TabSize,
     utils::font_ext::FontExt,
 };
-use ansi_parser::AnsiSequence;
-use as_slice::AsSlice;
 use core::{marker::PhantomData, str::Chars};
 use embedded_graphics::prelude::*;
+
+#[cfg(feature = "ansi")]
+use super::ansi::{try_parse_sgr, Sgr};
+#[cfg(feature = "ansi")]
+use ansi_parser::AnsiSequence;
+#[cfg(feature = "ansi")]
+use as_slice::AsSlice;
 
 /// Internal state used to render a line.
 #[derive(Debug)]
@@ -37,6 +41,7 @@ pub enum RenderElement {
     PrintedCharacter(char),
 
     /// A Select Graphic Rendition code
+    #[cfg(feature = "ansi")]
     Sgr(Sgr),
 }
 
@@ -160,6 +165,7 @@ where
                     break 'lookahead;
                 }
 
+                #[cfg(feature = "ansi")]
                 Some(Token::EscapeSequence(_)) => {}
 
                 _ => break 'lookahead,
@@ -325,6 +331,7 @@ where
                             break Some(RenderElement::Space(tab_width, 0));
                         }
 
+                        #[cfg(feature = "ansi")]
                         Token::EscapeSequence(seq) => {
                             self.next_token();
                             match seq {
@@ -418,9 +425,16 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{alignment::LeftAligned, style::color::Rgb};
+    use crate::alignment::LeftAligned;
     use embedded_graphics::fonts::Font6x8;
     use embedded_graphics::primitives::Rectangle;
+
+    pub fn collect_mut<I: Iterator<Item = T>, T>(iter: &mut I) -> Vec<T> {
+        let mut v = Vec::new();
+        v.extend(iter);
+
+        v
+    }
 
     #[test]
     fn soft_hyphen_no_wrapping() {
@@ -443,13 +457,6 @@ mod test {
                 RenderElement::PrintedCharacter('e'),
             ]
         );
-    }
-
-    fn collect_mut<I: Iterator<Item = T>, T>(iter: &mut I) -> Vec<T> {
-        let mut v = Vec::new();
-        v.extend(iter);
-
-        v
     }
 
     #[test]
@@ -624,6 +631,14 @@ mod test {
             ]
         );
     }
+}
+
+#[cfg(all(test, feature = "ansi"))]
+mod ansi_parser_tests {
+    use super::{test::collect_mut, *};
+    use crate::{alignment::LeftAligned, style::color::Rgb};
+    use embedded_graphics::fonts::Font6x8;
+    use embedded_graphics::primitives::Rectangle;
 
     #[test]
     fn colors() {

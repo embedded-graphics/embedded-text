@@ -14,6 +14,10 @@ exclude = [
     ".github/",
 ]
 
+[features]
+ansi = ["ansi-parser", "as-slice"]
+default = ["ansi"]
+
 [[bench]]
 name = "render"
 harness = false
@@ -24,8 +28,8 @@ harness = false
 
 [dependencies]
 embedded-graphics = "0.6.2"
-ansi-parser = { version = "0.7.0", default-features = false }
-as-slice = "0.1.4"
+ansi-parser = { version = "0.7.0", default-features = false, optional = true }
+as-slice = { version = "0.1.4", optional = true }
 
 [dev-dependencies]
 embedded-graphics-simulator = "0.2.1"

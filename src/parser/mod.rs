@@ -16,6 +16,7 @@
 //!     tokens
 //! );
 //! ```
+#[cfg(feature = "ansi")]
 use ansi_parser::AnsiSequence;
 use core::str::Chars;
 
@@ -44,6 +45,7 @@ pub enum Token<'a> {
     ExtraCharacter(char),
 
     /// An ANSI escape sequence
+    #[cfg(feature = "ansi")]
     EscapeSequence(AnsiSequence),
 }
 
@@ -132,6 +134,7 @@ impl<'a> Iterator for Parser<'a> {
                     '\t' => Some(Token::Tab),
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
                     SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
+                    #[cfg(feature = "ansi")]
                     SPEC_CHAR_ESCAPE => ansi_parser::parse_escape(string).map_or(
                         Some(Token::EscapeSequence(AnsiSequence::Escape)),
                         |(string, output)| {
@@ -179,10 +182,8 @@ impl<'a> Iterator for Parser<'a> {
 #[cfg(test)]
 mod test {
     use super::{Parser, Token};
-    use ansi_parser::AnsiSequence;
-    use heapless::Vec;
 
-    fn assert_tokens(text: &str, tokens: std::vec::Vec<Token>) {
+    pub fn assert_tokens(text: &str, tokens: std::vec::Vec<Token>) {
         assert_eq!(
             Parser::parse(text).collect::<std::vec::Vec<Token>>(),
             tokens
@@ -255,6 +256,14 @@ mod test {
             ],
         );
     }
+}
+
+#[cfg(all(feature = "ansi", test))]
+mod ansi_parser_tests {
+
+    use super::{test::assert_tokens, Token};
+    use ansi_parser::AnsiSequence;
+    use heapless::Vec;
 
     #[test]
     fn escape_char_ignored_if_not_ansi_sequence() {

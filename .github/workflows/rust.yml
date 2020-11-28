@@ -50,7 +50,7 @@ jobs:
     - name: Run tests
       run: |
         cargo test --verbose --release
-        cargo test --verbose --release --all-features
+        cargo test --verbose --release --no-default-features
 
     - name: Check example images
       run: |
