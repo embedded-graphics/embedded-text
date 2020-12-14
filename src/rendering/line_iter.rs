@@ -159,7 +159,7 @@ where
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                 }
 
-                Some(Token::Break(Some(c))) => {
+                Some(Token::Break(Some(_))) => {
                     let w = F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                     break 'lookahead;

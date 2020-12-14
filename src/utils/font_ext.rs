@@ -27,12 +27,7 @@ where
 {
     #[inline]
     fn str_width_nocr(s: &str) -> u32 {
-        let mut current_width = 0;
-        for c in s.chars() {
-            current_width += F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
-        }
-
-        current_width
+        s.chars().count() as u32 * (F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
     }
 
     #[inline]
