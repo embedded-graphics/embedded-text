@@ -114,7 +114,6 @@ use embedded_graphics::prelude::*;
 use embedded_graphics_core::{primitives::Rectangle, Drawable};
 use rendering::RendererFactory;
 use style::{height_mode::HeightMode, TextBoxStyle};
-use utils::rect_ext::RectExt;
 
 /// Prelude.
 ///
