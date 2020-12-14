@@ -27,12 +27,16 @@ name = "parse"
 harness = false
 
 [dependencies]
-embedded-graphics = "0.6.2"
-ansi-parser = { version = "0.7.0", default-features = false, optional = true }
+embedded-graphics = { git = "https://github.com/embedded-graphics/embedded-graphics" }
+embedded-graphics-core = { git = "https://github.com/embedded-graphics/embedded-graphics" }
+# embedded-graphics = "0.7.0-alpha.2"
+# embedded-graphics-core = "0.1.1"
+# ansi-parser = { version = "0.7.0", default-features = false, optional = true }
+ansi-parser = { git = "https://gitlab.com/daniel.buga/ansi-parser", default-features = false, optional = true }
 as-slice = { version = "0.1.4", optional = true }
 
 [dev-dependencies]
-embedded-graphics-simulator = "0.2.1"
+embedded-graphics-simulator = { git = "https://github.com/embedded-graphics/simulator" }
 sdl2 = "0.32.2"
 criterion = "0.3.3"
 heapless = "0.5.6"
