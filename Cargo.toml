@@ -18,14 +18,6 @@ exclude = [
 ansi = ["ansi-parser", "as-slice"]
 default = ["ansi"]
 
-[[bench]]
-name = "render"
-harness = false
-
-[[bench]]
-name = "parse"
-harness = false
-
 [dependencies]
 embedded-graphics = { git = "https://github.com/embedded-graphics/embedded-graphics" }
 embedded-graphics-core = { git = "https://github.com/embedded-graphics/embedded-graphics" }
@@ -38,5 +30,4 @@ as-slice = { version = "0.1.4", optional = true }
 [dev-dependencies]
 embedded-graphics-simulator = { git = "https://github.com/embedded-graphics/simulator" }
 sdl2 = "0.32.2"
-criterion = "0.3.3"
 heapless = "0.5.6"
