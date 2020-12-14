@@ -108,8 +108,6 @@ jobs:
         compare -metric AE ./assets/justified.png ./target/screenshots/justified.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/specials.png" cargo run --example specials
         compare -metric AE ./assets/specials.png ./target/screenshots/specials.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/variable_width.png" cargo run --example variable_width
-        compare -metric AE ./assets/variable_width.png ./target/screenshots/variable_width.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/vertical.png" cargo run --example vertical
         compare -metric AE ./assets/vertical.png ./target/screenshots/vertical.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/colored_text.png" cargo run --example colored_text

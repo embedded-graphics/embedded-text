@@ -6,6 +6,7 @@ Unreleased
  * **breaking** Removed deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
  * **breaking** Removed benchmarks.
  * **breaking** Removed `Rectangle` extensions.
+ * **breaking** Removed variable width font support.
  * ANSI sequence support now requires the `ansi` feature which is on by default.
  * Fields of the `style::color::Rgb` struct are now public.
 
