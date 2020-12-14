@@ -249,22 +249,10 @@ impl Transform for TextBox<'_> {
 impl Dimensions for TextBox<'_> {
     #[inline]
     #[must_use]
-    fn top_left(&self) -> Point {
-        self.bounds.top_left
+    fn bounding_box(&self) -> Rectangle {
+        self.bounds
     }
-
-    #[inline]
-    #[must_use]
-    fn bottom_right(&self) -> Point {
-        self.bounds.bottom_right
     }
-
-    #[inline]
-    #[must_use]
-    fn size(&self) -> Size {
-        RectExt::size(self.bounds)
-    }
-}
 
 /// A styled [`TextBox`] struct.
 ///
@@ -378,19 +366,7 @@ where
 {
     #[inline]
     #[must_use]
-    fn top_left(&self) -> Point {
-        self.text_box.bounds.top_left
-    }
-
-    #[inline]
-    #[must_use]
-    fn bottom_right(&self) -> Point {
-        self.text_box.bounds.bottom_right
-    }
-
-    #[inline]
-    #[must_use]
-    fn size(&self) -> Size {
-        self.text_box.size()
+    fn bounding_box(&self) -> Rectangle {
+        self.text_box.bounds
     }
 }
