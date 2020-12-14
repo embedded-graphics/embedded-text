@@ -59,11 +59,10 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
+fn demo_loop<'a, H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
 where
     H: HeightMode + std::fmt::Debug,
-    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact<FullRowsOnly>>:
-        Drawable<BinaryColor>,
+    StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact<FullRowsOnly>>: Drawable,
 {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \

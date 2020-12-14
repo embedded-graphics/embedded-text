@@ -251,7 +251,7 @@ impl Dimensions for TextBox<'_> {
     fn bounding_box(&self) -> Rectangle {
         self.bounds
     }
-    }
+}
 
 /// A styled [`TextBox`] struct.
 ///
@@ -313,7 +313,7 @@ where
     }
 }
 
-impl<'a, C, F, A, V, H> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V, H>
+impl<'a, C, F, A, V, H> Drawable for StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
     F: Font + Copy,
@@ -322,8 +322,10 @@ where
     StyledTextBox<'a, C, F, A, V, H>: RendererFactory<'a, C>,
     H: HeightMode,
 {
+    type Color = C;
+
     #[inline]
-    fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
+    fn draw<D: DrawTarget<Color = C>>(&self, display: &mut D) -> Result<(), D::Error> {
         display.draw_iter(StyledTextBox::create_renderer(self))
     }
 }

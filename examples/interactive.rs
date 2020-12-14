@@ -59,11 +59,10 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
+fn demo_loop<'a, A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
 where
     A: HorizontalTextAlignment + core::fmt::Debug,
-    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact<FullRowsOnly>>:
-        Drawable<BinaryColor>,
+    StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact<FullRowsOnly>>: Drawable,
 {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
