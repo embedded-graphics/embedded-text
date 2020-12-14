@@ -21,7 +21,7 @@ fn main() {
         .build();
 
     // Specify the bounding box. Note that in this example the text box will be taller than the text.
-    let bounds = Rectangle::new(Point::zero(), Point::new(128, 128));
+    let bounds = Rectangle::new(Point::zero(), Size::new(128, 128));
 
     // Create the text box and apply styling options.
     let text_box = TextBox::new(text, bounds).into_styled(textbox_style);

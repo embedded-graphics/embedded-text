@@ -35,8 +35,9 @@
 //!
 //! ```rust,no_run
 //! use embedded_graphics::{
-//!     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
+//!     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*,
 //! };
+//! use embedded_graphics_core::primitives::Rectangle;
 //! use embedded_graphics_simulator::{
 //!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 //! };
@@ -60,7 +61,7 @@
 //!
 //!     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
 //!     // measure and adjust the height of the text box in `into_styled()`.
-//!     let bounds = Rectangle::new(Point::zero(), Point::new(128, 0));
+//!     let bounds = Rectangle::new(Point::zero(), Size::new(128, 0));
 //!
 //!     // Create the text box and apply styling options.
 //!     let text_box = TextBox::new(text, bounds).into_styled(textbox_style);
@@ -109,7 +110,8 @@ pub mod style;
 pub mod utils;
 
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
-use embedded_graphics::{prelude::*, primitives::Rectangle};
+use embedded_graphics::prelude::*;
+use embedded_graphics_core::{primitives::Rectangle, Drawable};
 use rendering::RendererFactory;
 use style::{height_mode::HeightMode, TextBoxStyle};
 use utils::rect_ext::RectExt;
@@ -165,10 +167,7 @@ impl<'a> TextBox<'a> {
     #[inline]
     #[must_use]
     pub fn new(text: &'a str, bounds: Rectangle) -> Self {
-        Self {
-            text,
-            bounds: bounds.into_well_formed(),
-        }
+        Self { text, bounds }
     }
 
     /// Creates a [`StyledTextBox`] by attaching a [`TextBoxStyle`] to the `TextBox` object.
@@ -189,10 +188,11 @@ impl<'a> TextBox<'a> {
     /// ```rust
     /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
     /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+    /// use embedded_graphics_core::primitives::Rectangle;
     ///
     /// let text_box = TextBox::new(
     ///     "Two lines\nof text",
-    ///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+    ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
     /// );
     /// let style = TextBoxStyleBuilder::new(Font6x8)
     ///     .height_mode(ShrinkToText(FullRowsOnly))
@@ -303,14 +303,12 @@ where
         // Measure text given the width of the textbox
         let text_height = self
             .style
-            .measure_text_height(self.text_box.text, self.text_box.size().width)
+            .measure_text_height(self.text_box.text, self.text_box.bounding_box().size.width)
             .min(max_height)
-            .min(i32::max_value() as u32) as i32;
+            .min(i32::max_value() as u32);
 
         // Apply height
-        let y = self.text_box.bounds.top_left.y;
-        let new_y = y.saturating_add(text_height - 1);
-        self.text_box.bounds.bottom_right.y = new_y;
+        self.text_box.bounds.size.height = text_height;
 
         self
     }

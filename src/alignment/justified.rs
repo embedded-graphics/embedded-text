@@ -114,8 +114,8 @@ where
 mod test {
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{alignment::Justified, style::TextBoxStyleBuilder, TextBox};
 
@@ -128,7 +128,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 7)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 8)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -156,7 +156,7 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        TextBox::new("O\rX", Rectangle::new(Point::zero(), Point::new(54, 7)))
+        TextBox::new("O\rX", Rectangle::new(Point::zero(), Size::new(55, 8)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -186,7 +186,7 @@ mod test {
 
         TextBox::new(
             "A word",
-            Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7)),
+            Rectangle::new(Point::zero(), Size::new(6 * 5, 8)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -218,7 +218,7 @@ mod test {
 
         TextBox::new(
             "word wrapping",
-            Rectangle::new(Point::zero(), Point::new(54, 15)),
+            Rectangle::new(Point::zero(), Size::new(55, 16)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -258,7 +258,7 @@ mod test {
 
         TextBox::new(
             "word and other word last line",
-            Rectangle::new(Point::zero(), Point::new(60, 23)),
+            Rectangle::new(Point::zero(), Size::new(61, 24)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -306,7 +306,7 @@ mod test {
 
         TextBox::new(
             "word somereallylongword",
-            Rectangle::new(Point::zero(), Point::new(54, 23)),
+            Rectangle::new(Point::zero(), Size::new(55, 24)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -354,7 +354,7 @@ mod test {
 
         TextBox::new(
             "somereallylongword",
-            Rectangle::new(Point::zero(), Point::new(54, 15)),
+            Rectangle::new(Point::zero(), Size::new(55, 16)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -389,7 +389,7 @@ mod test {
 
         let mut display = MockDisplay::new();
 
-        let bounds = Rectangle::new(Point::new(0, 0), Point::new(35, 30));
+        let bounds = Rectangle::new(Point::new(0, 0), Size::new(36, 31));
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .alignment(Justified)
             .text_color(BinaryColor::On)

@@ -65,7 +65,7 @@ impl VerticalTextAlignment for CenterAligned {
             .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
             as i32;
 
-        let box_height = styled_text_box.size().height as i32;
+        let box_height = styled_text_box.bounding_box().size.height as i32;
         let offset = (box_height - text_height) / 2;
 
         cursor.position.y += offset;
@@ -76,8 +76,8 @@ impl VerticalTextAlignment for CenterAligned {
 mod test_horizontal {
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{alignment::CenterAligned, style::TextBoxStyleBuilder, TextBox};
 
@@ -90,7 +90,7 @@ mod test_horizontal {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 7)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 8)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -118,7 +118,7 @@ mod test_horizontal {
             .text_color(BinaryColor::On)
             .build();
 
-        TextBox::new("O\rX", Rectangle::new(Point::zero(), Point::new(54, 7)))
+        TextBox::new("O\rX", Rectangle::new(Point::zero(), Size::new(55, 8)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -148,7 +148,7 @@ mod test_horizontal {
 
         TextBox::new(
             "word wrapping",
-            Rectangle::new(Point::zero(), Point::new(54, 15)),
+            Rectangle::new(Point::zero(), Size::new(55, 16)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -188,7 +188,7 @@ mod test_horizontal {
 
         TextBox::new(
             "word somereallylongword",
-            Rectangle::new(Point::zero(), Point::new(54, 23)),
+            Rectangle::new(Point::zero(), Size::new(55, 24)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -236,7 +236,7 @@ mod test_horizontal {
 
         TextBox::new(
             "somereallylongword",
-            Rectangle::new(Point::zero(), Point::new(54, 15)),
+            Rectangle::new(Point::zero(), Size::new(55, 16)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -270,8 +270,8 @@ mod test_horizontal {
 mod test_vertical {
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{alignment::CenterAligned, style::TextBoxStyleBuilder, TextBox};
 
@@ -284,7 +284,7 @@ mod test_vertical {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 15)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 16)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -318,7 +318,7 @@ mod test_vertical {
 
         let mut display = MockDisplay::new();
 
-        let bounds = Rectangle::new(Point::new(0, 0), Point::new(35, 30));
+        let bounds = Rectangle::new(Point::new(0, 0), Size::new(36, 31));
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
             .alignment(CenterAligned)
             .text_color(BinaryColor::On)

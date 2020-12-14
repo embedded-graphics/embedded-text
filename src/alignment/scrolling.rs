@@ -31,7 +31,7 @@ impl VerticalTextAlignment for Scrolling {
             .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
             as i32;
 
-        let box_height = styled_text_box.size().height as i32;
+        let box_height = styled_text_box.bounding_box().size.height as i32;
         if text_height > box_height {
             let offset = box_height - text_height;
 
@@ -44,8 +44,8 @@ impl VerticalTextAlignment for Scrolling {
 mod test {
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{
         alignment::Scrolling,
@@ -62,7 +62,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 15)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 16)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -101,7 +101,7 @@ mod test {
 
         TextBox::new(
             "word word2 word3 word4",
-            Rectangle::new(Point::zero(), Point::new(54, 15)),
+            Rectangle::new(Point::zero(), Size::new(55, 16)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -141,7 +141,7 @@ mod test {
 
         TextBox::new(
             "word word2 word3 word4",
-            Rectangle::new(Point::zero(), Point::new(54, 12)),
+            Rectangle::new(Point::zero(), Size::new(55, 13)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -179,7 +179,7 @@ mod test {
 
         TextBox::new(
             "word word2 word3 word4",
-            Rectangle::new(Point::zero(), Point::new(54, 12)),
+            Rectangle::new(Point::zero(), Size::new(55, 13)),
         )
         .into_styled(style)
         .draw(&mut display)

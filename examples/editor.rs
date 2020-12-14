@@ -85,7 +85,7 @@ fn main() {
     .collect();
 
     // Specify the bounding box.
-    let bounds = Rectangle::new(Point::new(0, 0), Point::new(127, 63));
+    let bounds = Rectangle::new(Point::new(0, 0), Size::new(128, 64));
 
     // Specify the styling options:
     // * Use the 6x8 font from embedded-graphics.

@@ -1,6 +1,8 @@
 //! Cursor to track rendering position.
 use core::marker::PhantomData;
-use embedded_graphics::{fonts::Font, geometry::Point, primitives::Rectangle};
+use embedded_graphics::{fonts::MonoFont, geometry::Point};
+use embedded_graphics_core::prelude::Size;
+use embedded_graphics_core::primitives::Rectangle;
 
 /// Internal structure that keeps track of position information while rendering a [`TextBox`].
 ///
@@ -20,7 +22,7 @@ pub struct Cursor<F> {
 
 impl<F> Cursor<F>
 where
-    F: Font,
+    F: MonoFont,
 {
     /// Creates a new `Cursor` object located at the top left of the given bounding [`Rectangle`].
     #[inline]
@@ -32,16 +34,24 @@ where
             line_spacing,
             bounds: Rectangle::new(
                 bounds.top_left,
-                bounds.bottom_right + Point::new(1, 1 - F::CHARACTER_SIZE.height as i32),
+                bounds
+                    .size
+                    .saturating_sub(Size::new(0, F::CHARACTER_SIZE.height)),
             ),
         }
+    }
+
+    /// Returns the coordinates of the bottom right corner.
+    #[inline]
+    pub fn bottom_right(&self) -> Point {
+        self.bounds.top_left + self.bounds.size
     }
 
     /// Returns the width of the textbox
     #[inline]
     #[must_use]
     pub fn line_width(&self) -> u32 {
-        (self.bounds.bottom_right.x - self.bounds.top_left.x) as u32
+        (self.bottom_right().x - self.bounds.top_left.x) as u32
     }
 
     /// Starts a new line.
@@ -65,7 +75,7 @@ where
     #[inline]
     #[must_use]
     pub fn in_display_area(&self) -> bool {
-        self.bounds.top_left.y <= self.position.y && self.position.y <= self.bounds.bottom_right.y
+        self.bounds.top_left.y <= self.position.y && self.position.y <= self.bottom_right().y
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.
@@ -73,14 +83,14 @@ where
     #[must_use]
     pub fn fits_in_line(&self, width: u32) -> bool {
         let target = self.position.x + width as i32;
-        target <= self.bounds.bottom_right.x
+        target <= self.bottom_right().x
     }
 
     /// Returns the amount of empty space in the line.
     #[inline]
     #[must_use]
     pub fn space(&self) -> u32 {
-        (self.bounds.bottom_right.x - self.position.x) as u32
+        (self.bottom_right().x - self.position.x) as u32
     }
 
     /// Advances the cursor by a given amount.
@@ -128,7 +138,7 @@ mod test {
     fn fits_in_line() {
         // 6px width
         let cursor: Cursor<Font6x8> =
-            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
+            Cursor::new(Rectangle::new(Point::zero(), Size::new(6, 8)), 0);
 
         assert!(cursor.fits_in_line(6));
         assert!(!cursor.fits_in_line(7));
@@ -138,7 +148,7 @@ mod test {
     fn advance_moves_position() {
         // 6px width
         let mut cursor: Cursor<Font6x8> =
-            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
+            Cursor::new(Rectangle::new(Point::zero(), Size::new(6, 8)), 0);
 
         assert!(cursor.fits_in_line(1));
         cursor.advance(6);
@@ -149,7 +159,7 @@ mod test {
     fn rewind_moves_position_back() {
         // 6px width
         let mut cursor: Cursor<Font6x8> =
-            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
+            Cursor::new(Rectangle::new(Point::zero(), Size::new(6, 8)), 0);
 
         cursor.advance(6);
         assert_eq!(6, cursor.position.x);
@@ -165,12 +175,19 @@ mod test {
     fn in_display_area() {
         // 6px width
         let mut cursor: Cursor<Font6x8> =
-            Cursor::new(Rectangle::new(Point::zero(), Point::new(5, 7)), 0);
+            Cursor::new(Rectangle::new(Point::zero(), Size::new(6, 8)), 0);
 
         let data = [(0, true), (-8, false), (-1, false), (1, false)];
         for &(pos, inside) in data.iter() {
             cursor.position.y = pos;
-            assert_eq!(inside, cursor.in_display_area());
+            assert_eq!(
+                inside,
+                cursor.in_display_area(),
+                "in_display_area(Point(0, {:?})) is expected to be {:?} but is {:?}",
+                pos,
+                inside,
+                cursor.in_display_area(),
+            );
         }
     }
 }

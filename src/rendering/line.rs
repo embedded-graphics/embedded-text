@@ -126,7 +126,7 @@ where
                 State::FetchNext => {
                     // HACK: avoid drawing the underline outside of the text box
                     let underlined = if self.style.underlined {
-                        self.inner.cursor.position.y < self.inner.cursor.bounds.bottom_right.y
+                        self.inner.cursor.position.y < self.inner.cursor.bottom_right().y
                     } else {
                         false
                     };
@@ -246,8 +246,8 @@ mod test {
     };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     fn test_rendered_text<'a, C, F, A, V, H>(
         text: &'a str,
@@ -285,7 +285,7 @@ mod test {
 
         let mut iter = test_rendered_text(
             " Some sample text",
-            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)),
+            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
             style,
             &[
                 ".......###....................",
@@ -312,7 +312,7 @@ mod test {
             .build();
 
         let mut cursor = Cursor::new(
-            Rectangle::new(Point::new(0, 8), Point::new(6 * 7 - 1, 16)),
+            Rectangle::new(Point::new(0, 8), Size::new(6 * 7, 16)),
             style.line_spacing,
         );
         cursor.position.y -= 8;
@@ -337,7 +337,7 @@ mod test {
 
         let iter = test_rendered_text(
             "Some\u{A0}sample text",
-            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)),
+            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
             style,
             &[
                 ".###......................................",
@@ -362,7 +362,7 @@ mod test {
 
         let iter = test_rendered_text(
             "Some sample text",
-            Rectangle::new(Point::zero(), Point::new(6 * 2 - 1, 7)),
+            Rectangle::new(Point::zero(), Size::new(6 * 2, 8)),
             style,
             &[
                 ".###........",
@@ -387,7 +387,7 @@ mod test {
 
         test_rendered_text(
             "Some \nsample text",
-            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)),
+            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
             style,
             &[
                 ".###..........................",
@@ -411,7 +411,7 @@ mod test {
 
         let parser = Parser::parse("Some  sample text");
         let config = UniformSpaceConfig::default();
-        let bounds = Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7));
+        let bounds = Rectangle::new(Point::zero(), Size::new(6 * 5, 8));
         let cursor = Cursor::new(bounds, style.line_spacing);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
@@ -457,7 +457,7 @@ mod test {
 
         test_rendered_text(
             "s",
-            Rectangle::new(Point::zero(), Point::new(6 - 1, 7)),
+            Rectangle::new(Point::zero(), Size::new(6, 8)),
             style,
             &[
                 "......             ",
@@ -485,8 +485,8 @@ mod ansi_parser_tests {
     };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     #[test]
     fn ansi_cursor_backwards() {
@@ -497,7 +497,7 @@ mod ansi_parser_tests {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)), 0);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 7, 8)), 0);
         let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 

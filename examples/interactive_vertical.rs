@@ -135,7 +135,7 @@ fn main() {
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
     // Specify the bounding box. Leave 8px of space above.
-    let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 200));
+    let mut bounds = Rectangle::new(Point::new(0, 8), Size::new(128, 200));
 
     'running: loop {
         if !demo_loop(&mut window, &mut bounds, TopAligned) {

@@ -30,8 +30,8 @@ impl VerticalTextAlignment for TopAligned {
 mod test {
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{alignment::TopAligned, style::TextBoxStyleBuilder, TextBox};
 
@@ -44,7 +44,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 15)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 16)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();

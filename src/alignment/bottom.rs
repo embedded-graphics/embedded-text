@@ -27,7 +27,7 @@ impl VerticalTextAlignment for BottomAligned {
             .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
             as i32;
 
-        let box_height = styled_text_box.size().height as i32;
+        let box_height = styled_text_box.bounding_box().size.height as i32;
         let offset = box_height - text_height;
 
         cursor.position.y += offset
@@ -38,8 +38,8 @@ impl VerticalTextAlignment for BottomAligned {
 mod test {
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{
         alignment::BottomAligned, style::height_mode::Exact, style::vertical_overdraw::Visible,
@@ -55,7 +55,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 15)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(54, 16)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -94,7 +94,7 @@ mod test {
 
         TextBox::new(
             "word1 word2 word3 word4",
-            Rectangle::new(Point::zero(), Point::new(30, 15)),
+            Rectangle::new(Point::zero(), Size::new(30, 16)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -136,7 +136,7 @@ mod test {
 
         TextBox::new(
             "word1 word2 word3 word4",
-            Rectangle::new(Point::zero(), Point::new(30, 15)),
+            Rectangle::new(Point::zero(), Size::new(30, 16)),
         )
         .into_styled(style)
         .draw(&mut display)

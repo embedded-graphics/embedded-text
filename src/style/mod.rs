@@ -172,7 +172,8 @@ use crate::{
     utils::font_ext::FontExt,
 };
 use core::marker::PhantomData;
-use embedded_graphics::{prelude::*, primitives::Rectangle, style::TextStyle};
+use embedded_graphics::{prelude::*, style::TextStyle};
+use embedded_graphics_core::primitives::Rectangle;
 
 #[cfg(feature = "ansi")]
 use crate::rendering::ansi::Sgr;
@@ -333,10 +334,7 @@ where
         let cursor: Cursor<F> = Cursor::new(
             Rectangle::new(
                 Point::zero(),
-                Point::new(
-                    max_line_width.saturating_sub(1) as i32,
-                    F::CHARACTER_SIZE.height.saturating_sub(1) as i32,
-                ),
+                Size::new(max_line_width, F::CHARACTER_SIZE.height),
             ),
             self.line_spacing,
         );

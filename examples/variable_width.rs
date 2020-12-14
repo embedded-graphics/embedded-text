@@ -26,7 +26,7 @@ fn main() {
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
     // measure and adjust the height of the text box in `into_styled()`.
-    let bounds = Rectangle::new(Point::zero(), Point::new(128, 0));
+    let bounds = Rectangle::new(Point::zero(), Size::new(128, 0));
 
     // Create the text box and apply styling options.
     let text_box = TextBox::new(text, bounds).into_styled(textbox_style);

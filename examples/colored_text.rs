@@ -40,7 +40,7 @@ fn main() {
         .build();
 
     // Specify the bounding box.
-    let bounds = Rectangle::new(Point::zero(), Point::new(240, 96));
+    let bounds = Rectangle::new(Point::zero(), Size::new(240, 96));
 
     // Create the text box and apply styling options.
     let text_box = TextBox::new(&text, bounds).into_styled(textbox_style);

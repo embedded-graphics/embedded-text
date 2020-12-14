@@ -47,11 +47,12 @@ pub trait HeightMode: Copy {
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 60px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
 /// // Set style, use 6x8 font so the 2 lines are 16px high.
@@ -100,11 +101,12 @@ where
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 1px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 0)),
+///     Rectangle::new(Point::zero(), Size::new(60, 0)),
 /// );
 ///
 /// // Set style, use 6x8 font so the 2 lines are 16px high.
@@ -123,11 +125,12 @@ where
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 1px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
 /// // Set style, use 6x8 font so the 2 lines are 16px high.
@@ -175,11 +178,12 @@ impl HeightMode for FitToText {
 /// ```rust
 /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 1px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 0)),
+///     Rectangle::new(Point::zero(), Size::new(60, 0)),
 /// );
 ///
 /// // Set style, use 6x8 font so the 2 lines are 16px high.
@@ -189,7 +193,7 @@ impl HeightMode for FitToText {
 ///     .build();
 ///
 /// let size = text_box.into_styled(style).size();
-/// assert_eq!(size, Size::new(60, 1));
+/// assert_eq!(size, Size::new(60, 0));
 /// ```
 ///
 /// # Example: `ShrinkToText` shrinks the [`TextBox`].
@@ -197,11 +201,12 @@ impl HeightMode for FitToText {
 /// ```rust
 /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 60px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
 /// // Set style, use 6x8 font so the 2 lines are 16px high.
@@ -231,7 +236,7 @@ where
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        text_box.fit_height_limited(text_box.size().height);
+        text_box.fit_height_limited(text_box.bounding_box().size.height);
     }
 
     #[inline]
