@@ -176,19 +176,16 @@ mod test {
         .draw(&mut display)
         .unwrap();
 
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                "#   ##   ",
-                " ### #   ",
-                " ### #   ",
-                "     #   ",
-                " ### #   ",
-                " ### #   ",
-                " ### #   ",
-                "######   "
-            ])
-        );
+        display.assert_pattern(&[
+            "#   ##   ",
+            " ### #   ",
+            " ### #   ",
+            "     #   ",
+            " ### #   ",
+            " ### #   ",
+            " ### #   ",
+            "######   ",
+        ]);
     }
 
     #[test]
@@ -210,18 +207,15 @@ mod test {
         .draw(&mut display)
         .unwrap();
 
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                "         ",
-                "         ",
-                " ### #   ",
-                "     #   ",
-                " ### #   ",
-                " ### #   ",
-                "         ",
-                "         "
-            ])
-        );
+        display.assert_pattern(&[
+            "         ",
+            "         ",
+            " ### #   ",
+            "     #   ",
+            " ### #   ",
+            " ### #   ",
+            "         ",
+            "         ",
+        ]);
     }
 }

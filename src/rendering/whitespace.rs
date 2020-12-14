@@ -110,10 +110,7 @@ where
 mod test {
     use super::EmptySpaceIterator;
     use embedded_graphics::{
-        fonts::{Font6x6, Font6x8},
-        pixelcolor::BinaryColor,
-        prelude::*,
-        style::MonoTextStyleBuilder,
+        fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, style::MonoTextStyleBuilder,
     };
 
     #[test]
@@ -197,22 +194,6 @@ mod test {
                 Point::zero(),
                 style,
                 2..Font6x8::CHARACTER_SIZE.height as i32 - 2
-            )
-            .count()
-        );
-
-        let style = MonoTextStyleBuilder::new(Font6x6)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
-
-        assert_eq!(
-            60,
-            EmptySpaceIterator::new(
-                10,
-                Point::zero(),
-                style,
-                0..Font6x6::CHARACTER_SIZE.height as i32
             )
             .count()
         );

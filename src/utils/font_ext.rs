@@ -51,14 +51,6 @@ mod test {
     use embedded_graphics::fonts::Font6x8;
 
     #[test]
-    fn nbsp_width_equal_to_space() {
-        assert_eq!(
-            Font6x8::total_char_width('\u{A0}'),
-            Font6x8::total_char_width(' ')
-        );
-    }
-
-    #[test]
     fn test_max_space_width() {
         assert_eq!((0, 0), Font6x8::max_space_width(0, 36));
         assert_eq!((36, 6), Font6x8::max_space_width(6, 36));

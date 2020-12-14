@@ -133,6 +133,7 @@ where
 mod test {
     use super::*;
     use embedded_graphics::fonts::Font6x8;
+    use embedded_graphics_core::prelude::Size;
 
     #[test]
     fn fits_in_line() {

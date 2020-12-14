@@ -563,7 +563,7 @@ mod test {
         let cursor = Cursor::new(
             Rectangle::new(
                 Point::zero(),
-                Size::new(text.chars().count() as i32 * 6, 16),
+                Size::new(text.chars().count() as u32 * 6, 16),
             ),
             0,
         );

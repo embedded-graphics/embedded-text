@@ -272,7 +272,7 @@ mod test {
 
         iter.draw(&mut display).unwrap();
 
-        assert_eq!(display, MockDisplay::from_pattern(pattern));
+        display.assert_pattern(pattern);
 
         iter
     }
@@ -491,6 +491,9 @@ mod ansi_parser_tests {
 
     #[test]
     fn ansi_cursor_backwards() {
+        let mut display = MockDisplay::new();
+        display.set_allow_overdraw(true);
+
         let parser = Parser::parse("foo\x1b[2Dsample");
         let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
@@ -499,23 +502,19 @@ mod ansi_parser_tests {
             .build();
 
         let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 7, 8)), 0);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
-        let mut display = MockDisplay::new();
+        let iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
 
         iter.draw(&mut display).unwrap();
 
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                "..##...........................##.........",
-                ".#..#...........................#.........",
-                ".#.....####..###..##.#..####....#....###..",
-                "###...#.........#.#.#.#.#...#...#...#...#.",
-                ".#.....###...####.#...#.#...#...#...#####.",
-                ".#........#.#...#.#...#.####....#...#.....",
-                ".#....####...####.#...#.#......###...###..",
-                "........................#.................",
-            ])
-        );
+        display.assert_pattern(&[
+            "..##...........................##.........",
+            ".#..#...........................#.........",
+            ".#.....####..###..##.#..####....#....###..",
+            "###...#.........#.#.#.#.#...#...#...#...#.",
+            ".#.....###...####.#...#.#...#...#...#####.",
+            ".#........#.#...#.#...#.####....#...#.....",
+            ".#....####...####.#...#.#......###...###..",
+            "........................#.................",
+        ]);
     }
 }
