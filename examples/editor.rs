@@ -6,7 +6,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 
-use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, fonts::Font6x8};
+use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
 use embedded_text::prelude::*;
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, thread, time::Duration};
@@ -114,7 +114,7 @@ fn main() {
         let text_box = TextBox::new(&text_and_cursor, bounds).into_styled(textbox_style);
 
         // Create a simulated display with the dimensions of the text box.
-        let mut display = SimulatorDisplay::new(text_box.size());
+        let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
 
         // Draw the text box.
         text_box.draw(&mut display).unwrap();

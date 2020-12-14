@@ -23,16 +23,20 @@ fn main() {
     let underlined_style = base_style.underlined(true).build();
     let strikethrough_style = base_style.strikethrough(true).build();
 
-    let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Size::new(96, 0)))
+    let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Size::new(97, 0)))
         .into_styled(underlined_style);
 
-    let text_box2 = TextBox::new(text, Rectangle::new(Point::new(96, 0), Size::new(192, 0)))
+    let text_box2 = TextBox::new(text, Rectangle::new(Point::new(96, 0), Size::new(97, 0)))
         .into_styled(strikethrough_style);
 
     // Create a window for both text boxes.
     let mut display = SimulatorDisplay::new(Size::new(
-        text_box.size().width + text_box2.size().width,
-        text_box.size().height.max(text_box2.size().height),
+        text_box.bounding_box().size.width + text_box2.bounding_box().size.width,
+        text_box
+            .bounding_box()
+            .size
+            .height
+            .max(text_box2.bounding_box().size.height),
     ));
 
     // Draw the text boxes.

@@ -61,8 +61,8 @@ pub trait HeightMode: Copy {
 ///     .build();
 ///
 /// // Exact does not change the size of the TextBox
-/// let orig_size = text_box.size();
-/// let size = text_box.into_styled(style).size();
+/// let orig_size = text_box.bounding_box().size;
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, orig_size);
 /// ```
 ///
@@ -116,7 +116,7 @@ where
 ///     .build();
 ///
 /// // FitToText grows the TextBox to the height of the text
-/// let size = text_box.into_styled(style).size();
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, Size::new(60, 16));
 /// ```
 ///
@@ -140,7 +140,7 @@ where
 ///     .build();
 ///
 /// // FitToText shrinks the TextBox to the height of the text
-/// let size = text_box.into_styled(style).size();
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, Size::new(60, 16));
 /// ```
 ///
@@ -192,7 +192,7 @@ impl HeightMode for FitToText {
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
-/// let size = text_box.into_styled(style).size();
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, Size::new(60, 0));
 /// ```
 ///
@@ -215,7 +215,7 @@ impl HeightMode for FitToText {
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
-/// let size = text_box.into_styled(style).size();
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, Size::new(60, 16));
 /// ```
 ///

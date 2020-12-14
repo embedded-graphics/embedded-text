@@ -12,7 +12,7 @@ use embedded_graphics::{
     prelude::*,
     style::PrimitiveStyle,
 };
-use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
+use embedded_text::prelude::*;
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
@@ -62,7 +62,6 @@ impl ProcessedEvent {
 fn demo_loop<'a, V>(window: &mut Window, bounds: &mut Rectangle, alignment: V) -> bool
 where
     V: VerticalTextAlignment + std::fmt::Debug,
-    StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact<FullRowsOnly>>: Drawable,
 {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
@@ -112,8 +111,7 @@ where
         for event in window.events() {
             match ProcessedEvent::new(event) {
                 ProcessedEvent::Resize(bottom_right) => {
-                    bounds.bottom_right.x = bottom_right.x.max(bounds.top_left.x);
-                    bounds.bottom_right.y = bottom_right.y.max(bounds.top_left.y);
+                    *bounds = Rectangle::with_corners(bounds.top_left, bottom_right);
                 }
                 ProcessedEvent::Quit => return false,
                 ProcessedEvent::Next => return true,

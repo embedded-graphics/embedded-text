@@ -15,9 +15,9 @@ fn main() {
     let mut display = SimulatorDisplay::new(Size::new(192, 129));
 
     // Divide the screen into 3 64px wide columns.
-    let bounds_top = Rectangle::new(Point::zero(), Size::new(64, 128));
-    let bounds_center = Rectangle::new(Point::new(64, 0), Size::new(64, 128));
-    let bounds_bottom = Rectangle::new(Point::new(128, 0), Size::new(64, 128));
+    let bounds_top = Rectangle::new(Point::zero(), Size::new(64, 129));
+    let bounds_center = Rectangle::new(Point::new(64, 0), Size::new(64, 129));
+    let bounds_bottom = Rectangle::new(Point::new(128, 0), Size::new(64, 129));
 
     let textbox_style_top = base_style.vertical_alignment(TopAligned).build();
     TextBox::new(text, bounds_top)

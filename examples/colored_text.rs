@@ -1,6 +1,6 @@
 //! This example demonstrates text styling using in-line ANSI escape sequences.
 
-use embedded_graphics::{pixelcolor::Rgb888, prelude::*, fonts::Font6x8};
+use embedded_graphics::{fonts::Font6x8, pixelcolor::Rgb888, prelude::*};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::prelude::*;
 
@@ -40,13 +40,13 @@ fn main() {
         .build();
 
     // Specify the bounding box.
-    let bounds = Rectangle::new(Point::zero(), Size::new(240, 96));
+    let bounds = Rectangle::new(Point::zero(), Size::new(241, 97));
 
     // Create the text box and apply styling options.
     let text_box = TextBox::new(&text, bounds).into_styled(textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
-    let mut display = SimulatorDisplay::new(text_box.size());
+    let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
 
     // Draw the text box.
     text_box.draw(&mut display).unwrap();

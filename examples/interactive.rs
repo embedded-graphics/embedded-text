@@ -12,7 +12,9 @@ use embedded_graphics::{
     prelude::*,
     style::PrimitiveStyle,
 };
-use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
+use embedded_text::{
+    prelude::*, rendering::RendererFactory, style::vertical_overdraw::FullRowsOnly,
+};
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
@@ -62,7 +64,8 @@ impl ProcessedEvent {
 fn demo_loop<'a, A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
 where
     A: HorizontalTextAlignment + core::fmt::Debug,
-    StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact<FullRowsOnly>>: Drawable,
+    StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact<FullRowsOnly>>:
+        RendererFactory<'a, BinaryColor>,
 {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
@@ -110,7 +113,9 @@ where
         // Handle key and mouse events.
         for event in window.events() {
             match ProcessedEvent::new(event) {
-                ProcessedEvent::Resize(bottom_right) => bounds.bottom_right = bottom_right,
+                ProcessedEvent::Resize(bottom_right) => {
+                    *bounds = Rectangle::with_corners(bounds.top_left, bottom_right);
+                }
                 ProcessedEvent::Quit => return false,
                 ProcessedEvent::Next => return true,
                 ProcessedEvent::Nothing => {}

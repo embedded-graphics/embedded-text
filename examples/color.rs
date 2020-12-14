@@ -21,13 +21,13 @@ fn main() {
         .build();
 
     // Specify the bounding box. Note that in this example the text box will be taller than the text.
-    let bounds = Rectangle::new(Point::zero(), Size::new(128, 128));
+    let bounds = Rectangle::new(Point::zero(), Size::new(129, 129));
 
     // Create the text box and apply styling options.
     let text_box = TextBox::new(text, bounds).into_styled(textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
-    let mut display = SimulatorDisplay::new(text_box.size());
+    let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
 
     // Draw the text box.
     text_box.draw(&mut display).unwrap();
