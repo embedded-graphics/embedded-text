@@ -8,7 +8,7 @@ use crate::{
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
-use embedded_graphics::{fonts::Font, pixelcolor::PixelColor};
+use embedded_graphics::{fonts::MonoFont, pixelcolor::PixelColor};
 
 /// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
@@ -21,7 +21,7 @@ impl HorizontalTextAlignment for LeftAligned {
 impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, LeftAligned, V, H>
 where
     C: PixelColor + From<Rgb>,
-    F: Font + Copy,
+    F: MonoFont,
     V: VerticalTextAlignment,
     H: HeightMode,
 {

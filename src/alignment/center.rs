@@ -23,7 +23,7 @@ impl HorizontalTextAlignment for CenterAligned {
 impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, CenterAligned, V, H>
 where
     C: PixelColor + From<Rgb>,
-    F: Font + Copy,
+    F: MonoFont,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
@@ -56,7 +56,7 @@ impl VerticalTextAlignment for CenterAligned {
         styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
     ) where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {

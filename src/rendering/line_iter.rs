@@ -64,7 +64,7 @@ pub struct LineElementIterator<'a, F, SP, A> {
 
 impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
 where
-    F: Font + Copy,
+    F: MonoFont,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
@@ -160,7 +160,7 @@ where
                 }
 
                 Some(Token::Break(Some(c))) => {
-                    let w = F::total_char_width(c);
+                    let w = F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                     break 'lookahead;
                 }
@@ -190,7 +190,7 @@ where
 
 impl<F, SP, A> Iterator for LineElementIterator<'_, F, SP, A>
 where
-    F: Font + Copy,
+    F: MonoFont,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
@@ -278,7 +278,10 @@ where
                             } else if let Some(c) = c {
                                 // If a Break contains a character, display it if the next
                                 // Word token does not fit the line.
-                                if self.cursor.advance(F::total_char_width(c)) {
+                                if self
+                                    .cursor
+                                    .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
+                                {
                                     self.finish_wrapped();
                                     break Some(RenderElement::PrintedCharacter(c));
                                 } else {
@@ -292,7 +295,10 @@ where
                         }
 
                         Token::ExtraCharacter(c) => {
-                            if self.cursor.advance(F::total_char_width(c)) {
+                            if self
+                                .cursor
+                                .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
+                            {
                                 self.next_token();
                                 break Some(RenderElement::PrintedCharacter(c));
                             }
@@ -342,7 +348,7 @@ where
                                 }
 
                                 AnsiSequence::CursorForward(n) => {
-                                    let delta = n * F::total_char_width(' ');
+                                    let delta = n * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
                                     let width = if self.cursor.advance(delta) {
                                         delta
                                     } else {
@@ -354,7 +360,7 @@ where
                                 }
 
                                 AnsiSequence::CursorBackward(n) => {
-                                    let delta = n * F::total_char_width(' ');
+                                    let delta = n * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
                                     if !self.cursor.rewind(delta) {
                                         self.cursor.carriage_return();
                                     }
@@ -390,7 +396,10 @@ where
                                     ret_val = Some(RenderElement::Space(sp_width, 1));
                                     self.config.consume(1); // we have peeked the value, consume it
                                 }
-                            } else if self.cursor.advance(F::total_char_width(c)) {
+                            } else if self
+                                .cursor
+                                .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
+                            {
                                 ret_val = Some(RenderElement::PrintedCharacter(c));
                             }
 

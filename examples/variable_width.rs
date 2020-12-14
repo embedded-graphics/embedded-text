@@ -1,4 +1,4 @@
-//! This example demonstrates drawing text using a variable character width font.
+//! This example demonstrates drawing text using a variable character width MonoFont.
 
 use embedded_graphics::{
     fonts::Font6x6, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
@@ -15,7 +15,7 @@ fn main() {
     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 
     // Specify the styling options:
-    // * Use the 6x6 (variable character width) font from embedded-graphics.
+    // * Use the 6x6 (variable character width) MonoFont from embedded-graphics.
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.

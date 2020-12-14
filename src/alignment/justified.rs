@@ -7,11 +7,10 @@ use crate::{
         StyledTextBoxIterator,
     },
     style::{color::Rgb, height_mode::HeightMode},
-    utils::font_ext::FontExt,
     StyledTextBox,
 };
 use core::marker::PhantomData;
-use embedded_graphics::{fonts::Font, pixelcolor::PixelColor};
+use embedded_graphics::{fonts::MonoFont, pixelcolor::PixelColor};
 
 /// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
@@ -29,7 +28,7 @@ impl HorizontalTextAlignment for Justified {
 /// width is used. This struct stores two width values so the whole line will always (at least if
 /// there's a space in the line) take up all available space.
 #[derive(Copy, Clone, Debug)]
-pub struct JustifiedSpaceConfig<F: Font + Copy> {
+pub struct JustifiedSpaceConfig<F: MonoFont> {
     _font: PhantomData<F>,
 
     /// The width of the whitespace characters.
@@ -40,7 +39,7 @@ pub struct JustifiedSpaceConfig<F: Font + Copy> {
     space_count: u32,
 }
 
-impl<F: Font + Copy> JustifiedSpaceConfig<F> {
+impl<F: MonoFont> JustifiedSpaceConfig<F> {
     #[inline]
     #[must_use]
     fn new(space_width: u32, extra_pixel_count: u32) -> Self {
@@ -52,15 +51,15 @@ impl<F: Font + Copy> JustifiedSpaceConfig<F> {
     }
 }
 
-impl<F: Font + Copy> Default for JustifiedSpaceConfig<F> {
+impl<F: MonoFont> Default for JustifiedSpaceConfig<F> {
     #[inline]
     #[must_use]
     fn default() -> Self {
-        Self::new(F::total_char_width(' '), 0)
+        Self::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING, 0)
     }
 }
 
-impl<F: Font + Copy> SpaceConfig for JustifiedSpaceConfig<F> {
+impl<F: MonoFont> SpaceConfig for JustifiedSpaceConfig<F> {
     type Font = F;
 
     #[inline]
@@ -79,7 +78,7 @@ impl<F: Font + Copy> SpaceConfig for JustifiedSpaceConfig<F> {
 impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, Justified, V, H>
 where
     C: PixelColor + From<Rgb>,
-    F: Font + Copy,
+    F: MonoFont,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
@@ -93,8 +92,8 @@ where
             let (width, total_whitespace_count, t, _) =
                 style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
 
-            let space =
-                max_line_width - (width - total_whitespace_count * F::total_char_width(' '));
+            let space = max_line_width
+                - (width - total_whitespace_count * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING);
             let stretch_line = t.is_some() && t != Some(Token::NewLine);
 
             let space_info = if stretch_line && total_whitespace_count != 0 {
@@ -184,13 +183,10 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new(
-            "A word",
-            Rectangle::new(Point::zero(), Size::new(6 * 5, 8)),
-        )
-        .into_styled(style)
-        .draw(&mut display)
-        .unwrap();
+        TextBox::new("A word", Rectangle::new(Point::zero(), Size::new(6 * 5, 8)))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
 
         assert_eq!(
             display,

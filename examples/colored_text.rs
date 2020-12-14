@@ -1,6 +1,6 @@
 //! This example demonstrates text styling using in-line ANSI escape sequences.
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::Rgb888, prelude::*};
+use embedded_graphics::{pixelcolor::Rgb888, prelude::*, fonts::Font6x8};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::prelude::*;
 
@@ -30,7 +30,7 @@ fn main() {
     );
 
     // Specify the styling options:
-    // * Use the 6x8 font from embedded-graphics.
+    // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Draw the text with black, which will be overridden by in-line styling.
     // * Use 2px line spacing because we'll draw underlines.

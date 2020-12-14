@@ -2,7 +2,7 @@
 
 use crate::utils::font_ext::FontExt;
 use core::ops::Range;
-use embedded_graphics::{prelude::*, style::TextStyle};
+use embedded_graphics::{prelude::*, style::MonoTextStyle};
 
 /// Pixel iterator to render boxes using a single color, and horizontal lines with a different one.
 ///
@@ -14,9 +14,9 @@ use embedded_graphics::{prelude::*, style::TextStyle};
 pub struct ModifiedEmptySpaceIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
-    style: TextStyle<C, F>,
+    style: MonoTextStyle<C, F>,
     pos: Point,
     char_walk: Point,
     max_coordinates: Point,
@@ -27,7 +27,7 @@ where
 impl<C, F> ModifiedEmptySpaceIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     /// Creates a new pixel iterator to draw empty spaces.
     #[inline]
@@ -35,7 +35,7 @@ where
     pub fn new(
         width: u32,
         pos: Point,
-        style: TextStyle<C, F>,
+        style: MonoTextStyle<C, F>,
         rows: Range<i32>,
         underline: bool,
         strikethrough: bool,
@@ -62,7 +62,7 @@ where
 impl<C, F> Iterator for ModifiedEmptySpaceIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     type Item = Pixel<C>;
 

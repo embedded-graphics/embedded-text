@@ -6,7 +6,7 @@ use core::{
     mem::MaybeUninit,
     ops::Range,
 };
-use embedded_graphics::{prelude::*, style::TextStyle};
+use embedded_graphics::{prelude::*, style::MonoTextStyle};
 
 /// Pixel iterator to render boxes using a single color.
 ///
@@ -29,7 +29,7 @@ where
 impl<C, F> Debug for EmptySpaceIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -47,12 +47,12 @@ where
 impl<C, F> EmptySpaceIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     /// Creates a new pixel iterator to draw empty spaces.
     #[inline]
     #[must_use]
-    pub fn new(width: u32, position: Point, style: TextStyle<C, F>, rows: Range<i32>) -> Self {
+    pub fn new(width: u32, position: Point, style: MonoTextStyle<C, F>, rows: Range<i32>) -> Self {
         if width == 0 || style.background_color.is_none() {
             Self {
                 _font: PhantomData,
@@ -113,12 +113,13 @@ mod test {
         fonts::{Font6x6, Font6x8},
         pixelcolor::BinaryColor,
         prelude::*,
-        style::TextStyleBuilder,
+        style::MonoTextStyleBuilder,
     };
 
     #[test]
     fn zero_width_does_not_render_anything() {
-        let style = TextStyleBuilder::new(Font6x8)
+        let style = MonoTextStyleBuilder::new()
+            .font(Font6x8)
             .background_color(BinaryColor::On)
             .build();
 
@@ -136,7 +137,8 @@ mod test {
 
     #[test]
     fn transparent_background_does_not_render_anything() {
-        let style = TextStyleBuilder::new(Font6x8)
+        let style = MonoTextStyleBuilder::new()
+            .font(Font6x8)
             .text_color(BinaryColor::On)
             .build();
 
@@ -154,7 +156,8 @@ mod test {
 
     #[test]
     fn first_point_in_position() {
-        let style = TextStyleBuilder::new(Font6x8)
+        let style = MonoTextStyleBuilder::new()
+            .font(Font6x8)
             .background_color(BinaryColor::On)
             .build();
 
@@ -170,7 +173,8 @@ mod test {
 
     #[test]
     fn minimal_number_of_pixels_returned() {
-        let style = TextStyleBuilder::new(Font6x8)
+        let style = MonoTextStyleBuilder::new()
+            .font(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -197,7 +201,7 @@ mod test {
             .count()
         );
 
-        let style = TextStyleBuilder::new(Font6x6)
+        let style = MonoTextStyleBuilder::new(Font6x6)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();

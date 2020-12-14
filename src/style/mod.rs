@@ -8,9 +8,9 @@
 //!
 //! The recommended (and most flexible) way of constructing a style object is using the
 //! [`TextBoxStyleBuilder`] builder object. The least amount of information necessary to create a
-//! text style is the `Font` used to render the text, so you'll need to specify this when you call
+//! text style is the `MonoFont` used to render the text, so you'll need to specify this when you call
 //! [`TextBoxStyleBuilder::new`].
-//! You can then chain together various builder methods to customize font rendering.
+//! You can then chain together various builder methods to customize MonoFont rendering.
 //!
 //! See the [`TextBoxStyleBuilder`] for more information on what styling options you have.
 //!
@@ -20,9 +20,9 @@
 //! ============================================
 //!
 //! Sometimes you need more flexibility than what a single style object can provide, like changing
-//! font color for a specific word in the text. `embedded-text` supports this use case by using a
+//! MonoFont color for a specific word in the text. `embedded-text` supports this use case by using a
 //! subset of the standard [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
-//! These are special character sequences you can use *in the text* to change the font stlye of the
+//! These are special character sequences you can use *in the text* to change the MonoFont stlye of the
 //! text itself. This documentation does not aim to provide a full specification of all the ANSI
 //! escape codes, only describes the supported subset.
 //!
@@ -169,10 +169,9 @@ use crate::{
         space_config::UniformSpaceConfig,
     },
     style::height_mode::HeightMode,
-    utils::font_ext::FontExt,
 };
 use core::marker::PhantomData;
-use embedded_graphics::{prelude::*, style::TextStyle};
+use embedded_graphics::{prelude::*, style::MonoTextStyle};
 use embedded_graphics_core::primitives::Rectangle;
 
 #[cfg(feature = "ansi")]
@@ -190,18 +189,18 @@ pub struct TabSize<F> {
     _font: PhantomData<F>,
 }
 
-impl<F: Font> Default for TabSize<F> {
+impl<F: MonoFont> Default for TabSize<F> {
     #[inline]
     fn default() -> Self {
         Self::spaces(4)
     }
 }
 
-impl<F: Font> TabSize<F> {
-    /// Calculate tab size from a number of spaces in the current font.
+impl<F: MonoFont> TabSize<F> {
+    /// Calculate tab size from a number of spaces in the current MonoFont.
     #[inline]
     pub fn spaces(n: u32) -> Self {
-        let space = F::total_char_width(' ') as i32;
+        let space = (F::CHARACTER_SIZE.width + F::CHARACTER_SPACING) as i32;
         // make sure n is at least 1, and the multiplication doesn't overflow
         let size = (n.max(1) as i32).checked_mul(space).unwrap_or(4 * space);
 
@@ -227,7 +226,7 @@ impl<F: Font> TabSize<F> {
 
 /// Styling options of a [`TextBox`].
 ///
-/// `TextBoxStyle` contains the `Font`, foreground and background `PixelColor`, line spacing,
+/// `TextBoxStyle` contains the `MonoFont`, foreground and background `PixelColor`, line spacing,
 /// [`HeightMode`], [`HorizontalTextAlignment`] and [`VerticalTextAlignment`] information necessary
 /// to draw a [`TextBox`].
 ///
@@ -240,14 +239,14 @@ impl<F: Font> TabSize<F> {
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TextBoxStyle<C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     /// Style properties for text.
-    pub text_style: TextStyle<C, F>,
+    pub text_style: MonoTextStyle<C, F>,
 
     /// Horizontal text alignment.
     pub alignment: A,
@@ -274,7 +273,7 @@ where
 impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -289,7 +288,7 @@ where
         height_mode: H,
     ) -> Self {
         Self::from_text_style(
-            TextStyle::new(font, text_color),
+            MonoTextStyle::new(font, text_color),
             alignment,
             vertical_alignment,
             height_mode,
@@ -299,7 +298,7 @@ where
     /// Creates a `TextBoxStyle` object from the given text style and alignment.
     #[inline]
     pub fn from_text_style(
-        text_style: TextStyle<C, F>,
+        text_style: MonoTextStyle<C, F>,
         alignment: A,
         vertical_alignment: V,
         height_mode: H,
@@ -376,7 +375,7 @@ where
 
                 RenderElement::PrintedCharacter(c) => {
                     // must not rely on cursor position because it can get reset to 0 at line breaks
-                    current_width += F::total_char_width(c);
+                    current_width += F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
 
                     if c == '\u{A0}' {
                         total_spaces += 1;
@@ -405,7 +404,7 @@ where
 
     /// Measures text height when rendered using a given width.
     ///
-    /// # Example: measure height of text when rendered using a 6x8 font and 72px width.
+    /// # Example: measure height of text when rendered using a 6x8 MonoFont and 72px width.
     ///
     /// ```rust
     /// # use embedded_text::style::builder::TextBoxStyleBuilder;
@@ -470,7 +469,7 @@ where
 mod test {
     use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
     use embedded_graphics::{
-        fonts::{Font, Font6x8},
+        fonts::{Font6x8, MonoFont},
         pixelcolor::BinaryColor,
     };
 

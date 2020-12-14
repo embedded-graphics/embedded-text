@@ -16,7 +16,7 @@ fn main() {
     Also\u{200B}Supports\u{200B}Zero\u{200B}Width\u{200B}Space\u{200B}Characters";
 
     // Specify the styling options:
-    // * Use the 6x8 font from embedded-graphics.
+    // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text fully justified.
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.

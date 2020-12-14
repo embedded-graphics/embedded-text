@@ -75,7 +75,7 @@ where
         let mut display = SimulatorDisplay::new(Size::new(255, 255));
 
         // Specify the styling options:
-        // * Use the 6x8 font from embedded-graphics.
+        // * Use the 6x8 MonoFont from embedded-graphics.
         // * Draw the text horizontally left aligned (default option, not specified here).
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         // * Use the vertical alignmnet mode that was given to the `demo_loop()` function.

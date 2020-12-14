@@ -13,6 +13,7 @@ use crate::{
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
 use core::ops::Range;
+use embedded_graphics::fonts::MonoFont;
 use embedded_graphics::prelude::*;
 
 #[cfg(feature = "ansi")]
@@ -23,7 +24,7 @@ use crate::rendering::ansi::Sgr;
 enum State<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     /// Fetch next render element.
     FetchNext,
@@ -43,7 +44,7 @@ where
 pub struct StyledLinePixelIterator<'a, C, F, SP, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     state: State<C, F>,
     pub(crate) style: TextBoxStyle<C, F, A, V, H>,
@@ -54,7 +55,7 @@ where
 impl<'a, C, F, SP, A, V, H> StyledLinePixelIterator<'a, C, F, SP, A, V, H>
 where
     C: PixelColor + From<Rgb>,
-    F: Font + Copy,
+    F: MonoFont,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
@@ -110,7 +111,7 @@ where
 impl<C, F, SP, A, V, H> Iterator for StyledLinePixelIterator<'_, C, F, SP, A, V, H>
 where
     C: PixelColor + From<Rgb>,
-    F: Font + Copy,
+    F: MonoFont,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
@@ -256,8 +257,8 @@ mod test {
         pattern: &[&str],
     ) -> StyledLinePixelIterator<'a, C, F, UniformSpaceConfig<F>, A, V, H>
     where
-        C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping<C>,
-        F: Font + Copy,
+        C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,

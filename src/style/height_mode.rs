@@ -27,7 +27,7 @@ pub trait HeightMode: Copy {
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode;
@@ -37,7 +37,7 @@ pub trait HeightMode: Copy {
     /// If a line does not fully fit in the bounding box, some `HeightMode` options allow drawing
     /// partial lines. For a partial line, this function calculates, which rows of each character
     /// should be displayed.
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32>;
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32>;
 }
 
 /// Keep the original [`TextBox`] height.
@@ -55,7 +55,7 @@ pub trait HeightMode: Copy {
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .text_color(BinaryColor::On)
 ///     .build();
@@ -78,7 +78,7 @@ where
     fn apply<C, F, A, V, H>(_text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -86,7 +86,7 @@ where
     }
 
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
         OV::calculate_displayed_row_range(cursor)
     }
 }
@@ -109,7 +109,7 @@ where
 ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .height_mode(FitToText)
 ///     .text_color(BinaryColor::On)
@@ -133,7 +133,7 @@ where
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .height_mode(FitToText)
 ///     .text_color(BinaryColor::On)
@@ -154,7 +154,7 @@ impl HeightMode for FitToText {
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -163,7 +163,7 @@ impl HeightMode for FitToText {
     }
 
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(_: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(_: &Cursor<F>) -> Range<i32> {
         // FitToText always sets the bounding box to the exact size of the text, so every row is
         // always fully displayed
         0..F::CHARACTER_SIZE.height as i32
@@ -186,7 +186,7 @@ impl HeightMode for FitToText {
 ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .text_color(BinaryColor::On)
@@ -209,7 +209,7 @@ impl HeightMode for FitToText {
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .text_color(BinaryColor::On)
@@ -231,7 +231,7 @@ where
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -240,7 +240,7 @@ where
     }
 
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
         OV::calculate_displayed_row_range(cursor)
     }
 }

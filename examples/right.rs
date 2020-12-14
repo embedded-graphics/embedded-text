@@ -13,7 +13,7 @@ fn main() {
     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 
     // Specify the styling options:
-    // * Use the 6x8 font from embedded-graphics.
+    // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text horizontally right aligned.
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.

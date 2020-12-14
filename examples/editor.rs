@@ -6,7 +6,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, fonts::Font6x8};
 use embedded_text::prelude::*;
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, thread, time::Duration};
@@ -88,7 +88,7 @@ fn main() {
     let bounds = Rectangle::new(Point::new(0, 0), Size::new(128, 64));
 
     // Specify the styling options:
-    // * Use the 6x8 font from embedded-graphics.
+    // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `Scrolling` vertical layout - this will make sure the cursor is always in view.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.

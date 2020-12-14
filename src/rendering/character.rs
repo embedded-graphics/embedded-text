@@ -1,18 +1,18 @@
 //! Character rendering.
 use crate::utils::font_ext::FontExt;
 use core::{marker::PhantomData, ops::Range};
-use embedded_graphics::{prelude::*, style::TextStyle};
+use embedded_graphics::{prelude::*, style::MonoTextStyle};
 
 /// Represents a glyph (a symbol) to be drawn.
 #[derive(Copy, Clone, Debug)]
-pub struct Glyph<F: Font> {
+pub struct Glyph<F: MonoFont> {
     _font: PhantomData<F>,
     char_glyph_offset: u32,
 }
 
 impl<F> Glyph<F>
 where
-    F: Font,
+    F: MonoFont,
 {
     /// Creates a glyph from a character.
     #[inline]
@@ -62,10 +62,10 @@ where
 pub struct CharacterIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     character: Glyph<F>,
-    style: TextStyle<C, F>,
+    style: MonoTextStyle<C, F>,
     pos: Point,
     char_walk: Point,
     max_coordinates: Point,
@@ -76,7 +76,7 @@ where
 impl<C, F> CharacterIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     /// Creates a new pixel iterator to draw the given character.
     #[inline]
@@ -84,7 +84,7 @@ where
     pub fn new(
         character: char,
         pos: Point,
-        style: TextStyle<C, F>,
+        style: MonoTextStyle<C, F>,
         rows: Range<i32>,
         underline: bool,
         strikethrough: bool,
@@ -101,7 +101,7 @@ where
             style,
             pos,
             char_walk: Point::new(0, rows.start),
-            max_coordinates: Point::new(F::char_width(character) as i32 - 1, max_height),
+            max_coordinates: Point::new(F::CHARACTER_SIZE.width as i32 - 1, max_height),
             underline,
             strikethrough,
         }
@@ -111,7 +111,7 @@ where
 impl<C, F> Iterator for CharacterIterator<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     type Item = Pixel<C>;
 
@@ -154,13 +154,14 @@ mod test {
     use super::CharacterIterator;
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        style::TextStyleBuilder,
+        style::MonoTextStyleBuilder,
     };
 
     #[test]
     fn transparent_char() {
         let mut display = MockDisplay::new();
-        let style = TextStyleBuilder::new(Font6x8)
+        let style = MonoTextStyleBuilder::new()
+            .font(Font6x8)
             .background_color(BinaryColor::On)
             .build();
 
@@ -193,7 +194,8 @@ mod test {
     #[test]
     fn partial_draw() {
         let mut display = MockDisplay::new();
-        let style = TextStyleBuilder::new(Font6x8)
+        let style = MonoTextStyleBuilder::new()
+            .font(Font6x8)
             .background_color(BinaryColor::On)
             .build();
 

@@ -1,12 +1,12 @@
 //! Vertical overdraw options.
 use crate::rendering::cursor::Cursor;
 use core::ops::Range;
-use embedded_graphics::fonts::Font;
+use embedded_graphics::fonts::MonoFont;
 
 /// Implementors of this trait specify how drawing vertically outside the bounding box is handled.
 pub trait VerticalOverdraw: Copy {
     /// Calculate the range of rows of the current line that can be drawn.
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32>;
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32>;
 }
 
 /// Only render full rows of text.
@@ -14,7 +14,7 @@ pub trait VerticalOverdraw: Copy {
 pub struct FullRowsOnly;
 impl VerticalOverdraw for FullRowsOnly {
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
         if cursor.in_display_area() {
             0..F::CHARACTER_SIZE.height as i32
         } else {
@@ -28,7 +28,7 @@ impl VerticalOverdraw for FullRowsOnly {
 pub struct Hidden;
 impl VerticalOverdraw for Hidden {
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
         let offset_top = (cursor.bounds.top_left.y - cursor.position.y).max(0);
         // cursor bounds are one row shorter than real bounds for optimization
         // purposes so use the real height here
@@ -45,7 +45,7 @@ impl VerticalOverdraw for Hidden {
 pub struct Visible;
 impl VerticalOverdraw for Visible {
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(_: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(_: &Cursor<F>) -> Range<i32> {
         0..F::CHARACTER_SIZE.height as i32
     }
 }

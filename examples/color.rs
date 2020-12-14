@@ -11,7 +11,7 @@ fn main() {
     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 
     // Specify the styling options:
-    // * Use the 6x8 font from embedded-graphics.
+    // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text fully justified.
     // * Draw the text with cyan text color and a gray background color.
     let textbox_style = TextBoxStyleBuilder::new(Font6x8)

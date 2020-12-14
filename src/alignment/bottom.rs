@@ -18,7 +18,7 @@ impl VerticalTextAlignment for BottomAligned {
         styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
     ) where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {

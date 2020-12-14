@@ -50,7 +50,7 @@
 //!     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 //!
 //!     // Specify the styling options:
-//!     // * Use the 6x8 font from embedded-graphics.
+//!     // * Use the 6x8 MonoFont from embedded-graphics.
 //!     // * Draw the text horizontally left aligned (default option, not specified here).
 //!     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
 //!     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
@@ -133,7 +133,7 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use embedded_graphics::{
         primitives::Rectangle,
-        style::{TextStyle, TextStyleBuilder},
+        style::{MonoTextStyle, MonoTextStyleBuilder},
     };
 }
 
@@ -178,7 +178,7 @@ impl<'a> TextBox<'a> {
     ///
     /// In this example, we make a [`TextBox`] and give it all our available space as size.
     /// We create a [`TextBoxStyle`] object to set how our [`TextBox`] should be drawn.
-    ///  * Set the 6x8 font
+    ///  * Set the 6x8 MonoFont
     ///  * Set the text color to `BinaryColor::On`
     ///  * Leave the background color transparent
     ///  * Leave text alignment top/left
@@ -212,7 +212,7 @@ impl<'a> TextBox<'a> {
     ) -> StyledTextBox<'a, C, F, A, V, H>
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -265,7 +265,7 @@ impl Dimensions for TextBox<'_> {
 pub struct StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -282,7 +282,7 @@ where
 impl<C, F, A, V, H> StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -316,7 +316,7 @@ where
 impl<'a, C, F, A, V, H> Drawable for StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     StyledTextBox<'a, C, F, A, V, H>: RendererFactory<'a, C>,
@@ -333,7 +333,7 @@ where
 impl<C, F, A, V, H> Transform for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -358,7 +358,7 @@ where
 impl<C, F, A, V, H> Dimensions for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
