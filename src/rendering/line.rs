@@ -127,7 +127,8 @@ where
                 State::FetchNext => {
                     // HACK: avoid drawing the underline outside of the text box
                     let underlined = if self.style.underlined {
-                        self.inner.cursor.position.y < self.inner.cursor.bottom_right().y
+                        self.inner.cursor.position.y + self.display_range.end - 1
+                            < self.inner.cursor.bottom_right().y
                     } else {
                         false
                     };
@@ -392,6 +393,32 @@ mod test {
                 "#...#.#...#.#...#.#...........",
                 ".###...###..#...#..###........",
                 "..............................",
+            ],
+        );
+    }
+
+    #[test]
+    fn underline_just_inside_of_textbox() {
+        let style = TextBoxStyleBuilder::new(Font6x8)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .underlined(true)
+            .build();
+
+        test_rendered_text(
+            "s",
+            Rectangle::new(Point::zero(), Size::new(6, 9)),
+            style,
+            &[
+                "......             ",
+                "......             ",
+                ".####.             ",
+                "#.....             ",
+                ".###..             ",
+                "....#.             ",
+                "####..             ",
+                "......             ",
+                "######             ",
             ],
         );
     }

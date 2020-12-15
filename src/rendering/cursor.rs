@@ -1,7 +1,6 @@
 //! Cursor to track rendering position.
 use core::marker::PhantomData;
 use embedded_graphics::{fonts::MonoFont, geometry::Point};
-use embedded_graphics_core::prelude::Size;
 use embedded_graphics_core::primitives::Rectangle;
 
 /// Internal structure that keeps track of position information while rendering a [`TextBox`].
@@ -32,26 +31,21 @@ where
             _marker: PhantomData,
             position: bounds.top_left,
             line_spacing,
-            bounds: Rectangle::new(
-                bounds.top_left,
-                bounds
-                    .size
-                    .saturating_sub(Size::new(0, F::CHARACTER_SIZE.height)),
-            ),
+            bounds,
         }
     }
 
     /// Returns the coordinates of the bottom right corner.
     #[inline]
     pub fn bottom_right(&self) -> Point {
-        self.bounds.top_left + self.bounds.size
+        self.bounds.bottom_right().unwrap_or(self.bounds.top_left)
     }
 
     /// Returns the width of the textbox
     #[inline]
     #[must_use]
     pub fn line_width(&self) -> u32 {
-        (self.bottom_right().x - self.bounds.top_left.x) as u32
+        self.bounds.size.width
     }
 
     /// Starts a new line.
@@ -75,7 +69,8 @@ where
     #[inline]
     #[must_use]
     pub fn in_display_area(&self) -> bool {
-        self.bounds.top_left.y <= self.position.y && self.position.y <= self.bottom_right().y
+        self.bounds.top_left.y <= self.position.y
+            && self.position.y <= self.bottom_right().y - F::CHARACTER_SIZE.height as i32 + 1
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.
@@ -83,14 +78,14 @@ where
     #[must_use]
     pub fn fits_in_line(&self, width: u32) -> bool {
         let target = self.position.x + width as i32;
-        target <= self.bottom_right().x
+        target <= self.bottom_right().x + 1
     }
 
     /// Returns the amount of empty space in the line.
     #[inline]
     #[must_use]
     pub fn space(&self) -> u32 {
-        (self.bottom_right().x - self.position.x) as u32
+        (self.bottom_right().x - self.position.x + 1) as u32
     }
 
     /// Advances the cursor by a given amount.

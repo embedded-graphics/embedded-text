@@ -30,11 +30,9 @@ impl VerticalOverdraw for Hidden {
     #[inline]
     fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
         let offset_top = (cursor.bounds.top_left.y - cursor.position.y).max(0);
-        // cursor bounds are one row shorter than real bounds for optimization
-        // purposes so use the real height here
-        let offset_bottom = (cursor.bottom_right().y + F::CHARACTER_SIZE.height as i32
-            - cursor.position.y)
-            .min(F::CHARACTER_SIZE.height as i32);
+
+        let offset_bottom =
+            (cursor.bottom_right().y - cursor.position.y + 1).min(F::CHARACTER_SIZE.height as i32);
 
         offset_top..offset_bottom
     }
