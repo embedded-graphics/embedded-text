@@ -255,8 +255,7 @@ mod test {
         bounds: Rectangle,
         style: TextBoxStyle<C, F, A, V, H>,
         pattern: &[&str],
-    ) -> StyledLinePixelIterator<'a, C, F, UniformSpaceConfig<F>, A, V, H>
-    where
+    ) where
         C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping,
         F: MonoFont,
         A: HorizontalTextAlignment,
@@ -267,14 +266,12 @@ mod test {
         let config = UniformSpaceConfig::default();
 
         let cursor = Cursor::new(bounds, style.line_spacing);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
+        let iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
 
         display.assert_pattern(pattern);
-
-        iter
     }
 
     #[test]
@@ -284,7 +281,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut iter = test_rendered_text(
+        test_rendered_text(
             " Some sample text",
             Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
             style,
@@ -299,8 +296,6 @@ mod test {
                 "..............................",
             ],
         );
-        assert_eq!(Some(Token::Break(None)), iter.remaining_token());
-        assert_eq!(Some(Token::Word("sample")), iter.inner.parser.next());
     }
 
     #[test]
@@ -336,7 +331,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let iter = test_rendered_text(
+        test_rendered_text(
             "Some\u{A0}sample text",
             Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
             style,
@@ -351,7 +346,6 @@ mod test {
                 "..........................................",
             ],
         );
-        assert_eq!(Some(Token::Word("mple")), iter.remaining_token());
     }
 
     #[test]
@@ -361,7 +355,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let iter = test_rendered_text(
+        test_rendered_text(
             "Some sample text",
             Rectangle::new(Point::zero(), Size::new(6 * 2, 8)),
             style,
@@ -376,7 +370,6 @@ mod test {
                 "............",
             ],
         );
-        assert_eq!(Some(Token::Word("me")), iter.remaining_token());
     }
 
     #[test]
@@ -400,51 +393,6 @@ mod test {
                 ".###...###..#...#..###........",
                 "..............................",
             ],
-        );
-    }
-
-    #[test]
-    fn carried_over_spaces() {
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
-
-        let parser = Parser::parse("Some  sample text");
-        let config = UniformSpaceConfig::default();
-        let bounds = Rectangle::new(Point::zero(), Size::new(6 * 5, 8));
-        let cursor = Cursor::new(bounds, style.line_spacing);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
-        let mut display = MockDisplay::new();
-
-        iter.draw(&mut display).unwrap();
-
-        // eat one space, so one is rendered at the end of line and nothing in the next
-        assert_eq!(Some(Token::Break(None)), iter.remaining_token());
-
-        let mut iter = StyledLinePixelIterator::new(
-            iter.parser(),
-            cursor,
-            config,
-            style,
-            iter.remaining_token(),
-        );
-        let mut display = MockDisplay::new();
-
-        iter.draw(&mut display).unwrap();
-
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                ".........................##...",
-                "..........................#...",
-                ".####..###..##.#..####....#...",
-                "#.........#.#.#.#.#...#...#...",
-                ".###...####.#...#.#...#...#...",
-                "....#.#...#.#...#.####....#...",
-                "####...####.#...#.#......###..",
-                "..................#...........",
-            ])
         );
     }
 
