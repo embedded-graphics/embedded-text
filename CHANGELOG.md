@@ -3,6 +3,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Removed deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
  * ANSI sequence support now requires the `ansi` feature which is on by default.
  * Fields of the `style::color::Rgb` struct are now public.
 

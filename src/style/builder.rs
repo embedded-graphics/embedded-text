@@ -172,47 +172,6 @@ where
         }
     }
 
-    /// Copies properties from an existing text style object.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use embedded_text::prelude::*;
-    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, style::TextStyleBuilder};
-    ///
-    /// let text_style = TextStyleBuilder::new(Font6x8)
-    ///     .background_color(BinaryColor::On)
-    ///     .build();
-    ///
-    /// let style = TextBoxStyleBuilder::new(Font6x8)
-    ///     .text_style(text_style)
-    ///     .build();
-    /// ```
-    ///
-    /// This method has been deprecated and will be removed in a later release. Use
-    /// [`TextBoxStyleBuilder::from_text_style`] instead.
-    ///
-    /// [`TextBoxStyleBuilder::from_text_style`]: #method.from_text_style
-    #[inline]
-    #[must_use]
-    #[deprecated]
-    pub fn text_style(self, text_style: TextStyle<C, F>) -> Self {
-        let mut text_style_builder = self.text_style_builder;
-
-        if let Some(color) = text_style.background_color {
-            text_style_builder = text_style_builder.background_color(color);
-        }
-
-        if let Some(color) = text_style.text_color {
-            text_style_builder = text_style_builder.text_color(color);
-        }
-
-        Self {
-            text_style_builder,
-            ..self
-        }
-    }
-
     /// Sets the horizontal text alignment.
     #[inline]
     #[must_use]
@@ -321,27 +280,6 @@ mod test {
         pixelcolor::BinaryColor,
         style::{TextStyle, TextStyleBuilder},
     };
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_text_style_copy() {
-        let text_styles: [TextStyle<_, _>; 2] = [
-            TextStyleBuilder::new(Font6x8)
-                .text_color(BinaryColor::On)
-                .build(),
-            TextStyleBuilder::new(Font6x8)
-                .background_color(BinaryColor::On)
-                .build(),
-        ];
-
-        for &text_style in text_styles.iter() {
-            let style = TextBoxStyleBuilder::new(Font6x8)
-                .text_style(text_style)
-                .build();
-
-            assert_eq!(style.text_style, text_style);
-        }
-    }
 
     #[test]
     fn test_text_style_copy_ctr() {
