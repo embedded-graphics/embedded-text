@@ -105,7 +105,7 @@ mod test {
             .height_mode(Exact(Visible))
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::new(0, 2), Size::new(55, 6)))
+        TextBox::new("word", Rectangle::new(Point::new(0, 2), Size::new(55, 3)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
@@ -134,7 +134,7 @@ mod test {
             .height_mode(Exact(Hidden))
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::new(0, 2), Size::new(55, 6)))
+        TextBox::new("word", Rectangle::new(Point::new(0, 2), Size::new(55, 4)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
