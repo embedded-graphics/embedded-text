@@ -41,9 +41,6 @@ jobs:
     - name: Build
       run: cargo build --verbose
 
-    - name: Build no_std
-      run: cargo build --verbose --target thumbv7em-none-eabihf
-
     - name: Build examples
       run: cargo build --examples --verbose
 
