@@ -10,44 +10,90 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  ci:
+
+  formatting:
     runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: thumbv7em-none-eabihf
+        override: true
+        components: rustfmt
+
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+
+  build-nostd:
+    runs-on: ubuntu-latest
+
+    needs:
+    - formatting
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
+        target: thumbv7em-none-eabihf
+        override: true
+
+    - name: Build no_std
+      run: cargo build --verbose --target thumbv7em-none-eabihf -Z avoid-dev-deps
+
+  build:
+    runs-on: ubuntu-latest
+
+    needs:
+    - formatting
 
     strategy:
       matrix:
-        rust:
-          - stable
-          - beta
-          - nightly
-          - 1.41.0  # MSRV
+        include:
+          - name: stable
+            rust: stable
+
+          - name: beta
+            rust: beta
+
+          - name: nightly
+            rust: nightly
+
+          - name: msrv
+            rust: 1.41.0
 
     steps:
-    - name: install_dependencies
-      run: |
-        sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu `lsb_release -sc` main universe restricted multiverse"
-        sudo apt-get update -y -qq
-        sudo apt-get install libsdl2-dev imagemagick
-
     - uses: actions/checkout@v2
 
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: ${{ matrix.rust }}
-        target: thumbv7em-none-eabihf
         override: true
-        components: rustfmt, clippy
+        components: rustfmt
+
+    - name: Install dependencies
+      run: |
+        sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu `lsb_release -sc` main universe restricted multiverse"
+        sudo apt-get update -y -qq
+        sudo apt-get install libsdl2-dev imagemagick
 
     - name: Build
       run: cargo build --verbose
 
-    - name: Build examples
-      run: cargo build --examples --verbose
-
     - name: Run tests
       run: |
-        cargo test --verbose --release
-        cargo test --verbose --release --no-default-features
+        cargo test --verbose
+        cargo test --verbose --no-default-features
+
+    - name: Build examples
+      run: cargo build --examples --verbose
 
     - name: Check example images
       run: |
@@ -70,3 +116,21 @@ jobs:
         compare -metric AE ./assets/colored_text.png ./target/screenshots/colored_text.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/extra_styles.png" cargo run --example extra_styles
         compare -metric AE ./assets/extra_styles.png ./target/screenshots/extra_styles.png result.png
+
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: thumbv7em-none-eabihf
+        override: true
+    
+    - name: Check doc links
+      run: |
+        cargo install cargo-deadlinks
+        cargo deadlinks --ignore-fragments
