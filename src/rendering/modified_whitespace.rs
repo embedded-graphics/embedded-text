@@ -1,9 +1,7 @@
 //! Whitespace rendering modified for underlined/strikethrough text.
 
-use crate::utils::font_ext::FontExt;
-use crate::Rectangle;
-use core::marker::PhantomData;
-use core::ops::Range;
+use crate::{utils::font_ext::FontExt, Rectangle};
+use core::{marker::PhantomData, ops::Range};
 use embedded_graphics::{prelude::*, primitives::rectangle};
 use embedded_graphics_core::pixelcolor::BinaryColor;
 

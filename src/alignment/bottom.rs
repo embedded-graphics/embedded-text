@@ -42,8 +42,9 @@ mod test {
     use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{
-        alignment::BottomAligned, style::height_mode::Exact, style::vertical_overdraw::Visible,
-        style::TextBoxStyleBuilder, TextBox,
+        alignment::BottomAligned,
+        style::{height_mode::Exact, vertical_overdraw::Visible, TextBoxStyleBuilder},
+        TextBox,
     };
 
     #[test]

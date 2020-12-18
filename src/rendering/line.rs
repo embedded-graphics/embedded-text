@@ -12,10 +12,8 @@ use crate::{
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
 use core::ops::Range;
-use embedded_graphics::prelude::*;
-use embedded_graphics::{fonts::MonoFont, pixelcolor::BinaryColor};
-use embedded_graphics_core::primitives::rectangle;
-use embedded_graphics_core::primitives::Rectangle;
+use embedded_graphics::{fonts::MonoFont, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics_core::primitives::{rectangle, Rectangle};
 
 #[cfg(feature = "ansi")]
 use crate::rendering::ansi::Sgr;

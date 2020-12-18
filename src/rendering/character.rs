@@ -1,7 +1,6 @@
 //! Character rendering.
 use crate::utils::font_ext::FontExt;
-use core::marker::PhantomData;
-use core::ops::Range;
+use core::{marker::PhantomData, ops::Range};
 use embedded_graphics::prelude::*;
 use embedded_graphics_core::{
     pixelcolor::BinaryColor,
