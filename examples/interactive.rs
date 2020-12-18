@@ -102,7 +102,7 @@ where
 
         // Display the name of the horizontal alignment mode above the text box.
         let horizontal_alignment_text = format!("Alignment: {:?}", alignment);
-        Text::new(&horizontal_alignment_text, Point::zero())
+        Text::new(&horizontal_alignment_text, Point::new(0, 6))
             .into_styled(textbox_style.text_style)
             .draw(&mut display)
             .unwrap();

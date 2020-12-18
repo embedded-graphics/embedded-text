@@ -99,7 +99,7 @@ where
 
         // Display the name of the height mode above the text box.
         let height_text = format!("Mode: {:?}", height_mode);
-        Text::new(&height_text, Point::zero())
+        Text::new(&height_text, Point::new(0, 6))
             .into_styled(textbox_style.text_style)
             .draw(&mut display)
             .unwrap();

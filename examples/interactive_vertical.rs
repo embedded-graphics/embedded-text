@@ -99,7 +99,7 @@ where
 
         // Display the name of the vertical alignment mode above the text box.
         let vertical_alignment_text = format!("Vertical Alignment: {:?}", alignment);
-        Text::new(&vertical_alignment_text, Point::zero())
+        Text::new(&vertical_alignment_text, Point::new(0, 6))
             .into_styled(textbox_style.text_style)
             .draw(&mut display)
             .unwrap();
