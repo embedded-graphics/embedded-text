@@ -8,13 +8,14 @@ use crate::{
         line_iter::{LineElementIterator, RenderElement},
         modified_whitespace::ModifiedEmptySpaceIterator,
         space_config::*,
-        whitespace::EmptySpaceIterator,
     },
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
 use core::ops::Range;
-use embedded_graphics::fonts::MonoFont;
 use embedded_graphics::prelude::*;
+use embedded_graphics::{fonts::MonoFont, pixelcolor::BinaryColor};
+use embedded_graphics_core::primitives::rectangle;
+use embedded_graphics_core::primitives::Rectangle;
 
 #[cfg(feature = "ansi")]
 use crate::rendering::ansi::Sgr;
@@ -29,14 +30,14 @@ where
     /// Fetch next render element.
     FetchNext,
 
-    /// Render a character.
-    Char(CharacterIterator<C, F>),
+    /// Render a character at the given position.
+    Char(Point, CharacterIterator<F>),
 
-    /// Render a block of whitespace.
-    Space(EmptySpaceIterator<C, F>),
+    /// Render a block of whitespace at the given position.
+    Space(rectangle::Points, C),
 
-    /// Render a block of whitespace with underlined or strikethrough effect.
-    ModifiedSpace(ModifiedEmptySpaceIterator<C, F>),
+    /// Render a block of whitespace at the given position with underlined or strikethrough effect.
+    ModifiedSpace(Point, ModifiedEmptySpaceIterator<F>),
 }
 
 /// Pixel iterator to render a single line of styled text.
@@ -136,35 +137,44 @@ where
                     match self.inner.next() {
                         Some(RenderElement::PrintedCharacter(c)) => {
                             if self.is_anything_displayed() {
-                                self.state = State::Char(CharacterIterator::new(
-                                    c,
+                                self.state = State::Char(
                                     self.inner.pos,
-                                    self.style.text_style,
-                                    self.display_range.clone(),
-                                    underlined,
-                                    self.style.strikethrough,
-                                ));
+                                    CharacterIterator::new(
+                                        c,
+                                        self.display_range.clone(),
+                                        underlined,
+                                        self.style.strikethrough,
+                                    ),
+                                );
                             }
                         }
 
                         Some(RenderElement::Space(space_width, _)) => {
                             if self.is_anything_displayed() {
+                                let row_range = self.display_range.clone();
                                 self.state = if underlined || self.style.strikethrough {
-                                    State::ModifiedSpace(ModifiedEmptySpaceIterator::new(
-                                        space_width,
+                                    State::ModifiedSpace(
                                         self.inner.pos,
-                                        self.style.text_style,
-                                        self.display_range.clone(),
-                                        underlined,
-                                        self.style.strikethrough,
-                                    ))
+                                        ModifiedEmptySpaceIterator::new(
+                                            space_width,
+                                            row_range,
+                                            underlined,
+                                            self.style.strikethrough,
+                                        ),
+                                    )
+                                } else if let Some(color) = self.style.text_style.background_color {
+                                    let start = row_range.start;
+                                    let rows = row_range.count() as u32;
+                                    State::Space(
+                                        Rectangle::new(
+                                            self.inner.pos + Point::new(0, start),
+                                            Size::new(space_width, rows),
+                                        )
+                                        .points(),
+                                        color,
+                                    )
                                 } else {
-                                    State::Space(EmptySpaceIterator::new(
-                                        space_width,
-                                        self.inner.pos,
-                                        self.style.text_style,
-                                        self.display_range.clone(),
-                                    ))
+                                    State::FetchNext
                                 };
                             }
                         }
@@ -207,28 +217,40 @@ where
                     };
                 }
 
-                State::Char(ref mut iter) => {
-                    if let pixel @ Some(_) = iter.next() {
-                        break pixel;
+                State::Char(ref pos, ref mut iter) => {
+                    if let Some(Pixel(position, color)) = iter.next() {
+                        let color = match color {
+                            BinaryColor::Off => self.style.text_style.background_color,
+                            BinaryColor::On => self.style.text_style.text_color,
+                        };
+                        if let Some(color) = color {
+                            break Some(Pixel(position + *pos, color));
+                        }
+                    } else {
+                        self.state = State::FetchNext;
+                    }
+                }
+
+                State::Space(ref mut iter, color) => {
+                    if let Some(position) = iter.next() {
+                        break Some(Pixel(position, color));
                     }
 
                     self.state = State::FetchNext;
                 }
 
-                State::Space(ref mut iter) => {
-                    if let pixel @ Some(_) = iter.next() {
-                        break pixel;
+                State::ModifiedSpace(ref pos, ref mut iter) => {
+                    if let Some(Pixel(position, color)) = iter.next() {
+                        let color = match color {
+                            BinaryColor::Off => self.style.text_style.background_color,
+                            BinaryColor::On => self.style.text_style.text_color,
+                        };
+                        if let Some(color) = color {
+                            break Some(Pixel(position + *pos, color));
+                        }
+                    } else {
+                        self.state = State::FetchNext;
                     }
-
-                    self.state = State::FetchNext;
-                }
-
-                State::ModifiedSpace(ref mut iter) => {
-                    if let pixel @ Some(_) = iter.next() {
-                        break pixel;
-                    }
-
-                    self.state = State::FetchNext;
                 }
             }
         }

@@ -7,7 +7,6 @@ pub mod line;
 pub mod line_iter;
 pub mod modified_whitespace;
 pub mod space_config;
-pub mod whitespace;
 
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
