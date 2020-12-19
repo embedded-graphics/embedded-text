@@ -1,13 +1,12 @@
 //! Space rendering config
 
-use crate::utils::font_ext::FontExt;
 use core::marker::PhantomData;
-use embedded_graphics::fonts::Font;
+use embedded_graphics::fonts::MonoFont;
 
 /// Retrieves size of space characters.
 pub trait SpaceConfig: Copy + Default {
     /// The font for which this space config belongs.
-    type Font: Font;
+    type Font: MonoFont;
 
     /// Look at the size of next n spaces, without advancing.
     fn peek_next_width(&self, n: u32) -> u32;
@@ -27,22 +26,22 @@ pub struct UniformSpaceConfig<F> {
 
 impl<F> Default for UniformSpaceConfig<F>
 where
-    F: Font + Copy,
+    F: MonoFont,
 {
-    /// Creates a default space configuration object based on the current font.
+    /// Creates a default space configuration object based on the current MonoFont.
     #[inline]
     #[must_use]
     fn default() -> Self {
         Self {
             _font: PhantomData,
-            space_width: F::total_char_width(' '),
+            space_width: F::CHARACTER_SIZE.width + F::CHARACTER_SPACING,
         }
     }
 }
 
 impl<F> SpaceConfig for UniformSpaceConfig<F>
 where
-    F: Font + Copy,
+    F: MonoFont,
 {
     type Font = F;
 

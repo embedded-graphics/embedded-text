@@ -12,7 +12,9 @@ use embedded_graphics::{
     prelude::*,
     style::PrimitiveStyle,
 };
-use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
+use embedded_text::{
+    prelude::*, rendering::RendererFactory, style::vertical_overdraw::FullRowsOnly,
+};
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
@@ -59,11 +61,11 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
+fn demo_loop<'a, A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
 where
     A: HorizontalTextAlignment + core::fmt::Debug,
-    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact<FullRowsOnly>>:
-        Drawable<BinaryColor>,
+    StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact<FullRowsOnly>>:
+        RendererFactory<'a, BinaryColor>,
 {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
@@ -76,7 +78,7 @@ where
         let mut display = SimulatorDisplay::new(Size::new(255, 255));
 
         // Specify the styling options:
-        // * Use the 6x8 font from embedded-graphics.
+        // * Use the 6x8 MonoFont from embedded-graphics.
         // * Use the horizontal alignmnet mode that was given to the `demo_loop()` function.
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         let textbox_style = TextBoxStyleBuilder::new(Font6x8)
@@ -100,7 +102,7 @@ where
 
         // Display the name of the horizontal alignment mode above the text box.
         let horizontal_alignment_text = format!("Alignment: {:?}", alignment);
-        Text::new(&horizontal_alignment_text, Point::zero())
+        Text::new(&horizontal_alignment_text, Point::new(0, 6))
             .into_styled(textbox_style.text_style)
             .draw(&mut display)
             .unwrap();
@@ -111,7 +113,9 @@ where
         // Handle key and mouse events.
         for event in window.events() {
             match ProcessedEvent::new(event) {
-                ProcessedEvent::Resize(bottom_right) => bounds.bottom_right = bottom_right,
+                ProcessedEvent::Resize(bottom_right) => {
+                    *bounds = Rectangle::with_corners(bounds.top_left, bottom_right);
+                }
                 ProcessedEvent::Quit => return false,
                 ProcessedEvent::Next => return true,
                 ProcessedEvent::Nothing => {}
@@ -131,7 +135,7 @@ fn main() {
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
     // Specify the bounding box. Leave 8px of space above.
-    let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 200));
+    let mut bounds = Rectangle::new(Point::new(0, 8), Size::new(128, 200));
 
     'running: loop {
         if !demo_loop(&mut window, &mut bounds, Justified) {

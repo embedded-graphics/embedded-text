@@ -59,11 +59,9 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
+fn demo_loop<'a, H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
 where
     H: HeightMode + std::fmt::Debug,
-    for<'a> &'a StyledTextBox<'a, BinaryColor, Font6x8, LeftAligned, TopAligned, Exact<FullRowsOnly>>:
-        Drawable<BinaryColor>,
 {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
@@ -76,7 +74,7 @@ where
         let mut display = SimulatorDisplay::new(Size::new(255, 255));
 
         // Specify the styling options:
-        // * Use the 6x8 font from embedded-graphics.
+        // * Use the 6x8 MonoFont from embedded-graphics.
         // * Draw the text horizontally left aligned (default option, not specified here).
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         // * Use the height mode that was given to the `demo_loop()` function.
@@ -101,7 +99,7 @@ where
 
         // Display the name of the height mode above the text box.
         let height_text = format!("Mode: {:?}", height_mode);
-        Text::new(&height_text, Point::zero())
+        Text::new(&height_text, Point::new(0, 6))
             .into_styled(textbox_style.text_style)
             .draw(&mut display)
             .unwrap();
@@ -113,8 +111,7 @@ where
         for event in window.events() {
             match ProcessedEvent::new(event) {
                 ProcessedEvent::Resize(bottom_right) => {
-                    bounds.bottom_right.x = bottom_right.x.max(bounds.top_left.x);
-                    bounds.bottom_right.y = bottom_right.y.max(bounds.top_left.y);
+                    *bounds = Rectangle::with_corners(bounds.top_left, bottom_right);
                 }
                 ProcessedEvent::Quit => return false,
                 ProcessedEvent::Next => return true,
@@ -135,7 +132,7 @@ fn main() {
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
     // Specify the bounding box. Leave 8px of space above.
-    let mut bounds = Rectangle::new(Point::new(0, 8), Point::new(128, 200));
+    let mut bounds = Rectangle::new(Point::new(0, 8), Size::new(128, 200));
 
     'running: loop {
         if !demo_loop(&mut window, &mut bounds, Exact(FullRowsOnly)) {

@@ -35,8 +35,9 @@
 //!
 //! ```rust,no_run
 //! use embedded_graphics::{
-//!     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
+//!     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*,
 //! };
+//! use embedded_graphics_core::primitives::Rectangle;
 //! use embedded_graphics_simulator::{
 //!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 //! };
@@ -49,7 +50,7 @@
 //!     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 //!
 //!     // Specify the styling options:
-//!     // * Use the 6x8 font from embedded-graphics.
+//!     // * Use the 6x8 MonoFont from embedded-graphics.
 //!     // * Draw the text horizontally left aligned (default option, not specified here).
 //!     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
 //!     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
@@ -60,13 +61,13 @@
 //!
 //!     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
 //!     // measure and adjust the height of the text box in `into_styled()`.
-//!     let bounds = Rectangle::new(Point::zero(), Point::new(128, 0));
+//!     let bounds = Rectangle::new(Point::zero(), Size::new(128, 0));
 //!
 //!     // Create the text box and apply styling options.
 //!     let text_box = TextBox::new(text, bounds).into_styled(textbox_style);
 //!
 //!     // Create a simulated display with the dimensions of the text box.
-//!     let mut display = SimulatorDisplay::new(text_box.size());
+//!     let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
 //!
 //!     // Draw the text box.
 //!     text_box.draw(&mut display).unwrap();
@@ -109,10 +110,10 @@ pub mod style;
 pub mod utils;
 
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
-use embedded_graphics::{prelude::*, primitives::Rectangle};
+use embedded_graphics::prelude::*;
+use embedded_graphics_core::{primitives::Rectangle, Drawable};
 use rendering::RendererFactory;
 use style::{height_mode::HeightMode, TextBoxStyle};
-use utils::rect_ext::RectExt;
 
 /// Prelude.
 ///
@@ -132,7 +133,7 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use embedded_graphics::{
         primitives::Rectangle,
-        style::{TextStyle, TextStyleBuilder},
+        style::{MonoTextStyle, MonoTextStyleBuilder},
     };
 }
 
@@ -165,10 +166,7 @@ impl<'a> TextBox<'a> {
     #[inline]
     #[must_use]
     pub fn new(text: &'a str, bounds: Rectangle) -> Self {
-        Self {
-            text,
-            bounds: bounds.into_well_formed(),
-        }
+        Self { text, bounds }
     }
 
     /// Creates a [`StyledTextBox`] by attaching a [`TextBoxStyle`] to the `TextBox` object.
@@ -180,7 +178,7 @@ impl<'a> TextBox<'a> {
     ///
     /// In this example, we make a [`TextBox`] and give it all our available space as size.
     /// We create a [`TextBoxStyle`] object to set how our [`TextBox`] should be drawn.
-    ///  * Set the 6x8 font
+    ///  * Set the 6x8 MonoFont
     ///  * Set the text color to `BinaryColor::On`
     ///  * Leave the background color transparent
     ///  * Leave text alignment top/left
@@ -189,10 +187,11 @@ impl<'a> TextBox<'a> {
     /// ```rust
     /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
     /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+    /// use embedded_graphics_core::primitives::Rectangle;
     ///
     /// let text_box = TextBox::new(
     ///     "Two lines\nof text",
-    ///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+    ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
     /// );
     /// let style = TextBoxStyleBuilder::new(Font6x8)
     ///     .height_mode(ShrinkToText(FullRowsOnly))
@@ -200,7 +199,7 @@ impl<'a> TextBox<'a> {
     ///     .build();
     ///
     /// let styled_text_box = text_box.into_styled(style);
-    /// assert_eq!(16, styled_text_box.size().height);
+    /// assert_eq!(16, styled_text_box.bounding_box().size.height);
     /// ```
     ///
     /// [`HeightMode`]: style/height_mode/trait.HeightMode.html
@@ -213,7 +212,7 @@ impl<'a> TextBox<'a> {
     ) -> StyledTextBox<'a, C, F, A, V, H>
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -249,20 +248,8 @@ impl Transform for TextBox<'_> {
 impl Dimensions for TextBox<'_> {
     #[inline]
     #[must_use]
-    fn top_left(&self) -> Point {
-        self.bounds.top_left
-    }
-
-    #[inline]
-    #[must_use]
-    fn bottom_right(&self) -> Point {
-        self.bounds.bottom_right
-    }
-
-    #[inline]
-    #[must_use]
-    fn size(&self) -> Size {
-        RectExt::size(self.bounds)
+    fn bounding_box(&self) -> Rectangle {
+        self.bounds
     }
 }
 
@@ -278,7 +265,7 @@ impl Dimensions for TextBox<'_> {
 pub struct StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -295,7 +282,7 @@ where
 impl<C, F, A, V, H> StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -315,30 +302,30 @@ where
         // Measure text given the width of the textbox
         let text_height = self
             .style
-            .measure_text_height(self.text_box.text, self.text_box.size().width)
+            .measure_text_height(self.text_box.text, self.text_box.bounding_box().size.width)
             .min(max_height)
-            .min(i32::max_value() as u32) as i32;
+            .min(i32::max_value() as u32);
 
         // Apply height
-        let y = self.text_box.bounds.top_left.y;
-        let new_y = y.saturating_add(text_height - 1);
-        self.text_box.bounds.bottom_right.y = new_y;
+        self.text_box.bounds.size.height = text_height;
 
         self
     }
 }
 
-impl<'a, C, F, A, V, H> Drawable<C> for &'a StyledTextBox<'a, C, F, A, V, H>
+impl<'a, C, F, A, V, H> Drawable for StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     StyledTextBox<'a, C, F, A, V, H>: RendererFactory<'a, C>,
     H: HeightMode,
 {
+    type Color = C;
+
     #[inline]
-    fn draw<D: DrawTarget<C>>(self, display: &mut D) -> Result<(), D::Error> {
+    fn draw<D: DrawTarget<Color = C>>(&self, display: &mut D) -> Result<(), D::Error> {
         display.draw_iter(StyledTextBox::create_renderer(self))
     }
 }
@@ -346,7 +333,7 @@ where
 impl<C, F, A, V, H> Transform for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -371,26 +358,14 @@ where
 impl<C, F, A, V, H> Dimensions for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
     #[inline]
     #[must_use]
-    fn top_left(&self) -> Point {
-        self.text_box.bounds.top_left
-    }
-
-    #[inline]
-    #[must_use]
-    fn bottom_right(&self) -> Point {
-        self.text_box.bounds.bottom_right
-    }
-
-    #[inline]
-    #[must_use]
-    fn size(&self) -> Size {
-        self.text_box.size()
+    fn bounding_box(&self) -> Rectangle {
+        self.text_box.bounds
     }
 }

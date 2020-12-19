@@ -27,7 +27,7 @@ pub trait HeightMode: Copy {
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode;
@@ -37,7 +37,7 @@ pub trait HeightMode: Copy {
     /// If a line does not fully fit in the bounding box, some `HeightMode` options allow drawing
     /// partial lines. For a partial line, this function calculates, which rows of each character
     /// should be displayed.
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32>;
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32>;
 }
 
 /// Keep the original [`TextBox`] height.
@@ -47,21 +47,22 @@ pub trait HeightMode: Copy {
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 60px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
 /// // Exact does not change the size of the TextBox
-/// let orig_size = text_box.size();
-/// let size = text_box.into_styled(style).size();
+/// let orig_size = text_box.bounding_box().size;
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, orig_size);
 /// ```
 ///
@@ -77,7 +78,7 @@ where
     fn apply<C, F, A, V, H>(_text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -85,7 +86,7 @@ where
     }
 
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
         OV::calculate_displayed_row_range(cursor)
     }
 }
@@ -100,21 +101,22 @@ where
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 1px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 0)),
+///     Rectangle::new(Point::zero(), Size::new(60, 0)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .height_mode(FitToText)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
 /// // FitToText grows the TextBox to the height of the text
-/// let size = text_box.into_styled(style).size();
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, Size::new(60, 16));
 /// ```
 ///
@@ -123,21 +125,22 @@ where
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 1px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .height_mode(FitToText)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
 /// // FitToText shrinks the TextBox to the height of the text
-/// let size = text_box.into_styled(style).size();
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, Size::new(60, 16));
 /// ```
 ///
@@ -151,7 +154,7 @@ impl HeightMode for FitToText {
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -160,7 +163,7 @@ impl HeightMode for FitToText {
     }
 
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(_: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(_: &Cursor<F>) -> Range<i32> {
         // FitToText always sets the bounding box to the exact size of the text, so every row is
         // always fully displayed
         0..F::CHARACTER_SIZE.height as i32
@@ -175,21 +178,22 @@ impl HeightMode for FitToText {
 /// ```rust
 /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 1px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 0)),
+///     Rectangle::new(Point::zero(), Size::new(60, 0)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
-/// let size = text_box.into_styled(style).size();
-/// assert_eq!(size, Size::new(60, 1));
+/// let size = text_box.into_styled(style).bounding_box().size;
+/// assert_eq!(size, Size::new(60, 0));
 /// ```
 ///
 /// # Example: `ShrinkToText` shrinks the [`TextBox`].
@@ -197,20 +201,21 @@ impl HeightMode for FitToText {
 /// ```rust
 /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+/// use embedded_graphics_core::primitives::Rectangle;
 ///
 /// // This TextBox contains two lines of text, but is 60px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
-///     Rectangle::new(Point::zero(), Point::new(59, 59)),
+///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 /// );
 ///
-/// // Set style, use 6x8 font so the 2 lines are 16px high.
+/// // Set style, use 6x8 MonoFont so the 2 lines are 16px high.
 /// let style = TextBoxStyleBuilder::new(Font6x8)
 ///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
-/// let size = text_box.into_styled(style).size();
+/// let size = text_box.into_styled(style).bounding_box().size;
 /// assert_eq!(size, Size::new(60, 16));
 /// ```
 ///
@@ -226,16 +231,16 @@ where
     fn apply<C, F, A, V, H>(text_box: &mut StyledTextBox<'_, C, F, A, V, H>)
     where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        text_box.fit_height_limited(text_box.size().height);
+        text_box.fit_height_limited(text_box.bounding_box().size.height);
     }
 
     #[inline]
-    fn calculate_displayed_row_range<F: Font>(cursor: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
         OV::calculate_displayed_row_range(cursor)
     }
 }

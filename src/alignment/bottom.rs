@@ -18,7 +18,7 @@ impl VerticalTextAlignment for BottomAligned {
         styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
     ) where
         C: PixelColor,
-        F: Font + Copy,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
@@ -27,7 +27,7 @@ impl VerticalTextAlignment for BottomAligned {
             .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
             as i32;
 
-        let box_height = styled_text_box.size().height as i32;
+        let box_height = styled_text_box.bounding_box().size.height as i32;
         let offset = box_height - text_height;
 
         cursor.position.y += offset
@@ -38,12 +38,13 @@ impl VerticalTextAlignment for BottomAligned {
 mod test {
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{
-        alignment::BottomAligned, style::height_mode::Exact, style::vertical_overdraw::Visible,
-        style::TextBoxStyleBuilder, TextBox,
+        alignment::BottomAligned,
+        style::{height_mode::Exact, vertical_overdraw::Visible, TextBoxStyleBuilder},
+        TextBox,
     };
 
     #[test]
@@ -55,32 +56,29 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Point::new(54, 15)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(54, 16)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
 
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "                        ",
-                "......................#.",
-                "......................#.",
-                "#...#..###..#.##...##.#.",
-                "#...#.#...#.##..#.#..##.",
-                "#.#.#.#...#.#.....#...#.",
-                "#.#.#.#...#.#.....#...#.",
-                ".#.#...###..#......####.",
-                "........................",
-            ])
-        );
+        display.assert_pattern(&[
+            "                        ",
+            "                        ",
+            "                        ",
+            "                        ",
+            "                        ",
+            "                        ",
+            "                        ",
+            "                        ",
+            "......................#.",
+            "......................#.",
+            "#...#..###..#.##...##.#.",
+            "#...#.#...#.##..#.#..##.",
+            "#.#.#.#...#.#.....#...#.",
+            "#.#.#.#...#.#.....#...#.",
+            ".#.#...###..#......####.",
+            "........................",
+        ]);
     }
 
     #[test]
@@ -94,38 +92,37 @@ mod test {
 
         TextBox::new(
             "word1 word2 word3 word4",
-            Rectangle::new(Point::zero(), Point::new(30, 15)),
+            Rectangle::new(Point::zero(), Size::new(30, 16)),
         )
         .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                "......................#..###..",
-                "......................#.#...#.",
-                "#...#..###..#.##...##.#.....#.",
-                "#...#.#...#.##..#.#..##...##..",
-                "#.#.#.#...#.#.....#...#.....#.",
-                "#.#.#.#...#.#.....#...#.#...#.",
-                ".#.#...###..#......####..###..",
-                "..............................",
-                "......................#....#..",
-                "......................#...##..",
-                "#...#..###..#.##...##.#..#.#..",
-                "#...#.#...#.##..#.#..##.#..#..",
-                "#.#.#.#...#.#.....#...#.#####.",
-                "#.#.#.#...#.#.....#...#....#..",
-                ".#.#...###..#......####....#..",
-                "..............................",
-            ])
-        );
+        display.assert_pattern(&[
+            "......................#..###..",
+            "......................#.#...#.",
+            "#...#..###..#.##...##.#.....#.",
+            "#...#.#...#.##..#.#..##...##..",
+            "#.#.#.#...#.#.....#...#.....#.",
+            "#.#.#.#...#.#.....#...#.#...#.",
+            ".#.#...###..#......####..###..",
+            "..............................",
+            "......................#....#..",
+            "......................#...##..",
+            "#...#..###..#.##...##.#..#.#..",
+            "#...#.#...#.##..#.#..##.#..#..",
+            "#.#.#.#...#.#.....#...#.#####.",
+            "#.#.#.#...#.#.....#...#....#..",
+            ".#.#...###..#......####....#..",
+            "..............................",
+        ]);
     }
 
     #[test]
     fn test_bottom_alignment_tall_text_with_line_spacing() {
         let mut display = MockDisplay::new();
+        display.set_allow_out_of_bounds_drawing(true);
+
         let style = TextBoxStyleBuilder::new(Font6x8)
             .vertical_alignment(BottomAligned)
             .text_color(BinaryColor::On)
@@ -136,32 +133,29 @@ mod test {
 
         TextBox::new(
             "word1 word2 word3 word4",
-            Rectangle::new(Point::zero(), Point::new(30, 15)),
+            Rectangle::new(Point::zero(), Size::new(30, 16)),
         )
         .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                "#...#..###..#.##...##.#.....#.",
-                "#...#.#...#.##..#.#..##...##..",
-                "#.#.#.#...#.#.....#...#.....#.",
-                "#.#.#.#...#.#.....#...#.#...#.",
-                ".#.#...###..#......####..###..",
-                "..............................",
-                "                              ",
-                "                              ",
-                "......................#....#..",
-                "......................#...##..",
-                "#...#..###..#.##...##.#..#.#..",
-                "#...#.#...#.##..#.#..##.#..#..",
-                "#.#.#.#...#.#.....#...#.#####.",
-                "#.#.#.#...#.#.....#...#....#..",
-                ".#.#...###..#......####....#..",
-                "..............................",
-            ])
-        );
+        display.assert_pattern(&[
+            "#...#..###..#.##...##.#.....#.",
+            "#...#.#...#.##..#.#..##...##..",
+            "#.#.#.#...#.#.....#...#.....#.",
+            "#.#.#.#...#.#.....#...#.#...#.",
+            ".#.#...###..#......####..###..",
+            "..............................",
+            "                              ",
+            "                              ",
+            "......................#....#..",
+            "......................#...##..",
+            "#...#..###..#.##...##.#..#.#..",
+            "#...#.#...#.##..#.#..##.#..#..",
+            "#.#.#.#...#.#.....#...#.#####.",
+            "#.#.#.#...#.#.....#...#....#..",
+            ".#.#...###..#......####....#..",
+            "..............................",
+        ]);
     }
 }

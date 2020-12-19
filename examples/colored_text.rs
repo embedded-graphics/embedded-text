@@ -30,7 +30,7 @@ fn main() {
     );
 
     // Specify the styling options:
-    // * Use the 6x8 font from embedded-graphics.
+    // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Draw the text with black, which will be overridden by in-line styling.
     // * Use 2px line spacing because we'll draw underlines.
@@ -40,13 +40,13 @@ fn main() {
         .build();
 
     // Specify the bounding box.
-    let bounds = Rectangle::new(Point::zero(), Point::new(240, 96));
+    let bounds = Rectangle::new(Point::zero(), Size::new(241, 97));
 
     // Create the text box and apply styling options.
     let text_box = TextBox::new(&text, bounds).into_styled(textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
-    let mut display = SimulatorDisplay::new(text_box.size());
+    let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
 
     // Draw the text box.
     text_box.draw(&mut display).unwrap();

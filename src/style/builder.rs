@@ -9,7 +9,7 @@ use crate::{
 };
 use embedded_graphics::{
     prelude::*,
-    style::{TextStyle, TextStyleBuilder},
+    style::{MonoTextStyle, MonoTextStyleBuilder},
 };
 
 /// [`TextBoxStyle`] builder object.
@@ -19,9 +19,9 @@ use embedded_graphics::{
 pub struct TextBoxStyleBuilder<C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
-    text_style_builder: TextStyleBuilder<C, F>,
+    text_style_builder: MonoTextStyleBuilder<C, F>,
     alignment: A,
     vertical_alignment: V,
     height_mode: H,
@@ -34,9 +34,9 @@ where
 impl<C, F> TextBoxStyleBuilder<C, F, LeftAligned, TopAligned, Exact<FullRowsOnly>>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
-    /// Creates a new `TextBoxStyleBuilder` with a given font.
+    /// Creates a new `TextBoxStyleBuilder` with a given MonoFont.
     ///
     /// Default settings are:
     ///  - [`LeftAligned`]
@@ -49,7 +49,7 @@ where
     #[must_use]
     pub fn new(font: F) -> Self {
         Self {
-            text_style_builder: TextStyleBuilder::new(font),
+            text_style_builder: MonoTextStyleBuilder::new().font(font),
             alignment: LeftAligned,
             vertical_alignment: TopAligned,
             height_mode: Exact(FullRowsOnly),
@@ -60,15 +60,16 @@ where
         }
     }
 
-    /// Creates a `TextBoxStyleBuilder` from existing `TextStyle` object.
+    /// Creates a `TextBoxStyleBuilder` from existing `MonoTextStyle` object.
     ///
     /// # Example
     ///
     /// ```rust
     /// use embedded_text::prelude::*;
-    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, style::TextStyleBuilder};
+    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, style::MonoTextStyleBuilder};
     ///
-    /// let text_style = TextStyleBuilder::new(Font6x8)
+    /// let text_style = MonoTextStyleBuilder::new()
+    ///     .font(Font6x8)
     ///     .background_color(BinaryColor::On)
     ///     .build();
     ///
@@ -77,8 +78,8 @@ where
     /// ```
     #[inline]
     #[must_use]
-    pub fn from_text_style(text_style: TextStyle<C, F>) -> Self {
-        let mut text_style_builder = TextStyleBuilder::new(text_style.font);
+    pub fn from_text_style(text_style: MonoTextStyle<C, F>) -> Self {
+        let mut text_style_builder = MonoTextStyleBuilder::new().font(text_style.font);
 
         if let Some(color) = text_style.background_color {
             text_style_builder = text_style_builder.background_color(color);
@@ -98,7 +99,7 @@ where
 impl<C, F, A, V, H> TextBoxStyleBuilder<C, F, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -168,6 +169,48 @@ where
     pub fn background_color(self, background_color: C) -> Self {
         Self {
             text_style_builder: self.text_style_builder.background_color(background_color),
+            ..self
+        }
+    }
+
+    /// Copies properties from an existing text style object.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use embedded_text::prelude::*;
+    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, style::MonoTextStyleBuilder};
+    ///
+    /// let text_style = MonoTextStyleBuilder::new()
+    ///     .font(Font6x8)
+    ///     .background_color(BinaryColor::On)
+    ///     .build();
+    ///
+    /// let style = TextBoxStyleBuilder::new(Font6x8)
+    ///     .text_style(text_style)
+    ///     .build();
+    /// ```
+    ///
+    /// This method has been deprecated and will be removed in a later release. Use
+    /// [`TextBoxStyleBuilder::from_text_style`] instead.
+    ///
+    /// [`TextBoxStyleBuilder::from_text_style`]: #method.from_text_style
+    #[inline]
+    #[must_use]
+    #[deprecated]
+    pub fn text_style(self, text_style: MonoTextStyle<C, F>) -> Self {
+        let mut text_style_builder = self.text_style_builder;
+
+        if let Some(color) = text_style.background_color {
+            text_style_builder = text_style_builder.background_color(color);
+        }
+
+        if let Some(color) = text_style.text_color {
+            text_style_builder = text_style_builder.text_color(color);
+        }
+
+        Self {
+            text_style_builder,
             ..self
         }
     }
@@ -278,16 +321,41 @@ mod test {
     use embedded_graphics::{
         fonts::Font6x8,
         pixelcolor::BinaryColor,
-        style::{TextStyle, TextStyleBuilder},
+        style::{MonoTextStyle, MonoTextStyleBuilder},
     };
 
     #[test]
-    fn test_text_style_copy_ctr() {
-        let text_styles: [TextStyle<_, _>; 2] = [
-            TextStyleBuilder::new(Font6x8)
+    #[allow(deprecated)]
+    fn test_text_style_copy() {
+        let text_styles: [MonoTextStyle<_, _>; 2] = [
+            MonoTextStyleBuilder::new()
+                .font(Font6x8)
                 .text_color(BinaryColor::On)
                 .build(),
-            TextStyleBuilder::new(Font6x8)
+            MonoTextStyleBuilder::new()
+                .font(Font6x8)
+                .background_color(BinaryColor::On)
+                .build(),
+        ];
+
+        for &text_style in text_styles.iter() {
+            let style = TextBoxStyleBuilder::new(Font6x8)
+                .text_style(text_style)
+                .build();
+
+            assert_eq!(style.text_style, text_style);
+        }
+    }
+
+    #[test]
+    fn test_text_style_copy_ctr() {
+        let text_styles: [MonoTextStyle<_, _>; 2] = [
+            MonoTextStyleBuilder::new()
+                .font(Font6x8)
+                .text_color(BinaryColor::On)
+                .build(),
+            MonoTextStyleBuilder::new()
+                .font(Font6x8)
                 .background_color(BinaryColor::On)
                 .build(),
         ];

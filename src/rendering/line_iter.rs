@@ -64,7 +64,7 @@ pub struct LineElementIterator<'a, F, SP, A> {
 
 impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
 where
-    F: Font + Copy,
+    F: MonoFont,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
@@ -159,8 +159,8 @@ where
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                 }
 
-                Some(Token::Break(Some(c))) => {
-                    let w = F::total_char_width(c);
+                Some(Token::Break(Some(_))) => {
+                    let w = F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                     break 'lookahead;
                 }
@@ -190,7 +190,7 @@ where
 
 impl<F, SP, A> Iterator for LineElementIterator<'_, F, SP, A>
 where
-    F: Font + Copy,
+    F: MonoFont,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
 {
@@ -278,7 +278,10 @@ where
                             } else if let Some(c) = c {
                                 // If a Break contains a character, display it if the next
                                 // Word token does not fit the line.
-                                if self.cursor.advance(F::total_char_width(c)) {
+                                if self
+                                    .cursor
+                                    .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
+                                {
                                     self.finish_wrapped();
                                     break Some(RenderElement::PrintedCharacter(c));
                                 } else {
@@ -292,7 +295,10 @@ where
                         }
 
                         Token::ExtraCharacter(c) => {
-                            if self.cursor.advance(F::total_char_width(c)) {
+                            if self
+                                .cursor
+                                .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
+                            {
                                 self.next_token();
                                 break Some(RenderElement::PrintedCharacter(c));
                             }
@@ -342,7 +348,7 @@ where
                                 }
 
                                 AnsiSequence::CursorForward(n) => {
-                                    let delta = n * F::total_char_width(' ');
+                                    let delta = n * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
                                     let width = if self.cursor.advance(delta) {
                                         delta
                                     } else {
@@ -354,7 +360,7 @@ where
                                 }
 
                                 AnsiSequence::CursorBackward(n) => {
-                                    let delta = n * F::total_char_width(' ');
+                                    let delta = n * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
                                     if !self.cursor.rewind(delta) {
                                         self.cursor.carriage_return();
                                     }
@@ -390,7 +396,10 @@ where
                                     ret_val = Some(RenderElement::Space(sp_width, 1));
                                     self.config.consume(1); // we have peeked the value, consume it
                                 }
-                            } else if self.cursor.advance(F::total_char_width(c)) {
+                            } else if self
+                                .cursor
+                                .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
+                            {
                                 ret_val = Some(RenderElement::PrintedCharacter(c));
                             }
 
@@ -427,7 +436,7 @@ mod test {
     use super::*;
     use crate::alignment::LeftAligned;
     use embedded_graphics::fonts::Font6x8;
-    use embedded_graphics::primitives::Rectangle;
+    use embedded_graphics_core::primitives::Rectangle;
 
     pub fn collect_mut<I: Iterator<Item = T>, T>(iter: &mut I) -> Vec<T> {
         let mut v = Vec::new();
@@ -441,7 +450,7 @@ mod test {
         let parser = Parser::parse("sam\u{00AD}ple");
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 6 - 1, 8)), 0);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6, 8)), 0);
 
         let iter: LineElementIterator<'_, _, _, LeftAligned> =
             LineElementIterator::new(parser, cursor, config, None, TabSize::default());
@@ -464,7 +473,7 @@ mod test {
         let parser = Parser::parse("sam\u{00AD}ple");
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 6 - 2, 16)), 0);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6 - 1, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
             LineElementIterator::new(parser, cursor, config, None, TabSize::default());
@@ -506,7 +515,7 @@ mod test {
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(5 * 6 - 1, 16)), 0);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(5 * 6, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
             LineElementIterator::new(parser, cursor, config, None, TabSize::default());
@@ -554,7 +563,7 @@ mod test {
         let cursor = Cursor::new(
             Rectangle::new(
                 Point::zero(),
-                Point::new(text.chars().count() as i32 * 6 - 1, 16),
+                Size::new(text.chars().count() as u32 * 6, 16),
             ),
             0,
         );
@@ -586,7 +595,7 @@ mod test {
         let parser = Parser::parse(text);
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(16 * 6 - 1, 16)), 0);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(16 * 6, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
             LineElementIterator::new(parser, cursor, config, None, TabSize::default());
@@ -638,7 +647,7 @@ mod ansi_parser_tests {
     use super::{test::collect_mut, *};
     use crate::{alignment::LeftAligned, style::color::Rgb};
     use embedded_graphics::fonts::Font6x8;
-    use embedded_graphics::primitives::Rectangle;
+    use embedded_graphics_core::primitives::Rectangle;
 
     #[test]
     fn colors() {
@@ -646,10 +655,7 @@ mod ansi_parser_tests {
         let parser = Parser::parse(text);
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(
-            Rectangle::new(Point::zero(), Point::new(100 * 6 - 1, 16)),
-            0,
-        );
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(100 * 6, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
             LineElementIterator::new(parser, cursor, config, None, TabSize::default());
@@ -679,7 +685,7 @@ mod ansi_parser_tests {
         let parser = Parser::parse(text);
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(8 * 6 - 1, 16)), 0);
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(8 * 6, 16)), 0);
 
         let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
             LineElementIterator::new(parser, cursor, config, None, TabSize::default());

@@ -7,7 +7,6 @@ pub mod line;
 pub mod line_iter;
 pub mod modified_whitespace;
 pub mod space_config;
-pub mod whitespace;
 
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
@@ -23,7 +22,7 @@ use embedded_graphics::prelude::*;
 pub enum State<'a, C, F, SP, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     /// Starts processing a line.
     NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
@@ -55,7 +54,7 @@ type LineIteratorSource<'a, C, F, A, V, H, SP> =
 pub struct StyledTextBoxIterator<'a, C, F, A, V, H, SP>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     style: TextBoxStyle<C, F, A, V, H>,
     state: State<'a, C, F, SP, A, V, H>,
@@ -65,7 +64,7 @@ where
 impl<'a, C, F, A, V, H, SP> StyledTextBoxIterator<'a, C, F, A, V, H, SP>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -95,7 +94,7 @@ where
 impl<'a, C, F, A, V, H, SP> Iterator for StyledTextBoxIterator<'a, C, F, A, V, H, SP>
 where
     C: PixelColor + From<Rgb>,
-    F: Font + Copy,
+    F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,

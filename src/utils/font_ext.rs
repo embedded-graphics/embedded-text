@@ -1,13 +1,10 @@
 //! Font helper extensions.
 //!
 //! Extends font types with some helper methods.
-use embedded_graphics::fonts::Font;
+use embedded_graphics::fonts::MonoFont;
 
-/// `Font` extensions
+/// `MonoFont` extensions
 pub trait FontExt {
-    /// Returns the total width of the character plus the character spacing.
-    fn total_char_width(c: char) -> u32;
-
     /// This function is identical to [`str_width`] except it does **not** handle carriage
     /// return characters.
     ///
@@ -26,31 +23,17 @@ pub trait FontExt {
 
 impl<F> FontExt for F
 where
-    F: Font,
+    F: MonoFont,
 {
     #[inline]
-    fn total_char_width(c: char) -> u32 {
-        if c == '\u{A0}' {
-            // A non-breaking space is as wide as a regular one
-            return F::char_width(' ') + F::CHARACTER_SPACING;
-        }
-        F::char_width(c) + F::CHARACTER_SPACING
-    }
-
-    #[inline]
     fn str_width_nocr(s: &str) -> u32 {
-        let mut current_width = 0;
-        for c in s.chars() {
-            current_width += F::total_char_width(c);
-        }
-
-        current_width
+        s.chars().count() as u32 * (F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
     }
 
     #[inline]
     #[must_use]
     fn max_space_width(n: u32, max_width: u32) -> (u32, u32) {
-        let space_width = F::total_char_width(' ');
+        let space_width = F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
         let num_spaces = (max_width / space_width).min(n);
 
         (num_spaces * space_width, num_spaces)
@@ -65,19 +48,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use embedded_graphics::fonts::{Font6x6, Font6x8};
-
-    #[test]
-    fn nbsp_width_equal_to_space() {
-        assert_eq!(
-            Font6x8::total_char_width('\u{A0}'),
-            Font6x8::total_char_width(' ')
-        );
-        assert_eq!(
-            Font6x6::total_char_width('\u{A0}'),
-            Font6x6::total_char_width(' ')
-        );
-    }
+    use embedded_graphics::fonts::Font6x8;
 
     #[test]
     fn test_max_space_width() {

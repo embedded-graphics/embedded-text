@@ -8,12 +8,12 @@ use crate::{
         line_iter::{LineElementIterator, RenderElement},
         modified_whitespace::ModifiedEmptySpaceIterator,
         space_config::*,
-        whitespace::EmptySpaceIterator,
     },
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
 use core::ops::Range;
-use embedded_graphics::prelude::*;
+use embedded_graphics::{fonts::MonoFont, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics_core::primitives::{rectangle, Rectangle};
 
 #[cfg(feature = "ansi")]
 use crate::rendering::ansi::Sgr;
@@ -23,19 +23,19 @@ use crate::rendering::ansi::Sgr;
 enum State<C, F>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     /// Fetch next render element.
     FetchNext,
 
-    /// Render a character.
-    Char(CharacterIterator<C, F>),
+    /// Render a character at the given position.
+    Char(Point, CharacterIterator<F>),
 
-    /// Render a block of whitespace.
-    Space(EmptySpaceIterator<C, F>),
+    /// Render a block of whitespace at the given position.
+    Space(rectangle::Points, C),
 
-    /// Render a block of whitespace with underlined or strikethrough effect.
-    ModifiedSpace(ModifiedEmptySpaceIterator<C, F>),
+    /// Render a block of whitespace at the given position with underlined or strikethrough effect.
+    ModifiedSpace(Point, ModifiedEmptySpaceIterator<F>),
 }
 
 /// Pixel iterator to render a single line of styled text.
@@ -43,7 +43,7 @@ where
 pub struct StyledLinePixelIterator<'a, C, F, SP, A, V, H>
 where
     C: PixelColor,
-    F: Font + Copy,
+    F: MonoFont,
 {
     state: State<C, F>,
     pub(crate) style: TextBoxStyle<C, F, A, V, H>,
@@ -54,7 +54,7 @@ where
 impl<'a, C, F, SP, A, V, H> StyledLinePixelIterator<'a, C, F, SP, A, V, H>
 where
     C: PixelColor + From<Rgb>,
-    F: Font + Copy,
+    F: MonoFont,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
@@ -110,7 +110,7 @@ where
 impl<C, F, SP, A, V, H> Iterator for StyledLinePixelIterator<'_, C, F, SP, A, V, H>
 where
     C: PixelColor + From<Rgb>,
-    F: Font + Copy,
+    F: MonoFont,
     SP: SpaceConfig<Font = F>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
@@ -126,7 +126,8 @@ where
                 State::FetchNext => {
                     // HACK: avoid drawing the underline outside of the text box
                     let underlined = if self.style.underlined {
-                        self.inner.cursor.position.y < self.inner.cursor.bounds.bottom_right.y
+                        self.inner.cursor.position.y + self.display_range.end - 1
+                            < self.inner.cursor.bottom_right().y
                     } else {
                         false
                     };
@@ -134,35 +135,44 @@ where
                     match self.inner.next() {
                         Some(RenderElement::PrintedCharacter(c)) => {
                             if self.is_anything_displayed() {
-                                self.state = State::Char(CharacterIterator::new(
-                                    c,
+                                self.state = State::Char(
                                     self.inner.pos,
-                                    self.style.text_style,
-                                    self.display_range.clone(),
-                                    underlined,
-                                    self.style.strikethrough,
-                                ));
+                                    CharacterIterator::new(
+                                        c,
+                                        self.display_range.clone(),
+                                        underlined,
+                                        self.style.strikethrough,
+                                    ),
+                                );
                             }
                         }
 
                         Some(RenderElement::Space(space_width, _)) => {
                             if self.is_anything_displayed() {
+                                let row_range = self.display_range.clone();
                                 self.state = if underlined || self.style.strikethrough {
-                                    State::ModifiedSpace(ModifiedEmptySpaceIterator::new(
-                                        space_width,
+                                    State::ModifiedSpace(
                                         self.inner.pos,
-                                        self.style.text_style,
-                                        self.display_range.clone(),
-                                        underlined,
-                                        self.style.strikethrough,
-                                    ))
+                                        ModifiedEmptySpaceIterator::new(
+                                            space_width,
+                                            row_range,
+                                            underlined,
+                                            self.style.strikethrough,
+                                        ),
+                                    )
+                                } else if let Some(color) = self.style.text_style.background_color {
+                                    let start = row_range.start;
+                                    let rows = row_range.count() as u32;
+                                    State::Space(
+                                        Rectangle::new(
+                                            self.inner.pos + Point::new(0, start),
+                                            Size::new(space_width, rows),
+                                        )
+                                        .points(),
+                                        color,
+                                    )
                                 } else {
-                                    State::Space(EmptySpaceIterator::new(
-                                        space_width,
-                                        self.inner.pos,
-                                        self.style.text_style,
-                                        self.display_range.clone(),
-                                    ))
+                                    State::FetchNext
                                 };
                             }
                         }
@@ -205,28 +215,40 @@ where
                     };
                 }
 
-                State::Char(ref mut iter) => {
-                    if let pixel @ Some(_) = iter.next() {
-                        break pixel;
+                State::Char(ref pos, ref mut iter) => {
+                    if let Some(Pixel(position, color)) = iter.next() {
+                        let color = match color {
+                            BinaryColor::Off => self.style.text_style.background_color,
+                            BinaryColor::On => self.style.text_style.text_color,
+                        };
+                        if let Some(color) = color {
+                            break Some(Pixel(position + *pos, color));
+                        }
+                    } else {
+                        self.state = State::FetchNext;
+                    }
+                }
+
+                State::Space(ref mut iter, color) => {
+                    if let Some(position) = iter.next() {
+                        break Some(Pixel(position, color));
                     }
 
                     self.state = State::FetchNext;
                 }
 
-                State::Space(ref mut iter) => {
-                    if let pixel @ Some(_) = iter.next() {
-                        break pixel;
+                State::ModifiedSpace(ref pos, ref mut iter) => {
+                    if let Some(Pixel(position, color)) = iter.next() {
+                        let color = match color {
+                            BinaryColor::Off => self.style.text_style.background_color,
+                            BinaryColor::On => self.style.text_style.text_color,
+                        };
+                        if let Some(color) = color {
+                            break Some(Pixel(position + *pos, color));
+                        }
+                    } else {
+                        self.state = State::FetchNext;
                     }
-
-                    self.state = State::FetchNext;
-                }
-
-                State::ModifiedSpace(ref mut iter) => {
-                    if let pixel @ Some(_) = iter.next() {
-                        break pixel;
-                    }
-
-                    self.state = State::FetchNext;
                 }
             }
         }
@@ -246,18 +268,17 @@ mod test {
     };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     fn test_rendered_text<'a, C, F, A, V, H>(
         text: &'a str,
         bounds: Rectangle,
         style: TextBoxStyle<C, F, A, V, H>,
         pattern: &[&str],
-    ) -> StyledLinePixelIterator<'a, C, F, UniformSpaceConfig<F>, A, V, H>
-    where
-        C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping<C>,
-        F: Font + Copy,
+    ) where
+        C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping,
+        F: MonoFont,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -266,14 +287,12 @@ mod test {
         let config = UniformSpaceConfig::default();
 
         let cursor = Cursor::new(bounds, style.line_spacing);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
+        let iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
 
-        assert_eq!(display, MockDisplay::from_pattern(pattern));
-
-        iter
+        display.assert_pattern(pattern);
     }
 
     #[test]
@@ -283,9 +302,9 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut iter = test_rendered_text(
+        test_rendered_text(
             " Some sample text",
-            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)),
+            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
             style,
             &[
                 ".......###....................",
@@ -298,8 +317,6 @@ mod test {
                 "..............................",
             ],
         );
-        assert_eq!(Some(Token::Break(None)), iter.remaining_token());
-        assert_eq!(Some(Token::Word("sample")), iter.inner.parser.next());
     }
 
     #[test]
@@ -312,7 +329,7 @@ mod test {
             .build();
 
         let mut cursor = Cursor::new(
-            Rectangle::new(Point::new(0, 8), Point::new(6 * 7 - 1, 16)),
+            Rectangle::new(Point::new(0, 8), Size::new(6 * 7, 16)),
             style.line_spacing,
         );
         cursor.position.y -= 8;
@@ -335,9 +352,9 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let iter = test_rendered_text(
+        test_rendered_text(
             "Some\u{A0}sample text",
-            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 8)),
+            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
             style,
             &[
                 ".###......................................",
@@ -350,7 +367,6 @@ mod test {
                 "..........................................",
             ],
         );
-        assert_eq!(Some(Token::Word("mple")), iter.remaining_token());
     }
 
     #[test]
@@ -360,9 +376,9 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let iter = test_rendered_text(
+        test_rendered_text(
             "Some sample text",
-            Rectangle::new(Point::zero(), Point::new(6 * 2 - 1, 7)),
+            Rectangle::new(Point::zero(), Size::new(6 * 2, 8)),
             style,
             &[
                 ".###........",
@@ -375,7 +391,6 @@ mod test {
                 "............",
             ],
         );
-        assert_eq!(Some(Token::Word("me")), iter.remaining_token());
     }
 
     #[test]
@@ -387,7 +402,7 @@ mod test {
 
         test_rendered_text(
             "Some \nsample text",
-            Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)),
+            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
             style,
             &[
                 ".###..........................",
@@ -403,47 +418,28 @@ mod test {
     }
 
     #[test]
-    fn carried_over_spaces() {
+    fn underline_just_inside_of_textbox() {
         let style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
+            .underlined(true)
             .build();
 
-        let parser = Parser::parse("Some  sample text");
-        let config = UniformSpaceConfig::default();
-        let bounds = Rectangle::new(Point::zero(), Point::new(6 * 5 - 1, 7));
-        let cursor = Cursor::new(bounds, style.line_spacing);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
-        let mut display = MockDisplay::new();
-
-        iter.draw(&mut display).unwrap();
-
-        // eat one space, so one is rendered at the end of line and nothing in the next
-        assert_eq!(Some(Token::Break(None)), iter.remaining_token());
-
-        let mut iter = StyledLinePixelIterator::new(
-            iter.parser(),
-            cursor,
-            config,
+        test_rendered_text(
+            "s",
+            Rectangle::new(Point::zero(), Size::new(6, 9)),
             style,
-            iter.remaining_token(),
-        );
-        let mut display = MockDisplay::new();
-
-        iter.draw(&mut display).unwrap();
-
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                ".........................##...",
-                "..........................#...",
-                ".####..###..##.#..####....#...",
-                "#.........#.#.#.#.#...#...#...",
-                ".###...####.#...#.#...#...#...",
-                "....#.#...#.#...#.####....#...",
-                "####...####.#...#.#......###..",
-                "..................#...........",
-            ])
+            &[
+                "......             ",
+                "......             ",
+                ".####.             ",
+                "#.....             ",
+                ".###..             ",
+                "....#.             ",
+                "####..             ",
+                "......             ",
+                "######             ",
+            ],
         );
     }
 
@@ -457,7 +453,7 @@ mod test {
 
         test_rendered_text(
             "s",
-            Rectangle::new(Point::zero(), Point::new(6 - 1, 7)),
+            Rectangle::new(Point::zero(), Size::new(6, 8)),
             style,
             &[
                 "......             ",
@@ -485,11 +481,14 @@ mod ansi_parser_tests {
     };
     use embedded_graphics::{
         fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
-        primitives::Rectangle,
     };
+    use embedded_graphics_core::primitives::Rectangle;
 
     #[test]
     fn ansi_cursor_backwards() {
+        let mut display = MockDisplay::new();
+        display.set_allow_overdraw(true);
+
         let parser = Parser::parse("foo\x1b[2Dsample");
         let config = UniformSpaceConfig::default();
         let style = TextBoxStyleBuilder::new(Font6x8)
@@ -497,24 +496,20 @@ mod ansi_parser_tests {
             .background_color(BinaryColor::Off)
             .build();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Point::new(6 * 7 - 1, 7)), 0);
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
-        let mut display = MockDisplay::new();
+        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 7, 8)), 0);
+        let iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
 
         iter.draw(&mut display).unwrap();
 
-        assert_eq!(
-            display,
-            MockDisplay::from_pattern(&[
-                "..##...........................##.........",
-                ".#..#...........................#.........",
-                ".#.....####..###..##.#..####....#....###..",
-                "###...#.........#.#.#.#.#...#...#...#...#.",
-                ".#.....###...####.#...#.#...#...#...#####.",
-                ".#........#.#...#.#...#.####....#...#.....",
-                ".#....####...####.#...#.#......###...###..",
-                "........................#.................",
-            ])
-        );
+        display.assert_pattern(&[
+            "..##...........................##.........",
+            ".#..#...........................#.........",
+            ".#.....####..###..##.#..####....#....###..",
+            "###...#.........#.#.#.#.#...#...#...#...#.",
+            ".#.....###...####.#...#.#...#...#...#####.",
+            ".#........#.#...#.#...#.####....#...#.....",
+            ".#....####...####.#...#.#......###...###..",
+            "........................#.................",
+        ]);
     }
 }

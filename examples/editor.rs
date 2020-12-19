@@ -85,10 +85,10 @@ fn main() {
     .collect();
 
     // Specify the bounding box.
-    let bounds = Rectangle::new(Point::new(0, 0), Point::new(127, 63));
+    let bounds = Rectangle::new(Point::new(0, 0), Size::new(128, 64));
 
     // Specify the styling options:
-    // * Use the 6x8 font from embedded-graphics.
+    // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `Scrolling` vertical layout - this will make sure the cursor is always in view.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
@@ -114,7 +114,7 @@ fn main() {
         let text_box = TextBox::new(&text_and_cursor, bounds).into_styled(textbox_style);
 
         // Create a simulated display with the dimensions of the text box.
-        let mut display = SimulatorDisplay::new(text_box.size());
+        let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
 
         // Draw the text box.
         text_box.draw(&mut display).unwrap();
