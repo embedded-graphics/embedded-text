@@ -1,7 +1,10 @@
 //! This example demonstrates support for the horizontal tab `\t` character.
 
 use embedded_graphics::{
-    fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
+    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+    primitives::Rectangle,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -24,10 +27,15 @@ fn main() {
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     // * 10 character wide tabs
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x9)
         .text_color(BinaryColor::On)
+        .build();
+
+    let textbox_style = TextBoxStyleBuilder::new()
+        .character_style(character_style)
         .height_mode(FitToText)
-        .tab_size(TabSize::spaces(10))
+        .tab_size(TabSize::Spaces(10))
         .line_spacing(2)
         .build();
 

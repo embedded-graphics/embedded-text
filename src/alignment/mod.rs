@@ -2,10 +2,10 @@
 use crate::{
     parser::Token,
     rendering::{cursor::Cursor, space_config::SpaceConfig},
-    style::height_mode::HeightMode,
+    style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
-use embedded_graphics::prelude::*;
+use embedded_graphics::text::{CharacterStyle, TextRenderer};
 
 pub mod bottom;
 pub mod center;
@@ -32,7 +32,8 @@ pub trait HorizontalTextAlignment: Copy {
     const ENDING_SPACES: bool;
 
     /// Calculate offset from the left side and whitespace information.
-    fn place_line<F: MonoFont>(
+    fn place_line(
+        renderer: &impl TextRenderer,
         max_width: u32,
         text_width: u32,
         n_spaces: u32,
@@ -48,12 +49,12 @@ pub trait HorizontalTextAlignment: Copy {
 /// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
 pub trait VerticalTextAlignment: Copy {
     /// Set the cursor's initial vertical position
-    fn apply_vertical_alignment<'a, C, F, A, H>(
-        cursor: &mut Cursor<F>,
-        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
+    fn apply_vertical_alignment<'a, F, A, H>(
+        cursor: &mut Cursor,
+        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
     ) where
-        C: PixelColor,
-        F: MonoFont,
+        F: TextRenderer + CharacterStyle,
+        <F as CharacterStyle>::Color: From<Rgb>,
         A: HorizontalTextAlignment,
         H: HeightMode;
 }

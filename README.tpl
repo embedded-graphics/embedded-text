@@ -5,7 +5,7 @@
 ## Development setup
 
 ### Minimum supported Rust version
-The minimum supported Rust version for embedded-text is 1.41.0 or greater. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
+The minimum supported Rust version for embedded-text is 1.43.0 or greater. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
 
 ### Installation
 

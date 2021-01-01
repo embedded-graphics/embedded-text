@@ -6,7 +6,11 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics::{
+    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+};
 use embedded_text::prelude::*;
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, thread, time::Duration};
@@ -85,16 +89,21 @@ fn main() {
     .collect();
 
     // Specify the bounding box.
-    let bounds = Rectangle::new(Point::new(0, 0), Size::new(128, 64));
+    let bounds = Rectangle::new(Point::zero(), Size::new(128, 64));
 
     // Specify the styling options:
     // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `Scrolling` vertical layout - this will make sure the cursor is always in view.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-        .vertical_alignment(Scrolling)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x9)
         .text_color(BinaryColor::On)
+        .build();
+
+    let textbox_style = TextBoxStyleBuilder::new()
+        .character_style(character_style)
+        .vertical_alignment(Scrolling)
         .build();
 
     // Set up the window.

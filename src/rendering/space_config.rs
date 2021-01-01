@@ -1,5 +1,9 @@
 //! Space rendering config
 
+use embedded_graphics::text::TextRenderer;
+
+use crate::utils::str_width;
+
 /// Retrieves size of space characters.
 pub trait SpaceConfig: Copy {
     /// Look at the size of next n spaces, without advancing.
@@ -20,8 +24,10 @@ impl UniformSpaceConfig {
     /// Creates a default space configuration object based on the current MonoFont.
     #[inline]
     #[must_use]
-    pub fn new(space_width: u32) -> Self {
-        Self { space_width }
+    pub fn new<F: TextRenderer>(renderer: &F) -> Self {
+        Self {
+            space_width: str_width(renderer, " "),
+        }
     }
 }
 

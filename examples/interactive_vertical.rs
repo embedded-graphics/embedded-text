@@ -7,10 +7,11 @@ use embedded_graphics_simulator::{
 };
 
 use embedded_graphics::{
-    fonts::{Font6x8, Text},
+    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
-    style::PrimitiveStyle,
+    primitives::PrimitiveStyle,
+    text::Text,
 };
 use embedded_text::prelude::*;
 use sdl2::keyboard::Keycode;
@@ -78,9 +79,14 @@ where
         // * Draw the text horizontally left aligned (default option, not specified here).
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         // * Use the vertical alignmnet mode that was given to the `demo_loop()` function.
-        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-            .vertical_alignment(alignment)
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
+            .build();
+
+        let textbox_style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .vertical_alignment(alignment)
             .build();
 
         // Create the text box and apply styling options.
@@ -100,7 +106,7 @@ where
         // Display the name of the vertical alignment mode above the text box.
         let vertical_alignment_text = format!("Vertical Alignment: {:?}", alignment);
         Text::new(&vertical_alignment_text, Point::new(0, 6))
-            .into_styled(textbox_style.text_style)
+            .into_styled(character_style)
             .draw(&mut display)
             .unwrap();
 

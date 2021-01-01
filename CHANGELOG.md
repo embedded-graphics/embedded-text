@@ -3,13 +3,16 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Raised MSRV to 1.43.
  * **breaking** Updated to embedded-graphics 0.7.
- * **breaking** Removed benchmarks.
- * **breaking** Removed `Rectangle` extensions.
- * **breaking** Removed variable width font support.
- * **breaking** Removed deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
  * ANSI sequence support now requires the `ansi` feature which is on by default.
  * Fields of the `style::color::Rgb` struct are now public.
+
+## Removed
+
+ * **breaking** Removed benchmarks.
+ * **breaking** Removed `Rectangle` extensions.
+ * **breaking** Removed deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
 
 0.4.0 (2020-11-26)
 ==================

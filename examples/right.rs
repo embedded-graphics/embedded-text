@@ -1,6 +1,10 @@
 //! This example demonstrates drawing a piece of text right aligned.
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics::{
+    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
@@ -17,9 +21,14 @@ fn main() {
     // * Draw the text horizontally right aligned.
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-        .alignment(RightAligned)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x10)
         .text_color(BinaryColor::On)
+        .build();
+
+    let textbox_style = TextBoxStyleBuilder::new()
+        .character_style(character_style)
+        .alignment(RightAligned)
         .height_mode(FitToText)
         .build();
 

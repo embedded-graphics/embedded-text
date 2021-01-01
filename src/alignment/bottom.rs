@@ -1,11 +1,15 @@
 //! Bottom vertical text alignment.
+use embedded_graphics::{
+    geometry::Dimensions,
+    text::{CharacterStyle, TextRenderer},
+};
+
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::height_mode::HeightMode,
+    style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
-use embedded_graphics::prelude::*;
 
 /// Align text to the bottom of the TextBox.
 #[derive(Copy, Clone, Debug)]
@@ -13,12 +17,12 @@ pub struct BottomAligned;
 
 impl VerticalTextAlignment for BottomAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, C, F, A, H>(
-        cursor: &mut Cursor<F>,
-        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
+    fn apply_vertical_alignment<'a, F, A, H>(
+        cursor: &mut Cursor,
+        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
     ) where
-        C: PixelColor,
-        F: MonoFont,
+        F: TextRenderer + CharacterStyle,
+        <F as CharacterStyle>::Color: From<Rgb>,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
@@ -37,85 +41,96 @@ impl VerticalTextAlignment for BottomAligned {
 #[cfg(test)]
 mod test {
     use embedded_graphics::{
-        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        mock_display::MockDisplay,
+        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        pixelcolor::BinaryColor,
+        prelude::*,
+        primitives::Rectangle,
     };
-    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{
         alignment::BottomAligned,
         style::{height_mode::Exact, vertical_overdraw::Visible, TextBoxStyleBuilder},
+        utils::test::size_for,
         TextBox,
     };
 
-    #[test]
-    fn test_bottom_alignment() {
+    fn assert_rendered(text: &str, size: Size, pattern: &[&str]) {
         let mut display = MockDisplay::new();
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .vertical_alignment(BottomAligned)
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(54, 16)))
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .vertical_alignment(BottomAligned)
+            .build();
+
+        TextBox::new(text, Rectangle::new(Point::zero(), size))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
 
-        display.assert_pattern(&[
-            "                        ",
-            "                        ",
-            "                        ",
-            "                        ",
-            "                        ",
-            "                        ",
-            "                        ",
-            "                        ",
-            "......................#.",
-            "......................#.",
-            "#...#..###..#.##...##.#.",
-            "#...#.#...#.##..#.#..##.",
-            "#.#.#.#...#.#.....#...#.",
-            "#.#.#.#...#.#.....#...#.",
-            ".#.#...###..#......####.",
-            "........................",
-        ]);
+        display.assert_pattern(pattern);
+    }
+
+    #[test]
+    fn test_bottom_alignment() {
+        assert_rendered(
+            "word",
+            size_for(Font6x9, 4, 2),
+            &[
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "                        ",
+                "........................",
+                "......................#.",
+                "......................#.",
+                "#...#...##...#.#....###.",
+                "#.#.#..#..#..##.#..#..#.",
+                "#.#.#..#..#..#.....#..#.",
+                ".#.#....##...#......###.",
+                "........................",
+                "........................",
+            ],
+        );
     }
 
     #[test]
     fn test_bottom_alignment_tall_text() {
-        let mut display = MockDisplay::new();
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .vertical_alignment(BottomAligned)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
-
-        TextBox::new(
-            "word1 word2 word3 word4",
-            Rectangle::new(Point::zero(), Size::new(30, 16)),
-        )
-        .into_styled(style)
-        .draw(&mut display)
-        .unwrap();
-
-        display.assert_pattern(&[
-            "......................#..###..",
-            "......................#.#...#.",
-            "#...#..###..#.##...##.#.....#.",
-            "#...#.#...#.##..#.#..##...##..",
-            "#.#.#.#...#.#.....#...#.....#.",
-            "#.#.#.#...#.#.....#...#.#...#.",
-            ".#.#...###..#......####..###..",
-            "..............................",
-            "......................#....#..",
-            "......................#...##..",
-            "#...#..###..#.##...##.#..#.#..",
-            "#...#.#...#.##..#.#..##.#..#..",
-            "#.#.#.#...#.#.....#...#.#####.",
-            "#.#.#.#...#.#.....#...#....#..",
-            ".#.#...###..#......####....#..",
-            "..............................",
-        ]);
+        assert_rendered(
+            "word word2 word3 word4",
+            size_for(Font6x9, 5, 2),
+            &[
+                "..............................",
+                "......................#..####.",
+                "......................#....#..",
+                "#...#...##...#.#....###...##..",
+                "#.#.#..#..#..##.#..#..#.....#.",
+                "#.#.#..#..#..#.....#..#.....#.",
+                ".#.#....##...#......###..###..",
+                "..............................",
+                "..............................",
+                "..............................",
+                "......................#....#..",
+                "......................#...##..",
+                "#...#...##...#.#....###..#.#..",
+                "#.#.#..#..#..##.#..#..#.#..#..",
+                "#.#.#..#..#..#.....#..#.#####.",
+                ".#.#....##...#......###....#..",
+                "..............................",
+                "..............................",
+            ],
+        );
     }
 
     #[test]
@@ -123,38 +138,45 @@ mod test {
         let mut display = MockDisplay::new();
         display.set_allow_out_of_bounds_drawing(true);
 
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .vertical_alignment(BottomAligned)
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .vertical_alignment(BottomAligned)
             .height_mode(Exact(Visible))
             .line_spacing(2)
             .build();
 
         TextBox::new(
             "word1 word2 word3 word4",
-            Rectangle::new(Point::zero(), Size::new(30, 16)),
+            Rectangle::new(Point::zero(), size_for(Font6x9, 5, 2)),
         )
         .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
         display.assert_pattern(&[
-            "#...#..###..#.##...##.#.....#.",
-            "#...#.#...#.##..#.#..##...##..",
-            "#.#.#.#...#.#.....#...#.....#.",
-            "#.#.#.#...#.#.....#...#.#...#.",
-            ".#.#...###..#......####..###..",
+            "......................#....#..",
+            "#...#...##...#.#....###...##..",
+            "#.#.#..#..#..##.#..#..#.....#.",
+            "#.#.#..#..#..#.....#..#.....#.",
+            ".#.#....##...#......###..###..",
+            "..............................",
             "..............................",
             "                              ",
             "                              ",
+            "..............................",
             "......................#....#..",
             "......................#...##..",
-            "#...#..###..#.##...##.#..#.#..",
-            "#...#.#...#.##..#.#..##.#..#..",
-            "#.#.#.#...#.#.....#...#.#####.",
-            "#.#.#.#...#.#.....#...#....#..",
-            ".#.#...###..#......####....#..",
+            "#...#...##...#.#....###..#.#..",
+            "#.#.#..#..#..##.#..#..#.#..#..",
+            "#.#.#..#..#..#.....#..#.#####.",
+            ".#.#....##...#......###....#..",
+            "..............................",
             "..............................",
         ]);
     }

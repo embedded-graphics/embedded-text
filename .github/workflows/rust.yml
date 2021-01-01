@@ -66,7 +66,7 @@ jobs:
             rust: nightly
 
           - name: msrv
-            rust: 1.41.0
+            rust: 1.43.0
 
     steps:
     - uses: actions/checkout@v2
@@ -98,22 +98,22 @@ jobs:
     - name: Check example images
       run: |
         mkdir -p ./target/screenshots
-        EG_SIMULATOR_DUMP="./target/screenshots/left.png" cargo run --example left
-        compare -metric AE ./assets/left.png ./target/screenshots/left.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/right.png" cargo run --example right
-        compare -metric AE ./assets/right.png ./target/screenshots/right.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/center.png" cargo run --example center
         compare -metric AE ./assets/center.png ./target/screenshots/center.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/justified.png" cargo run --example justified
-        compare -metric AE ./assets/justified.png ./target/screenshots/justified.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/specials.png" cargo run --example specials
-        compare -metric AE ./assets/specials.png ./target/screenshots/specials.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/vertical.png" cargo run --example vertical
-        compare -metric AE ./assets/vertical.png ./target/screenshots/vertical.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/colored_text.png" cargo run --example colored_text
         compare -metric AE ./assets/colored_text.png ./target/screenshots/colored_text.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/extra_styles.png" cargo run --example extra_styles
         compare -metric AE ./assets/extra_styles.png ./target/screenshots/extra_styles.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/justified.png" cargo run --example justified
+        compare -metric AE ./assets/justified.png ./target/screenshots/justified.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/left.png" cargo run --example left
+        compare -metric AE ./assets/left.png ./target/screenshots/left.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/right.png" cargo run --example right
+        compare -metric AE ./assets/right.png ./target/screenshots/right.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/specials.png" cargo run --example specials
+        compare -metric AE ./assets/specials.png ./target/screenshots/specials.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/vertical.png" cargo run --example vertical
+        compare -metric AE ./assets/vertical.png ./target/screenshots/vertical.png result.png
 
   docs:
     runs-on: ubuntu-latest

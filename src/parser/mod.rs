@@ -1,6 +1,6 @@
 //! Parse text into words, newlines and whitespace sequences.
 //!
-//! ```rust
+//! ```rust,ignore
 //! use embedded_text::parser::{Parser, Token};
 //!
 //! let parser = Parser::parse("Hello, world!\n");
@@ -39,10 +39,7 @@ pub enum Token<'a> {
     Word(&'a str),
 
     /// A possible wrapping point
-    Break(Option<char>),
-
-    /// An extra character - used to carry soft breaking chars.
-    ExtraCharacter(char),
+    Break(Option<&'static str>),
 
     /// An ANSI escape sequence
     #[cfg(feature = "ansi")]
@@ -133,7 +130,7 @@ impl<'a> Iterator for Parser<'a> {
                     '\r' => Some(Token::CarriageReturn),
                     '\t' => Some(Token::Tab),
                     SPEC_CHAR_ZWSP => Some(Token::Break(None)),
-                    SPEC_CHAR_SHY => Some(Token::Break(Some('-'))),
+                    SPEC_CHAR_SHY => Some(Token::Break(Some("-"))),
                     #[cfg(feature = "ansi")]
                     SPEC_CHAR_ESCAPE => ansi_parser::parse_escape(string).map_or(
                         Some(Token::EscapeSequence(AnsiSequence::Escape)),
@@ -206,7 +203,7 @@ mod test {
                 Token::Word("sit"),
                 Token::Whitespace(1),
                 Token::Word("am"),
-                Token::Break(Some('-')),
+                Token::Break(Some("-")),
                 Token::Word("et,"),
                 Token::Tab,
                 Token::Word("conse😅ctetur"),
@@ -251,7 +248,7 @@ mod test {
             "foo\u{AD}bar",
             vec![
                 Token::Word("foo"),
-                Token::Break(Some('-')),
+                Token::Break(Some("-")),
                 Token::Word("bar"),
             ],
         );

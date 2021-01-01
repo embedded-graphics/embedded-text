@@ -1,6 +1,10 @@
 //! This example demonstrates drawing a piece of text fully justified.
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics::{
+    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
@@ -17,10 +21,15 @@ fn main() {
     // * Draw the text fully justified.
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x10)
+        .text_color(BinaryColor::On)
+        .build();
+
+    let textbox_style = TextBoxStyleBuilder::new()
+        .character_style(character_style)
         .alignment(Justified)
         .height_mode(FitToText)
-        .text_color(BinaryColor::On)
         .build();
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will

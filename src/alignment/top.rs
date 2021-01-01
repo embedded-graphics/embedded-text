@@ -5,7 +5,7 @@ use crate::{
     style::height_mode::HeightMode,
     StyledTextBox,
 };
-use embedded_graphics::prelude::*;
+use embedded_graphics::text::TextRenderer;
 
 /// Align text to the top of the TextBox.
 #[derive(Copy, Clone, Debug)]
@@ -13,12 +13,11 @@ pub struct TopAligned;
 
 impl VerticalTextAlignment for TopAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, C, F, A, H>(
-        _cursor: &mut Cursor<F>,
-        _styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
+    fn apply_vertical_alignment<'a, F, A, H>(
+        _cursor: &mut Cursor,
+        _styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
     ) where
-        C: PixelColor,
-        F: MonoFont,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
@@ -29,19 +28,28 @@ impl VerticalTextAlignment for TopAligned {
 #[cfg(test)]
 mod test {
     use embedded_graphics::{
-        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        mock_display::MockDisplay,
+        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        pixelcolor::BinaryColor,
+        prelude::*,
+        primitives::Rectangle,
     };
-    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{alignment::TopAligned, style::TextBoxStyleBuilder, TextBox};
 
     #[test]
     fn test_top_alignment() {
         let mut display = MockDisplay::new();
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .vertical_alignment(TopAligned)
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .vertical_alignment(TopAligned)
             .build();
 
         TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 16)))
@@ -50,13 +58,14 @@ mod test {
             .unwrap();
 
         display.assert_pattern(&[
+            "........................",
             "......................#.",
             "......................#.",
-            "#...#..###..#.##...##.#.",
-            "#...#.#...#.##..#.#..##.",
-            "#.#.#.#...#.#.....#...#.",
-            "#.#.#.#...#.#.....#...#.",
-            ".#.#...###..#......####.",
+            "#...#...##...#.#....###.",
+            "#.#.#..#..#..##.#..#..#.",
+            "#.#.#..#..#..#.....#..#.",
+            ".#.#....##...#......###.",
+            "........................",
             "........................",
             "                        ",
             "                        ",

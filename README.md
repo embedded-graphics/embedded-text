@@ -37,7 +37,7 @@ The examples are based on [the embedded-graphics simulator]. The simulator is bu
 
 ```rust
 use embedded_graphics::{
-    fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
+    mono_font::Font6x9, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -55,7 +55,7 @@ fn main() {
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+    let textbox_style = TextBoxStyleBuilder::new(Font6x9)
         .text_color(BinaryColor::On)
         .height_mode(FitToText)
         .build();
@@ -92,7 +92,7 @@ fn main() {
 ## Development setup
 
 ### Minimum supported Rust version
-The minimum supported Rust version for embedded-text is 1.41.0 or greater. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
+The minimum supported Rust version for embedded-text is 1.43.0 or greater. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
 
 ### Installation
 

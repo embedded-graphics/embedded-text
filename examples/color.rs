@@ -1,6 +1,10 @@
 //! This example demonstrates styling a piece of text using text box styling options.
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::Rgb565, prelude::*};
+use embedded_graphics::{
+    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    pixelcolor::Rgb565,
+    prelude::*,
+};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::prelude::*;
 
@@ -14,10 +18,15 @@ fn main() {
     // * Use the 6x8 MonoFont from embedded-graphics.
     // * Draw the text fully justified.
     // * Draw the text with cyan text color and a gray background color.
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-        .alignment(Justified)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x9)
         .text_color(Rgb565::CYAN)
         .background_color(Rgb565::new(10, 20, 10))
+        .build();
+
+    let textbox_style = TextBoxStyleBuilder::new()
+        .character_style(character_style)
+        .alignment(Justified)
         .build();
 
     // Specify the bounding box. Note that in this example the text box will be taller than the text.

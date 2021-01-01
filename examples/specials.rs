@@ -1,7 +1,11 @@
 //! This example demonstrates support for carriage return, non-breaking space and zero-width space
 //! characters to modify text layout behaviour.
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics::{
+    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
@@ -22,10 +26,15 @@ fn main() {
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     // * Draw the text with `BinaryColor::Off` background color, which will be rendered as dark
     //   blue. This is used to overwrite parts of the text in this example.
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
-        .alignment(Justified)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x10)
         .text_color(BinaryColor::On)
         .background_color(BinaryColor::Off)
+        .build();
+
+    let textbox_style = TextBoxStyleBuilder::new()
+        .character_style(character_style)
+        .alignment(Justified)
         .height_mode(FitToText)
         .build();
 

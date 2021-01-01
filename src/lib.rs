@@ -35,9 +35,8 @@
 //!
 //! ```rust,no_run
 //! use embedded_graphics::{
-//!     fonts::Font6x8, pixelcolor::BinaryColor, prelude::*,
+//!     mono_font::{ascii::Font6x9, MonoTextStyleBuilder}, pixelcolor::BinaryColor, prelude::*,
 //! };
-//! use embedded_graphics_core::primitives::Rectangle;
 //! use embedded_graphics_simulator::{
 //!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 //! };
@@ -54,8 +53,12 @@
 //!     // * Draw the text horizontally left aligned (default option, not specified here).
 //!     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
 //!     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-//!     let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+//!     let character_style = MonoTextStyleBuilder::new()
+//!         .font(Font6x9)
 //!         .text_color(BinaryColor::On)
+//!         .build();
+//!     let textbox_style = TextBoxStyleBuilder::new()
+//!         .character_style(character_style)
 //!         .height_mode(FitToText)
 //!         .build();
 //!
@@ -104,15 +107,20 @@
 #![allow(clippy::needless_doctest_main)]
 
 pub mod alignment;
-pub mod parser;
+mod parser;
 pub mod rendering;
 pub mod style;
-pub mod utils;
+
+mod utils;
 
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
-use embedded_graphics::prelude::*;
-use embedded_graphics_core::primitives::Rectangle;
-use style::{height_mode::HeightMode, TextBoxStyle};
+use embedded_graphics::{
+    geometry::{Dimensions, Point},
+    primitives::Rectangle,
+    text::{CharacterStyle, TextRenderer},
+    transform::Transform,
+};
+use style::{color::Rgb, height_mode::HeightMode, TextBoxStyle};
 
 /// Prelude.
 ///
@@ -130,10 +138,7 @@ pub mod prelude {
     };
 
     #[doc(no_inline)]
-    pub use embedded_graphics::{
-        primitives::Rectangle,
-        style::{MonoTextStyle, MonoTextStyleBuilder},
-    };
+    pub use embedded_graphics::primitives::Rectangle;
 }
 
 /// A textbox object.
@@ -185,33 +190,40 @@ impl<'a> TextBox<'a> {
     ///
     /// ```rust
     /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
-    /// use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
-    /// use embedded_graphics_core::primitives::Rectangle;
+    /// use embedded_graphics::{
+    ///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    ///     pixelcolor::BinaryColor,
+    ///     prelude::*,
+    /// };
     ///
+    /// let character_style = MonoTextStyleBuilder::new()
+    ///     .font(Font6x9)
+    ///     .text_color(BinaryColor::On)
+    ///     .build();
+    /// let style = TextBoxStyleBuilder::new()
+    ///     .character_style(character_style)
+    ///     .height_mode(ShrinkToText(FullRowsOnly))
+    ///     .build();
     /// let text_box = TextBox::new(
     ///     "Two lines\nof text",
     ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
     /// );
-    /// let style = TextBoxStyleBuilder::new(Font6x8)
-    ///     .height_mode(ShrinkToText(FullRowsOnly))
-    ///     .text_color(BinaryColor::On)
-    ///     .build();
     ///
     /// let styled_text_box = text_box.into_styled(style);
-    /// assert_eq!(16, styled_text_box.bounding_box().size.height);
+    /// assert_eq!(18, styled_text_box.bounding_box().size.height);
     /// ```
     ///
     /// [`HeightMode`]: style/height_mode/trait.HeightMode.html
     /// [`ShrinkToText`]: style/height_mode/struct.ShrinkToText.html
     #[inline]
     #[must_use]
-    pub fn into_styled<C, F, A, V, H>(
+    pub fn into_styled<F, A, V, H>(
         self,
-        style: TextBoxStyle<C, F, A, V, H>,
-    ) -> StyledTextBox<'a, C, F, A, V, H>
+        style: TextBoxStyle<F, A, V, H>,
+    ) -> StyledTextBox<'a, F, A, V, H>
     where
-        C: PixelColor,
-        F: MonoFont,
+        F: TextRenderer + CharacterStyle,
+        <F as CharacterStyle>::Color: From<Rgb>,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -260,11 +272,10 @@ impl Dimensions for TextBox<'_> {
 /// [`TextBox`]: struct.TextBox.html
 /// [`into_styled`]: struct.TextBox.html#method.into_styled
 /// [`draw`]: #method.draw
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct StyledTextBox<'a, C, F, A, V, H>
+#[derive(Copy, Clone, Debug)]
+pub struct StyledTextBox<'a, F, A, V, H>
 where
-    C: PixelColor,
-    F: MonoFont,
+    F: TextRenderer,
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
     ///
@@ -272,13 +283,13 @@ where
     pub text_box: TextBox<'a>,
 
     /// The style of the [`TextBox`].
-    pub style: TextBoxStyle<C, F, A, V, H>,
+    pub style: TextBoxStyle<F, A, V, H>,
 }
 
-impl<C, F, A, V, H> StyledTextBox<'_, C, F, A, V, H>
+impl<F, A, V, H> StyledTextBox<'_, F, A, V, H>
 where
-    C: PixelColor,
-    F: MonoFont,
+    F: TextRenderer + CharacterStyle,
+    <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
 {
     /// Sets the height of the [`StyledTextBox`] to the height of the text.
@@ -307,10 +318,9 @@ where
     }
 }
 
-impl<C, F, A, V, H> Transform for StyledTextBox<'_, C, F, A, V, H>
+impl<F, A, V, H> Transform for StyledTextBox<'_, F, A, V, H>
 where
-    C: PixelColor,
-    F: MonoFont,
+    F: TextRenderer + Clone,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -320,7 +330,7 @@ where
     fn translate(&self, by: Point) -> Self {
         Self {
             text_box: self.text_box.translate(by),
-            style: self.style,
+            style: self.style.clone(),
         }
     }
 
@@ -332,10 +342,9 @@ where
     }
 }
 
-impl<C, F, A, V, H> Dimensions for StyledTextBox<'_, C, F, A, V, H>
+impl<F, A, V, H> Dimensions for StyledTextBox<'_, F, A, V, H>
 where
-    C: PixelColor,
-    F: MonoFont,
+    F: TextRenderer,
 {
     #[inline]
     #[must_use]
