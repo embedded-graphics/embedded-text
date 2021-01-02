@@ -46,7 +46,7 @@ where
     F: MonoFont,
 {
     state: State<C, F>,
-    pub(crate) style: &'b mut TextBoxStyle<C, F, A, V, H>,
+    style: &'b mut TextBoxStyle<C, F, A, V, H>,
     display_range: Range<i32>,
     inner: LineElementIterator<'a, 'b, F, SP, A>,
 }
