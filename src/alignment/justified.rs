@@ -396,4 +396,49 @@ mod test {
             "       ###  #                        ",
         ]);
     }
+
+    #[test]
+    fn tab_rendering() {
+        // Expect \t to render as 3 space characters, ignored by the justified alignment.
+        let text = "a\ttab + two te xt words";
+
+        let mut display = MockDisplay::new();
+
+        let bounds = Rectangle::new(Point::new(0, 0), Size::new(60, 31));
+        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+            .alignment(Justified)
+            .text_color(BinaryColor::On)
+            .build();
+
+        TextBox::new(text, bounds)
+            .into_styled(textbox_style)
+            .draw(&mut display)
+            .unwrap();
+
+        display.assert_pattern(&[
+            "                         #          #                        ",
+            "                         #          #                   #    ",
+            " ###                    ###    ###  # ##                #    ",
+            "    #                    #        # ##  #             #####  ",
+            " ####                    #     #### #   #               #    ",
+            "#   #                    #  # #   # #   #               #    ",
+            " ####                     ##   #### ####                     ",
+            "                                                             ",
+            " #                          #                          #     ",
+            " #                          #                          #     ",
+            "###   #   #  ###           ###    ###           #   # ###    ",
+            " #    #   # #   #           #    #   #           # #   #     ",
+            " #    # # # #   #           #    #####            #    #     ",
+            " #  # # # # #   #           #  # #               # #   #  #  ",
+            "  ##   # #   ###             ##   ###           #   #   ##   ",
+            "                                                             ",
+            "                      #                                      ",
+            "                      #                                      ",
+            "#   #  ###  # ##   ## #  ####                                ",
+            "#   # #   # ##  # #  ## #                                    ",
+            "# # # #   # #     #   #  ###                                 ",
+            "# # # #   # #     #   #     #                                ",
+            " # #   ###  #      #### ####                                 ",
+        ]);
+    }
 }
