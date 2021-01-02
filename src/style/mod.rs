@@ -334,7 +334,7 @@ where
                 Point::zero(),
                 Size::new(max_line_width, F::CHARACTER_SIZE.height),
             ),
-            self.line_spacing,
+            0,
         );
         let mut iter: LineElementIterator<'a, '_, _, _, A> = LineElementIterator::new(
             parser,
