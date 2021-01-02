@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 use embedded_graphics::fonts::MonoFont;
 
 /// Retrieves size of space characters.
-pub trait SpaceConfig: Copy + Default {
+pub trait SpaceConfig {
     /// The font for which this space config belongs.
     type Font: MonoFont;
 

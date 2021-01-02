@@ -266,9 +266,6 @@ pub struct StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor,
     F: MonoFont,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
 {
     /// A [`TextBox`] that has an associated [`TextBoxStyle`].
     ///
@@ -284,8 +281,6 @@ where
     C: PixelColor,
     F: MonoFont,
     A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
 {
     /// Sets the height of the [`StyledTextBox`] to the height of the text.
     #[inline]
@@ -359,9 +354,6 @@ impl<C, F, A, V, H> Dimensions for StyledTextBox<'_, C, F, A, V, H>
 where
     C: PixelColor,
     F: MonoFont,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
 {
     #[inline]
     #[must_use]

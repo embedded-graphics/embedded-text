@@ -14,10 +14,7 @@ use embedded_graphics_core::{
 ///
 /// [`StyledLinePixelIterator`]: ../line/struct.StyledLinePixelIterator.html
 #[derive(Clone, Debug)]
-pub struct CharacterIterator<F>
-where
-    F: MonoFont,
-{
+pub struct CharacterIterator<F> {
     points: rectangle::Points,
 
     underline: bool,
