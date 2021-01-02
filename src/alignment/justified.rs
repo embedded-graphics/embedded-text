@@ -1,21 +1,38 @@
 //! Fully justified text.
 use crate::{
-    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Token,
-    rendering::{space_config::SpaceConfig, RendererFactory},
-    style::{color::Rgb, height_mode::HeightMode},
-    StyledTextBox,
+    alignment::HorizontalTextAlignment, parser::Token, rendering::space_config::SpaceConfig,
 };
-use core::marker::PhantomData;
 use embedded_graphics::fonts::MonoFont;
-use embedded_graphics_core::pixelcolor::PixelColor;
 
 /// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
 pub struct Justified;
 impl HorizontalTextAlignment for Justified {
+    type SpaceConfig = JustifiedSpaceConfig;
+
     const STARTING_SPACES: bool = false;
     const ENDING_SPACES: bool = false;
+
+    #[inline]
+    fn place_line<F: MonoFont>(
+        max_width: u32,
+        text_width: u32,
+        n_spaces: u32,
+        carried_token: Option<Token>,
+    ) -> (u32, Self::SpaceConfig) {
+        let space =
+            max_width - (text_width - n_spaces * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING);
+        let stretch_line = carried_token.is_some() && carried_token != Some(Token::NewLine);
+
+        let space_info = if stretch_line && n_spaces != 0 {
+            let space_width = space / n_spaces;
+            let extra_pixels = space % n_spaces;
+            JustifiedSpaceConfig::new(space_width, extra_pixels)
+        } else {
+            JustifiedSpaceConfig::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING, 0)
+        };
+        (0, space_info)
+    }
 }
 
 /// Internal state information used to store width of whitespace characters when rendering fully
@@ -26,9 +43,7 @@ impl HorizontalTextAlignment for Justified {
 /// width is used. This struct stores two width values so the whole line will always (at least if
 /// there's a space in the line) take up all available space.
 #[derive(Copy, Clone, Debug)]
-pub struct JustifiedSpaceConfig<F: MonoFont> {
-    _font: PhantomData<F>,
-
+pub struct JustifiedSpaceConfig {
     /// The width of the whitespace characters.
     space_width: u32,
 
@@ -37,29 +52,18 @@ pub struct JustifiedSpaceConfig<F: MonoFont> {
     space_count: u32,
 }
 
-impl<F: MonoFont> JustifiedSpaceConfig<F> {
+impl JustifiedSpaceConfig {
     #[inline]
     #[must_use]
     fn new(space_width: u32, extra_pixel_count: u32) -> Self {
         JustifiedSpaceConfig {
-            _font: PhantomData,
             space_width,
             space_count: extra_pixel_count,
         }
     }
 }
 
-impl<F: MonoFont> Default for JustifiedSpaceConfig<F> {
-    #[inline]
-    #[must_use]
-    fn default() -> Self {
-        Self::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING, 0)
-    }
-}
-
-impl<F: MonoFont> SpaceConfig for JustifiedSpaceConfig<F> {
-    type Font = F;
-
+impl SpaceConfig for JustifiedSpaceConfig {
     #[inline]
     fn peek_next_width(&self, whitespace_count: u32) -> u32 {
         whitespace_count * self.space_width + self.space_count.min(whitespace_count)
@@ -70,35 +74,6 @@ impl<F: MonoFont> SpaceConfig for JustifiedSpaceConfig<F> {
         let w = self.peek_next_width(n);
         self.space_count = self.space_count.saturating_sub(n);
         w
-    }
-}
-
-impl<'a, C, F, V, H> RendererFactory for StyledTextBox<'a, C, F, Justified, V, H>
-where
-    C: PixelColor + From<Rgb>,
-    F: MonoFont,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-{
-    type SpaceConfig = JustifiedSpaceConfig<F>;
-
-    fn place_line(
-        max_width: u32,
-        width: u32,
-        n_spaces: u32,
-        carried_token: Option<Token>,
-    ) -> (u32, Self::SpaceConfig) {
-        let space = max_width - (width - n_spaces * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING);
-        let stretch_line = carried_token.is_some() && carried_token != Some(Token::NewLine);
-
-        let space_info = if stretch_line && n_spaces != 0 {
-            let space_width = space / n_spaces;
-            let extra_pixels = space % n_spaces;
-            JustifiedSpaceConfig::new(space_width, extra_pixels)
-        } else {
-            JustifiedSpaceConfig::default()
-        };
-        (0, space_info)
     }
 }
 

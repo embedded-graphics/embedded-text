@@ -55,7 +55,7 @@ impl<'a, 'b, C, F, SP, A, V, H> StyledLinePixelIterator<'a, 'b, C, F, SP, A, V, 
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
-    SP: SpaceConfig<Font = F>,
+    SP: SpaceConfig,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -88,7 +88,7 @@ impl<C, F, SP, A, V, H> Iterator for StyledLinePixelIterator<'_, '_, C, F, SP, A
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
-    SP: SpaceConfig<Font = F>,
+    SP: SpaceConfig,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -260,7 +260,7 @@ mod test {
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        let config = UniformSpaceConfig::default();
+        let config = UniformSpaceConfig::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING);
         let mut parser = Parser::parse(text);
         let mut cursor = Cursor::new(bounds, style.line_spacing);
         let mut carried = None;
@@ -305,7 +305,7 @@ mod test {
 
     #[test]
     fn render_before_area() {
-        let config = UniformSpaceConfig::default();
+        let config = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
         let mut parser = Parser::parse(" Some sample text");
         let mut style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
@@ -479,7 +479,7 @@ mod ansi_parser_tests {
     fn ansi_cursor_backwards() {
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
-        let config = UniformSpaceConfig::default();
+        let config = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser = Parser::parse("foo\x1b[2Dsample");
         let mut style = TextBoxStyleBuilder::new(Font6x8)

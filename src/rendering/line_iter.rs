@@ -170,7 +170,7 @@ where
 impl<F, SP, A> LineElementIterator<'_, '_, F, SP, A>
 where
     F: MonoFont,
-    SP: SpaceConfig<Font = F>,
+    SP: SpaceConfig,
     A: HorizontalTextAlignment,
 {
     fn count_widest_space_seq(&self, n: u32) -> u32 {
@@ -189,7 +189,7 @@ where
 impl<F, SP, A> Iterator for LineElementIterator<'_, '_, F, SP, A>
 where
     F: MonoFont,
-    SP: SpaceConfig<Font = F>,
+    SP: SpaceConfig,
     A: HorizontalTextAlignment,
 {
     type Item = RenderElement;
@@ -445,13 +445,13 @@ mod test {
 
     #[test]
     fn soft_hyphen_no_wrapping() {
-        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser = Parser::parse("sam\u{00AD}ple");
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6, 8)), 0);
         let mut carried = None;
 
-        let iter: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+        let iter: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> = LineElementIterator::new(
             &mut parser,
             &mut cursor,
             config,
@@ -474,19 +474,20 @@ mod test {
 
     #[test]
     fn soft_hyphen() {
-        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser = Parser::parse("sam\u{00AD}ple");
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6 - 1, 16)), 0);
         let mut carried = None;
 
-        let mut line1: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
+        let mut line1: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
+            LineElementIterator::new(
+                &mut parser,
+                &mut cursor,
+                config,
+                &mut carried,
+                TabSize::default(),
+            );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -500,7 +501,7 @@ mod test {
 
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
-        let line2: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+        let line2: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> = LineElementIterator::new(
             &mut parser,
             &mut cursor,
             config,
@@ -520,20 +521,21 @@ mod test {
 
     #[test]
     fn soft_hyphen_issue_42() {
-        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser =
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(5 * 6, 16)), 0);
 
         let mut carried = None;
-        let mut line1: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
+        let mut line1: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
+            LineElementIterator::new(
+                &mut parser,
+                &mut cursor,
+                config,
+                &mut carried,
+                TabSize::default(),
+            );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -548,7 +550,7 @@ mod test {
 
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
-        let line2: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+        let line2: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> = LineElementIterator::new(
             &mut parser,
             &mut cursor,
             config,
@@ -571,7 +573,7 @@ mod test {
     #[test]
     fn nbsp_is_rendered_as_space() {
         let text = "glued\u{a0}words";
-        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser = Parser::parse(text);
         let mut cursor = Cursor::new(
@@ -583,13 +585,14 @@ mod test {
         );
         let mut carried = None;
 
-        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
+        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
+            LineElementIterator::new(
+                &mut parser,
+                &mut cursor,
+                config,
+                &mut carried,
+                TabSize::default(),
+            );
 
         assert_eq!(
             collect_mut(&mut line),
@@ -612,19 +615,20 @@ mod test {
     #[test]
     fn tabs() {
         let text = "a\tword\nand\t\tanother\t";
-        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser = Parser::parse(text);
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(16 * 6, 16)), 0);
 
         let mut carried = None;
-        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
+        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
+            LineElementIterator::new(
+                &mut parser,
+                &mut cursor,
+                config,
+                &mut carried,
+                TabSize::default(),
+            );
 
         assert_eq!(
             collect_mut(&mut line),
@@ -638,13 +642,14 @@ mod test {
             ]
         );
 
-        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
+        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
+            LineElementIterator::new(
+                &mut parser,
+                &mut cursor,
+                config,
+                &mut carried,
+                TabSize::default(),
+            );
 
         assert_eq!(
             collect_mut(&mut line),
@@ -677,19 +682,20 @@ mod ansi_parser_tests {
     #[test]
     fn colors() {
         let text = "Lorem \x1b[92mIpsum";
-        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser = Parser::parse(text);
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(100 * 6, 16)), 0);
         let mut carried = None;
 
-        let mut line1: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
+        let mut line1: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
+            LineElementIterator::new(
+                &mut parser,
+                &mut cursor,
+                config,
+                &mut carried,
+                TabSize::default(),
+            );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -713,19 +719,20 @@ mod ansi_parser_tests {
     #[test]
     fn ansi_code_does_not_break_word() {
         let text = "Lorem foo\x1b[92mbarum";
-        let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
+        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser = Parser::parse(text);
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(8 * 6, 16)), 0);
         let mut carried = None;
 
-        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
+        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
+            LineElementIterator::new(
+                &mut parser,
+                &mut cursor,
+                config,
+                &mut carried,
+                TabSize::default(),
+            );
 
         assert_eq!(
             collect_mut(&mut line),
@@ -738,13 +745,14 @@ mod ansi_parser_tests {
             ]
         );
 
-        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
+        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
+            LineElementIterator::new(
+                &mut parser,
+                &mut cursor,
+                config,
+                &mut carried,
+                TabSize::default(),
+            );
 
         assert_eq!(
             collect_mut(&mut line),

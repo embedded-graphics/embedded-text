@@ -1,38 +1,29 @@
 //! Left aligned text.
 use crate::{
-    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Token,
-    rendering::{space_config::UniformSpaceConfig, RendererFactory},
-    style::{color::Rgb, height_mode::HeightMode},
-    StyledTextBox,
+    alignment::HorizontalTextAlignment, parser::Token, rendering::space_config::UniformSpaceConfig,
 };
 use embedded_graphics::fonts::MonoFont;
-use embedded_graphics_core::pixelcolor::PixelColor;
 
 /// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
 pub struct LeftAligned;
 impl HorizontalTextAlignment for LeftAligned {
+    type SpaceConfig = UniformSpaceConfig;
+
     const STARTING_SPACES: bool = true;
     const ENDING_SPACES: bool = true;
-}
 
-impl<'a, C, F, V, H> RendererFactory for StyledTextBox<'a, C, F, LeftAligned, V, H>
-where
-    C: PixelColor + From<Rgb>,
-    F: MonoFont,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-{
-    type SpaceConfig = UniformSpaceConfig<F>;
-
-    fn place_line(
+    #[inline]
+    fn place_line<F: MonoFont>(
         _max_width: u32,
-        _width: u32,
+        _text_width: u32,
         _n_spaces: u32,
         _carried_token: Option<Token>,
     ) -> (u32, Self::SpaceConfig) {
-        (0, UniformSpaceConfig::default())
+        (
+            0,
+            UniformSpaceConfig::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING),
+        )
     }
 }
 

@@ -2,11 +2,11 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Token,
-    rendering::{cursor::Cursor, space_config::UniformSpaceConfig, RendererFactory},
-    style::{color::Rgb, height_mode::HeightMode},
+    rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
+    style::height_mode::HeightMode,
     StyledTextBox,
 };
-use embedded_graphics::prelude::MonoFont;
+use embedded_graphics::fonts::MonoFont;
 use embedded_graphics_core::{geometry::Dimensions, pixelcolor::PixelColor};
 
 /// Marks text to be rendered center aligned.
@@ -15,26 +15,22 @@ use embedded_graphics_core::{geometry::Dimensions, pixelcolor::PixelColor};
 #[derive(Copy, Clone, Debug)]
 pub struct CenterAligned;
 impl HorizontalTextAlignment for CenterAligned {
+    type SpaceConfig = UniformSpaceConfig;
+
     const STARTING_SPACES: bool = false;
     const ENDING_SPACES: bool = false;
-}
 
-impl<'a, C, F, V, H> RendererFactory for StyledTextBox<'a, C, F, CenterAligned, V, H>
-where
-    C: PixelColor + From<Rgb>,
-    F: MonoFont,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-{
-    type SpaceConfig = UniformSpaceConfig<F>;
-
-    fn place_line(
+    #[inline]
+    fn place_line<F: MonoFont>(
         max_width: u32,
-        width: u32,
+        text_width: u32,
         _n_spaces: u32,
         _carried_token: Option<Token>,
     ) -> (u32, Self::SpaceConfig) {
-        ((max_width - width + 1) / 2, UniformSpaceConfig::default())
+        (
+            (max_width - text_width + 1) / 2,
+            UniformSpaceConfig::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING),
+        )
     }
 }
 

@@ -340,7 +340,7 @@ where
         let mut iter: LineElementIterator<'a, '_, F, _, A> = LineElementIterator::new(
             &mut parser2,
             &mut cursor,
-            UniformSpaceConfig::default(),
+            UniformSpaceConfig::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING),
             &mut carried_token,
             self.tab_size,
         );

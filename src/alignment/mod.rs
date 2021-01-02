@@ -1,5 +1,10 @@
 //! Text alignment options.
-use crate::{rendering::cursor::Cursor, style::height_mode::HeightMode, StyledTextBox};
+use crate::{
+    parser::Token,
+    rendering::{cursor::Cursor, space_config::SpaceConfig},
+    style::height_mode::HeightMode,
+    StyledTextBox,
+};
 use embedded_graphics::prelude::*;
 
 pub mod bottom;
@@ -17,11 +22,22 @@ pub mod top;
 /// [`TextBoxStyle`]: ../style/struct.TextBoxStyle.html
 /// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
 pub trait HorizontalTextAlignment: Copy {
+    /// Type of the associated whitespace information.
+    type SpaceConfig: SpaceConfig;
+
     /// Whether or not render spaces in the start of the line.
     const STARTING_SPACES: bool;
 
     /// Whether or not render spaces in the end of the line.
     const ENDING_SPACES: bool;
+
+    /// Calculate offset from the left side and whitespace information.
+    fn place_line<F: MonoFont>(
+        max_width: u32,
+        text_width: u32,
+        n_spaces: u32,
+        carried_token: Option<Token>,
+    ) -> (u32, Self::SpaceConfig);
 }
 
 /// Vertical text alignment base trait.

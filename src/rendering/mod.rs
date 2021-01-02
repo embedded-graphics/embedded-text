@@ -10,37 +10,20 @@ pub mod space_config;
 
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::{Parser, Token},
+    parser::Parser,
     rendering::{cursor::Cursor, line::StyledLinePixelIterator},
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
-use space_config::SpaceConfig;
 
-///
-pub trait RendererFactory {
-    ///
-    type SpaceConfig: SpaceConfig;
-
-    ///
-    fn place_line(
-        max_width: u32,
-        width: u32,
-        n_spaces: u32,
-        carried_token: Option<Token>,
-    ) -> (u32, Self::SpaceConfig);
-}
-
-impl<'a, C, F, A, V, H, SP> Drawable for StyledTextBox<'a, C, F, A, V, H>
+impl<'a, C, F, A, V, H> Drawable for StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
-    SP: SpaceConfig<Font = F>,
-    Self: RendererFactory<SpaceConfig = SP>,
 {
     type Color = C;
 
@@ -63,10 +46,9 @@ where
             let (width, total_spaces, t, _) =
                 style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
 
-            let (left_offset, space_config) =
-                Self::place_line(max_line_width, width, total_spaces, t);
+            let (left, space_config) = A::place_line::<F>(max_line_width, width, total_spaces, t);
 
-            cursor.advance_unchecked(left_offset);
+            cursor.advance_unchecked(left);
 
             let iter = StyledLinePixelIterator::new(
                 &mut parser,
