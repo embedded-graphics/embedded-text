@@ -3,9 +3,9 @@
 pub mod ansi;
 pub mod character;
 pub mod cursor;
+pub mod decorated_space;
 pub mod line;
 pub mod line_iter;
-pub mod modified_whitespace;
 pub mod space_config;
 
 use crate::{

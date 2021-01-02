@@ -3,10 +3,10 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        character::CharacterIterator,
+        character::{GlyphRenderer, Pixels as GlyphPixels},
         cursor::Cursor,
+        decorated_space::{DecoratedSpaceRenderer, Pixels as SpacePixels},
         line_iter::{LineElementIterator, RenderElement},
-        modified_whitespace::ModifiedEmptySpaceIterator,
         space_config::*,
     },
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
@@ -29,13 +29,13 @@ where
     FetchNext,
 
     /// Render a character at the given position.
-    Char(Point, CharacterIterator<F>),
+    Char(Point, GlyphPixels<F>),
 
     /// Render a block of whitespace at the given position.
     Space(rectangle::Points, C),
 
     /// Render a block of whitespace at the given position with underlined or strikethrough effect.
-    ModifiedSpace(Point, ModifiedEmptySpaceIterator<F>),
+    ModifiedSpace(Point, SpacePixels<F>),
 }
 
 /// Pixel iterator to render a single line of styled text.
@@ -114,12 +114,15 @@ where
                             if self.is_anything_displayed() {
                                 self.state = State::Char(
                                     self.inner.pos,
-                                    CharacterIterator::new(
+                                    GlyphRenderer::new(
                                         c,
+                                        self.style.text_style,
+                                        self.inner.pos,
                                         self.display_range.clone(),
                                         underlined,
                                         self.style.strikethrough,
-                                    ),
+                                    )
+                                    .pixels(),
                                 );
                             }
                         }
@@ -130,12 +133,15 @@ where
                                 self.state = if underlined || self.style.strikethrough {
                                     State::ModifiedSpace(
                                         self.inner.pos,
-                                        ModifiedEmptySpaceIterator::new(
+                                        DecoratedSpaceRenderer::new(
+                                            self.style.text_style,
+                                            self.inner.pos,
                                             space_width,
                                             row_range,
                                             underlined,
                                             self.style.strikethrough,
-                                        ),
+                                        )
+                                        .pixels(),
                                     )
                                 } else if let Some(color) = self.style.text_style.background_color {
                                     let start = row_range.start;
