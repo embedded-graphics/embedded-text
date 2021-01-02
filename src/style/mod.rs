@@ -336,7 +336,7 @@ where
             ),
             self.line_spacing,
         );
-        let mut iter: LineElementIterator<'a, '_, F, _, A> = LineElementIterator::new(
+        let mut iter: LineElementIterator<'a, '_, _, _, A> = LineElementIterator::new(
             parser,
             &mut cursor,
             UniformSpaceConfig::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING),
