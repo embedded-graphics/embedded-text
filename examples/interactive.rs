@@ -12,9 +12,7 @@ use embedded_graphics::{
     prelude::*,
     style::PrimitiveStyle,
 };
-use embedded_text::{
-    prelude::*, rendering::RendererFactory, style::vertical_overdraw::FullRowsOnly,
-};
+use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
@@ -65,7 +63,7 @@ fn demo_loop<'a, A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -
 where
     A: HorizontalTextAlignment + core::fmt::Debug,
     StyledTextBox<'a, BinaryColor, Font6x8, A, TopAligned, Exact<FullRowsOnly>>:
-        RendererFactory<'a, BinaryColor>,
+        Drawable<Color = BinaryColor>,
 {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \

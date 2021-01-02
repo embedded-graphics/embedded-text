@@ -326,21 +326,22 @@ where
     pub fn measure_line<'a>(
         &self,
         parser: &mut Parser<'a>,
-        carried_token: Option<Token<'a>>,
+        mut carried_token: Option<Token<'a>>,
         max_line_width: u32,
     ) -> (u32, u32, Option<Token<'a>>, bool) {
-        let cursor: Cursor<F> = Cursor::new(
+        let mut cursor: Cursor<F> = Cursor::new(
             Rectangle::new(
                 Point::zero(),
                 Size::new(max_line_width, F::CHARACTER_SIZE.height),
             ),
             self.line_spacing,
         );
-        let mut iter: LineElementIterator<'_, F, _, A> = LineElementIterator::new(
-            parser.clone(),
-            cursor,
+        let mut parser2 = parser.clone();
+        let mut iter: LineElementIterator<'a, '_, F, _, A> = LineElementIterator::new(
+            &mut parser2,
+            &mut cursor,
             UniformSpaceConfig::default(),
-            carried_token.clone(),
+            &mut carried_token,
             self.tab_size,
         );
 
@@ -396,9 +397,13 @@ where
             }
         }
 
-        let carried = iter.remaining_token();
-        *parser = iter.parser;
-        (current_width as u32, total_spaces, carried, underlined)
+        *parser = parser2;
+        (
+            current_width as u32,
+            total_spaces,
+            carried_token,
+            underlined,
+        )
     }
 
     /// Measures text height when rendered using a given width.

@@ -111,8 +111,7 @@ pub mod utils;
 
 use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
 use embedded_graphics::prelude::*;
-use embedded_graphics_core::{primitives::Rectangle, Drawable};
-use rendering::RendererFactory;
+use embedded_graphics_core::primitives::Rectangle;
 use style::{height_mode::HeightMode, TextBoxStyle};
 
 /// Prelude.
@@ -305,23 +304,6 @@ where
         self.text_box.bounds.size.height = text_height;
 
         self
-    }
-}
-
-impl<'a, C, F, A, V, H> Drawable for StyledTextBox<'a, C, F, A, V, H>
-where
-    C: PixelColor,
-    F: MonoFont,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    StyledTextBox<'a, C, F, A, V, H>: RendererFactory<'a, C>,
-    H: HeightMode,
-{
-    type Color = C;
-
-    #[inline]
-    fn draw<D: DrawTarget<Color = C>>(&self, display: &mut D) -> Result<(), D::Error> {
-        display.draw_iter(StyledTextBox::create_renderer(self))
     }
 }
 

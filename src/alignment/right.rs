@@ -1,14 +1,13 @@
 //! Right aligned text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    rendering::{
-        line::StyledLinePixelIterator, space_config::UniformSpaceConfig, RendererFactory,
-        StyledTextBoxIterator,
-    },
+    parser::Token,
+    rendering::{space_config::UniformSpaceConfig, RendererFactory},
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
-use embedded_graphics::{fonts::MonoFont, pixelcolor::PixelColor};
+use embedded_graphics::prelude::MonoFont;
+use embedded_graphics_core::pixelcolor::PixelColor;
 
 /// Marks text to be rendered right aligned.
 #[derive(Copy, Clone, Debug)]
@@ -18,32 +17,22 @@ impl HorizontalTextAlignment for RightAligned {
     const ENDING_SPACES: bool = false;
 }
 
-impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, RightAligned, V, H>
+impl<'a, C, F, V, H> RendererFactory for StyledTextBox<'a, C, F, RightAligned, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    type Renderer = StyledTextBoxIterator<'a, C, F, RightAligned, V, H, UniformSpaceConfig<F>>;
+    type SpaceConfig = UniformSpaceConfig<F>;
 
-    #[inline]
-    #[must_use]
-    fn create_renderer(&self) -> Self::Renderer {
-        StyledTextBoxIterator::new(self, |style, carried, mut cursor, parser| {
-            let max_line_width = cursor.line_width();
-            let (width, _, _, _) =
-                style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
-            cursor.advance_unchecked(max_line_width - width);
-
-            StyledLinePixelIterator::new(
-                parser,
-                cursor,
-                UniformSpaceConfig::default(),
-                style,
-                carried,
-            )
-        })
+    fn place_line(
+        max_width: u32,
+        width: u32,
+        _n_spaces: u32,
+        _carried_token: Option<Token>,
+    ) -> (u32, Self::SpaceConfig) {
+        (max_width - width, UniformSpaceConfig::default())
     }
 }
 

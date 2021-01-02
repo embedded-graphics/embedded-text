@@ -11,87 +11,28 @@ pub mod space_config;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
-    rendering::{cursor::Cursor, line::StyledLinePixelIterator, space_config::SpaceConfig},
-    style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
+    rendering::{cursor::Cursor, line::StyledLinePixelIterator},
+    style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
+use space_config::SpaceConfig;
 
-/// State variable used by the right aligned text renderer.
-#[derive(Debug)]
-pub enum State<'a, C, F, SP, A, V, H>
-where
-    C: PixelColor,
-    F: MonoFont,
-{
-    /// Starts processing a line.
-    NextLine(Option<Token<'a>>, Cursor<F>, Parser<'a>),
-
-    /// Renders the processed line.
-    DrawLine(StyledLinePixelIterator<'a, C, F, SP, A, V, H>),
-}
-
-/// This trait is used to associate a renderer type to a horizontal alignment option.
 ///
-/// Implementing this trait is only necessary when creating new alignment algorithms.
-pub trait RendererFactory<'a, C: PixelColor> {
-    /// The type of the pixel iterator.
-    type Renderer: Iterator<Item = Pixel<C>>;
-
-    /// Creates a new renderer object.
-    fn create_renderer(&self) -> Self::Renderer;
-}
-
-type LineIteratorSource<'a, C, F, A, V, H, SP> =
-    fn(
-        TextBoxStyle<C, F, A, V, H>,
-        Option<Token<'a>>,
-        Cursor<F>,
-        Parser<'a>,
-    ) -> StyledLinePixelIterator<'a, C, F, SP, A, V, H>;
-
-/// Pixel iterator for styled text.
-pub struct StyledTextBoxIterator<'a, C, F, A, V, H, SP>
-where
-    C: PixelColor,
-    F: MonoFont,
-{
-    style: TextBoxStyle<C, F, A, V, H>,
-    state: State<'a, C, F, SP, A, V, H>,
-    next_line_fn: LineIteratorSource<'a, C, F, A, V, H, SP>,
-}
-
-impl<'a, C, F, A, V, H, SP> StyledTextBoxIterator<'a, C, F, A, V, H, SP>
-where
-    C: PixelColor,
-    F: MonoFont,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-    SP: SpaceConfig<Font = F>,
-{
-    /// Creates a new pixel iterator to render the styled [`TextBox`].
+pub trait RendererFactory {
     ///
-    /// [`TextBox`]: ../struct.TextBox.html
-    #[inline]
-    #[must_use]
-    pub fn new(
-        styled: &StyledTextBox<'a, C, F, A, V, H>,
-        f: LineIteratorSource<'a, C, F, A, V, H, SP>,
-    ) -> Self {
-        let mut cursor = Cursor::new(styled.text_box.bounds, styled.style.line_spacing);
+    type SpaceConfig: SpaceConfig;
 
-        V::apply_vertical_alignment(&mut cursor, &styled);
-
-        Self {
-            style: styled.style,
-            state: State::NextLine(None, cursor, Parser::parse(styled.text_box.text)),
-            next_line_fn: f,
-        }
-    }
+    ///
+    fn place_line(
+        max_width: u32,
+        width: u32,
+        n_spaces: u32,
+        carried_token: Option<Token>,
+    ) -> (u32, Self::SpaceConfig);
 }
 
-impl<'a, C, F, A, V, H, SP> Iterator for StyledTextBoxIterator<'a, C, F, A, V, H, SP>
+impl<'a, C, F, A, V, H, SP> Drawable for StyledTextBox<'a, C, F, A, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
@@ -99,40 +40,43 @@ where
     V: VerticalTextAlignment,
     H: HeightMode,
     SP: SpaceConfig<Font = F>,
+    Self: RendererFactory<SpaceConfig = SP>,
 {
-    type Item = Pixel<C>;
+    type Color = C;
 
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
+    fn draw<D: DrawTarget<Color = C>>(&self, display: &mut D) -> Result<(), D::Error> {
+        let mut cursor = Cursor::new(self.text_box.bounds, self.style.line_spacing);
+
+        V::apply_vertical_alignment(&mut cursor, self);
+
+        let mut style = self.style;
+        let mut carried = None;
+        let mut parser = Parser::parse(self.text_box.text);
+
         loop {
-            match self.state {
-                State::NextLine(ref carried_token, ref cursor, ref parser) => {
-                    if carried_token.is_none() && parser.is_empty() {
-                        break None;
-                    }
-
-                    let f = self.next_line_fn;
-                    self.state = State::DrawLine(f(
-                        self.style,
-                        carried_token.clone(),
-                        *cursor,
-                        parser.clone(),
-                    ));
-                }
-
-                State::DrawLine(ref mut line_iterator) => {
-                    if let pixel @ Some(_) = line_iterator.next() {
-                        break pixel;
-                    }
-
-                    self.style = line_iterator.style;
-                    self.state = State::NextLine(
-                        line_iterator.remaining_token(),
-                        line_iterator.cursor(),
-                        line_iterator.parser(),
-                    );
-                }
+            if carried.is_none() && parser.is_empty() {
+                return Ok(());
             }
+
+            let max_line_width = cursor.line_width();
+            let (width, total_spaces, t, _) =
+                style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
+
+            let (left_offset, space_config) =
+                Self::place_line(max_line_width, width, total_spaces, t);
+
+            cursor.advance_unchecked(left_offset);
+
+            let iter = StyledLinePixelIterator::new(
+                &mut parser,
+                &mut cursor,
+                space_config,
+                &mut style,
+                &mut carried,
+            );
+
+            display.draw_iter(iter)?;
         }
     }
 }

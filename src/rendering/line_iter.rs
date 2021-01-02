@@ -27,8 +27,8 @@ enum State<'a> {
     /// Render a character in a word. (remaining_characters, current_character)
     Word(Chars<'a>),
 
-    /// Signal that the renderer has finished, store the token that was consumed but not rendered.
-    Done(Option<Token<'a>>),
+    /// Signal that the renderer has finished.
+    Done,
 }
 
 /// What to draw
@@ -47,12 +47,12 @@ pub enum RenderElement {
 
 /// Pixel iterator to render a single line of styled text.
 #[derive(Debug)]
-pub struct LineElementIterator<'a, F, SP, A> {
+pub struct LineElementIterator<'a, 'b, F, SP, A> {
     /// Position information.
-    pub cursor: Cursor<F>,
+    pub cursor: &'b mut Cursor<F>,
 
     /// The text to draw.
-    pub parser: Parser<'a>,
+    pub parser: &'b mut Parser<'a>,
 
     pub(crate) pos: Point,
     current_token: State<'a>,
@@ -60,9 +60,10 @@ pub struct LineElementIterator<'a, F, SP, A> {
     first_word: bool,
     alignment: PhantomData<A>,
     tab_size: TabSize<F>,
+    carried_token: &'b mut Option<Token<'a>>,
 }
 
-impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
+impl<'a, 'b, F, SP, A> LineElementIterator<'a, 'b, F, SP, A>
 where
     F: MonoFont,
 {
@@ -70,16 +71,17 @@ where
     #[inline]
     #[must_use]
     pub fn new(
-        mut parser: Parser<'a>,
-        cursor: Cursor<F>,
+        parser: &'b mut Parser<'a>,
+        cursor: &'b mut Cursor<F>,
         config: SP,
-        carried_token: Option<Token<'a>>,
+        carried_token: &'b mut Option<Token<'a>>,
         tab_size: TabSize<F>,
     ) -> Self {
         let current_token = carried_token
+            .take() // forget the old carried token
             .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t))
             .or_else(|| parser.next())
-            .map_or(State::Done(None), State::ProcessToken);
+            .map_or(State::Done, State::ProcessToken);
 
         Self {
             parser,
@@ -90,6 +92,7 @@ where
             alignment: PhantomData,
             pos: Point::zero(),
             tab_size,
+            carried_token,
         }
     }
 
@@ -100,21 +103,8 @@ where
         }
     }
 
-    /// When finished, this method returns the last partially processed [`Token`], or
-    /// `None` if everything was rendered.
-    ///
-    /// [`Token`]: ../../parser/enum.Token.html
-    #[must_use]
-    #[inline]
-    pub fn remaining_token(&self) -> Option<Token<'a>> {
-        match self.current_token {
-            State::Done(ref t) => t.clone(),
-            _ => None,
-        }
-    }
-
     fn finish_end_of_string(&mut self) {
-        self.current_token = State::Done(None);
+        self.current_token = State::Done;
     }
 
     fn finish_wrapped(&mut self) {
@@ -127,20 +117,23 @@ where
                 self.cursor.new_line();
                 self.cursor.carriage_return();
 
-                State::Done(Some(Token::NewLine))
+                *self.carried_token = Some(Token::NewLine);
+                State::Done
             }
 
             Token::CarriageReturn => {
                 self.cursor.carriage_return();
 
-                State::Done(Some(Token::CarriageReturn))
+                *self.carried_token = Some(Token::CarriageReturn);
+                State::Done
             }
 
             c => {
                 self.cursor.new_line();
                 self.cursor.carriage_return();
 
-                State::Done(Some(c))
+                *self.carried_token = Some(c);
+                State::Done
             }
         };
     }
@@ -174,7 +167,7 @@ where
     }
 }
 
-impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
+impl<F, SP, A> LineElementIterator<'_, '_, F, SP, A>
 where
     F: MonoFont,
     SP: SpaceConfig<Font = F>,
@@ -193,7 +186,7 @@ where
     }
 }
 
-impl<F, SP, A> Iterator for LineElementIterator<'_, F, SP, A>
+impl<F, SP, A> Iterator for LineElementIterator<'_, '_, F, SP, A>
 where
     F: MonoFont,
     SP: SpaceConfig<Font = F>,
@@ -430,7 +423,7 @@ where
                     }
                 }
 
-                State::Done(_) => break None,
+                State::Done => break None,
             }
         }
     }
@@ -452,13 +445,19 @@ mod test {
 
     #[test]
     fn soft_hyphen_no_wrapping() {
-        let parser = Parser::parse("sam\u{00AD}ple");
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6, 8)), 0);
+        let mut parser = Parser::parse("sam\u{00AD}ple");
+        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6, 8)), 0);
+        let mut carried = None;
 
-        let iter: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+        let iter: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             iter.collect::<Vec<RenderElement>>(),
@@ -475,13 +474,19 @@ mod test {
 
     #[test]
     fn soft_hyphen() {
-        let parser = Parser::parse("sam\u{00AD}ple");
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6 - 1, 16)), 0);
+        let mut parser = Parser::parse("sam\u{00AD}ple");
+        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6 - 1, 16)), 0);
+        let mut carried = None;
 
-        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+        let mut line1: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -495,12 +500,11 @@ mod test {
 
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
-        let carried = line1.remaining_token();
-        let line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
-            line1.parser,
-            line1.cursor,
+        let line2: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
             config,
-            carried,
+            &mut carried,
             TabSize::default(),
         );
 
@@ -516,14 +520,20 @@ mod test {
 
     #[test]
     fn soft_hyphen_issue_42() {
-        let parser =
-            Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(5 * 6, 16)), 0);
+        let mut parser =
+            Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
+        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(5 * 6, 16)), 0);
 
-        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+        let mut carried = None;
+        let mut line1: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -538,12 +548,11 @@ mod test {
 
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
-        let carried = line1.remaining_token();
-        let line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
-            line1.parser,
-            line1.cursor,
+        let line2: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
             config,
-            carried,
+            &mut carried,
             TabSize::default(),
         );
 
@@ -562,22 +571,28 @@ mod test {
     #[test]
     fn nbsp_is_rendered_as_space() {
         let text = "glued\u{a0}words";
-        let parser = Parser::parse(text);
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(
+        let mut parser = Parser::parse(text);
+        let mut cursor = Cursor::new(
             Rectangle::new(
                 Point::zero(),
                 Size::new(text.chars().count() as u32 * 6, 16),
             ),
             0,
         );
+        let mut carried = None;
 
-        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
-            collect_mut(&mut line1),
+            collect_mut(&mut line),
             vec![
                 RenderElement::PrintedCharacter('g'),
                 RenderElement::PrintedCharacter('l'),
@@ -597,16 +612,22 @@ mod test {
     #[test]
     fn tabs() {
         let text = "a\tword\nand\t\tanother\t";
-        let parser = Parser::parse(text);
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(16 * 6, 16)), 0);
+        let mut parser = Parser::parse(text);
+        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(16 * 6, 16)), 0);
 
-        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+        let mut carried = None;
+        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
-            collect_mut(&mut line1),
+            collect_mut(&mut line),
             vec![
                 RenderElement::PrintedCharacter('a'),
                 RenderElement::Space(6 * 3, 0),
@@ -617,17 +638,16 @@ mod test {
             ]
         );
 
-        let carried = line1.remaining_token();
-        let mut line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
-            line1.parser,
-            line1.cursor,
+        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
             config,
-            carried,
+            &mut carried,
             TabSize::default(),
         );
 
         assert_eq!(
-            collect_mut(&mut line2),
+            collect_mut(&mut line),
             vec![
                 RenderElement::PrintedCharacter('a'),
                 RenderElement::PrintedCharacter('n'),
@@ -657,13 +677,19 @@ mod ansi_parser_tests {
     #[test]
     fn colors() {
         let text = "Lorem \x1b[92mIpsum";
-        let parser = Parser::parse(text);
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(100 * 6, 16)), 0);
+        let mut parser = Parser::parse(text);
+        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(100 * 6, 16)), 0);
+        let mut carried = None;
 
-        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+        let mut line1: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -687,16 +713,22 @@ mod ansi_parser_tests {
     #[test]
     fn ansi_code_does_not_break_word() {
         let text = "Lorem foo\x1b[92mbarum";
-        let parser = Parser::parse(text);
         let config: UniformSpaceConfig<Font6x8> = UniformSpaceConfig::default();
 
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(8 * 6, 16)), 0);
+        let mut parser = Parser::parse(text);
+        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(8 * 6, 16)), 0);
+        let mut carried = None;
 
-        let mut line1: LineElementIterator<'_, _, _, LeftAligned> =
-            LineElementIterator::new(parser, cursor, config, None, TabSize::default());
+        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
-            collect_mut(&mut line1),
+            collect_mut(&mut line),
             vec![
                 RenderElement::PrintedCharacter('L'),
                 RenderElement::PrintedCharacter('o'),
@@ -706,17 +738,16 @@ mod ansi_parser_tests {
             ]
         );
 
-        let carried = line1.remaining_token();
-        let mut line2: LineElementIterator<'_, _, _, LeftAligned> = LineElementIterator::new(
-            line1.parser,
-            line1.cursor,
+        let mut line: LineElementIterator<'_, '_, _, _, LeftAligned> = LineElementIterator::new(
+            &mut parser,
+            &mut cursor,
             config,
-            carried,
+            &mut carried,
             TabSize::default(),
         );
 
         assert_eq!(
-            collect_mut(&mut line2),
+            collect_mut(&mut line),
             vec![
                 RenderElement::PrintedCharacter('f'),
                 RenderElement::PrintedCharacter('o'),

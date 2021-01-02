@@ -1,14 +1,13 @@
 //! Left aligned text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    rendering::{
-        line::StyledLinePixelIterator, space_config::UniformSpaceConfig, RendererFactory,
-        StyledTextBoxIterator,
-    },
+    parser::Token,
+    rendering::{space_config::UniformSpaceConfig, RendererFactory},
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
-use embedded_graphics::{fonts::MonoFont, pixelcolor::PixelColor};
+use embedded_graphics::fonts::MonoFont;
+use embedded_graphics_core::pixelcolor::PixelColor;
 
 /// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
@@ -18,27 +17,22 @@ impl HorizontalTextAlignment for LeftAligned {
     const ENDING_SPACES: bool = true;
 }
 
-impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, LeftAligned, V, H>
+impl<'a, C, F, V, H> RendererFactory for StyledTextBox<'a, C, F, LeftAligned, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    type Renderer = StyledTextBoxIterator<'a, C, F, LeftAligned, V, H, UniformSpaceConfig<F>>;
+    type SpaceConfig = UniformSpaceConfig<F>;
 
-    #[inline]
-    #[must_use]
-    fn create_renderer(&self) -> Self::Renderer {
-        StyledTextBoxIterator::new(self, |style, carried, cursor, parser| {
-            StyledLinePixelIterator::new(
-                parser,
-                cursor,
-                UniformSpaceConfig::default(),
-                style,
-                carried,
-            )
-        })
+    fn place_line(
+        _max_width: u32,
+        _width: u32,
+        _n_spaces: u32,
+        _carried_token: Option<Token>,
+    ) -> (u32, Self::SpaceConfig) {
+        (0, UniformSpaceConfig::default())
     }
 }
 

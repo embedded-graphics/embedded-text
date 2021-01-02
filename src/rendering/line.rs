@@ -40,18 +40,18 @@ where
 
 /// Pixel iterator to render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLinePixelIterator<'a, C, F, SP, A, V, H>
+pub struct StyledLinePixelIterator<'a, 'b, C, F, SP, A, V, H>
 where
     C: PixelColor,
     F: MonoFont,
 {
     state: State<C, F>,
-    pub(crate) style: TextBoxStyle<C, F, A, V, H>,
+    pub(crate) style: &'b mut TextBoxStyle<C, F, A, V, H>,
     display_range: Range<i32>,
-    inner: LineElementIterator<'a, F, SP, A>,
+    inner: LineElementIterator<'a, 'b, F, SP, A>,
 }
 
-impl<'a, C, F, SP, A, V, H> StyledLinePixelIterator<'a, C, F, SP, A, V, H>
+impl<'a, 'b, C, F, SP, A, V, H> StyledLinePixelIterator<'a, 'b, C, F, SP, A, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
@@ -64,42 +64,19 @@ where
     #[inline]
     #[must_use]
     pub fn new(
-        parser: Parser<'a>,
-        cursor: Cursor<F>,
+        parser: &'b mut Parser<'a>,
+        cursor: &'b mut Cursor<F>,
         config: SP,
-        style: TextBoxStyle<C, F, A, V, H>,
-        carried_token: Option<Token<'a>>,
+        style: &'b mut TextBoxStyle<C, F, A, V, H>,
+        carried_token: &'b mut Option<Token<'a>>,
     ) -> Self {
+        let tab_size = style.tab_size;
         Self {
             state: State::FetchNext,
             style,
             display_range: H::calculate_displayed_row_range(&cursor),
-            inner: LineElementIterator::new(parser, cursor, config, carried_token, style.tab_size),
+            inner: LineElementIterator::new(parser, cursor, config, carried_token, tab_size),
         }
-    }
-
-    /// When finished, this method returns the last partially processed [`Token`], or
-    /// `None` if everything was rendered.
-    ///
-    /// [`Token`]: ../../parser/enum.Token.html
-    #[must_use]
-    #[inline]
-    pub fn remaining_token(&self) -> Option<Token<'a>> {
-        self.inner.remaining_token()
-    }
-
-    /// When finished, this method returns the text parser object.
-    #[must_use]
-    #[inline]
-    pub fn parser(&self) -> Parser<'a> {
-        self.inner.parser.clone()
-    }
-
-    /// When finished, this method returns the cursor object.
-    #[must_use]
-    #[inline]
-    pub fn cursor(&self) -> Cursor<F> {
-        self.inner.cursor
     }
 
     fn is_anything_displayed(&self) -> bool {
@@ -107,7 +84,7 @@ where
     }
 }
 
-impl<C, F, SP, A, V, H> Iterator for StyledLinePixelIterator<'_, C, F, SP, A, V, H>
+impl<C, F, SP, A, V, H> Iterator for StyledLinePixelIterator<'_, '_, C, F, SP, A, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
@@ -274,7 +251,7 @@ mod test {
     fn test_rendered_text<'a, C, F, A, V, H>(
         text: &'a str,
         bounds: Rectangle,
-        style: TextBoxStyle<C, F, A, V, H>,
+        mut style: TextBoxStyle<C, F, A, V, H>,
         pattern: &[&str],
     ) where
         C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping,
@@ -283,11 +260,18 @@ mod test {
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        let parser = Parser::parse(text);
         let config = UniformSpaceConfig::default();
+        let mut parser = Parser::parse(text);
+        let mut cursor = Cursor::new(bounds, style.line_spacing);
+        let mut carried = None;
 
-        let cursor = Cursor::new(bounds, style.line_spacing);
-        let iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
+        let iter = StyledLinePixelIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut style,
+            &mut carried,
+        );
         let mut display = MockDisplay::new();
 
         iter.draw(&mut display).unwrap();
@@ -321,9 +305,9 @@ mod test {
 
     #[test]
     fn render_before_area() {
-        let parser = Parser::parse(" Some sample text");
         let config = UniformSpaceConfig::default();
-        let style = TextBoxStyleBuilder::new(Font6x8)
+        let mut parser = Parser::parse(" Some sample text");
+        let mut style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -334,7 +318,14 @@ mod test {
         );
         cursor.position.y -= 8;
 
-        let mut iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
+        let mut carried = None;
+        let mut iter = StyledLinePixelIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut style,
+            &mut carried,
+        );
 
         assert!(
             iter.next().is_none(),
@@ -342,7 +333,7 @@ mod test {
         );
 
         // even though nothing was drawn, the text should be consumed
-        assert_eq!(Some(Token::Break(None)), iter.remaining_token());
+        assert_eq!(Some(Token::Break(None)), carried);
     }
 
     #[test]
@@ -488,16 +479,22 @@ mod ansi_parser_tests {
     fn ansi_cursor_backwards() {
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
-
-        let parser = Parser::parse("foo\x1b[2Dsample");
         let config = UniformSpaceConfig::default();
-        let style = TextBoxStyleBuilder::new(Font6x8)
+
+        let mut parser = Parser::parse("foo\x1b[2Dsample");
+        let mut style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
-
-        let cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 7, 8)), 0);
-        let iter = StyledLinePixelIterator::new(parser, cursor, config, style, None);
+        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 7, 8)), 0);
+        let mut carried = None;
+        let iter = StyledLinePixelIterator::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut style,
+            &mut carried,
+        );
 
         iter.draw(&mut display).unwrap();
 

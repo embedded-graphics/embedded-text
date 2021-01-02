@@ -2,15 +2,13 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Token,
-    rendering::{
-        line::StyledLinePixelIterator, space_config::SpaceConfig, RendererFactory,
-        StyledTextBoxIterator,
-    },
+    rendering::{space_config::SpaceConfig, RendererFactory},
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
 use core::marker::PhantomData;
-use embedded_graphics::{fonts::MonoFont, pixelcolor::PixelColor};
+use embedded_graphics::fonts::MonoFont;
+use embedded_graphics_core::pixelcolor::PixelColor;
 
 /// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
@@ -75,37 +73,32 @@ impl<F: MonoFont> SpaceConfig for JustifiedSpaceConfig<F> {
     }
 }
 
-impl<'a, C, F, V, H> RendererFactory<'a, C> for StyledTextBox<'a, C, F, Justified, V, H>
+impl<'a, C, F, V, H> RendererFactory for StyledTextBox<'a, C, F, Justified, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    type Renderer = StyledTextBoxIterator<'a, C, F, Justified, V, H, JustifiedSpaceConfig<F>>;
+    type SpaceConfig = JustifiedSpaceConfig<F>;
 
-    #[inline]
-    #[must_use]
-    fn create_renderer(&self) -> Self::Renderer {
-        StyledTextBoxIterator::new(self, |style, carried, cursor, parser| {
-            let max_line_width = cursor.line_width();
-            let (width, total_whitespace_count, t, _) =
-                style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
+    fn place_line(
+        max_width: u32,
+        width: u32,
+        n_spaces: u32,
+        carried_token: Option<Token>,
+    ) -> (u32, Self::SpaceConfig) {
+        let space = max_width - (width - n_spaces * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING);
+        let stretch_line = carried_token.is_some() && carried_token != Some(Token::NewLine);
 
-            let space = max_line_width
-                - (width - total_whitespace_count * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING);
-            let stretch_line = t.is_some() && t != Some(Token::NewLine);
-
-            let space_info = if stretch_line && total_whitespace_count != 0 {
-                let space_width = space / total_whitespace_count;
-                let extra_pixels = space % total_whitespace_count;
-                JustifiedSpaceConfig::new(space_width, extra_pixels)
-            } else {
-                JustifiedSpaceConfig::default()
-            };
-
-            StyledLinePixelIterator::new(parser, cursor, space_info, style, carried)
-        })
+        let space_info = if stretch_line && n_spaces != 0 {
+            let space_width = space / n_spaces;
+            let extra_pixels = space % n_spaces;
+            JustifiedSpaceConfig::new(space_width, extra_pixels)
+        } else {
+            JustifiedSpaceConfig::default()
+        };
+        (0, space_info)
     }
 }
 
