@@ -161,14 +161,13 @@ pub mod height_mode;
 pub mod vertical_overdraw;
 
 use crate::{
-    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
+    alignment::HorizontalTextAlignment,
     parser::{Parser, Token},
     rendering::{
         cursor::Cursor,
         line_iter::{LineElementIterator, RenderElement},
         space_config::UniformSpaceConfig,
     },
-    style::height_mode::HeightMode,
 };
 use core::marker::PhantomData;
 use embedded_graphics::{prelude::*, style::MonoTextStyle};
@@ -240,11 +239,7 @@ impl<F: MonoFont> TabSize<F> {
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct TextBoxStyle<C, F, A, V, H>
-where
-    C: PixelColor,
-    F: MonoFont,
-{
+pub struct TextBoxStyle<C, F, A, V, H> {
     /// Style properties for text.
     pub text_style: MonoTextStyle<C, F>,
 
@@ -274,9 +269,6 @@ impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
 where
     C: PixelColor,
     F: MonoFont,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
 {
     /// Creates a `TextBoxStyle` object with transparent background.
     #[inline]
@@ -314,7 +306,14 @@ where
             strikethrough: false,
         }
     }
+}
 
+impl<C, F, A, V, H> TextBoxStyle<C, F, A, V, H>
+where
+    C: PixelColor,
+    F: MonoFont,
+    A: HorizontalTextAlignment,
+{
     /// Measure the width and count spaces in a single line of text.
     ///
     /// Returns (width, rendered space count, carried token)

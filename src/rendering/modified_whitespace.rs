@@ -12,10 +12,7 @@ use embedded_graphics_core::pixelcolor::BinaryColor;
 ///
 /// [`StyledLinePixelIterator`]: ../line/struct.StyledLinePixelIterator.html
 #[derive(Clone, Debug)]
-pub struct ModifiedEmptySpaceIterator<F>
-where
-    F: MonoFont,
-{
+pub struct ModifiedEmptySpaceIterator<F> {
     points: rectangle::Points,
     underline: bool,
     strikethrough: bool,

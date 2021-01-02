@@ -65,8 +65,6 @@ pub struct LineElementIterator<'a, F, SP, A> {
 impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
 where
     F: MonoFont,
-    SP: SpaceConfig<Font = F>,
-    A: HorizontalTextAlignment,
 {
     /// Creates a new pixel iterator to draw the given character.
     #[inline]
@@ -174,7 +172,14 @@ where
 
         width
     }
+}
 
+impl<'a, F, SP, A> LineElementIterator<'a, F, SP, A>
+where
+    F: MonoFont,
+    SP: SpaceConfig<Font = F>,
+    A: HorizontalTextAlignment,
+{
     fn count_widest_space_seq(&self, n: u32) -> u32 {
         // we could also binary search but I don't think it's worth it
         let mut spaces_to_render = 0;
