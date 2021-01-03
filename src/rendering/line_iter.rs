@@ -45,9 +45,9 @@ pub enum RenderElement {
     Sgr(Sgr),
 }
 
-/// Pixel iterator to render a single line of styled text.
+/// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
-pub struct LineElementIterator<'a, 'b, F, SP, A> {
+pub struct LineElementParser<'a, 'b, F, SP, A> {
     /// Position information.
     pub cursor: &'b mut Cursor<F>,
 
@@ -63,11 +63,11 @@ pub struct LineElementIterator<'a, 'b, F, SP, A> {
     carried_token: &'b mut Option<Token<'a>>,
 }
 
-impl<'a, 'b, F, SP, A> LineElementIterator<'a, 'b, F, SP, A>
+impl<'a, 'b, F, SP, A> LineElementParser<'a, 'b, F, SP, A>
 where
     F: MonoFont,
 {
-    /// Creates a new pixel iterator to draw the given character.
+    /// Creates a new element parser.
     #[inline]
     #[must_use]
     pub fn new(
@@ -167,7 +167,7 @@ where
     }
 }
 
-impl<F, SP, A> LineElementIterator<'_, '_, F, SP, A>
+impl<F, SP, A> LineElementParser<'_, '_, F, SP, A>
 where
     F: MonoFont,
     SP: SpaceConfig,
@@ -186,7 +186,7 @@ where
     }
 }
 
-impl<F, SP, A> Iterator for LineElementIterator<'_, '_, F, SP, A>
+impl<F, SP, A> Iterator for LineElementParser<'_, '_, F, SP, A>
 where
     F: MonoFont,
     SP: SpaceConfig,
@@ -451,7 +451,7 @@ mod test {
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6, 8)), 0);
         let mut carried = None;
 
-        let iter: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> = LineElementIterator::new(
+        let iter: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
             &mut parser,
             &mut cursor,
             config,
@@ -480,14 +480,13 @@ mod test {
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6 - 1, 16)), 0);
         let mut carried = None;
 
-        let mut line1: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
-            LineElementIterator::new(
-                &mut parser,
-                &mut cursor,
-                config,
-                &mut carried,
-                TabSize::default(),
-            );
+        let mut line1: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -501,7 +500,7 @@ mod test {
 
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
-        let line2: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> = LineElementIterator::new(
+        let line2: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
             &mut parser,
             &mut cursor,
             config,
@@ -528,14 +527,13 @@ mod test {
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(5 * 6, 16)), 0);
 
         let mut carried = None;
-        let mut line1: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
-            LineElementIterator::new(
-                &mut parser,
-                &mut cursor,
-                config,
-                &mut carried,
-                TabSize::default(),
-            );
+        let mut line1: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -550,7 +548,7 @@ mod test {
 
         assert_eq!(line1.cursor.position, Point::new(0, 8));
 
-        let line2: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> = LineElementIterator::new(
+        let line2: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
             &mut parser,
             &mut cursor,
             config,
@@ -585,14 +583,13 @@ mod test {
         );
         let mut carried = None;
 
-        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
-            LineElementIterator::new(
-                &mut parser,
-                &mut cursor,
-                config,
-                &mut carried,
-                TabSize::default(),
-            );
+        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line),
@@ -621,14 +618,13 @@ mod test {
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(16 * 6, 16)), 0);
 
         let mut carried = None;
-        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
-            LineElementIterator::new(
-                &mut parser,
-                &mut cursor,
-                config,
-                &mut carried,
-                TabSize::default(),
-            );
+        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line),
@@ -642,14 +638,13 @@ mod test {
             ]
         );
 
-        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
-            LineElementIterator::new(
-                &mut parser,
-                &mut cursor,
-                config,
-                &mut carried,
-                TabSize::default(),
-            );
+        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line),
@@ -688,14 +683,13 @@ mod ansi_parser_tests {
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(100 * 6, 16)), 0);
         let mut carried = None;
 
-        let mut line1: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
-            LineElementIterator::new(
-                &mut parser,
-                &mut cursor,
-                config,
-                &mut carried,
-                TabSize::default(),
-            );
+        let mut line1: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line1),
@@ -725,14 +719,13 @@ mod ansi_parser_tests {
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(8 * 6, 16)), 0);
         let mut carried = None;
 
-        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
-            LineElementIterator::new(
-                &mut parser,
-                &mut cursor,
-                config,
-                &mut carried,
-                TabSize::default(),
-            );
+        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line),
@@ -745,14 +738,13 @@ mod ansi_parser_tests {
             ]
         );
 
-        let mut line: LineElementIterator<'_, '_, Font6x8, _, LeftAligned> =
-            LineElementIterator::new(
-                &mut parser,
-                &mut cursor,
-                config,
-                &mut carried,
-                TabSize::default(),
-            );
+        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+            &mut parser,
+            &mut cursor,
+            config,
+            &mut carried,
+            TabSize::default(),
+        );
 
         assert_eq!(
             collect_mut(&mut line),

@@ -165,7 +165,7 @@ use crate::{
     parser::{Parser, Token},
     rendering::{
         cursor::Cursor,
-        line_iter::{LineElementIterator, RenderElement},
+        line_iter::{LineElementParser, RenderElement},
         space_config::UniformSpaceConfig,
     },
 };
@@ -337,7 +337,7 @@ where
             ),
             0,
         );
-        let mut iter: LineElementIterator<'a, '_, _, _, A> = LineElementIterator::new(
+        let mut iter: LineElementParser<'a, '_, _, _, A> = LineElementParser::new(
             parser,
             &mut cursor,
             UniformSpaceConfig::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING),

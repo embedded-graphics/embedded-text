@@ -6,7 +6,7 @@ use crate::{
         character::GlyphRenderer,
         cursor::Cursor,
         decorated_space::DecoratedSpaceRenderer,
-        line_iter::{LineElementIterator, RenderElement},
+        line_iter::{LineElementParser, RenderElement},
     },
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
@@ -18,7 +18,7 @@ use embedded_graphics::{fonts::MonoFont, prelude::*};
 use crate::rendering::ansi::Sgr;
 
 #[derive(Debug)]
-struct StyledLineRendererInner<'a, 'b, C, F, A, V, H>
+struct Refs<'a, 'b, C, F, A, V, H>
 where
     C: PixelColor,
     F: MonoFont,
@@ -37,7 +37,7 @@ where
     F: MonoFont,
 {
     display_range: Range<i32>,
-    inner: RefCell<StyledLineRendererInner<'a, 'b, C, F, A, V, H>>,
+    inner: RefCell<Refs<'a, 'b, C, F, A, V, H>>,
 }
 
 impl<'a, 'b, C, F, A, V, H> StyledLineRenderer<'a, 'b, C, F, A, V, H>
@@ -55,7 +55,7 @@ where
     ) -> Self {
         Self {
             display_range: H::calculate_displayed_row_range(&cursor),
-            inner: RefCell::new(StyledLineRendererInner {
+            inner: RefCell::new(Refs {
                 parser,
                 cursor,
                 style,
@@ -84,7 +84,7 @@ where
         D: DrawTarget<Color = Self::Color>,
     {
         let mut inner = self.inner.borrow_mut();
-        let StyledLineRendererInner {
+        let Refs {
             parser,
             cursor,
             style,
@@ -99,7 +99,7 @@ where
 
         cursor.advance_unchecked(left);
 
-        let mut elements = LineElementIterator::<'_, '_, F, _, A>::new(
+        let mut elements = LineElementParser::<'_, '_, F, _, A>::new(
             parser,
             cursor,
             space_config,
