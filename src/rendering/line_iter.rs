@@ -117,14 +117,14 @@ where
                 self.cursor.new_line();
                 self.cursor.carriage_return();
 
-                *self.carried_token = Some(Token::NewLine);
+                self.carried_token.replace(Token::NewLine);
                 State::Done
             }
 
             Token::CarriageReturn => {
                 self.cursor.carriage_return();
 
-                *self.carried_token = Some(Token::CarriageReturn);
+                self.carried_token.replace(Token::CarriageReturn);
                 State::Done
             }
 
@@ -132,7 +132,7 @@ where
                 self.cursor.new_line();
                 self.cursor.carriage_return();
 
-                *self.carried_token = Some(c);
+                self.carried_token.replace(c);
                 State::Done
             }
         };
