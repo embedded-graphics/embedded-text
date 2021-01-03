@@ -3,79 +3,68 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        character::{GlyphRenderer, Pixels as GlyphPixels},
+        character::GlyphRenderer,
         cursor::Cursor,
-        decorated_space::{DecoratedSpaceRenderer, Pixels as SpacePixels},
+        decorated_space::DecoratedSpaceRenderer,
         line_iter::{LineElementIterator, RenderElement},
         space_config::*,
     },
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
+use core::cell::RefCell;
 use core::ops::Range;
-use embedded_graphics::{fonts::MonoFont, pixelcolor::BinaryColor, prelude::*};
-use embedded_graphics_core::primitives::{rectangle, Rectangle};
+use embedded_graphics::{fonts::MonoFont, prelude::*};
 
 #[cfg(feature = "ansi")]
 use crate::rendering::ansi::Sgr;
 
-/// Internal state used to render a line.
 #[derive(Debug)]
-enum State<C, F>
+struct StyledLineRendererInner<'a, 'b, C, F, A, V, H>
 where
     C: PixelColor,
     F: MonoFont,
 {
-    /// Fetch next render element.
-    FetchNext,
-
-    /// Render a character at the given position.
-    Char(Point, GlyphPixels<F>),
-
-    /// Render a block of whitespace at the given position.
-    Space(rectangle::Points, C),
-
-    /// Render a block of whitespace at the given position with underlined or strikethrough effect.
-    ModifiedSpace(Point, SpacePixels<F>),
-}
-
-/// Pixel iterator to render a single line of styled text.
-#[derive(Debug)]
-pub struct StyledLinePixelIterator<'a, 'b, C, F, SP, A, V, H>
-where
-    C: PixelColor,
-    F: MonoFont,
-{
-    state: State<C, F>,
+    parser: &'b mut Parser<'a>,
+    cursor: &'b mut Cursor<F>,
     style: &'b mut TextBoxStyle<C, F, A, V, H>,
-    display_range: Range<i32>,
-    inner: LineElementIterator<'a, 'b, F, SP, A>,
+    carried_token: &'b mut Option<Token<'a>>,
 }
 
-impl<'a, 'b, C, F, SP, A, V, H> StyledLinePixelIterator<'a, 'b, C, F, SP, A, V, H>
+/// Render a single line of styled text.
+#[derive(Debug)]
+pub struct StyledLineRenderer<'a, 'b, C, F, A, V, H, SP>
 where
-    C: PixelColor + From<Rgb>,
+    C: PixelColor,
     F: MonoFont,
-    SP: SpaceConfig,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
+{
+    display_range: Range<i32>,
+    config: SP,
+    inner: RefCell<StyledLineRendererInner<'a, 'b, C, F, A, V, H>>,
+}
+
+impl<'a, 'b, C, F, A, V, H, SP> StyledLineRenderer<'a, 'b, C, F, A, V, H, SP>
+where
+    C: PixelColor,
+    F: MonoFont,
     H: HeightMode,
 {
-    /// Creates a new pixel iterator to draw the given character.
-    #[inline]
-    #[must_use]
+    /// Creates a new line renderer.
     pub fn new(
         parser: &'b mut Parser<'a>,
         cursor: &'b mut Cursor<F>,
-        config: SP,
         style: &'b mut TextBoxStyle<C, F, A, V, H>,
         carried_token: &'b mut Option<Token<'a>>,
+        config: SP,
     ) -> Self {
-        let tab_size = style.tab_size;
         Self {
-            state: State::FetchNext,
-            style,
             display_range: H::calculate_displayed_row_range(&cursor),
-            inner: LineElementIterator::new(parser, cursor, config, carried_token, tab_size),
+            inner: RefCell::new(StyledLineRendererInner {
+                parser,
+                cursor,
+                style,
+                carried_token,
+            }),
+            config,
         }
     }
 
@@ -84,157 +73,114 @@ where
     }
 }
 
-impl<C, F, SP, A, V, H> Iterator for StyledLinePixelIterator<'_, '_, C, F, SP, A, V, H>
+impl<'a, 'b, C, F, A, V, H, SP> Drawable for StyledLineRenderer<'a, 'b, C, F, A, V, H, SP>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
-    SP: SpaceConfig,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
+    SP: SpaceConfig,
 {
-    type Item = Pixel<C>;
+    type Color = C;
 
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.state {
-                // No token being processed, get next one
-                State::FetchNext => {
-                    // HACK: avoid drawing the underline outside of the text box
-                    let underlined = if self.style.underlined {
-                        self.inner.cursor.position.y + self.display_range.end - 1
-                            < self.inner.cursor.bottom_right().y
-                    } else {
-                        false
-                    };
+    fn draw<D>(&self, display: &mut D) -> Result<(), D::Error>
+    where
+        D: DrawTarget<Color = Self::Color>,
+    {
+        let mut inner = self.inner.borrow_mut();
+        let StyledLineRendererInner {
+            parser,
+            cursor,
+            style,
+            carried_token,
+        } = &mut *inner;
 
-                    match self.inner.next() {
-                        Some(RenderElement::PrintedCharacter(c)) => {
-                            if self.is_anything_displayed() {
-                                self.state = State::Char(
-                                    self.inner.pos,
-                                    GlyphRenderer::new(
-                                        c,
-                                        self.style.text_style,
-                                        self.inner.pos,
-                                        self.display_range.clone(),
-                                        underlined,
-                                        self.style.strikethrough,
-                                    )
-                                    .pixels(),
-                                );
-                            }
-                        }
+        let mut elements = LineElementIterator::<'_, '_, F, SP, A>::new(
+            parser,
+            cursor,
+            self.config,
+            carried_token,
+            style.tab_size,
+        );
 
-                        Some(RenderElement::Space(space_width, _)) => {
-                            if self.is_anything_displayed() {
-                                let row_range = self.display_range.clone();
-                                self.state = if underlined || self.style.strikethrough {
-                                    State::ModifiedSpace(
-                                        self.inner.pos,
-                                        DecoratedSpaceRenderer::new(
-                                            self.style.text_style,
-                                            self.inner.pos,
-                                            space_width,
-                                            row_range,
-                                            underlined,
-                                            self.style.strikethrough,
-                                        )
-                                        .pixels(),
-                                    )
-                                } else if let Some(color) = self.style.text_style.background_color {
-                                    let start = row_range.start;
-                                    let rows = row_range.count() as u32;
-                                    State::Space(
-                                        Rectangle::new(
-                                            self.inner.pos + Point::new(0, start),
-                                            Size::new(space_width, rows),
-                                        )
-                                        .points(),
-                                        color,
-                                    )
-                                } else {
-                                    State::FetchNext
-                                };
-                            }
-                        }
+        while let Some(element) = elements.next() {
+            // HACK: avoid drawing the underline outside of the text box
+            let underlined = if style.underlined {
+                elements.cursor.position.y + self.display_range.end - 1
+                    < elements.cursor.bottom_right().y
+            } else {
+                false
+            };
 
-                        #[cfg(feature = "ansi")]
-                        Some(RenderElement::Sgr(sgr)) => match sgr {
-                            Sgr::Reset => {
-                                self.style.text_style.text_color = None;
-                                self.style.text_style.background_color = None;
-                                self.style.underlined = false;
-                                self.style.strikethrough = false;
-                            }
-                            Sgr::ChangeTextColor(color) => {
-                                self.style.text_style.text_color = Some(color.into());
-                            }
-                            Sgr::DefaultTextColor => {
-                                self.style.text_style.text_color = None;
-                            }
-                            Sgr::ChangeBackgroundColor(color) => {
-                                self.style.text_style.background_color = Some(color.into());
-                            }
-                            Sgr::DefaultBackgroundColor => {
-                                self.style.text_style.background_color = None;
-                            }
-                            Sgr::Underline => {
-                                self.style.underlined = true;
-                            }
-                            Sgr::UnderlineOff => {
-                                self.style.underlined = false;
-                            }
-                            Sgr::CrossedOut => {
-                                self.style.strikethrough = true;
-                            }
-                            Sgr::NotCrossedOut => {
-                                self.style.strikethrough = false;
-                            }
-                        },
-
-                        None => break None,
-                    };
-                }
-
-                State::Char(ref pos, ref mut iter) => {
-                    if let Some(Pixel(position, color)) = iter.next() {
-                        let color = match color {
-                            BinaryColor::Off => self.style.text_style.background_color,
-                            BinaryColor::On => self.style.text_style.text_color,
-                        };
-                        if let Some(color) = color {
-                            break Some(Pixel(position + *pos, color));
-                        }
-                    } else {
-                        self.state = State::FetchNext;
+            match element {
+                RenderElement::PrintedCharacter(c) => {
+                    if !self.is_anything_displayed() {
+                        continue;
                     }
+                    GlyphRenderer::new(
+                        c,
+                        style.text_style,
+                        elements.pos,
+                        self.display_range.clone(),
+                        underlined,
+                        style.strikethrough,
+                    )
+                    .draw(display)?;
                 }
 
-                State::Space(ref mut iter, color) => {
-                    if let Some(position) = iter.next() {
-                        break Some(Pixel(position, color));
+                RenderElement::Space(space_width, _) => {
+                    if !self.is_anything_displayed() {
+                        continue;
                     }
-
-                    self.state = State::FetchNext;
+                    DecoratedSpaceRenderer::new(
+                        style.text_style,
+                        elements.pos,
+                        space_width,
+                        self.display_range.clone(),
+                        underlined,
+                        style.strikethrough,
+                    )
+                    .draw(display)?;
                 }
 
-                State::ModifiedSpace(ref pos, ref mut iter) => {
-                    if let Some(Pixel(position, color)) = iter.next() {
-                        let color = match color {
-                            BinaryColor::Off => self.style.text_style.background_color,
-                            BinaryColor::On => self.style.text_style.text_color,
-                        };
-                        if let Some(color) = color {
-                            break Some(Pixel(position + *pos, color));
-                        }
-                    } else {
-                        self.state = State::FetchNext;
+                #[cfg(feature = "ansi")]
+                RenderElement::Sgr(sgr) => match sgr {
+                    Sgr::Reset => {
+                        style.text_style.text_color = None;
+                        style.text_style.background_color = None;
+                        style.underlined = false;
+                        style.strikethrough = false;
                     }
-                }
+                    Sgr::ChangeTextColor(color) => {
+                        style.text_style.text_color = Some(color.into());
+                    }
+                    Sgr::DefaultTextColor => {
+                        style.text_style.text_color = None;
+                    }
+                    Sgr::ChangeBackgroundColor(color) => {
+                        style.text_style.background_color = Some(color.into());
+                    }
+                    Sgr::DefaultBackgroundColor => {
+                        style.text_style.background_color = None;
+                    }
+                    Sgr::Underline => {
+                        style.underlined = true;
+                    }
+                    Sgr::UnderlineOff => {
+                        style.underlined = false;
+                    }
+                    Sgr::CrossedOut => {
+                        style.strikethrough = true;
+                    }
+                    Sgr::NotCrossedOut => {
+                        style.strikethrough = false;
+                    }
+                },
             }
         }
+
+        Ok(())
     }
 }
 
@@ -245,7 +191,7 @@ mod test {
         parser::{Parser, Token},
         rendering::{
             cursor::Cursor,
-            line::{StyledLinePixelIterator, UniformSpaceConfig},
+            line::{StyledLineRenderer, UniformSpaceConfig},
         },
         style::{color::Rgb, height_mode::HeightMode, TextBoxStyle, TextBoxStyleBuilder},
     };
@@ -271,16 +217,11 @@ mod test {
         let mut cursor = Cursor::new(bounds, style.line_spacing);
         let mut carried = None;
 
-        let iter = StyledLinePixelIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut style,
-            &mut carried,
-        );
+        let renderer =
+            StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried, config);
         let mut display = MockDisplay::new();
 
-        iter.draw(&mut display).unwrap();
+        renderer.draw(&mut display).unwrap();
 
         display.assert_pattern(pattern);
     }
@@ -325,18 +266,15 @@ mod test {
         cursor.position.y -= 8;
 
         let mut carried = None;
-        let mut iter = StyledLinePixelIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut style,
-            &mut carried,
-        );
+        let renderer =
+            StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried, config);
 
-        assert!(
-            iter.next().is_none(),
-            "Drawing is not allowed outside the bounding area"
-        );
+        let mut display = MockDisplay::new();
+
+        renderer.draw(&mut display).unwrap();
+
+        // Nothing is drawn and we don't get a panic either.
+        display.assert_pattern(&[]);
 
         // even though nothing was drawn, the text should be consumed
         assert_eq!(Some(Token::Break(None)), carried);
@@ -472,7 +410,7 @@ mod ansi_parser_tests {
         parser::Parser,
         rendering::{
             cursor::Cursor,
-            line::{StyledLinePixelIterator, UniformSpaceConfig},
+            line::{StyledLineRenderer, UniformSpaceConfig},
         },
         style::TextBoxStyleBuilder,
     };
@@ -494,15 +432,9 @@ mod ansi_parser_tests {
             .build();
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 7, 8)), 0);
         let mut carried = None;
-        let iter = StyledLinePixelIterator::new(
-            &mut parser,
-            &mut cursor,
-            config,
-            &mut style,
-            &mut carried,
-        );
-
-        iter.draw(&mut display).unwrap();
+        StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried, config)
+            .draw(&mut display)
+            .unwrap();
 
         display.assert_pattern(&[
             "..##...........................##.........",

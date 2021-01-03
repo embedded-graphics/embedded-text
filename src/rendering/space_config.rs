@@ -1,7 +1,7 @@
 //! Space rendering config
 
 /// Retrieves size of space characters.
-pub trait SpaceConfig {
+pub trait SpaceConfig: Copy {
     /// Look at the size of next n spaces, without advancing.
     fn peek_next_width(&self, n: u32) -> u32;
 

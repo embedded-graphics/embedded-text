@@ -11,11 +11,13 @@ pub mod space_config;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::Parser,
-    rendering::{cursor::Cursor, line::StyledLinePixelIterator},
+    rendering::cursor::Cursor,
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
 use embedded_graphics::prelude::*;
+
+use self::line::StyledLineRenderer;
 
 impl<'a, C, F, A, V, H> Drawable for StyledTextBox<'a, C, F, A, V, H>
 where
@@ -50,15 +52,14 @@ where
 
             cursor.advance_unchecked(left);
 
-            let iter = StyledLinePixelIterator::new(
+            StyledLineRenderer::new(
                 &mut parser,
                 &mut cursor,
-                space_config,
                 &mut style,
                 &mut carried,
-            );
-
-            display.draw_iter(iter)?;
+                space_config,
+            )
+            .draw(display)?;
         }
     }
 }
