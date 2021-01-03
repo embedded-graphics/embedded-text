@@ -233,6 +233,7 @@ impl<F: MonoFont> TabSize<F> {
 /// the [`TextBoxStyleBuilder`] object.
 ///
 /// [`TextBox`]: ../struct.TextBox.html
+/// [`HeightMode`]: ./height_mode/trait.HeightMode.html
 /// [`HorizontalTextAlignment`]: ../alignment/trait.HorizontalTextAlignment.html
 /// [`VerticalTextAlignment`]: ../alignment/trait.VerticalTextAlignment.html
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html

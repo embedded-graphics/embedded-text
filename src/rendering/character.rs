@@ -10,9 +10,9 @@ use embedded_graphics_core::{
 /// Pixel iterator to render a single styled character.
 ///
 /// This struct may be used to implement custom rendering algorithms. Internally, this pixel
-/// iterator is used by [`StyledLinePixelIterator`] to render characters.
+/// iterator is used by [`StyledLineRenderer`] to render characters.
 ///
-/// [`StyledLinePixelIterator`]: ../line/struct.StyledLinePixelIterator.html
+/// [`StyledLineRenderer`]: ../line/struct.StyledLineRenderer.html
 #[derive(Clone, Debug)]
 pub struct Pixels<F> {
     points: rectangle::Points,
