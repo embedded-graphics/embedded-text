@@ -44,22 +44,8 @@ where
                 return Ok(());
             }
 
-            let max_line_width = cursor.line_width();
-            let (width, total_spaces, t, _) =
-                style.measure_line(&mut parser.clone(), carried.clone(), max_line_width);
-
-            let (left, space_config) = A::place_line::<F>(max_line_width, width, total_spaces, t);
-
-            cursor.advance_unchecked(left);
-
-            StyledLineRenderer::new(
-                &mut parser,
-                &mut cursor,
-                &mut style,
-                &mut carried,
-                space_config,
-            )
-            .draw(display)?;
+            StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried)
+                .draw(display)?;
         }
     }
 }

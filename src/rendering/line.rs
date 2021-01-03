@@ -7,7 +7,6 @@ use crate::{
         cursor::Cursor,
         decorated_space::DecoratedSpaceRenderer,
         line_iter::{LineElementIterator, RenderElement},
-        space_config::*,
     },
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
 };
@@ -32,17 +31,16 @@ where
 
 /// Render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineRenderer<'a, 'b, C, F, A, V, H, SP>
+pub struct StyledLineRenderer<'a, 'b, C, F, A, V, H>
 where
     C: PixelColor,
     F: MonoFont,
 {
     display_range: Range<i32>,
-    config: SP,
     inner: RefCell<StyledLineRendererInner<'a, 'b, C, F, A, V, H>>,
 }
 
-impl<'a, 'b, C, F, A, V, H, SP> StyledLineRenderer<'a, 'b, C, F, A, V, H, SP>
+impl<'a, 'b, C, F, A, V, H> StyledLineRenderer<'a, 'b, C, F, A, V, H>
 where
     C: PixelColor,
     F: MonoFont,
@@ -54,7 +52,6 @@ where
         cursor: &'b mut Cursor<F>,
         style: &'b mut TextBoxStyle<C, F, A, V, H>,
         carried_token: &'b mut Option<Token<'a>>,
-        config: SP,
     ) -> Self {
         Self {
             display_range: H::calculate_displayed_row_range(&cursor),
@@ -64,7 +61,6 @@ where
                 style,
                 carried_token,
             }),
-            config,
         }
     }
 
@@ -73,14 +69,13 @@ where
     }
 }
 
-impl<'a, 'b, C, F, A, V, H, SP> Drawable for StyledLineRenderer<'a, 'b, C, F, A, V, H, SP>
+impl<'a, 'b, C, F, A, V, H> Drawable for StyledLineRenderer<'a, 'b, C, F, A, V, H>
 where
     C: PixelColor + From<Rgb>,
     F: MonoFont,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
-    SP: SpaceConfig,
 {
     type Color = C;
 
@@ -96,10 +91,18 @@ where
             carried_token,
         } = &mut *inner;
 
-        let mut elements = LineElementIterator::<'_, '_, F, SP, A>::new(
+        let max_line_width = cursor.line_width();
+        let (width, total_spaces, t, _) =
+            style.measure_line(&mut parser.clone(), carried_token.clone(), max_line_width);
+
+        let (left, space_config) = A::place_line::<F>(max_line_width, width, total_spaces, t);
+
+        cursor.advance_unchecked(left);
+
+        let mut elements = LineElementIterator::<'_, '_, F, _, A>::new(
             parser,
             cursor,
-            self.config,
+            space_config,
             carried_token,
             style.tab_size,
         );
@@ -189,10 +192,7 @@ mod test {
     use crate::{
         alignment::{HorizontalTextAlignment, VerticalTextAlignment},
         parser::{Parser, Token},
-        rendering::{
-            cursor::Cursor,
-            line::{StyledLineRenderer, UniformSpaceConfig},
-        },
+        rendering::{cursor::Cursor, line::StyledLineRenderer},
         style::{color::Rgb, height_mode::HeightMode, TextBoxStyle, TextBoxStyleBuilder},
     };
     use embedded_graphics::{
@@ -212,13 +212,11 @@ mod test {
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        let config = UniformSpaceConfig::new(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING);
         let mut parser = Parser::parse(text);
         let mut cursor = Cursor::new(bounds, style.line_spacing);
         let mut carried = None;
 
-        let renderer =
-            StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried, config);
+        let renderer = StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried);
         let mut display = MockDisplay::new();
 
         renderer.draw(&mut display).unwrap();
@@ -252,7 +250,6 @@ mod test {
 
     #[test]
     fn render_before_area() {
-        let config = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
         let mut parser = Parser::parse(" Some sample text");
         let mut style = TextBoxStyleBuilder::new(Font6x8)
             .text_color(BinaryColor::On)
@@ -266,8 +263,7 @@ mod test {
         cursor.position.y -= 8;
 
         let mut carried = None;
-        let renderer =
-            StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried, config);
+        let renderer = StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried);
 
         let mut display = MockDisplay::new();
 
@@ -408,10 +404,7 @@ mod test {
 mod ansi_parser_tests {
     use crate::{
         parser::Parser,
-        rendering::{
-            cursor::Cursor,
-            line::{StyledLineRenderer, UniformSpaceConfig},
-        },
+        rendering::{cursor::Cursor, line::StyledLineRenderer},
         style::TextBoxStyleBuilder,
     };
     use embedded_graphics::{
@@ -423,7 +416,6 @@ mod ansi_parser_tests {
     fn ansi_cursor_backwards() {
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
-        let config = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
 
         let mut parser = Parser::parse("foo\x1b[2Dsample");
         let mut style = TextBoxStyleBuilder::new(Font6x8)
@@ -432,7 +424,7 @@ mod ansi_parser_tests {
             .build();
         let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 7, 8)), 0);
         let mut carried = None;
-        StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried, config)
+        StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried)
             .draw(&mut display)
             .unwrap();
 
