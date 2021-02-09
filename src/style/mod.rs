@@ -22,7 +22,7 @@
 //! Sometimes you need more flexibility than what a single style object can provide, like changing
 //! MonoFont color for a specific word in the text. `embedded-text` supports this use case by using a
 //! subset of the standard [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
-//! These are special character sequences you can use *in the text* to change the MonoFont stlye of the
+//! These are special character sequences you can use *in the text* to change the MonoFont style of the
 //! text itself. This documentation does not aim to provide a full specification of all the ANSI
 //! escape codes, only describes the supported subset.
 //!
@@ -72,7 +72,7 @@
 //! ------------
 //!
 //! 8 bit colors are in the form of either `\x1b[38;5;<n>m` (text color) or `\x1b[48;5;<n>m`
-//! (background color) sequece. Here, `<n>` marks a parameter that determines the color. `<n>` can
+//! (background color) sequence. Here, `<n>` marks a parameter that determines the color. `<n>` can
 //! have the following values:
 //!
 //! * 0-15: standard colors in the order of the above table.
@@ -84,7 +84,7 @@
 //! -------------
 //!
 //! 8 bit colors are in the form of either `\x1b[38;2;<r>;<g>;<b>m` (text color) or
-//! `\x1b[48;2;<r>;<g>;<b>m` (background color) sequece. Here, `<r>`, `<g>` and `<b>` can take any
+//! `\x1b[48;2;<r>;<g>;<b>m` (background color) sequence. Here, `<r>`, `<g>` and `<b>` can take any
 //! value between `0` and `255`.
 //!
 //! Color values on color spaces other than `Rgb888`
