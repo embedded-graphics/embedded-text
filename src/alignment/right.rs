@@ -1,5 +1,8 @@
 //! Right aligned text.
-use crate::{alignment::HorizontalTextAlignment, rendering::space_config::UniformSpaceConfig};
+use crate::{
+    alignment::HorizontalTextAlignment, rendering::space_config::UniformSpaceConfig,
+    style::LineMeasurement,
+};
 use embedded_graphics::text::TextRenderer;
 
 /// Marks text to be rendered right aligned.
@@ -15,11 +18,12 @@ impl HorizontalTextAlignment for RightAligned {
     fn place_line(
         renderer: &impl TextRenderer,
         max_width: u32,
-        width: u32,
-        _n_spaces: u32,
-        _end_of_paragraph: bool,
+        measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig) {
-        (max_width - width, UniformSpaceConfig::new(renderer))
+        (
+            max_width - measurement.width,
+            UniformSpaceConfig::new(renderer),
+        )
     }
 }
 

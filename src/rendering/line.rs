@@ -143,16 +143,13 @@ where
         let mut cursor = self.cursor;
 
         let max_line_width = cursor.line_width();
-        let (width, total_spaces, t) =
-            style.measure_line(&mut parser.clone(), carried_token.clone(), max_line_width);
-
-        let (left, space_config) = A::place_line(
-            &style.character_style,
+        let lm = style.measure_line(
+            &mut parser.clone(),
+            &mut carried_token.clone(),
             max_line_width,
-            width,
-            total_spaces,
-            t.is_none() || t == Some(Token::NewLine),
         );
+
+        let (left, space_config) = A::place_line(&style.character_style, max_line_width, lm);
 
         cursor.advance_unchecked(left);
 

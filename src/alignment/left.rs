@@ -1,5 +1,8 @@
 //! Left aligned text.
-use crate::{alignment::HorizontalTextAlignment, rendering::space_config::UniformSpaceConfig};
+use crate::{
+    alignment::HorizontalTextAlignment, rendering::space_config::UniformSpaceConfig,
+    style::LineMeasurement,
+};
 use embedded_graphics::text::TextRenderer;
 
 /// Marks text to be rendered left aligned.
@@ -15,9 +18,7 @@ impl HorizontalTextAlignment for LeftAligned {
     fn place_line(
         renderer: &impl TextRenderer,
         _max_width: u32,
-        _text_width: u32,
-        _n_spaces: u32,
-        _end_of_paragraph: bool,
+        _measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig) {
         (0, UniformSpaceConfig::new(renderer))
     }

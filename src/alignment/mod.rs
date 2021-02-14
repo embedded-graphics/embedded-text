@@ -1,7 +1,7 @@
 //! Text alignment options.
 use crate::{
     rendering::{cursor::Cursor, space_config::SpaceConfig},
-    style::{color::Rgb, height_mode::HeightMode},
+    style::{color::Rgb, height_mode::HeightMode, LineMeasurement},
     StyledTextBox,
 };
 use embedded_graphics::text::{CharacterStyle, TextRenderer};
@@ -34,9 +34,7 @@ pub trait HorizontalTextAlignment: Copy {
     fn place_line(
         renderer: &impl TextRenderer,
         max_width: u32,
-        text_width: u32,
-        n_spaces: u32,
-        end_of_paragraph: bool,
+        measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig);
 }
 

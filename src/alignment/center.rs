@@ -2,7 +2,7 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
-    style::{color::Rgb, height_mode::HeightMode},
+    style::{color::Rgb, height_mode::HeightMode, LineMeasurement},
     StyledTextBox,
 };
 
@@ -26,12 +26,10 @@ impl HorizontalTextAlignment for CenterAligned {
     fn place_line(
         renderer: &impl TextRenderer,
         max_width: u32,
-        text_width: u32,
-        _n_spaces: u32,
-        _end_of_paragraph: bool,
+        measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig) {
         (
-            (max_width - text_width + 1) / 2,
+            (max_width - measurement.width + 1) / 2,
             UniformSpaceConfig::new(renderer),
         )
     }

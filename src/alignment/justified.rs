@@ -1,6 +1,7 @@
 //! Fully justified text.
 use crate::{
-    alignment::HorizontalTextAlignment, rendering::space_config::SpaceConfig, utils::str_width,
+    alignment::HorizontalTextAlignment, rendering::space_config::SpaceConfig,
+    style::LineMeasurement, utils::str_width,
 };
 use embedded_graphics::text::TextRenderer;
 
@@ -17,16 +18,14 @@ impl HorizontalTextAlignment for Justified {
     fn place_line(
         renderer: &impl TextRenderer,
         max_width: u32,
-        text_width: u32,
-        n_spaces: u32,
-        end_of_paragraph: bool,
+        measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig) {
         let space_width = str_width(renderer, " ");
 
-        let space_info = if !end_of_paragraph && n_spaces != 0 {
-            let space = max_width - (text_width - n_spaces * space_width);
-            let space_width = space / n_spaces;
-            let extra_pixels = space % n_spaces;
+        let space_info = if !measurement.last_line && measurement.space_count != 0 {
+            let space = max_width - measurement.width + measurement.space_count * space_width;
+            let space_width = space / measurement.space_count;
+            let extra_pixels = space % measurement.space_count;
             JustifiedSpaceConfig::new(space_width, extra_pixels)
         } else {
             JustifiedSpaceConfig::new(space_width, 0)

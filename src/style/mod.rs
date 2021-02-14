@@ -250,6 +250,18 @@ pub struct TextBoxStyle<F, A, V, H> {
     pub tab_size: TabSize,
 }
 
+/// Information about a line.
+pub struct LineMeasurement {
+    /// Width in pixels, using the default space width returned by the text renderer.
+    pub width: u32,
+
+    /// The number of space characters in the line.
+    pub space_count: u32,
+
+    /// Whether this line is the last line of a paragraph.
+    pub last_line: bool,
+}
+
 impl<F, A, V, H> TextBoxStyle<F, A, V, H>
 where
     F: TextRenderer + CharacterStyle,
@@ -268,11 +280,9 @@ where
     pub(crate) fn measure_line<'a>(
         &self,
         parser: &mut Parser<'a>,
-        mut carried_token: Option<Token<'a>>,
+        carried_token: &mut Option<Token<'a>>,
         max_line_width: u32,
-    ) -> (u32, u32, Option<Token<'a>>) {
-        // FIXME: return a LineMetrics struct instead
-
+    ) -> LineMeasurement {
         let cursor: Cursor = Cursor::new(
             Rectangle::new(
                 Point::zero(),
@@ -287,7 +297,7 @@ where
             parser,
             cursor,
             UniformSpaceConfig::new(&self.character_style),
-            &mut carried_token,
+            carried_token,
             |s| str_width(&self.character_style, s),
         );
 
@@ -340,7 +350,11 @@ where
             }
         }
 
-        (current_width as u32, total_spaces, carried_token)
+        LineMeasurement {
+            width: current_width as u32,
+            space_count: total_spaces,
+            last_line: carried_token.is_none() || *carried_token == Some(Token::NewLine),
+        }
     }
 
     /// Measures text height when rendered using a given width.
@@ -389,9 +403,10 @@ where
 
         // while let (w, _, Some(t)) = ...
         loop {
-            let (w, _, t) = self.measure_line(&mut parser, carry.clone(), max_width);
+            let mut t = carry.clone();
+            let lm = self.measure_line(&mut parser, &mut t, max_width);
 
-            if (w != 0 || t.is_some()) && carry != Some(Token::CarriageReturn) {
+            if (lm.width != 0 || t.is_some()) && carry != Some(Token::CarriageReturn) {
                 // something was in this line, increment height
                 // if last carried token was a carriage return, we already counted the height
                 n_lines += 1;
@@ -522,9 +537,9 @@ mod test {
 
         let mut text = Parser::parse("123 45 67");
 
-        let (w, s, _) = style.measure_line(&mut text, None, 6 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(w, 6 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(s, 1);
+        let lm = style.measure_line(&mut text, &mut None, 6 * Font6x9::CHARACTER_SIZE.width);
+        assert_eq!(lm.width, 6 * Font6x9::CHARACTER_SIZE.width);
+        assert_eq!(lm.space_count, 1);
     }
 
     #[test]
@@ -541,9 +556,9 @@ mod test {
 
         let mut text = Parser::parse("123\u{A0}45");
 
-        let (w, s, _) = style.measure_line(&mut text, None, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(w, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(s, 1);
+        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
+        assert_eq!(lm.width, 5 * Font6x9::CHARACTER_SIZE.width);
+        assert_eq!(lm.space_count, 1);
     }
 
     #[test]
@@ -606,8 +621,8 @@ mod test {
             .line_spacing(2)
             .build();
 
-        let (width, _, _) = style.measure_line(&mut Parser::parse("soft\u{AD}hyphen"), None, 50);
+        let lm = style.measure_line(&mut Parser::parse("soft\u{AD}hyphen"), &mut None, 50);
 
-        assert_eq!(width, 30);
+        assert_eq!(lm.width, 30);
     }
 }
