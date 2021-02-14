@@ -120,13 +120,14 @@ mod test {
             .height_mode(Exact(Visible))
             .build();
 
-        // Drawing at Point(0, 2) so we don't draw outside the display due to vertical centering.
-        TextBox::new("word", Rectangle::new(Point::new(0, 2), Size::new(55, 3)))
+        // Drawing at Point(0, 3) so we don't draw outside the display due to vertical centering.
+        TextBox::new("word", Rectangle::new(Point::new(0, 3), Size::new(55, 3)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
 
         display.assert_pattern(&[
+            "........................",
             "......................#.",
             "......................#.",
             "#...#...##...#.#....###.",

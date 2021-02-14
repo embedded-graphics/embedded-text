@@ -9,11 +9,10 @@ use crate::{
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
     utils::str_width,
 };
-use core::{cell::RefCell, ops::Range};
+use core::cell::RefCell;
 use embedded_graphics::{
-    draw_target::{DrawTarget, DrawTargetExt},
-    geometry::{Point, Size},
-    primitives::Rectangle,
+    draw_target::DrawTarget,
+    geometry::Point,
     text::{CharacterStyle, TextRenderer},
     Drawable,
 };
@@ -35,7 +34,6 @@ struct Refs<'a, 'b, F, A, V, H> {
 /// Render a single line of styled text.
 #[derive(Debug)]
 pub struct StyledLineRenderer<'a, 'b, F, A, V, H> {
-    display_range: Range<i32>,
     inner: RefCell<Refs<'a, 'b, F, A, V, H>>,
 }
 
@@ -54,7 +52,6 @@ where
         carried_token: &'b mut Option<Token<'a>>,
     ) -> Self {
         Self {
-            display_range: H::calculate_displayed_row_range(&cursor),
             inner: RefCell::new(Refs {
                 parser,
                 cursor,
@@ -102,8 +99,6 @@ where
 
         cursor.advance_unchecked(left);
 
-        let display_size = Size::new(max_line_width, self.display_range.clone().count() as u32);
-
         let mut pos = cursor.position;
 
         #[cfg(feature = "ansi")]
@@ -125,7 +120,7 @@ where
             |s| str_width(&**renderer.borrow(), s),
         );
 
-        if display_size.height == 0 {
+        if display.bounding_box().size.height == 0 {
             while let Some(element) = elements.next() {
                 match element {
                     #[cfg(feature = "ansi")]
@@ -135,23 +130,17 @@ where
                 }
             }
         } else {
-            // FIXME: this should probably be done by H. Also, for a full range no clipping is necessary
-            let mut display = display.clipped(&Rectangle::new(
-                pos + Point::new(0, self.display_range.start),
-                display_size,
-            ));
-
             while let Some(element) = elements.next() {
                 match element {
                     RenderElement::PrintedCharacters(s) => {
                         // this isn't ideal - neither the name `style` nor the fact it's in `elements`
-                        pos = renderer.borrow().draw_string(s, pos, &mut display)?;
+                        pos = renderer.borrow().draw_string(s, pos, display)?;
                     }
 
                     RenderElement::Space(space_width, _) => {
                         pos = renderer
                             .borrow()
-                            .draw_whitespace(space_width, pos, &mut display)?;
+                            .draw_whitespace(space_width, pos, display)?;
                     }
 
                     #[cfg(feature = "ansi")]
@@ -165,11 +154,9 @@ where
                         pos.x = new_pos_x;
 
                         // fill the space and deliberately ignore next position
-                        renderer.borrow().draw_whitespace(
-                            delta.abs() as u32,
-                            from,
-                            &mut display,
-                        )?;
+                        renderer
+                            .borrow()
+                            .draw_whitespace(delta.abs() as u32, from, display)?;
                     }
 
                     #[cfg(feature = "ansi")]
@@ -240,17 +227,13 @@ impl Sgr {
 mod test {
     use crate::{
         alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-        parser::{Parser, Token},
-        prelude::Exact,
+        parser::Parser,
         rendering::{cursor::Cursor, line::StyledLineRenderer},
-        style::{
-            color::Rgb, height_mode::HeightMode, vertical_overdraw::Hidden, TabSize, TextBoxStyle,
-            TextBoxStyleBuilder,
-        },
+        style::{color::Rgb, height_mode::HeightMode, TabSize, TextBoxStyle, TextBoxStyleBuilder},
         utils::test::size_for,
     };
     use embedded_graphics::{
-        geometry::{Point, Size},
+        geometry::Point,
         mock_display::MockDisplay,
         mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
@@ -317,42 +300,6 @@ mod test {
                 "..............................",
             ],
         );
-    }
-
-    #[test]
-    fn render_before_area() {
-        let mut parser = Parser::parse(" Some sample text");
-
-        let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
-
-        let mut style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .build();
-
-        let mut cursor = Cursor::new(
-            Rectangle::new(Point::new(0, 8), size_for(Font6x9, 7, 2)),
-            style.character_style.line_height(),
-            style.line_spacing,
-            TabSize::Spaces(4).into_pixels(&style.character_style),
-        );
-        cursor.position.y -= 8;
-
-        let mut carried = None;
-        let renderer = StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried);
-
-        let mut display = MockDisplay::new();
-
-        renderer.draw(&mut display).unwrap();
-
-        // Nothing is drawn and we don't get a panic either.
-        display.assert_pattern(&[]);
-
-        // even though nothing was drawn, the text should be consumed
-        assert_eq!(Some(Token::Break(None)), carried);
     }
 
     #[test]
@@ -441,68 +388,6 @@ mod test {
                 "..##....##..#...#...###.......",
                 "..............................",
                 "..............................",
-            ],
-        );
-    }
-
-    #[test]
-    fn underline_just_inside_of_textbox() {
-        let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .underline()
-            .build();
-
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .build();
-
-        test_rendered_text(
-            "s",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 1, 1)),
-            style,
-            &[
-                "......             ",
-                "......             ",
-                "......             ",
-                "..###.             ",
-                ".##...             ",
-                "...##.             ",
-                ".###..             ",
-                "......             ",
-                "######             ",
-            ],
-        );
-    }
-
-    #[test]
-    fn underline_outside_of_textbox() {
-        let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .underline()
-            .build();
-
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .height_mode(Exact(Hidden))
-            .build();
-
-        test_rendered_text(
-            "s",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 1, 1) - Size::new(0, 1)),
-            style,
-            &[
-                "......             ",
-                "......             ",
-                "......             ",
-                "..###.             ",
-                ".##...             ",
-                "...##.             ",
-                ".###..             ",
-                "......             ",
             ],
         );
     }

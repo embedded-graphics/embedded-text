@@ -14,7 +14,9 @@ use crate::{
     StyledTextBox,
 };
 use embedded_graphics::{
-    draw_target::DrawTarget,
+    draw_target::{DrawTarget, DrawTargetExt},
+    prelude::{Point, Size},
+    primitives::Rectangle,
     text::{CharacterStyle, TextRenderer},
     Drawable,
 };
@@ -50,12 +52,20 @@ where
         let mut carried = None;
         let mut parser = Parser::parse(self.text_box.text);
 
-        loop {
-            if carried.is_none() && parser.is_empty() {
-                return Ok(());
-            }
+        while carried.is_some() || !parser.is_empty() {
+            let display_range = H::calculate_displayed_row_range(&cursor);
+            let display_size = Size::new(cursor.line_width(), display_range.clone().count() as u32);
 
-            StyledLineRenderer::new(&mut parser, &mut cursor, style, &mut carried).draw(display)?;
+            // FIXME: cropping isn't necessary for whole lines, but make sure not to blow up the
+            // binary size as well.
+            let mut display = display.clipped(&Rectangle::new(
+                cursor.position + Point::new(0, display_range.start),
+                display_size,
+            ));
+            StyledLineRenderer::new(&mut parser, &mut cursor, style, &mut carried)
+                .draw(&mut display)?;
         }
+
+        Ok(())
     }
 }
