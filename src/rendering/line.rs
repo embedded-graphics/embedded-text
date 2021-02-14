@@ -23,7 +23,6 @@ use super::ansi::Sgr;
 #[derive(Debug)]
 struct Refs<'a, 'b, F, A, V, H> {
     parser: &'b mut Parser<'a>,
-    cursor: Cursor,
     style: &'b mut TextBoxStyle<F, A, V, H>,
     carried_token: &'b mut Option<Token<'a>>,
 }
@@ -31,6 +30,7 @@ struct Refs<'a, 'b, F, A, V, H> {
 /// Render a single line of styled text.
 #[derive(Debug)]
 pub struct StyledLineRenderer<'a, 'b, F, A, V, H> {
+    cursor: Cursor,
     inner: RefCell<Refs<'a, 'b, F, A, V, H>>,
 }
 
@@ -49,9 +49,9 @@ where
         carried_token: &'b mut Option<Token<'a>>,
     ) -> Self {
         Self {
+            cursor,
             inner: RefCell::new(Refs {
                 parser,
-                cursor,
                 style,
                 carried_token,
             }),
@@ -135,10 +135,12 @@ where
         let mut inner = self.inner.borrow_mut();
         let Refs {
             parser,
-            cursor,
             style,
             carried_token,
         } = &mut *inner;
+
+        // FIXME: full copy isn't ideal
+        let mut cursor = self.cursor;
 
         let max_line_width = cursor.line_width();
         let (width, total_spaces, t) =
@@ -158,7 +160,7 @@ where
 
         let elements = LineElementParser::<'_, '_, _, _, A>::new(
             parser,
-            *cursor,
+            cursor,
             space_config,
             carried_token,
             |s| str_width(&**renderer.borrow(), s),
