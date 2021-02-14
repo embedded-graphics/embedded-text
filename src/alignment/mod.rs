@@ -1,6 +1,5 @@
 //! Text alignment options.
 use crate::{
-    parser::Token,
     rendering::{cursor::Cursor, space_config::SpaceConfig},
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
@@ -37,7 +36,7 @@ pub trait HorizontalTextAlignment: Copy {
         max_width: u32,
         text_width: u32,
         n_spaces: u32,
-        carried_token: Option<Token>,
+        end_of_paragraph: bool,
     ) -> (u32, Self::SpaceConfig);
 }
 

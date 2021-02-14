@@ -1,7 +1,5 @@
 //! Left aligned text.
-use crate::{
-    alignment::HorizontalTextAlignment, parser::Token, rendering::space_config::UniformSpaceConfig,
-};
+use crate::{alignment::HorizontalTextAlignment, rendering::space_config::UniformSpaceConfig};
 use embedded_graphics::text::TextRenderer;
 
 /// Marks text to be rendered left aligned.
@@ -19,7 +17,7 @@ impl HorizontalTextAlignment for LeftAligned {
         _max_width: u32,
         _text_width: u32,
         _n_spaces: u32,
-        _carried_token: Option<Token>,
+        _end_of_paragraph: bool,
     ) -> (u32, Self::SpaceConfig) {
         (0, UniformSpaceConfig::new(renderer))
     }

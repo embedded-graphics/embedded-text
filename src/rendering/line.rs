@@ -94,7 +94,7 @@ where
             max_line_width,
             width,
             total_spaces,
-            t,
+            t.is_none() || t == Some(Token::NewLine),
         );
 
         cursor.advance_unchecked(left);

@@ -1,7 +1,6 @@
 //! Horizontal and vertical center aligned text.
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Token,
     rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
@@ -29,7 +28,7 @@ impl HorizontalTextAlignment for CenterAligned {
         max_width: u32,
         text_width: u32,
         _n_spaces: u32,
-        _carried_token: Option<Token>,
+        _end_of_paragraph: bool,
     ) -> (u32, Self::SpaceConfig) {
         (
             (max_width - text_width + 1) / 2,

@@ -1,7 +1,6 @@
 //! Fully justified text.
 use crate::{
-    alignment::HorizontalTextAlignment, parser::Token, rendering::space_config::SpaceConfig,
-    utils::str_width,
+    alignment::HorizontalTextAlignment, rendering::space_config::SpaceConfig, utils::str_width,
 };
 use embedded_graphics::text::TextRenderer;
 
@@ -20,13 +19,11 @@ impl HorizontalTextAlignment for Justified {
         max_width: u32,
         text_width: u32,
         n_spaces: u32,
-        carried_token: Option<Token>,
+        end_of_paragraph: bool,
     ) -> (u32, Self::SpaceConfig) {
         let space_width = str_width(renderer, " ");
 
-        let stretch_line = carried_token.is_some() && carried_token != Some(Token::NewLine);
-
-        let space_info = if stretch_line && n_spaces != 0 {
+        let space_info = if !end_of_paragraph && n_spaces != 0 {
             let space = max_width - (text_width - n_spaces * space_width);
             let space_width = space / n_spaces;
             let extra_pixels = space % n_spaces;

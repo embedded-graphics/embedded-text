@@ -1,7 +1,5 @@
 //! Right aligned text.
-use crate::{
-    alignment::HorizontalTextAlignment, parser::Token, rendering::space_config::UniformSpaceConfig,
-};
+use crate::{alignment::HorizontalTextAlignment, rendering::space_config::UniformSpaceConfig};
 use embedded_graphics::text::TextRenderer;
 
 /// Marks text to be rendered right aligned.
@@ -19,7 +17,7 @@ impl HorizontalTextAlignment for RightAligned {
         max_width: u32,
         width: u32,
         _n_spaces: u32,
-        _carried_token: Option<Token>,
+        _end_of_paragraph: bool,
     ) -> (u32, Self::SpaceConfig) {
         (max_width - width, UniformSpaceConfig::new(renderer))
     }
