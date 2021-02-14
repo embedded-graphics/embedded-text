@@ -4,6 +4,8 @@ use embedded_graphics::{geometry::Point, primitives::Rectangle};
 /// Internal structure that keeps track of position information while rendering a [`TextBox`].
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
+// FIXME: split up into two structs: an outer cursor that is responsible for vertical movement
+// and an inner cursor responsible for in-line, horizontal movement
 #[derive(Copy, Clone, Debug)]
 pub struct Cursor {
     /// Current cursor position

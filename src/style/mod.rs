@@ -271,7 +271,9 @@ where
         mut carried_token: Option<Token<'a>>,
         max_line_width: u32,
     ) -> (u32, u32, Option<Token<'a>>) {
-        let mut cursor: Cursor = Cursor::new(
+        // FIXME: return a LineMetrics struct instead
+
+        let cursor: Cursor = Cursor::new(
             Rectangle::new(
                 Point::zero(),
                 Size::new(max_line_width, self.character_style.line_height()),
@@ -283,7 +285,7 @@ where
 
         let iter = LineElementParser::<'_, '_, _, _, A>::new(
             parser,
-            &mut cursor,
+            cursor,
             UniformSpaceConfig::new(&self.character_style),
             &mut carried_token,
             |s| str_width(&self.character_style, s),

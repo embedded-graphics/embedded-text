@@ -52,7 +52,7 @@ pub enum RenderElement<'a> {
 #[derive(Debug)]
 pub struct LineElementParser<'a, 'b, M, SP, A> {
     /// Position information.
-    pub cursor: &'b mut Cursor,
+    pub cursor: Cursor,
 
     /// The text to draw.
     pub parser: &'b mut Parser<'a>,
@@ -77,7 +77,7 @@ where
     #[must_use]
     pub fn new(
         parser: &'b mut Parser<'a>,
-        cursor: &'b mut Cursor,
+        cursor: Cursor,
         config: SP,
         carried_token: &'b mut Option<Token<'a>>,
         measure: M,
@@ -496,7 +496,7 @@ mod test {
             .build();
 
         let config = UniformSpaceConfig::new(&style);
-        let mut cursor = Cursor::new(
+        let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(Font6x9, max_chars, 1)),
             style.line_height(),
             0,
@@ -504,9 +504,7 @@ mod test {
         );
 
         let line1: LineElementParser<'_, '_, _, _, LeftAligned> =
-            LineElementParser::new(parser, &mut cursor, config, carried, |s| {
-                str_width(&style, s)
-            });
+            LineElementParser::new(parser, cursor, config, carried, |s| str_width(&style, s));
 
         assert_eq!(line1.into_iter().collect::<Vec<_>>(), elements);
     }

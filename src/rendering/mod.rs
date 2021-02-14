@@ -8,7 +8,7 @@ pub(crate) mod space_config;
 
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    parser::Parser,
+    parser::{Parser, Token},
     rendering::cursor::Cursor,
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
@@ -44,10 +44,7 @@ where
 
         V::apply_vertical_alignment(&mut cursor, self);
 
-        #[cfg(feature = "ansi")]
         let style = &mut self.style.clone();
-        #[cfg(not(feature = "ansi"))]
-        let style = &self.style;
 
         let mut carried = None;
         let mut parser = Parser::parse(self.text_box.text);
@@ -62,8 +59,18 @@ where
                 cursor.position + Point::new(0, display_range.start),
                 display_size,
             ));
-            StyledLineRenderer::new(&mut parser, &mut cursor, style, &mut carried)
-                .draw(&mut display)?;
+            StyledLineRenderer::new(&mut parser, cursor, style, &mut carried).draw(&mut display)?;
+
+            match carried {
+                Some(Token::CarriageReturn) => {
+                    cursor.carriage_return();
+                }
+
+                _ => {
+                    cursor.new_line();
+                    cursor.carriage_return();
+                }
+            }
         }
 
         Ok(())
