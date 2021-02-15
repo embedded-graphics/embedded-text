@@ -59,31 +59,25 @@ impl LineCursor {
         self.width - self.position
     }
 
-    /// Advances the cursor by a given amount.
+    /// Moves the cursor by a given amount.
     #[inline]
-    pub fn advance_unchecked(&mut self, by: u32) {
-        self.position += by;
-    }
-
-    /// Advances the cursor by a given amount.
-    #[inline]
-    pub fn advance(&mut self, by: u32) -> Result<u32, u32> {
-        if self.fits_in_line(by) {
-            self.position += by;
-            Ok(by)
+    pub fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
+        if by < 0 {
+            let abs = by.abs() as u32;
+            if abs <= self.position {
+                self.position -= abs;
+                Ok(by)
+            } else {
+                Err(-(self.position as i32))
+            }
         } else {
-            Err(self.space())
-        }
-    }
-
-    /// Rewinds the cursor by a given amount.
-    #[inline]
-    pub fn rewind(&mut self, by: u32) -> bool {
-        if by <= self.position {
-            self.position -= by;
-            true
-        } else {
-            false
+            let space = self.space() as i32;
+            if by <= space {
+                self.position += by as u32;
+                Ok(by)
+            } else {
+                Err(space)
+            }
         }
     }
 }

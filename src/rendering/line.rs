@@ -64,8 +64,6 @@ where
         elements: impl Iterator<Item = RenderElement<'a>>,
         renderer: &RefCell<&mut F>,
         mut pos: Point,
-        min_x: i32,
-        max_x: i32,
     ) -> Result<(), D::Error>
     where
         D: DrawTarget<Color = <F as CharacterStyle>::Color>,
@@ -86,8 +84,8 @@ where
 
                 #[cfg(feature = "ansi")]
                 RenderElement::MoveCursor(delta) => {
-                    // FIXME: use Ord::clamp if MSRV >= 1.50
-                    let new_pos = Point::new((pos.x + delta).max(min_x).min(max_x), pos.y);
+                    // LineElementIterator ensures this new_pos is valid.
+                    let new_pos = Point::new(pos.x + delta, pos.y);
                     let from = if delta < 0 { new_pos } else { pos };
                     pos = new_pos;
 
@@ -139,7 +137,6 @@ where
             carried_token,
         } = &mut *inner;
 
-        // FIXME: full copy isn't ideal
         let mut cursor = self.cursor.clone();
 
         let max_line_width = cursor.line_width();
@@ -151,7 +148,7 @@ where
 
         let (left, space_config) = A::place_line(&style.character_style, max_line_width, lm);
 
-        cursor.advance_unchecked(left);
+        cursor.move_cursor(left as i32).ok();
 
         let renderer = RefCell::new(&mut style.character_style);
 
@@ -166,10 +163,7 @@ where
         if display.bounding_box().size.height == 0 {
             Self::skip_line(elements, &renderer);
         } else {
-            let pos = cursor.pos();
-
-            let (min_x, max_x) = (pos.x, pos.x + (max_line_width - left) as i32);
-            Self::render_line(display, elements, &renderer, pos, min_x, max_x)?;
+            Self::render_line(display, elements, &renderer, cursor.pos())?;
         }
 
         Ok(())

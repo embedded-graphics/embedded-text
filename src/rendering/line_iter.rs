@@ -165,24 +165,8 @@ where
         spaces_to_render
     }
 
-    fn advance(&mut self, by: u32) -> Result<u32, u32> {
-        self.cursor.advance(by)
-    }
-
-    fn advance_unchecked(&mut self, by: u32) {
-        self.cursor.advance_unchecked(by);
-    }
-
-    #[cfg(feature = "ansi")]
-    fn move_cursor(&mut self, by: i32) {
-        // FIXME: clean this up
-        if by < 0 {
-            if !self.cursor.rewind(by.abs() as u32) {
-                self.cursor.carriage_return();
-            }
-        } else {
-            let _ = self.advance(by as u32);
-        }
+    fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
+        self.cursor.move_cursor(by as i32)
     }
 }
 
@@ -232,7 +216,7 @@ where
 
                                 if spaces_to_render > 0 {
                                     let space_width = self.config.consume(spaces_to_render);
-                                    self.advance_unchecked(space_width);
+                                    let _ = self.move_cursor(space_width as i32);
                                     let carried = n - spaces_to_render;
 
                                     if carried == 0 {
@@ -276,7 +260,7 @@ where
                             } else if let Some(c) = c {
                                 // If a Break contains a character, display it if the next
                                 // Word token does not fit the line.
-                                if self.advance(self.str_width(c)).is_ok() {
+                                if self.move_cursor(self.str_width(c) as i32).is_ok() {
                                     self.finish_wrapped();
                                     return Some(RenderElement::PrintedCharacters(c));
                                 } else {
@@ -305,7 +289,7 @@ where
                         Token::Tab => {
                             let sp_width = self.cursor.next_tab_width();
 
-                            let tab_width = match self.advance(sp_width) {
+                            let tab_width = match self.move_cursor(sp_width as i32) {
                                 Ok(width) => {
                                     self.next_token();
                                     width
@@ -319,7 +303,7 @@ where
                             };
 
                             // don't count tabs as spaces
-                            return Some(RenderElement::Space(tab_width, 0));
+                            return Some(RenderElement::Space(tab_width as u32, 0));
                         }
 
                         #[cfg(feature = "ansi")]
@@ -333,16 +317,31 @@ where
                                 }
 
                                 AnsiSequence::CursorForward(n) => {
+                                    // Cursor movement can't rely on the text, as it's permitted
+                                    // to move the cursor outside of the current line.
+                                    // Example:
+                                    // (| denotes the cursor, [ and ] are the limits of the line):
+                                    // [Some text|    ]
+                                    // Cursor forward 2 characters
+                                    // [Some text  |  ]
                                     let delta = (n * self.str_width(" ")) as i32;
-                                    self.move_cursor(delta);
-                                    return Some(RenderElement::MoveCursor(delta));
+                                    match self.move_cursor(delta) {
+                                        Ok(delta) | Err(delta) => {
+                                            return Some(RenderElement::MoveCursor(delta));
+                                        }
+                                    }
                                 }
 
                                 AnsiSequence::CursorBackward(n) => {
+                                    // The above poses an issue with variable-width fonts.
+                                    // If cursor movement ignores the variable width, the cursor
+                                    // will be placed in positions other than glyph boundaries.
                                     let delta = -((n * self.str_width(" ")) as i32);
-                                    self.move_cursor(delta);
-                                    return Some(RenderElement::MoveCursor(delta));
-                                    // no spaces rendered here
+                                    match self.move_cursor(delta) {
+                                        Ok(delta) | Err(delta) => {
+                                            return Some(RenderElement::MoveCursor(delta));
+                                        }
+                                    }
                                 }
 
                                 _ => {
@@ -371,20 +370,20 @@ where
                             }
                             let sp_width = self.config.consume(1);
 
-                            self.advance_unchecked(sp_width);
+                            let _ = self.move_cursor(sp_width as i32);
                             return Some(RenderElement::Space(sp_width, 1));
                         } else {
                             let word = unsafe { w.get_unchecked(0..space_pos) };
                             self.current_token =
                                 State::Word(unsafe { w.get_unchecked(space_pos..) });
 
-                            self.advance_unchecked(self.str_width(word));
+                            let _ = self.move_cursor(self.str_width(word) as i32);
                             return Some(RenderElement::PrintedCharacters(word));
                         }
                     } else {
                         self.next_token();
 
-                        self.advance_unchecked(self.str_width(w));
+                        let _ = self.move_cursor(self.str_width(w) as i32);
                         return Some(RenderElement::PrintedCharacters(w));
                     }
                 }
@@ -410,7 +409,7 @@ where
                                     self.config.consume(1);
 
                                     // here, width == 0 so don't need to add
-                                    self.advance_unchecked(char_width);
+                                    let _ = self.move_cursor(char_width as i32);
 
                                     if let Some(word) = w.get(SPEC_CHAR_NBSP.len_utf8()..) {
                                         self.current_token = State::FirstWord(word);
@@ -421,7 +420,7 @@ where
                                     Some(RenderElement::Space(char_width, 1))
                                 } else {
                                     // we know the previous characters fit in the line
-                                    self.advance_unchecked(width);
+                                    let _ = self.move_cursor(width as i32);
 
                                     // New state starts with the current space
                                     self.current_token =
@@ -444,7 +443,7 @@ where
                                 None
                             } else {
                                 // This can happen because words can be longer than the line itself.
-                                self.advance_unchecked(width);
+                                let _ = self.move_cursor(width as i32);
                                 // `start_idx` is actually the end of the substring that fits
                                 self.finish(Token::Word(unsafe { w.get_unchecked(start_idx..) }));
                                 Some(RenderElement::PrintedCharacters(unsafe {
@@ -457,7 +456,7 @@ where
                     }
 
                     self.next_token();
-                    self.advance_unchecked(width);
+                    let _ = self.move_cursor(width as i32);
                     return Some(RenderElement::PrintedCharacters(w));
                 }
 
