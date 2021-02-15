@@ -117,7 +117,12 @@ where
         for event in window.events() {
             match ProcessedEvent::new(event) {
                 ProcessedEvent::Resize(bottom_right) => {
-                    *bounds = Rectangle::with_corners(bounds.top_left, bottom_right);
+                    // Make sure we don't move the text box
+                    let new_bottom_right = Point::new(
+                        bottom_right.x.max(bounds.top_left.x),
+                        bottom_right.y.max(bounds.top_left.y),
+                    );
+                    *bounds = Rectangle::with_corners(bounds.top_left, new_bottom_right);
                 }
                 ProcessedEvent::Quit => return false,
                 ProcessedEvent::Next => return true,

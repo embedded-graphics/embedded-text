@@ -14,6 +14,10 @@ Unreleased
  * **breaking** Removed `Rectangle` extensions.
  * **breaking** Removed deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
 
+## Fixed
+
+ * `interactive_*` examples: fix accidental moving of bounding box.
+
 0.4.0 (2020-11-26)
 ==================
 
