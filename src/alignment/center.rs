@@ -19,9 +19,6 @@ pub struct CenterAligned;
 impl HorizontalTextAlignment for CenterAligned {
     type SpaceConfig = UniformSpaceConfig;
 
-    const STARTING_SPACES: bool = false;
-    const ENDING_SPACES: bool = false;
-
     #[inline]
     fn place_line(
         _line: &str,

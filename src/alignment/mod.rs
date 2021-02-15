@@ -24,11 +24,8 @@ pub trait HorizontalTextAlignment: Copy {
     /// Type of the associated whitespace information.
     type SpaceConfig: SpaceConfig;
 
-    /// Whether or not render spaces in the start of the line.
-    const STARTING_SPACES: bool;
-
-    /// Whether or not render spaces in the end of the line.
-    const ENDING_SPACES: bool;
+    /// Whether to move cursor via leading spaces in the first line.
+    const IGNORE_LEADING_SPACES: bool = true;
 
     /// Calculate offset from the left side and whitespace information.
     fn place_line(

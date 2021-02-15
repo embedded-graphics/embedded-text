@@ -11,9 +11,6 @@ pub struct Justified;
 impl HorizontalTextAlignment for Justified {
     type SpaceConfig = JustifiedSpaceConfig;
 
-    const STARTING_SPACES: bool = false;
-    const ENDING_SPACES: bool = false;
-
     #[inline]
     fn place_line(
         line: &str,
@@ -67,7 +64,7 @@ pub struct JustifiedSpaceConfig {
 impl JustifiedSpaceConfig {
     #[inline]
     #[must_use]
-    fn new(space_width: u32, extra_pixel_count: u32) -> Self {
+    pub(crate) fn new(space_width: u32, extra_pixel_count: u32) -> Self {
         JustifiedSpaceConfig {
             space_width,
             space_count: extra_pixel_count,

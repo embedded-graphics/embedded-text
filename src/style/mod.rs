@@ -249,6 +249,7 @@ pub struct TextBoxStyle<F, A, V, H> {
 }
 
 /// Information about a line.
+#[derive(Debug)]
 pub struct LineMeasurement {
     /// Maximum line width in pixels.
     pub max_line_width: u32,
@@ -262,10 +263,9 @@ pub struct LineMeasurement {
 
 struct MeasureLineElementHandler<'a, F> {
     style: &'a F,
-    current_width: u32,
-    max_width: u32,
-    #[cfg(feature = "ansi")]
+    right: u32,
     max_line_width: u32,
+    pos: u32,
 }
 
 impl<'a, F: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, F> {
@@ -276,19 +276,19 @@ impl<'a, F: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, F> {
     }
 
     fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
-        self.current_width += width;
+        self.pos += width;
         Ok(())
     }
 
     fn printed_characters(&mut self, _: &str, width: u32) -> Result<(), Self::Error> {
-        self.current_width += width;
+        self.right = self.right.max(self.pos + width);
+        self.pos += width;
         Ok(())
     }
 
-    #[cfg(feature = "ansi")]
     fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
-        self.max_width = self.current_width;
-        self.current_width = (self.current_width as i32 + by)
+        //self.max_width = self.current_width;
+        self.pos = (self.pos as i32 + by)
             .max(0)
             .min(self.max_line_width as i32) as u32;
         Ok(())
@@ -330,16 +330,15 @@ where
 
         let mut handler = MeasureLineElementHandler {
             style: &self.character_style,
-            current_width: 0,
-            max_width: 0,
-            #[cfg(feature = "ansi")]
+            right: 0,
+            pos: 0,
             max_line_width,
         };
         *carried_token = iter.process(&mut handler).unwrap();
 
         LineMeasurement {
             max_line_width,
-            width: (handler.current_width as u32).max(handler.max_width),
+            width: handler.right,
             last_line: carried_token.is_none() || *carried_token == Some(Token::NewLine),
         }
     }
@@ -386,25 +385,34 @@ where
         let mut n_lines = 0_i32;
         let mut parser = Parser::parse(text);
         let mut carry = None;
+        let mut cr_width = None;
+        let mut empty_lines = 0;
         let line_height = self.character_style.line_height() as i32;
 
-        // while let (w, _, Some(t)) = ...
         loop {
-            let mut t = carry.clone();
-            let lm = self.measure_line(&mut parser, &mut t, max_width);
+            let lm = self.measure_line(&mut parser, &mut carry, max_width);
 
-            if (lm.width != 0 || t.is_some()) && carry != Some(Token::CarriageReturn) {
-                // something was in this line, increment height
-                // if last carried token was a carriage return, we already counted the height
-                n_lines += 1;
+            if matches!(carry, Some(Token::CarriageReturn)) {
+                cr_width = cr_width.map_or(Some(lm.width), |width: u32| Some(width.max(lm.width)));
+            } else {
+                let line_width = match cr_width.take() {
+                    Some(width) => width.max(lm.width),
+                    None => lm.width,
+                };
+
+                if line_width > 0 || carry == Some(Token::NewLine) {
+                    // `empty_lines` counts lines that only contain whitespace or cursor movement
+                    n_lines += empty_lines + 1;
+                    empty_lines = 0;
+                } else {
+                    empty_lines += 1;
+                }
             }
 
-            if t.is_none() {
+            if carry.is_none() {
                 return (n_lines * line_height + n_lines.saturating_sub(1) * self.line_spacing)
                     as u32;
             }
-
-            carry = t;
         }
     }
 }
@@ -434,12 +442,14 @@ mod test {
     #[test]
     fn test_measure_height() {
         let data = [
+            // (text; max width in characters; number of expected lines)
             ("", 0, 0),
-            (" ", 0, 1),
-            (" ", 5, 1),
-            (" ", 6, 1),
+            (" ", 0, 0),
+            (" ", 5, 0),
+            (" ", 6, 0),
+            ("\r", 6, 0),
             ("\n", 6, 1),
-            ("\n ", 6, 2),
+            ("\n ", 6, 1),
             ("word", 4 * 6, 1), // exact fit into 1 line
             ("word", 4 * 6 - 1, 2),
             ("word", 2 * 6, 2),      // exact fit into 2 lines
@@ -451,8 +461,10 @@ mod test {
             ("verylongword", 50, 2),
             ("some verylongword", 50, 3),
             ("1 23456 12345 61234 561", 36, 5),
-            ("    Word      ", 36, 3),
+            ("    Word      ", 36, 2),
             ("\rcr", 36, 1),
+            ("cr\r", 36, 1),
+            ("cr\rcr", 36, 1),
             ("Longer\r", 36, 1),
             ("Longer\rnowrap", 36, 1),
         ];
@@ -470,9 +482,13 @@ mod test {
             let height = style.measure_text_height(text, *width);
             let expected_height = *expected_n_lines * character_style.line_height();
             assert_eq!(
-                height, expected_height,
+                height,
+                expected_height,
                 r#"#{}: Height of "{}" is {} but is expected to be {}"#,
-                i, text, height, expected_height
+                i,
+                text.replace('\r', "\\r").replace('\n', "\\n"),
+                height,
+                expected_height
             );
         }
     }
