@@ -9,7 +9,7 @@ pub(crate) mod space_config;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
-    rendering::cursor::Cursor,
+    rendering::{cursor::Cursor, line::StyledLineRenderer},
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
@@ -20,8 +20,6 @@ use embedded_graphics::{
     text::{CharacterStyle, TextRenderer},
     Drawable,
 };
-
-use self::line::StyledLineRenderer;
 
 impl<'a, F, A, V, H> Drawable for StyledTextBox<'a, F, A, V, H>
 where

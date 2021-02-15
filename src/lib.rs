@@ -113,14 +113,16 @@ pub mod style;
 
 mod utils;
 
-use alignment::{HorizontalTextAlignment, VerticalTextAlignment};
+use crate::{
+    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
+    style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
+};
 use embedded_graphics::{
     geometry::{Dimensions, Point},
     primitives::Rectangle,
     text::{CharacterStyle, TextRenderer},
     transform::Transform,
 };
-use style::{color::Rgb, height_mode::HeightMode, TextBoxStyle};
 
 /// Prelude.
 ///

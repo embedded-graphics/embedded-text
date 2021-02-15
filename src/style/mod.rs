@@ -176,7 +176,7 @@ use embedded_graphics::{
     text::{CharacterStyle, TextRenderer},
 };
 
-pub use builder::TextBoxStyleBuilder;
+pub use self::builder::TextBoxStyleBuilder;
 
 /// Tab size helper
 ///
