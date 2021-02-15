@@ -163,18 +163,14 @@ use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{
-        cursor::Cursor,
+        cursor::LineCursor,
         line_iter::{LineElementParser, RenderElement},
         space_config::UniformSpaceConfig,
     },
     utils::str_width,
 };
 use color::Rgb;
-use embedded_graphics::{
-    geometry::{Point, Size},
-    primitives::Rectangle,
-    text::{CharacterStyle, TextRenderer},
-};
+use embedded_graphics::text::{CharacterStyle, TextRenderer};
 
 pub use self::builder::TextBoxStyleBuilder;
 
@@ -283,13 +279,8 @@ where
         carried_token: &mut Option<Token<'a>>,
         max_line_width: u32,
     ) -> LineMeasurement {
-        let cursor: Cursor = Cursor::new(
-            Rectangle::new(
-                Point::zero(),
-                Size::new(max_line_width, self.character_style.line_height()),
-            ),
-            self.character_style.line_height(),
-            self.line_spacing,
+        let cursor = LineCursor::new(
+            max_line_width,
             self.tab_size.into_pixels(&self.character_style),
         );
 

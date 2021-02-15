@@ -38,7 +38,7 @@ impl VerticalTextAlignment for Scrolling {
         if text_height > box_height {
             let offset = box_height - text_height;
 
-            cursor.position.y += offset
+            cursor.y += offset
         }
     }
 }

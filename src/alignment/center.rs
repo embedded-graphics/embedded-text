@@ -54,7 +54,7 @@ impl VerticalTextAlignment for CenterAligned {
         let box_height = styled_text_box.bounding_box().size.height as i32;
         let offset = (box_height - text_height) / 2;
 
-        cursor.position.y += offset;
+        cursor.y += offset;
     }
 }
 

@@ -4,14 +4,13 @@
 use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
-    rendering::cursor::Cursor,
+    rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
 use core::marker::PhantomData;
 use embedded_graphics::geometry::Point;
 
 #[cfg(feature = "ansi")]
 use super::ansi::{try_parse_sgr, Sgr};
-use super::space_config::SpaceConfig;
 #[cfg(feature = "ansi")]
 use ansi_parser::AnsiSequence;
 #[cfg(feature = "ansi")]
@@ -52,7 +51,7 @@ pub enum RenderElement<'a> {
 #[derive(Debug)]
 pub struct LineElementParser<'a, 'b, M, SP, A> {
     /// Position information.
-    pub cursor: Cursor,
+    pub cursor: LineCursor,
 
     /// The text to draw.
     pub parser: &'b mut Parser<'a>,
@@ -77,7 +76,7 @@ where
     #[must_use]
     pub fn new(
         parser: &'b mut Parser<'a>,
-        cursor: Cursor,
+        cursor: LineCursor,
         config: SP,
         carried_token: &'b mut Option<Token<'a>>,
         measure: M,
@@ -198,7 +197,7 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            self.pos = self.cursor.position;
+            self.pos = self.cursor.pos();
             match core::mem::replace(&mut self.current_token, State::Done) {
                 // No token being processed, get next one
                 State::ProcessToken(ref token) => {
@@ -473,7 +472,7 @@ mod test {
     use super::*;
     use crate::{
         alignment::LeftAligned,
-        rendering::space_config::UniformSpaceConfig,
+        rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
         style::TabSize,
         utils::{str_width, test::size_for},
     };
@@ -501,7 +500,8 @@ mod test {
             style.line_height(),
             0,
             TabSize::Spaces(4).into_pixels(&style),
-        );
+        )
+        .line();
 
         let line1: LineElementParser<'_, '_, _, _, LeftAligned> =
             LineElementParser::new(parser, cursor, config, carried, |s| str_width(&style, s));

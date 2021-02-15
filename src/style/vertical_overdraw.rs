@@ -28,10 +28,8 @@ pub struct Hidden;
 impl VerticalOverdraw for Hidden {
     #[inline]
     fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
-        let offset_top = (cursor.bounds.top_left.y - cursor.position.y).max(0);
-
-        let offset_bottom =
-            (cursor.bottom_right().y - cursor.position.y + 1).min(cursor.line_height());
+        let offset_top = (cursor.top_left().y - cursor.y).max(0);
+        let offset_bottom = (cursor.bottom_right().y - cursor.y + 1).min(cursor.line_height());
 
         offset_top..offset_bottom
     }

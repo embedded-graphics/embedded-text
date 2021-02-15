@@ -48,26 +48,21 @@ where
         let mut parser = Parser::parse(self.text_box.text);
 
         while carried.is_some() || !parser.is_empty() {
+            let line_cursor = cursor.line();
             let display_range = H::calculate_displayed_row_range(&cursor);
             let display_size = Size::new(cursor.line_width(), display_range.clone().count() as u32);
 
             // FIXME: cropping isn't necessary for whole lines, but make sure not to blow up the
             // binary size as well.
             let mut display = display.clipped(&Rectangle::new(
-                cursor.position + Point::new(0, display_range.start),
+                line_cursor.pos() + Point::new(0, display_range.start),
                 display_size,
             ));
-            StyledLineRenderer::new(&mut parser, cursor, style, &mut carried).draw(&mut display)?;
+            StyledLineRenderer::new(&mut parser, line_cursor, style, &mut carried)
+                .draw(&mut display)?;
 
-            match carried {
-                Some(Token::CarriageReturn) => {
-                    cursor.carriage_return();
-                }
-
-                _ => {
-                    cursor.new_line();
-                    cursor.carriage_return();
-                }
+            if carried != Some(Token::CarriageReturn) {
+                cursor.new_line();
             }
         }
 

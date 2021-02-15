@@ -3,7 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
-        cursor::Cursor,
+        cursor::LineCursor,
         line_iter::{LineElementParser, RenderElement},
     },
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
@@ -30,7 +30,7 @@ struct Refs<'a, 'b, F, A, V, H> {
 /// Render a single line of styled text.
 #[derive(Debug)]
 pub struct StyledLineRenderer<'a, 'b, F, A, V, H> {
-    cursor: Cursor,
+    cursor: LineCursor,
     inner: RefCell<Refs<'a, 'b, F, A, V, H>>,
 }
 
@@ -44,7 +44,7 @@ where
     #[inline]
     pub fn new(
         parser: &'b mut Parser<'a>,
-        cursor: Cursor,
+        cursor: LineCursor,
         style: &'b mut TextBoxStyle<F, A, V, H>,
         carried_token: &'b mut Option<Token<'a>>,
     ) -> Self {
@@ -140,7 +140,7 @@ where
         } = &mut *inner;
 
         // FIXME: full copy isn't ideal
-        let mut cursor = self.cursor;
+        let mut cursor = self.cursor.clone();
 
         let max_line_width = cursor.line_width();
         let lm = style.measure_line(
@@ -157,7 +157,7 @@ where
 
         let elements = LineElementParser::<'_, '_, _, _, A>::new(
             parser,
-            cursor,
+            cursor.clone(),
             space_config,
             carried_token,
             |s| str_width(&**renderer.borrow(), s),
@@ -166,7 +166,7 @@ where
         if display.bounding_box().size.height == 0 {
             Self::skip_line(elements, &renderer);
         } else {
-            let pos = cursor.position;
+            let pos = cursor.pos();
 
             let (min_x, max_x) = (pos.x, pos.x + (max_line_width - left) as i32);
             Self::render_line(display, elements, &renderer, pos, min_x, max_x)?;
@@ -224,7 +224,7 @@ mod test {
     use crate::{
         alignment::{HorizontalTextAlignment, VerticalTextAlignment},
         parser::Parser,
-        rendering::{cursor::Cursor, line::StyledLineRenderer},
+        rendering::{cursor::LineCursor, line::StyledLineRenderer},
         style::{color::Rgb, height_mode::HeightMode, TabSize, TextBoxStyle, TextBoxStyleBuilder},
         utils::test::size_for,
     };
@@ -251,10 +251,8 @@ mod test {
         H: HeightMode,
     {
         let mut parser = Parser::parse(text);
-        let cursor = Cursor::new(
-            bounds,
-            style.character_style.line_height(),
-            style.line_spacing,
+        let cursor = LineCursor::new(
+            bounds.size.width,
             TabSize::Spaces(4).into_pixels(&style.character_style),
         );
         let mut carried = None;
@@ -393,17 +391,14 @@ mod test {
 mod ansi_parser_tests {
     use crate::{
         parser::Parser,
-        rendering::{cursor::Cursor, line::StyledLineRenderer},
+        rendering::{cursor::LineCursor, line::StyledLineRenderer},
         style::{TabSize, TextBoxStyleBuilder},
         utils::test::size_for,
     };
     use embedded_graphics::{
-        geometry::Point,
         mock_display::MockDisplay,
         mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
-        primitives::Rectangle,
-        text::TextRenderer,
         Drawable,
     };
 
@@ -424,10 +419,8 @@ mod ansi_parser_tests {
             .character_style(character_style)
             .build();
 
-        let cursor = Cursor::new(
-            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
-            character_style.line_height(),
-            0,
+        let cursor = LineCursor::new(
+            size_for(Font6x9, 7, 1).width,
             TabSize::Spaces(4).into_pixels(&character_style),
         );
         let mut carried = None;
