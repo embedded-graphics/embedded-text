@@ -36,7 +36,7 @@ pub enum RenderElement<'a> {
     Space(u32),
 
     /// Render the given character
-    PrintedCharacters(&'a str),
+    PrintedCharacters(&'a str, u32),
 
     /// Move the cursor
     #[cfg(feature = "ansi")]
@@ -274,9 +274,10 @@ where
                             } else if let Some(c) = c {
                                 // If a Break contains a character, display it if the next
                                 // Word token does not fit the line.
-                                if self.move_cursor(self.str_width(c) as i32).is_ok() {
+                                let width = self.str_width(c);
+                                if self.move_cursor(width as i32).is_ok() {
                                     self.finish_wrapped();
-                                    return Some(RenderElement::PrintedCharacters(c));
+                                    return Some(RenderElement::PrintedCharacters(c, width));
                                 } else {
                                     // this line is done
                                     self.finish(Token::Word(c));
@@ -391,12 +392,16 @@ where
                             self.parser.current_token =
                                 State::Word(unsafe { w.get_unchecked(space_pos..) });
 
-                            return Some(RenderElement::PrintedCharacters(word));
+                            return Some(RenderElement::PrintedCharacters(
+                                word,
+                                self.str_width(word),
+                            ));
                         }
                     } else {
                         self.next_token();
 
-                        return Some(RenderElement::PrintedCharacters(w));
+                        // FIXME: Maybe this state should hold on to the total word width
+                        return Some(RenderElement::PrintedCharacters(w, self.str_width(w)));
                     }
                 }
 
@@ -438,9 +443,10 @@ where
                                     self.parser.current_token =
                                         State::FirstWord(unsafe { w.get_unchecked(start_idx..) });
 
-                                    Some(RenderElement::PrintedCharacters(unsafe {
-                                        w.get_unchecked(..start_idx)
-                                    }))
+                                    Some(RenderElement::PrintedCharacters(
+                                        unsafe { w.get_unchecked(..start_idx) },
+                                        width,
+                                    ))
                                 };
                             }
                             width += char_width;
@@ -458,9 +464,10 @@ where
                                 let _ = self.move_cursor(width as i32);
                                 // `start_idx` is actually the end of the substring that fits
                                 self.finish(Token::Word(unsafe { w.get_unchecked(start_idx..) }));
-                                Some(RenderElement::PrintedCharacters(unsafe {
-                                    w.get_unchecked(..start_idx)
-                                }))
+                                Some(RenderElement::PrintedCharacters(
+                                    unsafe { w.get_unchecked(..start_idx) },
+                                    width,
+                                ))
                             };
                         }
 
@@ -469,7 +476,7 @@ where
 
                     self.next_token();
                     let _ = self.move_cursor(width as i32);
-                    return Some(RenderElement::PrintedCharacters(w));
+                    return Some(RenderElement::PrintedCharacters(w, width));
                 }
 
                 State::Done => return None,
@@ -530,8 +537,8 @@ mod test {
             &mut carried,
             6,
             &[
-                RenderElement::PrintedCharacters("sam"),
-                RenderElement::PrintedCharacters("ple"),
+                RenderElement::PrintedCharacters("sam", 18),
+                RenderElement::PrintedCharacters("ple", 18),
             ],
         );
     }
@@ -546,15 +553,15 @@ mod test {
             &mut carried,
             5,
             &[
-                RenderElement::PrintedCharacters("sam"),
-                RenderElement::PrintedCharacters("-"),
+                RenderElement::PrintedCharacters("sam", 18),
+                RenderElement::PrintedCharacters("-", 6),
             ],
         );
         assert_line_elements(
             &mut parser,
             &mut carried,
             5,
-            &[RenderElement::PrintedCharacters("ple")],
+            &[RenderElement::PrintedCharacters("ple", 18)],
         );
     }
 
@@ -568,9 +575,9 @@ mod test {
             &mut carried,
             5,
             &[
-                RenderElement::PrintedCharacters("a"),
+                RenderElement::PrintedCharacters("a", 6),
                 RenderElement::Space(6),
-                RenderElement::PrintedCharacters("b"),
+                RenderElement::PrintedCharacters("b", 6),
             ],
         );
         assert_line_elements(
@@ -578,18 +585,18 @@ mod test {
             &mut carried,
             5,
             &[
-                RenderElement::PrintedCharacters("c"),
+                RenderElement::PrintedCharacters("c", 6),
                 RenderElement::Space(6),
-                RenderElement::PrintedCharacters("d"),
+                RenderElement::PrintedCharacters("d", 6),
                 RenderElement::Space(6),
-                RenderElement::PrintedCharacters("e"),
+                RenderElement::PrintedCharacters("e", 6),
             ],
         );
         assert_line_elements(
             &mut parser,
             &mut carried,
             5,
-            &[RenderElement::PrintedCharacters("f")],
+            &[RenderElement::PrintedCharacters("f", 6)],
         );
     }
 
@@ -603,15 +610,15 @@ mod test {
             &mut parser,
             &mut carried,
             5,
-            &[RenderElement::PrintedCharacters("super")],
+            &[RenderElement::PrintedCharacters("super", 30)],
         );
         assert_line_elements(
             &mut parser,
             &mut carried,
             5,
             &[
-                RenderElement::PrintedCharacters("-"),
-                RenderElement::PrintedCharacters("cali"),
+                RenderElement::PrintedCharacters("-", 6),
+                RenderElement::PrintedCharacters("cali", 24),
             ],
         );
     }
@@ -625,9 +632,9 @@ mod test {
             &mut None,
             50,
             &[
-                RenderElement::PrintedCharacters("glued"),
+                RenderElement::PrintedCharacters("glued", 30),
                 RenderElement::Space(6),
-                RenderElement::PrintedCharacters("words"),
+                RenderElement::PrintedCharacters("words", 30),
             ],
         );
     }
@@ -642,9 +649,9 @@ mod test {
             &mut carried,
             16,
             &[
-                RenderElement::PrintedCharacters("a"),
+                RenderElement::PrintedCharacters("a", 6),
                 RenderElement::Space(6 * 3),
-                RenderElement::PrintedCharacters("word"),
+                RenderElement::PrintedCharacters("word", 24),
             ],
         );
         assert_line_elements(
@@ -652,10 +659,10 @@ mod test {
             &mut carried,
             16,
             &[
-                RenderElement::PrintedCharacters("and"),
+                RenderElement::PrintedCharacters("and", 18),
                 RenderElement::Space(6),
                 RenderElement::Space(6 * 4),
-                RenderElement::PrintedCharacters("another"),
+                RenderElement::PrintedCharacters("another", 42),
                 RenderElement::Space(6),
             ],
         );
@@ -669,7 +676,7 @@ mod test {
             &mut parser,
             &mut None,
             2,
-            &[RenderElement::PrintedCharacters("So")],
+            &[RenderElement::PrintedCharacters("So", 12)],
         );
     }
 }
@@ -688,10 +695,10 @@ mod ansi_parser_tests {
             &mut None,
             100,
             &[
-                RenderElement::PrintedCharacters("Lorem"),
+                RenderElement::PrintedCharacters("Lorem", 30),
                 RenderElement::Space(6),
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
-                RenderElement::PrintedCharacters("Ipsum"),
+                RenderElement::PrintedCharacters("Ipsum", 30),
             ],
         );
     }
@@ -704,7 +711,7 @@ mod ansi_parser_tests {
             &mut parser,
             &mut None,
             8,
-            &[RenderElement::PrintedCharacters("Lorem")],
+            &[RenderElement::PrintedCharacters("Lorem", 30)],
         );
 
         assert_line_elements(
@@ -712,9 +719,9 @@ mod ansi_parser_tests {
             &mut None,
             8,
             &[
-                RenderElement::PrintedCharacters("foo"),
+                RenderElement::PrintedCharacters("foo", 18),
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
-                RenderElement::PrintedCharacters("barum"),
+                RenderElement::PrintedCharacters("barum", 30),
             ],
         );
     }

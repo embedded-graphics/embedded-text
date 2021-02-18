@@ -71,7 +71,7 @@ where
         // renderer is used in the iterator to measure text so can't borrow early
         for element in elements {
             match element {
-                RenderElement::PrintedCharacters(s) => {
+                RenderElement::PrintedCharacters(s, _) => {
                     // this isn't ideal - neither the name `style` nor the fact it's in `elements`
                     pos = renderer.borrow().draw_string(s, pos, display)?;
                 }

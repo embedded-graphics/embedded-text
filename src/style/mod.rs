@@ -305,9 +305,9 @@ where
                     }
                 }
 
-                RenderElement::PrintedCharacters(s) => {
+                RenderElement::PrintedCharacters(_, width) => {
                     // must not rely on cursor position because it can get reset to 0 at line breaks
-                    current_width += str_width(&self.character_style, s);
+                    current_width += width;
 
                     if !A::ENDING_SPACES {
                         // if ENDING_SPACES is true, spaces have already been counted and
