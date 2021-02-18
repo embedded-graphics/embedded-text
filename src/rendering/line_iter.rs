@@ -291,7 +291,6 @@ where
                         }
 
                         Token::Word(w) => {
-                            // FIXME: this isn't exactly optimal when outside of the display area
                             let width = self.str_width(w);
                             if self.parser.cursor.fits_in_line(width) {
                                 self.parser.first_word = false;
