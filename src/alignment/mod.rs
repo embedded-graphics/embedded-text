@@ -32,6 +32,7 @@ pub trait HorizontalTextAlignment: Copy {
 
     /// Calculate offset from the left side and whitespace information.
     fn place_line(
+        line: &str,
         renderer: &impl TextRenderer,
         max_width: u32,
         measurement: LineMeasurement,

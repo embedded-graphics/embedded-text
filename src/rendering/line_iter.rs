@@ -32,8 +32,8 @@ enum State<'a> {
 /// What to draw
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RenderElement<'a> {
-    /// Render a whitespace block with the given width and count
-    Space(u32, u32),
+    /// Render a whitespace block with the given width
+    Space(u32),
 
     /// Render the given character
     PrintedCharacters(&'a str),
@@ -243,10 +243,7 @@ where
                                         self.finish(Token::Whitespace(carried));
                                     }
 
-                                    return Some(RenderElement::Space(
-                                        space_width,
-                                        spaces_to_render,
-                                    ));
+                                    return Some(RenderElement::Space(space_width));
                                 } else {
                                     // there are spaces to render but none fit the line
                                     // eat one as a newline and stop
@@ -321,7 +318,7 @@ where
                             };
 
                             // don't count tabs as spaces
-                            return Some(RenderElement::Space(tab_width as u32, 0));
+                            return Some(RenderElement::Space(tab_width as u32));
                         }
 
                         #[cfg(feature = "ansi")]
@@ -388,7 +385,7 @@ where
                             }
                             let sp_width = self.parser.config.consume(1);
 
-                            return Some(RenderElement::Space(sp_width, 1));
+                            return Some(RenderElement::Space(sp_width));
                         } else {
                             let word = unsafe { w.get_unchecked(0..space_pos) };
                             self.parser.current_token =
@@ -432,7 +429,7 @@ where
                                         self.next_token();
                                     }
 
-                                    Some(RenderElement::Space(char_width, 1))
+                                    Some(RenderElement::Space(char_width))
                                 } else {
                                     // we know the previous characters fit in the line
                                     let _ = self.move_cursor(width as i32);
@@ -572,7 +569,7 @@ mod test {
             5,
             &[
                 RenderElement::PrintedCharacters("a"),
-                RenderElement::Space(6, 1),
+                RenderElement::Space(6),
                 RenderElement::PrintedCharacters("b"),
             ],
         );
@@ -582,9 +579,9 @@ mod test {
             5,
             &[
                 RenderElement::PrintedCharacters("c"),
-                RenderElement::Space(6, 1),
+                RenderElement::Space(6),
                 RenderElement::PrintedCharacters("d"),
-                RenderElement::Space(6, 1),
+                RenderElement::Space(6),
                 RenderElement::PrintedCharacters("e"),
             ],
         );
@@ -629,7 +626,7 @@ mod test {
             50,
             &[
                 RenderElement::PrintedCharacters("glued"),
-                RenderElement::Space(6, 1),
+                RenderElement::Space(6),
                 RenderElement::PrintedCharacters("words"),
             ],
         );
@@ -646,7 +643,7 @@ mod test {
             16,
             &[
                 RenderElement::PrintedCharacters("a"),
-                RenderElement::Space(6 * 3, 0),
+                RenderElement::Space(6 * 3),
                 RenderElement::PrintedCharacters("word"),
             ],
         );
@@ -656,10 +653,10 @@ mod test {
             16,
             &[
                 RenderElement::PrintedCharacters("and"),
-                RenderElement::Space(6, 0),
-                RenderElement::Space(6 * 4, 0),
+                RenderElement::Space(6),
+                RenderElement::Space(6 * 4),
                 RenderElement::PrintedCharacters("another"),
-                RenderElement::Space(6, 0),
+                RenderElement::Space(6),
             ],
         );
     }
@@ -692,7 +689,7 @@ mod ansi_parser_tests {
             100,
             &[
                 RenderElement::PrintedCharacters("Lorem"),
-                RenderElement::Space(6, 1),
+                RenderElement::Space(6),
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
                 RenderElement::PrintedCharacters("Ipsum"),
             ],

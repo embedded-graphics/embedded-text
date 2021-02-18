@@ -88,6 +88,10 @@ impl<'a> Parser<'a> {
     pub fn is_empty(&self) -> bool {
         self.inner.as_str().is_empty()
     }
+
+    pub fn as_str(&self) -> &str {
+        self.inner.as_str()
+    }
 }
 
 impl<'a> Iterator for Parser<'a> {

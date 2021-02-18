@@ -76,7 +76,7 @@ where
                     pos = renderer.borrow().draw_string(s, pos, display)?;
                 }
 
-                RenderElement::Space(space_width, _) => {
+                RenderElement::Space(space_width) => {
                     pos = renderer
                         .borrow()
                         .draw_whitespace(space_width, pos, display)?;
@@ -140,13 +140,18 @@ where
         let mut cursor = self.cursor.clone();
 
         let max_line_width = cursor.line_width();
+        let mut cloned_parser = parser.clone();
         let lm = style.measure_line(
-            &mut parser.clone(),
+            &mut cloned_parser,
             &mut carried_token.clone(),
             max_line_width,
         );
 
-        let (left, space_config) = A::place_line(&style.character_style, max_line_width, lm);
+        let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
+        let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
+
+        let (left, space_config) =
+            A::place_line(line_str, &style.character_style, max_line_width, lm);
 
         cursor.move_cursor(left as i32).ok();
 

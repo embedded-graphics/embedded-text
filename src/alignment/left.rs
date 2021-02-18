@@ -16,6 +16,7 @@ impl HorizontalTextAlignment for LeftAligned {
 
     #[inline]
     fn place_line(
+        _line: &str,
         renderer: &impl TextRenderer,
         _max_width: u32,
         _measurement: LineMeasurement,

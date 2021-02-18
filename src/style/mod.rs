@@ -161,7 +161,7 @@ pub mod vertical_overdraw;
 
 use crate::{
     alignment::HorizontalTextAlignment,
-    parser::{Parser, Token, SPEC_CHAR_NBSP},
+    parser::{Parser, Token},
     rendering::{
         cursor::LineCursor,
         line_iter::{LineElementParser, RenderElement},
@@ -251,9 +251,6 @@ pub struct LineMeasurement {
     /// Width in pixels, using the default space width returned by the text renderer.
     pub width: u32,
 
-    /// The number of space characters in the line.
-    pub space_count: u32,
-
     /// Whether this line is the last line of a paragraph.
     pub last_line: bool,
 }
@@ -293,23 +290,17 @@ where
         );
 
         let mut current_width = 0;
-        let mut last_spaces = 0;
         let mut last_spaces_width = 0;
-        let mut total_spaces = 0;
 
         for token in iter.iter() {
             match token {
-                RenderElement::Space(width, count) => {
+                RenderElement::Space(width) => {
                     if A::ENDING_SPACES {
                         // only track width if spaces are rendered at the end of a line
                         current_width += width;
-
-                        // in this case, count all spaces
-                        total_spaces += count;
                     } else {
                         // ... otherwise save the number of spaces and it will be tracked with
                         // the next printed character, or it will be discarded
-                        last_spaces = total_spaces + count;
                         last_spaces_width = width;
                     }
                 }
@@ -323,9 +314,7 @@ where
                         // last_spaces is 0
                         current_width += last_spaces_width;
                         last_spaces_width = 0;
-                        total_spaces = last_spaces;
                     }
-                    total_spaces += s.chars().filter(|c| *c == SPEC_CHAR_NBSP).count() as u32;
                 }
 
                 #[cfg(feature = "ansi")]
@@ -343,7 +332,6 @@ where
 
         LineMeasurement {
             width: current_width as u32,
-            space_count: total_spaces,
             last_line: carried_token.is_none() || *carried_token == Some(Token::NewLine),
         }
     }
@@ -530,7 +518,6 @@ mod test {
 
         let lm = style.measure_line(&mut text, &mut None, 6 * Font6x9::CHARACTER_SIZE.width);
         assert_eq!(lm.width, 6 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.space_count, 1);
     }
 
     #[test]
@@ -549,7 +536,6 @@ mod test {
 
         let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
         assert_eq!(lm.width, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.space_count, 1);
     }
 
     #[test]

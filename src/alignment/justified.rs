@@ -1,7 +1,7 @@
 //! Fully justified text.
 use crate::{
-    alignment::HorizontalTextAlignment, rendering::space_config::SpaceConfig,
-    style::LineMeasurement, utils::str_width,
+    alignment::HorizontalTextAlignment, parser::SPEC_CHAR_NBSP,
+    rendering::space_config::SpaceConfig, style::LineMeasurement, utils::str_width,
 };
 use embedded_graphics::text::TextRenderer;
 
@@ -16,16 +16,30 @@ impl HorizontalTextAlignment for Justified {
 
     #[inline]
     fn place_line(
+        line: &str,
         renderer: &impl TextRenderer,
         max_width: u32,
         measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig) {
         let space_width = str_width(renderer, " ");
+        let space_chars = [' ', SPEC_CHAR_NBSP];
 
-        let space_info = if !measurement.last_line && measurement.space_count != 0 {
-            let space = max_width - measurement.width + measurement.space_count * space_width;
-            let space_width = space / measurement.space_count;
-            let extra_pixels = space % measurement.space_count;
+        let mut space_count = 0;
+        let mut partial_space_count = 0;
+
+        for c in line.chars().skip_while(|c| space_chars.contains(c)) {
+            if space_chars.contains(&c) {
+                partial_space_count += 1;
+            } else {
+                space_count += partial_space_count;
+                partial_space_count = 0;
+            }
+        }
+
+        let space_info = if !measurement.last_line && space_count != 0 {
+            let space = max_width - measurement.width + space_count * space_width;
+            let space_width = space / space_count;
+            let extra_pixels = space % space_count;
             JustifiedSpaceConfig::new(space_width, extra_pixels)
         } else {
             JustifiedSpaceConfig::new(space_width, 0)

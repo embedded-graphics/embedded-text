@@ -24,6 +24,7 @@ impl HorizontalTextAlignment for CenterAligned {
 
     #[inline]
     fn place_line(
+        _line: &str,
         renderer: &impl TextRenderer,
         max_width: u32,
         measurement: LineMeasurement,
