@@ -564,6 +564,41 @@ mod test {
     }
 
     #[test]
+    fn nbsp_issue() {
+        let mut parser = Parser::parse("a b c\u{a0}d e f");
+        let mut carried = None;
+
+        assert_line_elements(
+            &mut parser,
+            &mut carried,
+            5,
+            &[
+                RenderElement::PrintedCharacters("a"),
+                RenderElement::Space(6, 1),
+                RenderElement::PrintedCharacters("b"),
+            ],
+        );
+        assert_line_elements(
+            &mut parser,
+            &mut carried,
+            5,
+            &[
+                RenderElement::PrintedCharacters("c"),
+                RenderElement::Space(6, 1),
+                RenderElement::PrintedCharacters("d"),
+                RenderElement::Space(6, 1),
+                RenderElement::PrintedCharacters("e"),
+            ],
+        );
+        assert_line_elements(
+            &mut parser,
+            &mut carried,
+            5,
+            &[RenderElement::PrintedCharacters("f")],
+        );
+    }
+
+    #[test]
     fn soft_hyphen_issue_42() {
         let mut parser =
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");

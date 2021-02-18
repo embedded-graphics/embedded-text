@@ -69,3 +69,86 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+pub mod test {
+    use embedded_graphics::{
+        mock_display::MockDisplay,
+        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        pixelcolor::BinaryColor,
+        prelude::*,
+        primitives::Rectangle,
+    };
+
+    use crate::{
+        alignment::{HorizontalTextAlignment, LeftAligned},
+        style::TextBoxStyleBuilder,
+        utils::test::size_for,
+        TextBox,
+    };
+
+    pub fn assert_rendered<A: HorizontalTextAlignment>(
+        alignment: A,
+        text: &str,
+        size: Size,
+        pattern: &[&str],
+    ) {
+        let mut display = MockDisplay::new();
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .alignment(alignment)
+            .build();
+
+        TextBox::new(text, Rectangle::new(Point::zero(), size))
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        display.assert_pattern(pattern);
+    }
+
+    #[test]
+    fn nbsp_doesnt_break() {
+        assert_rendered(
+            LeftAligned,
+            "a b c\u{a0}d e f",
+            size_for(Font6x9, 5, 3),
+            &[
+                "..................            ",
+                ".............#....            ",
+                ".............#....            ",
+                "..###........###..            ",
+                ".#..#........#..#.            ",
+                ".#..#........#..#.            ",
+                "..###........###..            ",
+                "..................            ",
+                "..................            ",
+                "..............................",
+                "................#.............",
+                "................#.............",
+                "..###.........###.........##..",
+                ".#...........#..#........#.##.",
+                ".#...........#..#........##...",
+                "..###.........###.........###.",
+                "..............................",
+                "..............................",
+                "......                        ",
+                "...#..                        ",
+                "..#.#.                        ",
+                "..#...                        ",
+                ".###..                        ",
+                "..#...                        ",
+                "..#...                        ",
+                "......                        ",
+                "......                        ",
+            ],
+        );
+    }
+}
