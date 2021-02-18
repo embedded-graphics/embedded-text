@@ -65,40 +65,19 @@ mod test_horizontal {
         mock_display::MockDisplay,
         mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
-        prelude::Size,
         primitives::Rectangle,
         Drawable,
     };
 
     use crate::{
-        alignment::CenterAligned, style::TextBoxStyleBuilder, utils::test::size_for, TextBox,
+        alignment::CenterAligned, rendering::test::assert_rendered, style::TextBoxStyleBuilder,
+        utils::test::size_for, TextBox,
     };
-
-    fn assert_rendered(text: &str, size: Size, pattern: &[&str]) {
-        let mut display = MockDisplay::new();
-
-        let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
-
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(CenterAligned)
-            .build();
-
-        TextBox::new(text, Rectangle::new(Point::zero(), size))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
-
-        display.assert_pattern(pattern);
-    }
 
     #[test]
     fn simple_render() {
         assert_rendered(
+            CenterAligned,
             "word",
             size_for(Font6x9, 6, 1),
             &[
@@ -152,6 +131,7 @@ mod test_horizontal {
     #[test]
     fn simple_word_wrapping() {
         assert_rendered(
+            CenterAligned,
             "word wrapping",
             size_for(Font6x9, 9, 2),
             &[
@@ -180,6 +160,7 @@ mod test_horizontal {
     #[test]
     fn word_longer_than_line_wraps_word() {
         assert_rendered(
+            CenterAligned,
             "word  somereallylongword",
             size_for(Font6x9, 9, 3),
             &[
@@ -217,6 +198,7 @@ mod test_horizontal {
     #[test]
     fn first_word_longer_than_line_wraps_word() {
         assert_rendered(
+            CenterAligned,
             "somereallylongword",
             size_for(Font6x9, 9, 2),
             &[
@@ -245,6 +227,7 @@ mod test_horizontal {
     #[test]
     fn soft_hyphen_centering() {
         assert_rendered(
+            CenterAligned,
             "soft\u{AD}hyphen",
             size_for(Font6x9, 6, 2),
             &[

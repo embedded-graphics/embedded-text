@@ -34,40 +34,19 @@ mod test {
         mock_display::MockDisplay,
         mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
-        prelude::Size,
         primitives::Rectangle,
         Drawable,
     };
 
     use crate::{
-        alignment::RightAligned, style::TextBoxStyleBuilder, utils::test::size_for, TextBox,
+        alignment::RightAligned, rendering::test::assert_rendered, style::TextBoxStyleBuilder,
+        utils::test::size_for, TextBox,
     };
-
-    fn assert_rendered(text: &str, size: Size, pattern: &[&str]) {
-        let mut display = MockDisplay::new();
-
-        let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .build();
-
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(RightAligned)
-            .build();
-
-        TextBox::new(text, Rectangle::new(Point::zero(), size))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
-
-        display.assert_pattern(pattern);
-    }
 
     #[test]
     fn simple_render() {
         assert_rendered(
+            RightAligned,
             "word",
             size_for(Font6x9, 6, 1),
             &[
@@ -121,6 +100,7 @@ mod test {
     #[test]
     fn simple_word_wrapping() {
         assert_rendered(
+            RightAligned,
             "word wrapping",
             size_for(Font6x9, 9, 2),
             &[
@@ -149,6 +129,7 @@ mod test {
     #[test]
     fn word_longer_than_line_wraps_word() {
         assert_rendered(
+            RightAligned,
             "word  somereallylongword",
             size_for(Font6x9, 9, 3),
             &[
@@ -186,6 +167,7 @@ mod test {
     #[test]
     fn first_word_longer_than_line_wraps_word() {
         assert_rendered(
+            RightAligned,
             "somereallylongword",
             size_for(Font6x9, 9, 2),
             &[
@@ -214,6 +196,7 @@ mod test {
     #[test]
     fn soft_hyphen_rendering() {
         assert_rendered(
+            RightAligned,
             "soft\u{AD}hyphen",
             size_for(Font6x9, 6, 2),
             &[
