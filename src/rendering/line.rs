@@ -19,6 +19,7 @@ use embedded_graphics::{
 
 #[cfg(feature = "ansi")]
 use super::ansi::Sgr;
+use super::space_config::UniformSpaceConfig;
 
 #[derive(Debug)]
 struct Refs<'a, 'b, F, A, V, H> {
@@ -139,35 +140,44 @@ where
 
         let mut cursor = self.cursor.clone();
 
-        let max_line_width = cursor.line_width();
-        let mut cloned_parser = parser.clone();
-        let lm = style.measure_line(
-            &mut cloned_parser,
-            &mut carried_token.clone(),
-            max_line_width,
-        );
-
-        let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
-        let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
-
-        let (left, space_config) =
-            A::place_line(line_str, &style.character_style, max_line_width, lm);
-
-        cursor.move_cursor(left as i32).ok();
-
-        let renderer = RefCell::new(&mut style.character_style);
-
-        let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
-            parser,
-            cursor.clone(),
-            space_config,
-            carried_token,
-            |s| str_width(&**renderer.borrow(), s),
-        );
-
         if display.bounding_box().size.height == 0 {
+            // We're outside of the view - no need for a separate measure pass.
+            let renderer = RefCell::new(&mut style.character_style);
+            let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
+                parser,
+                cursor.clone(),
+                UniformSpaceConfig::new(&**renderer.borrow()),
+                carried_token,
+                |s| str_width(&**renderer.borrow(), s),
+            );
             Self::skip_line(elements.iter(), &renderer);
         } else {
+            let max_line_width = cursor.line_width();
+
+            // We have to resort to trickery to figure out the string that is rendered as the line.
+            let mut cloned_parser = parser.clone();
+            let lm = style.measure_line(
+                &mut cloned_parser,
+                &mut carried_token.clone(),
+                max_line_width,
+            );
+
+            let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
+            let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
+
+            let (left, space_config) =
+                A::place_line(line_str, &style.character_style, max_line_width, lm);
+
+            cursor.move_cursor(left as i32).ok();
+
+            let renderer = RefCell::new(&mut style.character_style);
+            let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
+                parser,
+                cursor.clone(),
+                space_config,
+                carried_token,
+                |s| str_width(&**renderer.borrow(), s),
+            );
             Self::render_line(display, elements.iter(), &renderer, cursor.pos())?;
         }
 
