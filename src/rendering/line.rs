@@ -152,7 +152,7 @@ where
 
         let renderer = RefCell::new(&mut style.character_style);
 
-        let elements = LineElementParser::<'_, '_, _, _, A>::new(
+        let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
             parser,
             cursor.clone(),
             space_config,
@@ -161,9 +161,9 @@ where
         );
 
         if display.bounding_box().size.height == 0 {
-            Self::skip_line(elements, &renderer);
+            Self::skip_line(elements.iter(), &renderer);
         } else {
-            Self::render_line(display, elements, &renderer, cursor.pos())?;
+            Self::render_line(display, elements.iter(), &renderer, cursor.pos())?;
         }
 
         Ok(())

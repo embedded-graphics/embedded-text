@@ -100,15 +100,30 @@ where
         }
     }
 
+    pub fn iter(&mut self) -> LineElementParserIterator<'a, 'b, '_, M, SP, A> {
+        LineElementParserIterator { parser: self }
+    }
+}
+
+pub struct LineElementParserIterator<'a, 'b, 'c, M, SP, A> {
+    parser: &'c mut LineElementParser<'a, 'b, M, SP, A>,
+}
+
+impl<'a, M, SP, A> LineElementParserIterator<'a, '_, '_, M, SP, A>
+where
+    SP: SpaceConfig,
+    A: HorizontalTextAlignment,
+    M: Fn(&str) -> u32,
+{
     fn next_token(&mut self) {
-        match self.parser.next() {
+        match self.parser.parser.next() {
             None => self.finish_end_of_string(),
-            Some(t) => self.current_token = State::ProcessToken(t),
+            Some(t) => self.parser.current_token = State::ProcessToken(t),
         }
     }
 
     fn finish_end_of_string(&mut self) {
-        self.current_token = State::Done;
+        self.parser.current_token = State::Done;
     }
 
     fn finish_wrapped(&mut self) {
@@ -116,13 +131,13 @@ where
     }
 
     fn finish(&mut self, t: Token<'a>) {
-        self.carried_token.replace(t);
-        self.current_token = State::Done;
+        self.parser.carried_token.replace(t);
+        self.parser.current_token = State::Done;
     }
 
     fn next_word_width(&mut self) -> Option<u32> {
         let mut width = None;
-        let mut lookahead = self.parser.clone();
+        let mut lookahead = self.parser.parser.clone();
 
         'lookahead: loop {
             match lookahead.next() {
@@ -149,15 +164,16 @@ where
     }
 
     fn str_width(&self, s: &str) -> u32 {
-        let measure = &self.measure;
+        let measure = &self.parser.measure;
         measure(s)
     }
 
     fn count_widest_space_seq(&self, n: u32) -> u32 {
         // we could also binary search but I don't think it's worth it
         let mut spaces_to_render = 0;
-        let available = self.cursor.space();
-        while spaces_to_render < n && self.config.peek_next_width(spaces_to_render + 1) < available
+        let available = self.parser.cursor.space();
+        while spaces_to_render < n
+            && self.parser.config.peek_next_width(spaces_to_render + 1) < available
         {
             spaces_to_render += 1;
         }
@@ -166,11 +182,11 @@ where
     }
 
     fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
-        self.cursor.move_cursor(by as i32)
+        self.parser.cursor.move_cursor(by as i32)
     }
 }
 
-impl<'a, M, SP, A> Iterator for LineElementParser<'a, '_, M, SP, A>
+impl<'a, M, SP, A> Iterator for LineElementParserIterator<'a, '_, '_, M, SP, A>
 where
     SP: SpaceConfig,
     A: HorizontalTextAlignment,
@@ -181,8 +197,8 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            self.pos = self.cursor.pos();
-            match core::mem::replace(&mut self.current_token, State::Done) {
+            self.parser.pos = self.parser.cursor.pos();
+            match core::mem::replace(&mut self.parser.current_token, State::Done) {
                 // No token being processed, get next one
                 State::ProcessToken(ref token) => {
                     let token = token.clone();
@@ -192,15 +208,16 @@ where
                             // The current horizontal alignment can ignore spaces at the beginning
                             // and end of a line.
                             let mut would_wrap = false;
-                            let render_whitespace = if self.first_word {
+                            let render_whitespace = if self.parser.first_word {
                                 if A::STARTING_SPACES {
-                                    self.first_word = false;
+                                    self.parser.first_word = false;
                                 }
                                 A::STARTING_SPACES
                             } else if let Some(word_width) = self.next_word_width() {
                                 // Check if space + w fits in line, otherwise it's up to config
-                                let space_width = self.config.peek_next_width(n);
-                                let fits = self.cursor.fits_in_line(space_width + word_width);
+                                let space_width = self.parser.config.peek_next_width(n);
+                                let fits =
+                                    self.parser.cursor.fits_in_line(space_width + word_width);
 
                                 would_wrap = !fits;
 
@@ -215,7 +232,7 @@ where
                                 let spaces_to_render = self.count_widest_space_seq(n);
 
                                 if spaces_to_render > 0 {
-                                    let space_width = self.config.consume(spaces_to_render);
+                                    let space_width = self.parser.config.consume(spaces_to_render);
                                     let _ = self.move_cursor(space_width as i32);
                                     let carried = n - spaces_to_render;
 
@@ -249,7 +266,7 @@ where
 
                         Token::Break(c) => {
                             let fits = if let Some(word_width) = self.next_word_width() {
-                                self.cursor.fits_in_line(word_width)
+                                self.parser.cursor.fits_in_line(word_width)
                             } else {
                                 // Next token is not a Word, consume Break and continue
                                 true
@@ -275,19 +292,22 @@ where
 
                         Token::Word(w) => {
                             // FIXME: this isn't exactly optimal when outside of the display area
-                            if self.cursor.fits_in_line(self.str_width(w)) {
-                                self.first_word = false;
-                                self.current_token = State::Word(w);
-                            } else if self.first_word {
-                                self.first_word = false;
-                                self.current_token = State::FirstWord(w);
+                            let width = self.str_width(w);
+                            if self.parser.cursor.fits_in_line(width) {
+                                self.parser.first_word = false;
+                                // we can move the cursor here since Word doesn't depend on it
+                                let _ = self.move_cursor(width as i32);
+                                self.parser.current_token = State::Word(w);
+                            } else if self.parser.first_word {
+                                self.parser.first_word = false;
+                                self.parser.current_token = State::FirstWord(w);
                             } else {
                                 self.finish(token);
                             }
                         }
 
                         Token::Tab => {
-                            let sp_width = self.cursor.next_tab_width();
+                            let sp_width = self.parser.cursor.next_tab_width();
 
                             let tab_width = match self.move_cursor(sp_width as i32) {
                                 Ok(width) => {
@@ -364,26 +384,23 @@ where
                     {
                         if space_pos == 0 {
                             if let Some(word) = w.get(SPEC_CHAR_NBSP.len_utf8()..) {
-                                self.current_token = State::Word(word);
+                                self.parser.current_token = State::Word(word);
                             } else {
                                 self.next_token();
                             }
-                            let sp_width = self.config.consume(1);
+                            let sp_width = self.parser.config.consume(1);
 
-                            let _ = self.move_cursor(sp_width as i32);
                             return Some(RenderElement::Space(sp_width, 1));
                         } else {
                             let word = unsafe { w.get_unchecked(0..space_pos) };
-                            self.current_token =
+                            self.parser.current_token =
                                 State::Word(unsafe { w.get_unchecked(space_pos..) });
 
-                            let _ = self.move_cursor(self.str_width(word) as i32);
                             return Some(RenderElement::PrintedCharacters(word));
                         }
                     } else {
                         self.next_token();
 
-                        let _ = self.move_cursor(self.str_width(w) as i32);
                         return Some(RenderElement::PrintedCharacters(w));
                     }
                 }
@@ -395,24 +412,24 @@ where
                         let end_idx = start_idx + c.len_utf8();
 
                         let char_width = if c == SPEC_CHAR_NBSP {
-                            self.config.peek_next_width(1)
+                            self.parser.config.peek_next_width(1)
                         } else {
                             let c_str = unsafe { w.get_unchecked(start_idx..end_idx) };
                             self.str_width(c_str)
                         };
 
-                        if self.cursor.fits_in_line(width + char_width) {
+                        if self.parser.cursor.fits_in_line(width + char_width) {
                             // We return the non-breaking space as a different render element
                             if c == SPEC_CHAR_NBSP {
                                 return if start_idx == 0 {
                                     // we have peeked the space width, now consume it
-                                    self.config.consume(1);
+                                    self.parser.config.consume(1);
 
                                     // here, width == 0 so don't need to add
                                     let _ = self.move_cursor(char_width as i32);
 
                                     if let Some(word) = w.get(SPEC_CHAR_NBSP.len_utf8()..) {
-                                        self.current_token = State::FirstWord(word);
+                                        self.parser.current_token = State::FirstWord(word);
                                     } else {
                                         self.next_token();
                                     }
@@ -423,7 +440,7 @@ where
                                     let _ = self.move_cursor(width as i32);
 
                                     // New state starts with the current space
-                                    self.current_token =
+                                    self.parser.current_token =
                                         State::FirstWord(unsafe { w.get_unchecked(start_idx..) });
 
                                     Some(RenderElement::PrintedCharacters(unsafe {
@@ -442,7 +459,7 @@ where
                                 self.finish_end_of_string();
                                 None
                             } else {
-                                // This can happen because words can be longer than the line itself.
+                                // This can happen because words can be longer than the line itself.parser.
                                 let _ = self.move_cursor(width as i32);
                                 // `start_idx` is actually the end of the substring that fits
                                 self.finish(Token::Word(unsafe { w.get_unchecked(start_idx..) }));
@@ -502,10 +519,10 @@ mod test {
         )
         .line();
 
-        let line1: LineElementParser<'_, '_, _, _, LeftAligned> =
+        let mut line1: LineElementParser<'_, '_, _, _, LeftAligned> =
             LineElementParser::new(parser, cursor, config, carried, |s| str_width(&style, s));
 
-        assert_eq!(line1.into_iter().collect::<Vec<_>>(), elements);
+        assert_eq!(line1.iter().collect::<Vec<_>>(), elements);
     }
 
     #[test]

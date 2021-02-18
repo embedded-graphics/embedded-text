@@ -284,7 +284,7 @@ where
             self.tab_size.into_pixels(&self.character_style),
         );
 
-        let iter = LineElementParser::<'_, '_, _, _, A>::new(
+        let mut iter = LineElementParser::<'_, '_, _, _, A>::new(
             parser,
             cursor,
             UniformSpaceConfig::new(&self.character_style),
@@ -297,7 +297,7 @@ where
         let mut last_spaces_width = 0;
         let mut total_spaces = 0;
 
-        for token in iter {
+        for token in iter.iter() {
             match token {
                 RenderElement::Space(width, count) => {
                     if A::ENDING_SPACES {
