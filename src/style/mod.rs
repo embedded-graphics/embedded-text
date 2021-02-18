@@ -290,31 +290,10 @@ where
         );
 
         let mut current_width = 0;
-        let mut last_spaces_width = 0;
-
         for token in iter.iter() {
             match token {
-                RenderElement::Space(width) => {
-                    if A::ENDING_SPACES {
-                        // only track width if spaces are rendered at the end of a line
-                        current_width += width;
-                    } else {
-                        // ... otherwise save the number of spaces and it will be tracked with
-                        // the next printed character, or it will be discarded
-                        last_spaces_width = width;
-                    }
-                }
-
-                RenderElement::PrintedCharacters(_, width) => {
-                    // must not rely on cursor position because it can get reset to 0 at line breaks
+                RenderElement::Space(width) | RenderElement::PrintedCharacters(_, width) => {
                     current_width += width;
-
-                    if !A::ENDING_SPACES {
-                        // if ENDING_SPACES is true, spaces have already been counted and
-                        // last_spaces is 0
-                        current_width += last_spaces_width;
-                        last_spaces_width = 0;
-                    }
                 }
 
                 #[cfg(feature = "ansi")]
