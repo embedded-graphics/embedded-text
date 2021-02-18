@@ -290,6 +290,8 @@ where
         );
 
         let mut current_width = 0;
+        #[cfg_attr(not(feature = "ansi"), allow(unused_mut))]
+        let mut max_width = 0;
         for token in iter.iter() {
             match token {
                 RenderElement::Space(width) | RenderElement::PrintedCharacters(_, width) => {
@@ -298,6 +300,7 @@ where
 
                 #[cfg(feature = "ansi")]
                 RenderElement::MoveCursor(delta) => {
+                    max_width = current_width;
                     current_width = (current_width as i32 + delta)
                         .max(0)
                         .min(max_line_width as i32) as u32
@@ -310,7 +313,7 @@ where
         }
 
         LineMeasurement {
-            width: current_width as u32,
+            width: (current_width as u32).max(max_width),
             last_line: carried_token.is_none() || *carried_token == Some(Token::NewLine),
         }
     }
@@ -497,6 +500,32 @@ mod test {
 
         let lm = style.measure_line(&mut text, &mut None, 6 * Font6x9::CHARACTER_SIZE.width);
         assert_eq!(lm.width, 6 * Font6x9::CHARACTER_SIZE.width);
+    }
+
+    #[test]
+    #[cfg(feature = "ansi")]
+    fn test_measure_line_cursor_back() {
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .alignment(CenterAligned)
+            .build();
+
+        let mut text = Parser::parse("123\x1b[2D");
+
+        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
+        assert_eq!(lm.width, 3 * Font6x9::CHARACTER_SIZE.width);
+
+        // Now a case where the string itself without rewind is wider than the line and the
+        // continuation after rewind extends the line.
+        let mut text = Parser::parse("123\x1b[2D456");
+
+        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
+        assert_eq!(lm.width, 4 * Font6x9::CHARACTER_SIZE.width);
     }
 
     #[test]
