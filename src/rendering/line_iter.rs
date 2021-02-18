@@ -292,10 +292,9 @@ where
 
                         Token::Word(w) => {
                             let width = self.str_width(w);
-                            if self.parser.cursor.fits_in_line(width) {
-                                self.parser.first_word = false;
+                            if self.move_cursor(width as i32).is_ok() {
                                 // we can move the cursor here since Word doesn't depend on it
-                                let _ = self.move_cursor(width as i32);
+                                self.parser.first_word = false;
                                 self.parser.current_token = State::Word(w);
                             } else if self.parser.first_word {
                                 self.parser.first_word = false;
