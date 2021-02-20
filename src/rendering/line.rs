@@ -1,15 +1,13 @@
 //! Line rendering.
+use core::convert::Infallible;
+
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
-    rendering::{
-        cursor::LineCursor,
-        line_iter::{LineElementParser, RenderElement},
-    },
+    rendering::{cursor::LineCursor, line_iter::LineElementParser},
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
     utils::str_width,
 };
-use core::cell::RefCell;
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
@@ -19,7 +17,7 @@ use embedded_graphics::{
 
 #[cfg(feature = "ansi")]
 use super::ansi::Sgr;
-use super::space_config::UniformSpaceConfig;
+use super::{line_iter::ElementHandler, space_config::UniformSpaceConfig};
 
 /// Render a single line of styled text.
 #[derive(Debug)]
@@ -52,61 +50,76 @@ where
     pub fn new(cursor: LineCursor, state: LineRenderState<'a, F, A, V, H>) -> Self {
         Self { cursor, state }
     }
+}
 
-    #[cfg_attr(not(feature = "ansi"), allow(unused))]
-    fn render_line<D>(
-        display: &mut D,
-        elements: impl Iterator<Item = RenderElement<'a>>,
-        renderer: &RefCell<&mut F>,
-        mut pos: Point,
-    ) -> Result<(), D::Error>
-    where
-        D: DrawTarget<Color = <F as CharacterStyle>::Color>,
-    {
-        // renderer is used in the iterator to measure text so can't borrow early
-        for element in elements {
-            match element {
-                RenderElement::PrintedCharacters(s, _) => {
-                    // this isn't ideal - neither the name `style` nor the fact it's in `elements`
-                    pos = renderer.borrow().draw_string(s, pos, display)?;
-                }
+struct RenderElementHandler<'a, F, D> {
+    style: &'a mut F,
+    display: &'a mut D,
+    pos: Point,
+}
 
-                RenderElement::Space(space_width) => {
-                    pos = renderer
-                        .borrow()
-                        .draw_whitespace(space_width, pos, display)?;
-                }
+impl<'a, F, D> ElementHandler for RenderElementHandler<'a, F, D>
+where
+    F: CharacterStyle + TextRenderer,
+    <F as CharacterStyle>::Color: From<Rgb>,
+    D: DrawTarget<Color = <F as TextRenderer>::Color>,
+{
+    type Error = D::Error;
 
-                #[cfg(feature = "ansi")]
-                RenderElement::MoveCursor(delta) => {
-                    // LineElementIterator ensures this new_pos is valid.
-                    let new_pos = Point::new(pos.x + delta, pos.y);
-                    let from = if delta < 0 { new_pos } else { pos };
-                    pos = new_pos;
+    fn measure(&self, st: &str) -> u32 {
+        str_width(self.style, st)
+    }
 
-                    // fill the space and deliberately ignore next position
-                    renderer
-                        .borrow()
-                        .draw_whitespace(delta.abs() as u32, from, display)?;
-                }
-
-                #[cfg(feature = "ansi")]
-                RenderElement::Sgr(sgr) => sgr.apply(&mut **renderer.borrow_mut()),
-            }
-        }
+    fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
+        self.pos = self.style.draw_whitespace(width, self.pos, self.display)?;
 
         Ok(())
     }
 
-    #[cfg_attr(not(feature = "ansi"), allow(unused))]
-    fn skip_line(elements: impl Iterator<Item = RenderElement<'a>>, renderer: &RefCell<&mut F>) {
-        // renderer is used in the iterator to measure text so can't borrow early
-        for element in elements {
-            #[cfg(feature = "ansi")]
-            if let RenderElement::Sgr(sgr) = element {
-                sgr.apply(&mut **renderer.borrow_mut())
-            }
-        }
+    fn printed_characters(&mut self, st: &str, _: u32) -> Result<(), Self::Error> {
+        self.pos = self.style.draw_string(st, self.pos, self.display)?;
+        Ok(())
+    }
+
+    #[cfg(feature = "ansi")]
+    fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
+        // LineElementIterator ensures this new_pos is valid.
+        let new_pos = Point::new(self.pos.x + by, self.pos.y);
+        let from = if by < 0 { new_pos } else { self.pos };
+        self.pos = new_pos;
+
+        // fill the space and deliberately ignore next position
+        self.style
+            .draw_whitespace(by.abs() as u32, from, self.display)
+            .map(|_| ())
+    }
+
+    #[cfg(feature = "ansi")]
+    fn sgr(&mut self, sgr: Sgr) -> Result<(), Self::Error> {
+        sgr.apply(self.style);
+        Ok(())
+    }
+}
+
+struct StyleOnlyRenderElementHandler<'a, F> {
+    style: &'a mut F,
+}
+
+impl<'a, F> ElementHandler for StyleOnlyRenderElementHandler<'a, F>
+where
+    F: CharacterStyle + TextRenderer,
+    <F as CharacterStyle>::Color: From<Rgb>,
+{
+    type Error = Infallible;
+
+    fn measure(&self, st: &str) -> u32 {
+        str_width(self.style, st)
+    }
+
+    #[cfg(feature = "ansi")]
+    fn sgr(&mut self, sgr: Sgr) -> Result<(), Self::Error> {
+        sgr.apply(self.style);
+        Ok(())
     }
 }
 
@@ -129,20 +142,23 @@ where
         let LineRenderState {
             mut parser,
             mut style,
-            mut carried_token,
+            carried_token,
         } = self.state.clone();
 
-        if display.bounding_box().size.height == 0 {
+        let carried = if display.bounding_box().size.height == 0 {
             // We're outside of the view - no need for a separate measure pass.
-            let renderer = RefCell::new(&mut style.character_style);
-            let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
+            let mut elements = LineElementParser::<'_, '_, _, A>::new(
                 &mut parser,
                 self.cursor.clone(),
-                UniformSpaceConfig::new(&**renderer.borrow()),
-                &mut carried_token,
-                |s| str_width(&**renderer.borrow(), s),
+                UniformSpaceConfig::new(&style.character_style),
+                carried_token,
             );
-            Self::skip_line(elements.iter(), &renderer);
+
+            elements
+                .process(&mut StyleOnlyRenderElementHandler {
+                    style: &mut style.character_style,
+                })
+                .unwrap()
         } else {
             // We have to resort to trickery to figure out the string that is rendered as the line.
             let mut cloned_parser = parser.clone();
@@ -160,22 +176,25 @@ where
             let mut cursor = self.cursor.clone();
             cursor.move_cursor(left as i32).ok();
 
-            let renderer = RefCell::new(&mut style.character_style);
             let pos = cursor.pos();
-            let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
+            let mut elements = LineElementParser::<'_, '_, _, A>::new(
                 &mut parser,
                 cursor,
                 space_config,
-                &mut carried_token,
-                |s| str_width(&**renderer.borrow(), s),
+                carried_token,
             );
-            Self::render_line(display, elements.iter(), &renderer, pos)?;
-        }
+
+            elements.process(&mut RenderElementHandler {
+                style: &mut style.character_style,
+                display,
+                pos,
+            })?
+        };
 
         Ok(LineRenderState {
             parser,
             style,
-            carried_token,
+            carried_token: carried,
         })
     }
 }

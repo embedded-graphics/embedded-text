@@ -159,12 +159,14 @@ pub mod color;
 pub mod height_mode;
 pub mod vertical_overdraw;
 
+use core::convert::Infallible;
+
 use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token},
     rendering::{
         cursor::LineCursor,
-        line_iter::{LineElementParser, RenderElement},
+        line_iter::{ElementHandler, LineElementParser},
         space_config::UniformSpaceConfig,
     },
     utils::str_width,
@@ -258,6 +260,41 @@ pub struct LineMeasurement {
     pub last_line: bool,
 }
 
+struct MeasureLineElementHandler<'a, F> {
+    style: &'a F,
+    current_width: u32,
+    max_width: u32,
+    #[cfg(feature = "ansi")]
+    max_line_width: u32,
+}
+
+impl<'a, F: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, F> {
+    type Error = Infallible;
+
+    fn measure(&self, st: &str) -> u32 {
+        str_width(self.style, st)
+    }
+
+    fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
+        self.current_width += width;
+        Ok(())
+    }
+
+    fn printed_characters(&mut self, _: &str, width: u32) -> Result<(), Self::Error> {
+        self.current_width += width;
+        Ok(())
+    }
+
+    #[cfg(feature = "ansi")]
+    fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
+        self.max_width = self.current_width;
+        self.current_width = (self.current_width as i32 + by)
+            .max(0)
+            .min(self.max_line_width as i32) as u32;
+        Ok(())
+    }
+}
+
 impl<F, A, V, H> TextBoxStyle<F, A, V, H>
 where
     F: TextRenderer + CharacterStyle,
@@ -284,40 +321,25 @@ where
             self.tab_size.into_pixels(&self.character_style),
         );
 
-        let mut iter = LineElementParser::<'_, '_, _, _, A>::new(
+        let mut iter = LineElementParser::<'_, '_, _, A>::new(
             parser,
             cursor,
             UniformSpaceConfig::new(&self.character_style),
-            carried_token,
-            |s| str_width(&self.character_style, s),
+            carried_token.clone(),
         );
 
-        let mut current_width = 0;
-        #[cfg_attr(not(feature = "ansi"), allow(unused_mut))]
-        let mut max_width = 0;
-        for token in iter.iter() {
-            match token {
-                RenderElement::Space(width) | RenderElement::PrintedCharacters(_, width) => {
-                    current_width += width;
-                }
-
-                #[cfg(feature = "ansi")]
-                RenderElement::MoveCursor(delta) => {
-                    max_width = current_width;
-                    current_width = (current_width as i32 + delta)
-                        .max(0)
-                        .min(max_line_width as i32) as u32
-                }
-
-                // Ignore color changes
-                #[cfg(feature = "ansi")]
-                RenderElement::Sgr(_) => {}
-            }
-        }
+        let mut handler = MeasureLineElementHandler {
+            style: &self.character_style,
+            current_width: 0,
+            max_width: 0,
+            #[cfg(feature = "ansi")]
+            max_line_width,
+        };
+        *carried_token = iter.process(&mut handler).unwrap();
 
         LineMeasurement {
             max_line_width,
-            width: (current_width as u32).max(max_width),
+            width: (handler.current_width as u32).max(handler.max_width),
             last_line: carried_token.is_none() || *carried_token == Some(Token::NewLine),
         }
     }
