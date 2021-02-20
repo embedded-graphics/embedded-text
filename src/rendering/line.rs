@@ -138,21 +138,19 @@ where
             carried_token,
         } = &mut *inner;
 
-        let mut cursor = self.cursor.clone();
-
         if display.bounding_box().size.height == 0 {
             // We're outside of the view - no need for a separate measure pass.
             let renderer = RefCell::new(&mut style.character_style);
             let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
                 parser,
-                cursor.clone(),
+                self.cursor.clone(),
                 UniformSpaceConfig::new(&**renderer.borrow()),
                 carried_token,
                 |s| str_width(&**renderer.borrow(), s),
             );
             Self::skip_line(elements.iter(), &renderer);
         } else {
-            let max_line_width = cursor.line_width();
+            let max_line_width = self.cursor.line_width();
 
             // We have to resort to trickery to figure out the string that is rendered as the line.
             let mut cloned_parser = parser.clone();
@@ -168,17 +166,19 @@ where
             let (left, space_config) =
                 A::place_line(line_str, &style.character_style, max_line_width, lm);
 
+            let mut cursor = self.cursor.clone();
             cursor.move_cursor(left as i32).ok();
 
             let renderer = RefCell::new(&mut style.character_style);
+            let pos = cursor.pos();
             let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
                 parser,
-                cursor.clone(),
+                cursor,
                 space_config,
                 carried_token,
                 |s| str_width(&**renderer.borrow(), s),
             );
-            Self::render_line(display, elements.iter(), &renderer, cursor.pos())?;
+            Self::render_line(display, elements.iter(), &renderer, pos)?;
         }
 
         Ok(())
