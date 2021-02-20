@@ -125,6 +125,7 @@ where
     H: HeightMode,
 {
     type Color = <F as CharacterStyle>::Color;
+    type Output = ();
 
     #[inline]
     fn draw<D>(&self, display: &mut D) -> Result<(), D::Error>
