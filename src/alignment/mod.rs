@@ -34,7 +34,6 @@ pub trait HorizontalTextAlignment: Copy {
     fn place_line(
         line: &str,
         renderer: &impl TextRenderer,
-        max_width: u32,
         measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig);
 }

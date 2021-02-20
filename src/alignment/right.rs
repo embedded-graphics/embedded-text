@@ -18,11 +18,10 @@ impl HorizontalTextAlignment for RightAligned {
     fn place_line(
         _line: &str,
         renderer: &impl TextRenderer,
-        max_width: u32,
         measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig) {
         (
-            max_width - measurement.width,
+            measurement.max_line_width - measurement.width,
             UniformSpaceConfig::new(renderer),
         )
     }

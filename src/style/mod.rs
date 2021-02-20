@@ -248,6 +248,9 @@ pub struct TextBoxStyle<F, A, V, H> {
 
 /// Information about a line.
 pub struct LineMeasurement {
+    /// Maximum line width in pixels.
+    pub max_line_width: u32,
+
     /// Width in pixels, using the default space width returned by the text renderer.
     pub width: u32,
 
@@ -313,6 +316,7 @@ where
         }
 
         LineMeasurement {
+            max_line_width,
             width: (current_width as u32).max(max_width),
             last_line: carried_token.is_none() || *carried_token == Some(Token::NewLine),
         }

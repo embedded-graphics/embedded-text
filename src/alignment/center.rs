@@ -26,11 +26,10 @@ impl HorizontalTextAlignment for CenterAligned {
     fn place_line(
         _line: &str,
         renderer: &impl TextRenderer,
-        max_width: u32,
         measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig) {
         (
-            (max_width - measurement.width + 1) / 2,
+            (measurement.max_line_width - measurement.width + 1) / 2,
             UniformSpaceConfig::new(renderer),
         )
     }

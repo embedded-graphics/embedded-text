@@ -150,21 +150,18 @@ where
             );
             Self::skip_line(elements.iter(), &renderer);
         } else {
-            let max_line_width = self.cursor.line_width();
-
             // We have to resort to trickery to figure out the string that is rendered as the line.
             let mut cloned_parser = parser.clone();
             let lm = style.measure_line(
                 &mut cloned_parser,
                 &mut carried_token.clone(),
-                max_line_width,
+                self.cursor.line_width(),
             );
 
             let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
             let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
 
-            let (left, space_config) =
-                A::place_line(line_str, &style.character_style, max_line_width, lm);
+            let (left, space_config) = A::place_line(line_str, &style.character_style, lm);
 
             let mut cursor = self.cursor.clone();
             cursor.move_cursor(left as i32).ok();
