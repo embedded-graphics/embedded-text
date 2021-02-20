@@ -21,21 +21,27 @@ use embedded_graphics::{
 use super::ansi::Sgr;
 use super::space_config::UniformSpaceConfig;
 
-#[derive(Debug)]
-struct Refs<'a, 'b, F, A, V, H> {
-    parser: &'b mut Parser<'a>,
-    style: &'b mut TextBoxStyle<F, A, V, H>,
-    carried_token: &'b mut Option<Token<'a>>,
-}
-
 /// Render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineRenderer<'a, 'b, F, A, V, H> {
+pub struct StyledLineRenderer<'a, F, A, V, H> {
     cursor: LineCursor,
-    inner: RefCell<Refs<'a, 'b, F, A, V, H>>,
+    state: LineRenderState<'a, F, A, V, H>,
 }
 
-impl<'a, 'b, F, A, V, H> StyledLineRenderer<'a, 'b, F, A, V, H>
+#[derive(Debug, Clone)]
+pub struct LineRenderState<'a, F, A, V, H> {
+    pub parser: Parser<'a>,
+    pub style: TextBoxStyle<F, A, V, H>,
+    pub carried_token: Option<Token<'a>>,
+}
+
+impl<F, A, V, H> LineRenderState<'_, F, A, V, H> {
+    pub fn is_finished(&self) -> bool {
+        self.carried_token.is_none() && self.parser.is_empty()
+    }
+}
+
+impl<'a, F, A, V, H> StyledLineRenderer<'a, F, A, V, H>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
@@ -43,20 +49,8 @@ where
 {
     /// Creates a new line renderer.
     #[inline]
-    pub fn new(
-        parser: &'b mut Parser<'a>,
-        cursor: LineCursor,
-        style: &'b mut TextBoxStyle<F, A, V, H>,
-        carried_token: &'b mut Option<Token<'a>>,
-    ) -> Self {
-        Self {
-            cursor,
-            inner: RefCell::new(Refs {
-                parser,
-                style,
-                carried_token,
-            }),
-        }
+    pub fn new(cursor: LineCursor, state: LineRenderState<'a, F, A, V, H>) -> Self {
+        Self { cursor, state }
     }
 
     #[cfg_attr(not(feature = "ansi"), allow(unused))]
@@ -116,37 +110,36 @@ where
     }
 }
 
-impl<F, A, V, H> Drawable for StyledLineRenderer<'_, '_, F, A, V, H>
+impl<'a, F, A, V, H> Drawable for StyledLineRenderer<'a, F, A, V, H>
 where
-    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
+    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
     <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
     type Color = <F as CharacterStyle>::Color;
-    type Output = ();
+    type Output = LineRenderState<'a, F, A, V, H>;
 
     #[inline]
-    fn draw<D>(&self, display: &mut D) -> Result<(), D::Error>
+    fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
     where
         D: DrawTarget<Color = Self::Color>,
     {
-        let mut inner = self.inner.borrow_mut();
-        let Refs {
-            parser,
-            style,
-            carried_token,
-        } = &mut *inner;
+        let LineRenderState {
+            mut parser,
+            mut style,
+            mut carried_token,
+        } = self.state.clone();
 
         if display.bounding_box().size.height == 0 {
             // We're outside of the view - no need for a separate measure pass.
             let renderer = RefCell::new(&mut style.character_style);
             let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
-                parser,
+                &mut parser,
                 self.cursor.clone(),
                 UniformSpaceConfig::new(&**renderer.borrow()),
-                carried_token,
+                &mut carried_token,
                 |s| str_width(&**renderer.borrow(), s),
             );
             Self::skip_line(elements.iter(), &renderer);
@@ -170,16 +163,20 @@ where
             let renderer = RefCell::new(&mut style.character_style);
             let pos = cursor.pos();
             let mut elements = LineElementParser::<'_, '_, _, _, A>::new(
-                parser,
+                &mut parser,
                 cursor,
                 space_config,
-                carried_token,
+                &mut carried_token,
                 |s| str_width(&**renderer.borrow(), s),
             );
             Self::render_line(display, elements.iter(), &renderer, pos)?;
         }
 
-        Ok(())
+        Ok(LineRenderState {
+            parser,
+            style,
+            carried_token,
+        })
     }
 }
 
@@ -231,7 +228,10 @@ mod test {
     use crate::{
         alignment::{HorizontalTextAlignment, VerticalTextAlignment},
         parser::Parser,
-        rendering::{cursor::LineCursor, line::StyledLineRenderer},
+        rendering::{
+            cursor::LineCursor,
+            line::{LineRenderState, StyledLineRenderer},
+        },
         style::{color::Rgb, height_mode::HeightMode, TabSize, TextBoxStyle, TextBoxStyleBuilder},
         utils::test::size_for,
     };
@@ -248,23 +248,28 @@ mod test {
     fn test_rendered_text<'a, F, A, V, H>(
         text: &'a str,
         bounds: Rectangle,
-        mut style: TextBoxStyle<F, A, V, H>,
+        style: TextBoxStyle<F, A, V, H>,
         pattern: &[&str],
     ) where
-        F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
+        F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
         <F as CharacterStyle>::Color: From<Rgb> + embedded_graphics::mock_display::ColorMapping,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        let mut parser = Parser::parse(text);
+        let parser = Parser::parse(text);
         let cursor = LineCursor::new(
             bounds.size.width,
             TabSize::Spaces(4).into_pixels(&style.character_style),
         );
-        let mut carried = None;
 
-        let renderer = StyledLineRenderer::new(&mut parser, cursor, &mut style, &mut carried);
+        let state = LineRenderState {
+            parser,
+            style,
+            carried_token: None,
+        };
+
+        let renderer = StyledLineRenderer::new(cursor, state);
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
 
@@ -398,7 +403,10 @@ mod test {
 mod ansi_parser_tests {
     use crate::{
         parser::Parser,
-        rendering::{cursor::LineCursor, line::StyledLineRenderer},
+        rendering::{
+            cursor::LineCursor,
+            line::{LineRenderState, StyledLineRenderer},
+        },
         style::{TabSize, TextBoxStyleBuilder},
         utils::test::size_for,
     };
@@ -414,7 +422,7 @@ mod ansi_parser_tests {
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
 
-        let mut parser = Parser::parse("foo\x1b[2Dsample");
+        let parser = Parser::parse("foo\x1b[2Dsample");
 
         let character_style = MonoTextStyleBuilder::new()
             .font(Font6x9)
@@ -422,7 +430,7 @@ mod ansi_parser_tests {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut style = TextBoxStyleBuilder::new()
+        let style = TextBoxStyleBuilder::new()
             .character_style(character_style)
             .build();
 
@@ -430,8 +438,12 @@ mod ansi_parser_tests {
             size_for(Font6x9, 7, 1).width,
             TabSize::Spaces(4).into_pixels(&character_style),
         );
-        let mut carried = None;
-        StyledLineRenderer::new(&mut parser, cursor, &mut style, &mut carried)
+        let state = LineRenderState {
+            parser,
+            style,
+            carried_token: None,
+        };
+        StyledLineRenderer::new(cursor, state)
             .draw(&mut display)
             .unwrap();
 

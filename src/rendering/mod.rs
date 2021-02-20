@@ -9,7 +9,10 @@ pub(crate) mod space_config;
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
-    rendering::{cursor::Cursor, line::StyledLineRenderer},
+    rendering::{
+        cursor::Cursor,
+        line::{LineRenderState, StyledLineRenderer},
+    },
     style::{color::Rgb, height_mode::HeightMode},
     StyledTextBox,
 };
@@ -43,12 +46,13 @@ where
 
         V::apply_vertical_alignment(&mut cursor, self);
 
-        let style = &mut self.style.clone();
+        let mut state = LineRenderState {
+            style: self.style.clone(),
+            parser: Parser::parse(self.text_box.text),
+            carried_token: None,
+        };
 
-        let mut carried = None;
-        let mut parser = Parser::parse(self.text_box.text);
-
-        while carried.is_some() || !parser.is_empty() {
+        while !state.is_finished() {
             let line_cursor = cursor.line();
             let display_range = H::calculate_displayed_row_range(&cursor);
             let display_size = Size::new(cursor.line_width(), display_range.clone().count() as u32);
@@ -59,10 +63,9 @@ where
                 line_cursor.pos() + Point::new(0, display_range.start),
                 display_size,
             ));
-            StyledLineRenderer::new(&mut parser, line_cursor, style, &mut carried)
-                .draw(&mut display)?;
+            state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
 
-            if carried != Some(Token::CarriageReturn) {
+            if state.carried_token != Some(Token::CarriageReturn) {
                 cursor.new_line();
             }
         }
