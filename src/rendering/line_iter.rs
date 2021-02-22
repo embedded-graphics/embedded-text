@@ -15,26 +15,6 @@ use ansi_parser::AnsiSequence;
 #[cfg(feature = "ansi")]
 use as_slice::AsSlice;
 
-/// Internal state used to render a line.
-#[derive(Debug, Clone)]
-enum State<'a> {
-    /// Decide what to do next.
-    ProcessToken(Token<'a>),
-
-    /// Process a string of printable characters. If the sequence is longer than the line, this
-    /// state also contains the remaining sequence that is pushed to the next line.
-    Word(&'a str, Option<&'a str>),
-
-    /// Signal that the renderer has finished.
-    Done,
-}
-
-impl State<'_> {
-    pub fn take(&mut self) -> Self {
-        core::mem::replace(self, State::Done)
-    }
-}
-
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
 pub struct LineElementParser<'a, 'b, SP, A> {
@@ -44,7 +24,7 @@ pub struct LineElementParser<'a, 'b, SP, A> {
     /// The text to draw.
     parser: &'b mut Parser<'a>,
 
-    current_token: State<'a>,
+    current_token: Option<Token<'a>>,
     spaces: SP,
     first_word: bool,
     alignment: PhantomData<A>,
@@ -95,8 +75,7 @@ where
     ) -> Self {
         let current_token = carried_token
             .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t))
-            .or_else(|| parser.next())
-            .map_or(State::Done, State::ProcessToken);
+            .or_else(|| parser.next());
 
         Self {
             parser,
@@ -115,10 +94,7 @@ where
     A: HorizontalTextAlignment,
 {
     fn next_token(&mut self) {
-        self.current_token = match self.parser.next() {
-            None => State::Done,
-            Some(t) => State::ProcessToken(t),
-        };
+        self.current_token = self.parser.next();
     }
 
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
@@ -165,7 +141,7 @@ where
         self.cursor.move_cursor(by as i32)
     }
 
-    fn longest_fitting_word<E: ElementHandler>(
+    fn longest_fitting_substr<E: ElementHandler>(
         &mut self,
         handler: &E,
         w: &'a str,
@@ -198,7 +174,7 @@ where
     ) -> Result<Option<Token<'a>>, E::Error> {
         loop {
             match self.current_token.take() {
-                State::ProcessToken(token) => {
+                Some(token) => {
                     match token {
                         Token::Whitespace(n) => {
                             // This mess decides if we want to render whitespace at all.
@@ -288,27 +264,35 @@ where
 
                         Token::Word(w) => {
                             let width = handler.measure(w);
-                            if self.move_cursor(width as i32).is_ok() {
-                                // We can move the cursor here since Word doesn't depend on it.
-                                self.current_token = State::Word(w, None);
+                            let (word, remainder) = if self.move_cursor(width as i32).is_ok() {
+                                // We can move the cursor here since `process_word()`
+                                // doesn't depend on it.
+                                (w, None)
                             } else if self.first_word {
                                 // This word does not fit into an empty line. Find longest part
                                 // that fits and push the rest to the next line.
-                                match self.longest_fitting_word(handler, w) {
+                                match self.longest_fitting_substr(handler, w) {
                                     ("", _) => {
                                         // Weird case where width doesn't permit drawing anything.
                                         // End here to prevent infinite looping.
                                         return Ok(None);
                                     }
-                                    (word, remainder) => {
-                                        self.current_token = State::Word(word, remainder);
-                                    }
+                                    (word, remainder) => (word, remainder),
                                 }
                             } else {
                                 // word wrapping - push this word to the next line
                                 return Ok(Some(token));
-                            }
+                            };
+
                             self.first_word = false;
+
+                            self.process_word(handler, word)?;
+
+                            if let Some(remainder) = remainder {
+                                return Ok(Some(Token::Word(remainder)));
+                            } else {
+                                self.next_token();
+                            }
                         }
 
                         Token::Tab => {
@@ -384,42 +368,36 @@ where
                     }
                 }
 
-                State::Word(w, remainder) => {
-                    if let Some(space_pos) = w
-                        .char_indices()
-                        .find(|(_, c)| *c == SPEC_CHAR_NBSP)
-                        .map(|(idx, _)| idx)
-                    {
-                        if space_pos == 0 {
-                            let sp_width = self.spaces.consume(1);
+                None => return Ok(None),
+            }
+        }
+    }
 
-                            handler.whitespace(sp_width)?;
-                            if let Some(word) = w.get(SPEC_CHAR_NBSP.len_utf8()..) {
-                                self.current_token = State::Word(word, remainder);
-                            } else if let Some(remainder) = remainder {
-                                return Ok(Some(Token::Word(remainder)));
-                            } else {
-                                self.next_token();
-                            }
-                        } else {
-                            let (word, rest) = unsafe {
-                                (w.get_unchecked(0..space_pos), w.get_unchecked(space_pos..))
-                            };
-                            self.current_token = State::Word(rest, remainder);
+    fn process_word<E: ElementHandler>(
+        &mut self,
+        handler: &mut E,
+        w: &str,
+    ) -> Result<(), E::Error> {
+        match w.char_indices().find(|(_, c)| *c == SPEC_CHAR_NBSP) {
+            Some((space_pos, _)) => {
+                if space_pos != 0 {
+                    let word = unsafe { w.get_unchecked(0..space_pos) };
 
-                            handler.printed_characters(word, handler.measure(word))?;
-                        }
-                    } else {
-                        handler.printed_characters(w, handler.measure(w))?;
-                        if let Some(remainder) = remainder {
-                            return Ok(Some(Token::Word(remainder)));
-                        } else {
-                            self.next_token();
-                        }
-                    }
+                    handler.printed_characters(word, handler.measure(word))?;
                 }
+                handler.whitespace(self.spaces.consume(1))?;
 
-                State::Done => return Ok(None),
+                if let Some(word) = w.get(space_pos + SPEC_CHAR_NBSP.len_utf8()..) {
+                    self.process_word(handler, word)
+                } else {
+                    Ok(())
+                }
+            }
+
+            None => {
+                handler.printed_characters(w, handler.measure(w))?;
+
+                Ok(())
             }
         }
     }
