@@ -1,6 +1,8 @@
 //! Line iterator.
 //!
-//! Provide elements (spaces or characters) to render as long as they fit in the current line
+//! Turns a token stream into a number of events. A single `LineElementParser` object operates on
+//! a single line and is responsible for handling word wrapping, eating leading/trailing whitespace,
+//! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
 use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
