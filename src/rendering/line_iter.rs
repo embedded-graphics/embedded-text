@@ -24,7 +24,7 @@ pub struct LineElementParser<'a, 'b, SP, A> {
     /// The text to draw.
     parser: &'b mut Parser<'a>,
 
-    current_token: Option<Token<'a>>,
+    first_token: Option<Token<'a>>,
     spaces: SP,
     first_word: bool,
     alignment: PhantomData<A>,
@@ -73,13 +73,12 @@ where
         spaces: SP,
         carried_token: Option<Token<'a>>,
     ) -> Self {
-        let current_token = carried_token
-            .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t))
-            .or_else(|| parser.next());
+        let first_token = carried_token
+            .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t));
 
         Self {
             parser,
-            current_token,
+            first_token,
             spaces,
             cursor,
             first_word: true,
@@ -93,10 +92,6 @@ where
     SP: SpaceConfig,
     A: HorizontalTextAlignment,
 {
-    fn next_token(&mut self) {
-        self.current_token = self.parser.next();
-    }
-
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
         let mut width = None;
         let mut lookahead = self.parser.clone();
@@ -172,205 +167,183 @@ where
         &mut self,
         handler: &mut E,
     ) -> Result<Option<Token<'a>>, E::Error> {
-        loop {
-            match self.current_token.take() {
-                Some(token) => {
-                    match token {
-                        Token::Whitespace(n) => {
-                            // This mess decides if we want to render whitespace at all.
-                            // The current horizontal alignment can ignore spaces at the beginning
-                            // and end of a line.
-                            let mut would_wrap = false;
-                            let render_whitespace = if self.first_word {
-                                if A::STARTING_SPACES {
-                                    self.first_word = false;
-                                }
-                                A::STARTING_SPACES
-                            } else if let Some(word_width) = self.next_word_width(handler) {
-                                // Check if space + w fits in line, otherwise it's up to config
-                                let space_width = self.spaces.peek_next_width(n);
-                                let fits = self.cursor.fits_in_line(space_width + word_width);
-
-                                would_wrap = !fits;
-
-                                A::ENDING_SPACES || fits
-                            } else {
-                                A::ENDING_SPACES
-                            };
-
-                            if render_whitespace {
-                                // take as many spaces as possible and save the rest in state
-                                let n = if would_wrap { n.saturating_sub(1) } else { n };
-                                let spaces_to_render = self.count_widest_space_seq(n);
-
-                                if spaces_to_render > 0 {
-                                    let space_width = self.spaces.consume(spaces_to_render);
-                                    let _ = self.move_cursor(space_width as i32);
-                                    let carried = n - spaces_to_render;
-
-                                    handler.whitespace(space_width)?;
-
-                                    if carried == 0 {
-                                        self.next_token();
-                                    } else {
-                                        // n > 0 only if not every space was rendered
-                                        return Ok(Some(Token::Whitespace(carried)));
-                                    }
-                                } else {
-                                    // there are spaces to render but none fit the line
-                                    // eat one as a newline and stop
-                                    if n > 1 {
-                                        return Ok(Some(Token::Whitespace(n - 1)));
-                                    } else {
-                                        return Ok(Some(Token::Break(None)));
-                                    }
-                                }
-                            } else if would_wrap {
-                                return Ok(Some(Token::Break(None)));
-                            } else {
-                                // nothing, process next token
-                                self.next_token();
-                            }
-                        }
-
-                        Token::Break(c) => {
-                            let fits = if let Some(word_width) = self.next_word_width(handler) {
-                                self.cursor.fits_in_line(word_width)
-                            } else {
-                                // Next token is not a Word, consume Break and continue
-                                true
-                            };
-
-                            if !fits {
-                                if let Some(c) = c {
-                                    // If a Break contains a character, display it if the next
-                                    // Word token does not fit the line.
-                                    let width = handler.measure(c);
-                                    if self.move_cursor(width as i32).is_ok() {
-                                        handler.printed_characters(c, width)?;
-                                        return Ok(Some(Token::Break(None)));
-                                    } else {
-                                        // this line is done
-                                        return Ok(Some(Token::Word(c)));
-                                    }
-                                } else {
-                                    // this line is done
-                                    return Ok(Some(Token::Break(None)));
-                                }
-                            }
-
-                            self.next_token();
-                        }
-
-                        Token::Word(w) => {
-                            let width = handler.measure(w);
-                            let (word, remainder) = if self.move_cursor(width as i32).is_ok() {
-                                // We can move the cursor here since `process_word()`
-                                // doesn't depend on it.
-                                (w, None)
-                            } else if self.first_word {
-                                // This word does not fit into an empty line. Find longest part
-                                // that fits and push the rest to the next line.
-                                match self.longest_fitting_substr(handler, w) {
-                                    ("", _) => {
-                                        // Weird case where width doesn't permit drawing anything.
-                                        // End here to prevent infinite looping.
-                                        return Ok(None);
-                                    }
-                                    (word, remainder) => (word, remainder),
-                                }
-                            } else {
-                                // word wrapping - push this word to the next line
-                                return Ok(Some(token));
-                            };
-
+        while let Some(token) = self.first_token.take().or_else(|| self.parser.next()) {
+            match token {
+                Token::Whitespace(n) => {
+                    // This mess decides if we want to render whitespace at all.
+                    // The current horizontal alignment can ignore spaces at the beginning
+                    // and end of a line.
+                    let mut would_wrap = false;
+                    let render_whitespace = if self.first_word {
+                        if A::STARTING_SPACES {
                             self.first_word = false;
-
-                            self.process_word(handler, word)?;
-
-                            if let Some(remainder) = remainder {
-                                return Ok(Some(Token::Word(remainder)));
-                            } else {
-                                self.next_token();
-                            }
                         }
+                        A::STARTING_SPACES
+                    } else if let Some(word_width) = self.next_word_width(handler) {
+                        // Check if space + w fits in line, otherwise it's up to config
+                        let space_width = self.spaces.peek_next_width(n);
+                        let fits = self.cursor.fits_in_line(space_width + word_width);
 
-                        Token::Tab => {
-                            let sp_width = self.cursor.next_tab_width();
+                        would_wrap = !fits;
 
-                            let (tab_width, wrapped) = match self.move_cursor(sp_width as i32) {
-                                Ok(width) => (width, false),
-                                Err(width) => {
-                                    // If we can't render the whole tab since we don't fit in the line,
-                                    // render it using all the available space - it will be < tab size.
-                                    (width, true)
-                                }
+                        A::ENDING_SPACES || fits
+                    } else {
+                        A::ENDING_SPACES
+                    };
+
+                    if render_whitespace {
+                        // take as many spaces as possible and save the rest in state
+                        let n = if would_wrap { n.saturating_sub(1) } else { n };
+                        let spaces_to_render = self.count_widest_space_seq(n);
+
+                        if spaces_to_render > 0 {
+                            let space_width = self.spaces.consume(spaces_to_render);
+                            let _ = self.move_cursor(space_width as i32);
+                            handler.whitespace(space_width)?;
+
+                            let carried = n - spaces_to_render;
+                            if carried != 0 {
+                                // n > 0 only if not every space was rendered
+                                return Ok(Some(Token::Whitespace(carried)));
+                            }
+                        } else {
+                            // there are spaces to render but none fit the line
+                            // eat one as a newline and stop
+                            let token = if n > 1 {
+                                Token::Whitespace(n - 1)
+                            } else {
+                                Token::Break(None)
                             };
 
-                            // don't count tabs as spaces
-                            handler.whitespace(tab_width as u32)?;
-
-                            if wrapped {
-                                return Ok(Some(Token::Break(None)));
-                            } else {
-                                self.next_token();
-                            }
-                        }
-
-                        #[cfg(feature = "ansi")]
-                        Token::EscapeSequence(seq) => {
-                            self.next_token();
-                            match seq {
-                                AnsiSequence::SetGraphicsMode(vec) => {
-                                    if let Some(sgr) = try_parse_sgr(vec.as_slice()) {
-                                        handler.sgr(sgr)?;
-                                    }
-                                }
-
-                                AnsiSequence::CursorForward(n) => {
-                                    // Cursor movement can't rely on the text, as it's permitted
-                                    // to move the cursor outside of the current line.
-                                    // Example:
-                                    // (| denotes the cursor, [ and ] are the limits of the line):
-                                    // [Some text|    ]
-                                    // Cursor forward 2 characters
-                                    // [Some text  |  ]
-                                    let delta = (n * handler.measure(" ")) as i32;
-                                    match self.move_cursor(delta) {
-                                        Ok(delta) | Err(delta) => {
-                                            handler.move_cursor(delta)?;
-                                        }
-                                    }
-                                }
-
-                                AnsiSequence::CursorBackward(n) => {
-                                    // The above poses an issue with variable-width fonts.
-                                    // If cursor movement ignores the variable width, the cursor
-                                    // will be placed in positions other than glyph boundaries.
-                                    let delta = -((n * handler.measure(" ")) as i32);
-                                    match self.move_cursor(delta) {
-                                        Ok(delta) | Err(delta) => {
-                                            handler.move_cursor(delta)?;
-                                        }
-                                    }
-                                }
-
-                                _ => {
-                                    // ignore for now
-                                }
-                            }
-                        }
-
-                        Token::NewLine | Token::CarriageReturn => {
-                            // we're done
                             return Ok(Some(token));
+                        }
+                    } else if would_wrap {
+                        return Ok(Some(Token::Break(None)));
+                    }
+                }
+
+                Token::Break(c) => {
+                    if let Some(word_width) = self.next_word_width(handler) {
+                        if !self.cursor.fits_in_line(word_width) {
+                            // this line is done, decide how to end
+                            let token = if let Some(c) = c {
+                                // If a Break contains a character, display it if the next
+                                // Word token does not fit the line.
+                                let width = handler.measure(c);
+                                if self.move_cursor(width as i32).is_ok() {
+                                    handler.printed_characters(c, width)?;
+                                    Token::Break(None)
+                                } else {
+                                    Token::Word(c)
+                                }
+                            } else {
+                                Token::Break(None)
+                            };
+
+                            return Ok(Some(token));
+                        }
+                    } else {
+                        // Next token is not a Word, consume Break and continue
+                    }
+                }
+
+                Token::Word(w) => {
+                    let width = handler.measure(w);
+                    let (word, remainder) = if self.move_cursor(width as i32).is_ok() {
+                        // We can move the cursor here since `process_word()`
+                        // doesn't depend on it.
+                        (w, None)
+                    } else if self.first_word {
+                        // This word does not fit into an empty line. Find longest part
+                        // that fits and push the rest to the next line.
+                        match self.longest_fitting_substr(handler, w) {
+                            ("", _) => {
+                                // Weird case where width doesn't permit drawing anything.
+                                // End here to prevent infinite looping.
+                                return Ok(None);
+                            }
+                            (word, remainder) => (word, remainder),
+                        }
+                    } else {
+                        // word wrapping - push this word to the next line
+                        return Ok(Some(token));
+                    };
+
+                    self.first_word = false;
+
+                    self.process_word(handler, word)?;
+
+                    if let Some(remainder) = remainder {
+                        return Ok(Some(Token::Word(remainder)));
+                    }
+                }
+
+                Token::Tab => {
+                    let sp_width = self.cursor.next_tab_width();
+                    match self.move_cursor(sp_width as i32) {
+                        Ok(width) => {
+                            handler.whitespace(width as u32)?;
+                        }
+                        Err(width) => {
+                            // If we can't render the whole tab since we don't fit in the line,
+                            // render it using all the available space - it will be < tab size.
+                            handler.whitespace(width as u32)?;
+                            return Ok(Some(Token::Break(None)));
                         }
                     }
                 }
 
-                None => return Ok(None),
+                #[cfg(feature = "ansi")]
+                Token::EscapeSequence(seq) => {
+                    match seq {
+                        AnsiSequence::SetGraphicsMode(vec) => {
+                            if let Some(sgr) = try_parse_sgr(vec.as_slice()) {
+                                handler.sgr(sgr)?;
+                            }
+                        }
+
+                        AnsiSequence::CursorForward(n) => {
+                            // Cursor movement can't rely on the text, as it's permitted
+                            // to move the cursor outside of the current line.
+                            // Example:
+                            // (| denotes the cursor, [ and ] are the limits of the line):
+                            // [Some text|    ]
+                            // Cursor forward 2 characters
+                            // [Some text  |  ]
+                            let delta = (n * handler.measure(" ")) as i32;
+                            match self.move_cursor(delta) {
+                                Ok(delta) | Err(delta) => {
+                                    handler.move_cursor(delta)?;
+                                }
+                            }
+                        }
+
+                        AnsiSequence::CursorBackward(n) => {
+                            // The above poses an issue with variable-width fonts.
+                            // If cursor movement ignores the variable width, the cursor
+                            // will be placed in positions other than glyph boundaries.
+                            let delta = -((n * handler.measure(" ")) as i32);
+                            match self.move_cursor(delta) {
+                                Ok(delta) | Err(delta) => {
+                                    handler.move_cursor(delta)?;
+                                }
+                            }
+                        }
+
+                        _ => {
+                            // ignore for now
+                        }
+                    }
+                }
+
+                Token::NewLine | Token::CarriageReturn => {
+                    // we're done
+                    return Ok(Some(token));
+                }
             }
         }
+
+        Ok(None)
     }
 
     fn process_word<E: ElementHandler>(
@@ -380,26 +353,29 @@ where
     ) -> Result<(), E::Error> {
         match w.char_indices().find(|(_, c)| *c == SPEC_CHAR_NBSP) {
             Some((space_pos, _)) => {
+                // If we have anything before the space...
                 if space_pos != 0 {
-                    let word = unsafe { w.get_unchecked(0..space_pos) };
-
+                    let word = unsafe {
+                        // Safety: space_pos must be a character boundary
+                        w.get_unchecked(0..space_pos)
+                    };
                     handler.printed_characters(word, handler.measure(word))?;
                 }
+
                 handler.whitespace(self.spaces.consume(1))?;
 
+                // If we have anything after the space...
                 if let Some(word) = w.get(space_pos + SPEC_CHAR_NBSP.len_utf8()..) {
-                    self.process_word(handler, word)
-                } else {
-                    Ok(())
+                    return self.process_word(handler, word);
                 }
             }
 
             None => {
                 handler.printed_characters(w, handler.measure(w))?;
-
-                Ok(())
             }
         }
+
+        Ok(())
     }
 }
 
