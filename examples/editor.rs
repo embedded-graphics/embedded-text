@@ -98,7 +98,8 @@ fn main() {
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     let character_style = MonoTextStyleBuilder::new()
         .font(Font6x9)
-        .text_color(BinaryColor::On)
+        .text_color(BinaryColor::Off)
+        .background_color(BinaryColor::On)
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
@@ -117,7 +118,7 @@ fn main() {
 
     'running: loop {
         // Display an underscore for the "cursor"
-        let text_and_cursor = format!("{}_", text);
+        let text_and_cursor = format!("{}\u{200b}_", text);
 
         // Create the text box and apply styling options.
         let text_box = TextBox::new(&text_and_cursor, bounds).into_styled(textbox_style);
