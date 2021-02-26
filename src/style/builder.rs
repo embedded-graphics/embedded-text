@@ -17,6 +17,15 @@ pub struct TextBoxStyleBuilder<F, A, V, H> {
     text_box_style: TextBoxStyle<F, A, V, H>,
 }
 
+impl Default
+    for TextBoxStyleBuilder<UndefinedCharacterStyle, LeftAligned, TopAligned, Exact<FullRowsOnly>>
+{
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TextBoxStyleBuilder<UndefinedCharacterStyle, LeftAligned, TopAligned, Exact<FullRowsOnly>> {
     /// Creates a new `TextBoxStyleBuilder` with a given MonoFont.
     ///
