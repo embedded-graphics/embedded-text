@@ -199,7 +199,7 @@ impl Default for TabSize {
 impl TabSize {
     /// Calculate the rendered with of the next tab
     #[inline]
-    pub fn into_pixels(self, renderer: &impl TextRenderer) -> u32 {
+    pub(crate) fn into_pixels(self, renderer: &impl TextRenderer) -> u32 {
         match self {
             TabSize::Pixels(px) => px as u32,
             TabSize::Spaces(n) => n as u32 * str_width(renderer, " "),
