@@ -3,22 +3,30 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Changed `TextBoxStyleBuilder` API to better align with embedded-graphics' `TextStyleBuilder`.
+ * **breaking** Changed measurement of lines that only contain whitespace.
+ * **breaking** (developer-facing) Simplified `HorizontalTextAlignment` API.
+ * **breaking** (developer-facing) Split off `LineCursor` from `Cursor`.
+ * **breaking** The `TabSize` type is now an enum and doesn't depend on a font.
  * **breaking** Raised MSRV to 1.43.
  * **breaking** Updated to embedded-graphics 0.7.
- * ANSI sequence support now requires the `ansi` feature which is on by default.
+    Changes in embedded-graphics required changing the type signatures of almost every embedded-text type. For example, former `Font` and `PixelColor` type bounds have been replaced by `TextRenderer`, `CharacterStyle` and their `Color` associated type.
+ * ANSI sequence support now requires the `ansi` feature which is enabled by default.
  * Fields of the `style::color::Rgb` struct are now public.
 
 ## Removed
 
  * **breaking** Removed benchmarks.
  * **breaking** Removed `Rectangle` extensions.
- * **breaking** Removed deprecated `TextBoxStyleBuilder::text_style`. Use `TextBoxStyleBuilder::from_text_style` instead.
+ * **breaking** Removed deprecated `TextBoxStyleBuilder::{text_style, background_color, text_color, from_text_style, underlined, strikethrough}`. Use `TextBoxStyleBuilder::character_style` instead.
+ * **breaking** (developer-facing) The following types and modules have been removed or hidden:
+   * `rendering::ansi`, `rendering::cursor`, `rendering::character`, `rendering::decorated_space`, `rendering::line`, `rendering::line_iter`, `rendering::space_config`
 
 ## Fixed
 
  * `interactive_*` examples: fix accidental moving of bounding box.
  * `editor` example: cursor now doesn't stick to the text.
- 
+
 ## Added
 
  * `TextBoxStyleBuilder` now implements `Default`
