@@ -1,189 +1,236 @@
 //! Line rendering.
+use core::convert::Infallible;
+
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
-    rendering::{
-        character::GlyphRenderer,
-        cursor::Cursor,
-        decorated_space::DecoratedSpaceRenderer,
-        line_iter::{LineElementParser, RenderElement},
-    },
+    rendering::{cursor::LineCursor, line_iter::LineElementParser},
     style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
+    utils::str_width,
 };
-use core::cell::RefCell;
-use core::ops::Range;
-use embedded_graphics::{fonts::MonoFont, prelude::*};
+use embedded_graphics::{
+    draw_target::DrawTarget,
+    geometry::Point,
+    text::{CharacterStyle, TextRenderer},
+    Drawable,
+};
 
 #[cfg(feature = "ansi")]
-use crate::rendering::ansi::Sgr;
-
-#[derive(Debug)]
-struct Refs<'a, 'b, C, F, A, V, H>
-where
-    C: PixelColor,
-    F: MonoFont,
-{
-    parser: &'b mut Parser<'a>,
-    cursor: &'b mut Cursor<F>,
-    style: &'b mut TextBoxStyle<C, F, A, V, H>,
-    carried_token: &'b mut Option<Token<'a>>,
-}
+use super::ansi::Sgr;
+use super::{line_iter::ElementHandler, space_config::UniformSpaceConfig};
 
 /// Render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineRenderer<'a, 'b, C, F, A, V, H>
-where
-    C: PixelColor,
-    F: MonoFont,
-{
-    display_range: Range<i32>,
-    inner: RefCell<Refs<'a, 'b, C, F, A, V, H>>,
+pub struct StyledLineRenderer<'a, F, A, V, H> {
+    cursor: LineCursor,
+    state: LineRenderState<'a, F, A, V, H>,
 }
 
-impl<'a, 'b, C, F, A, V, H> StyledLineRenderer<'a, 'b, C, F, A, V, H>
+#[derive(Debug, Clone)]
+pub struct LineRenderState<'a, F, A, V, H> {
+    pub parser: Parser<'a>,
+    pub style: TextBoxStyle<F, A, V, H>,
+    pub carried_token: Option<Token<'a>>,
+}
+
+impl<F, A, V, H> LineRenderState<'_, F, A, V, H> {
+    pub fn is_finished(&self) -> bool {
+        self.carried_token.is_none() && self.parser.is_empty()
+    }
+}
+
+impl<'a, F, A, V, H> StyledLineRenderer<'a, F, A, V, H>
 where
-    C: PixelColor,
-    F: MonoFont,
+    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
+    <F as CharacterStyle>::Color: From<Rgb>,
     H: HeightMode,
 {
     /// Creates a new line renderer.
-    pub fn new(
-        parser: &'b mut Parser<'a>,
-        cursor: &'b mut Cursor<F>,
-        style: &'b mut TextBoxStyle<C, F, A, V, H>,
-        carried_token: &'b mut Option<Token<'a>>,
-    ) -> Self {
-        Self {
-            display_range: H::calculate_displayed_row_range(&cursor),
-            inner: RefCell::new(Refs {
-                parser,
-                cursor,
-                style,
-                carried_token,
-            }),
-        }
-    }
-
-    fn is_anything_displayed(&self) -> bool {
-        self.display_range.start < self.display_range.end
+    #[inline]
+    pub fn new(cursor: LineCursor, state: LineRenderState<'a, F, A, V, H>) -> Self {
+        Self { cursor, state }
     }
 }
 
-impl<'a, 'b, C, F, A, V, H> Drawable for StyledLineRenderer<'a, 'b, C, F, A, V, H>
+struct RenderElementHandler<'a, F, D> {
+    style: &'a mut F,
+    display: &'a mut D,
+    pos: Point,
+}
+
+impl<'a, F, D> ElementHandler for RenderElementHandler<'a, F, D>
 where
-    C: PixelColor + From<Rgb>,
-    F: MonoFont,
+    F: CharacterStyle + TextRenderer,
+    <F as CharacterStyle>::Color: From<Rgb>,
+    D: DrawTarget<Color = <F as TextRenderer>::Color>,
+{
+    type Error = D::Error;
+
+    fn measure(&self, st: &str) -> u32 {
+        str_width(self.style, st)
+    }
+
+    fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
+        self.pos = self.style.draw_whitespace(width, self.pos, self.display)?;
+        Ok(())
+    }
+
+    fn printed_characters(&mut self, st: &str, _: u32) -> Result<(), Self::Error> {
+        self.pos = self.style.draw_string(st, self.pos, self.display)?;
+        Ok(())
+    }
+
+    fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
+        // LineElementIterator ensures this new pos is valid.
+        self.pos = Point::new(self.pos.x + by, self.pos.y);
+        Ok(())
+    }
+
+    #[cfg(feature = "ansi")]
+    fn sgr(&mut self, sgr: Sgr) -> Result<(), Self::Error> {
+        sgr.apply(self.style);
+        Ok(())
+    }
+}
+
+struct StyleOnlyRenderElementHandler<'a, F> {
+    style: &'a mut F,
+}
+
+impl<'a, F> ElementHandler for StyleOnlyRenderElementHandler<'a, F>
+where
+    F: CharacterStyle + TextRenderer,
+    <F as CharacterStyle>::Color: From<Rgb>,
+{
+    type Error = Infallible;
+
+    fn measure(&self, st: &str) -> u32 {
+        str_width(self.style, st)
+    }
+
+    #[cfg(feature = "ansi")]
+    fn sgr(&mut self, sgr: Sgr) -> Result<(), Self::Error> {
+        sgr.apply(self.style);
+        Ok(())
+    }
+}
+
+impl<'a, F, A, V, H> Drawable for StyledLineRenderer<'a, F, A, V, H>
+where
+    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
+    <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    type Color = C;
+    type Color = <F as CharacterStyle>::Color;
+    type Output = LineRenderState<'a, F, A, V, H>;
 
-    fn draw<D>(&self, display: &mut D) -> Result<(), D::Error>
+    #[inline]
+    fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
     where
         D: DrawTarget<Color = Self::Color>,
     {
-        let mut inner = self.inner.borrow_mut();
-        let Refs {
+        let LineRenderState {
+            mut parser,
+            mut style,
+            carried_token,
+        } = self.state.clone();
+
+        let carried = if display.bounding_box().size.height == 0 {
+            // We're outside of the view - no need for a separate measure pass.
+            let mut elements = LineElementParser::<'_, '_, _, A>::new(
+                &mut parser,
+                self.cursor.clone(),
+                UniformSpaceConfig::new(&style.character_style),
+                carried_token,
+            );
+
+            elements
+                .process(&mut StyleOnlyRenderElementHandler {
+                    style: &mut style.character_style,
+                })
+                .unwrap()
+        } else {
+            // We have to resort to trickery to figure out the string that is rendered as the line.
+            let mut cloned_parser = parser.clone();
+            let lm = style.measure_line(
+                &mut cloned_parser,
+                &mut carried_token.clone(),
+                self.cursor.line_width(),
+            );
+
+            let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
+            let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
+
+            let (left, space_config) = A::place_line(line_str, &style.character_style, lm);
+
+            let mut cursor = self.cursor.clone();
+            cursor.move_cursor(left as i32).ok();
+
+            let pos = cursor.pos();
+            let mut elements = LineElementParser::<'_, '_, _, A>::new(
+                &mut parser,
+                cursor,
+                space_config,
+                carried_token,
+            );
+
+            elements.process(&mut RenderElementHandler {
+                style: &mut style.character_style,
+                display,
+                pos,
+            })?
+        };
+
+        Ok(LineRenderState {
             parser,
-            cursor,
             style,
-            carried_token,
-        } = &mut *inner;
+            carried_token: carried,
+        })
+    }
+}
 
-        let max_line_width = cursor.line_width();
-        let (width, total_spaces, t, _) =
-            style.measure_line(&mut parser.clone(), carried_token.clone(), max_line_width);
-
-        let (left, space_config) = A::place_line::<F>(max_line_width, width, total_spaces, t);
-
-        cursor.advance_unchecked(left);
-
-        let mut elements = LineElementParser::<'_, '_, F, _, A>::new(
-            parser,
-            cursor,
-            space_config,
-            carried_token,
-            style.tab_size,
-        );
-
-        while let Some(element) = elements.next() {
-            // HACK: avoid drawing the underline outside of the text box
-            let underlined = if style.underlined {
-                elements.cursor.position.y + self.display_range.end - 1
-                    < elements.cursor.bottom_right().y
-            } else {
-                false
-            };
-
-            match element {
-                RenderElement::PrintedCharacter(c) => {
-                    if !self.is_anything_displayed() {
-                        continue;
-                    }
-                    GlyphRenderer::new(
-                        c,
-                        style.text_style,
-                        elements.pos,
-                        self.display_range.clone(),
-                        underlined,
-                        style.strikethrough,
-                    )
-                    .draw(display)?;
-                }
-
-                RenderElement::Space(space_width, _) => {
-                    if !self.is_anything_displayed() {
-                        continue;
-                    }
-                    DecoratedSpaceRenderer::new(
-                        style.text_style,
-                        elements.pos,
-                        space_width,
-                        self.display_range.clone(),
-                        underlined,
-                        style.strikethrough,
-                    )
-                    .draw(display)?;
-                }
-
-                #[cfg(feature = "ansi")]
-                RenderElement::Sgr(sgr) => match sgr {
-                    Sgr::Reset => {
-                        style.text_style.text_color = None;
-                        style.text_style.background_color = None;
-                        style.underlined = false;
-                        style.strikethrough = false;
-                    }
-                    Sgr::ChangeTextColor(color) => {
-                        style.text_style.text_color = Some(color.into());
-                    }
-                    Sgr::DefaultTextColor => {
-                        style.text_style.text_color = None;
-                    }
-                    Sgr::ChangeBackgroundColor(color) => {
-                        style.text_style.background_color = Some(color.into());
-                    }
-                    Sgr::DefaultBackgroundColor => {
-                        style.text_style.background_color = None;
-                    }
-                    Sgr::Underline => {
-                        style.underlined = true;
-                    }
-                    Sgr::UnderlineOff => {
-                        style.underlined = false;
-                    }
-                    Sgr::CrossedOut => {
-                        style.strikethrough = true;
-                    }
-                    Sgr::NotCrossedOut => {
-                        style.strikethrough = false;
-                    }
-                },
+#[cfg(feature = "ansi")]
+impl Sgr {
+    fn apply<F>(self, renderer: &mut F)
+    where
+        F: CharacterStyle,
+        <F as CharacterStyle>::Color: From<Rgb>,
+    {
+        use embedded_graphics::text::DecorationColor;
+        match self {
+            Sgr::Reset => {
+                renderer.set_text_color(None);
+                renderer.set_background_color(None);
+                renderer.set_underline_color(DecorationColor::None);
+                renderer.set_strikethrough_color(DecorationColor::None);
+            }
+            Sgr::ChangeTextColor(color) => {
+                renderer.set_text_color(Some(color.into()));
+            }
+            Sgr::DefaultTextColor => {
+                renderer.set_text_color(None);
+            }
+            Sgr::ChangeBackgroundColor(color) => {
+                renderer.set_background_color(Some(color.into()));
+            }
+            Sgr::DefaultBackgroundColor => {
+                renderer.set_background_color(None);
+            }
+            Sgr::Underline => {
+                renderer.set_underline_color(DecorationColor::TextColor);
+            }
+            Sgr::UnderlineOff => {
+                renderer.set_underline_color(DecorationColor::None);
+            }
+            Sgr::CrossedOut => {
+                renderer.set_strikethrough_color(DecorationColor::TextColor);
+            }
+            Sgr::NotCrossedOut => {
+                renderer.set_strikethrough_color(DecorationColor::None);
             }
         }
-
-        Ok(())
     }
 }
 
@@ -191,33 +238,51 @@ where
 mod test {
     use crate::{
         alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-        parser::{Parser, Token},
-        rendering::{cursor::Cursor, line::StyledLineRenderer},
-        style::{color::Rgb, height_mode::HeightMode, TextBoxStyle, TextBoxStyleBuilder},
+        parser::Parser,
+        rendering::{
+            cursor::LineCursor,
+            line::{LineRenderState, StyledLineRenderer},
+        },
+        style::{color::Rgb, height_mode::HeightMode, TabSize, TextBoxStyle, TextBoxStyleBuilder},
+        utils::test::size_for,
     };
     use embedded_graphics::{
-        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        geometry::Point,
+        mock_display::MockDisplay,
+        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        pixelcolor::BinaryColor,
+        primitives::Rectangle,
+        text::{CharacterStyle, TextRenderer},
+        Drawable,
     };
-    use embedded_graphics_core::primitives::Rectangle;
 
-    fn test_rendered_text<'a, C, F, A, V, H>(
+    fn test_rendered_text<'a, F, A, V, H>(
         text: &'a str,
         bounds: Rectangle,
-        mut style: TextBoxStyle<C, F, A, V, H>,
+        style: TextBoxStyle<F, A, V, H>,
         pattern: &[&str],
     ) where
-        C: PixelColor + From<Rgb> + embedded_graphics::mock_display::ColorMapping,
-        F: MonoFont,
+        F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
+        <F as CharacterStyle>::Color: From<Rgb> + embedded_graphics::mock_display::ColorMapping,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
     {
-        let mut parser = Parser::parse(text);
-        let mut cursor = Cursor::new(bounds, style.line_spacing);
-        let mut carried = None;
+        let parser = Parser::parse(text);
+        let cursor = LineCursor::new(
+            bounds.size.width,
+            TabSize::Spaces(4).into_pixels(&style.character_style),
+        );
 
-        let renderer = StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried);
+        let state = LineRenderState {
+            parser,
+            style,
+            carried_token: None,
+        };
+
+        let renderer = StyledLineRenderer::new(cursor, state);
         let mut display = MockDisplay::new();
+        display.set_allow_overdraw(true);
 
         renderer.draw(&mut display).unwrap();
 
@@ -226,75 +291,59 @@ mod test {
 
     #[test]
     fn simple_render() {
-        let style = TextBoxStyleBuilder::new(Font6x8)
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .build();
+
         test_rendered_text(
-            " Some sample text",
-            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
+            "Some sample text",
+            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
             style,
             &[
-                ".......###....................",
-                "......#...#...................",
-                "......#......###..##.#...###..",
-                ".......###..#...#.#.#.#.#...#.",
-                "..........#.#...#.#...#.#####.",
-                "......#...#.#...#.#...#.#.....",
-                ".......###...###..#...#..###..",
-                "..............................",
+                "........................",
+                "..##....................",
+                ".#..#...................",
+                "..#.....##..##.#....##..",
+                "...#...#..#.#.#.#..#.##.",
+                ".#..#..#..#.#.#.#..##...",
+                "..##....##..#...#...###.",
+                "........................",
+                "........................",
             ],
         );
     }
 
     #[test]
-    fn render_before_area() {
-        let mut parser = Parser::parse(" Some sample text");
-        let mut style = TextBoxStyleBuilder::new(Font6x8)
+    fn simple_render_nbsp() {
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut cursor = Cursor::new(
-            Rectangle::new(Point::new(0, 8), Size::new(6 * 7, 16)),
-            style.line_spacing,
-        );
-        cursor.position.y -= 8;
-
-        let mut carried = None;
-        let renderer = StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried);
-
-        let mut display = MockDisplay::new();
-
-        renderer.draw(&mut display).unwrap();
-
-        // Nothing is drawn and we don't get a panic either.
-        display.assert_pattern(&[]);
-
-        // even though nothing was drawn, the text should be consumed
-        assert_eq!(Some(Token::Break(None)), carried);
-    }
-
-    #[test]
-    fn simple_render_nbsp() {
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
             .build();
 
         test_rendered_text(
             "Some\u{A0}sample text",
-            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
+            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
             style,
             &[
-                ".###......................................",
-                "#...#.....................................",
-                "#......###..##.#...###.........####..###..",
-                ".###..#...#.#.#.#.#...#.......#.........#.",
-                "....#.#...#.#...#.#####........###...####.",
-                "#...#.#...#.#...#.#...............#.#...#.",
-                ".###...###..#...#..###........####...####.",
+                "..........................................",
+                "..##......................................",
+                ".#..#.....................................",
+                "..#.....##..##.#....##..........###...###.",
+                "...#...#..#.#.#.#..#.##........##....#..#.",
+                ".#..#..#..#.#.#.#..##............##..#..#.",
+                "..##....##..#...#...###........###....###.",
+                "..........................................",
                 "..........................................",
             ],
         );
@@ -302,23 +351,29 @@ mod test {
 
     #[test]
     fn simple_render_first_word_not_wrapped() {
-        let style = TextBoxStyleBuilder::new(Font6x8)
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .build();
+
         test_rendered_text(
             "Some sample text",
-            Rectangle::new(Point::zero(), Size::new(6 * 2, 8)),
+            Rectangle::new(Point::zero(), size_for(Font6x9, 2, 1)),
             style,
             &[
-                ".###........",
-                "#...#.......",
-                "#......###..",
-                ".###..#...#.",
-                "....#.#...#.",
-                "#...#.#...#.",
-                ".###...###..",
+                "............",
+                "..##........",
+                ".#..#.......",
+                "..#.....##..",
+                "...#...#..#.",
+                ".#..#..#..#.",
+                "..##....##..",
+                "............",
                 "............",
             ],
         );
@@ -326,75 +381,30 @@ mod test {
 
     #[test]
     fn newline_stops_render() {
-        let style = TextBoxStyleBuilder::new(Font6x8)
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
             .build();
 
         test_rendered_text(
             "Some \nsample text",
-            Rectangle::new(Point::zero(), Size::new(6 * 7, 8)),
+            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
             style,
             &[
-                ".###..........................",
-                "#...#.........................",
-                "#......###..##.#...###........",
-                ".###..#...#.#.#.#.#...#.......",
-                "....#.#...#.#...#.#####.......",
-                "#...#.#...#.#...#.#...........",
-                ".###...###..#...#..###........",
-                "..............................",
-            ],
-        );
-    }
-
-    #[test]
-    fn underline_just_inside_of_textbox() {
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .underlined(true)
-            .build();
-
-        test_rendered_text(
-            "s",
-            Rectangle::new(Point::zero(), Size::new(6, 9)),
-            style,
-            &[
-                "......             ",
-                "......             ",
-                ".####.             ",
-                "#.....             ",
-                ".###..             ",
-                "....#.             ",
-                "####..             ",
-                "......             ",
-                "######             ",
-            ],
-        );
-    }
-
-    #[test]
-    fn underline_outside_of_textbox() {
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .text_color(BinaryColor::On)
-            .background_color(BinaryColor::Off)
-            .underlined(true)
-            .build();
-
-        test_rendered_text(
-            "s",
-            Rectangle::new(Point::zero(), Size::new(6, 8)),
-            style,
-            &[
-                "......             ",
-                "......             ",
-                ".####.             ",
-                "#.....             ",
-                ".###..             ",
-                "....#.             ",
-                "####..             ",
-                "......             ",
+                "........................",
+                "..##....................",
+                ".#..#...................",
+                "..#.....##..##.#....##..",
+                "...#...#..#.#.#.#..#.##.",
+                ".#..#..#..#.#.#.#..##...",
+                "..##....##..#...#...###.",
+                "........................",
+                "........................",
             ],
         );
     }
@@ -404,39 +414,60 @@ mod test {
 mod ansi_parser_tests {
     use crate::{
         parser::Parser,
-        rendering::{cursor::Cursor, line::StyledLineRenderer},
-        style::TextBoxStyleBuilder,
+        rendering::{
+            cursor::LineCursor,
+            line::{LineRenderState, StyledLineRenderer},
+        },
+        style::{TabSize, TextBoxStyleBuilder},
+        utils::test::size_for,
     };
     use embedded_graphics::{
-        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        mock_display::MockDisplay,
+        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        pixelcolor::BinaryColor,
+        Drawable,
     };
-    use embedded_graphics_core::primitives::Rectangle;
 
     #[test]
     fn ansi_cursor_backwards() {
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
 
-        let mut parser = Parser::parse("foo\x1b[2Dsample");
-        let mut style = TextBoxStyleBuilder::new(Font6x8)
+        let parser = Parser::parse("foo\x1b[2Dsample");
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
-        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 7, 8)), 0);
-        let mut carried = None;
-        StyledLineRenderer::new(&mut parser, &mut cursor, &mut style, &mut carried)
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .build();
+
+        let cursor = LineCursor::new(
+            size_for(Font6x9, 7, 1).width,
+            TabSize::Spaces(4).into_pixels(&character_style),
+        );
+        let state = LineRenderState {
+            parser,
+            style,
+            carried_token: None,
+        };
+        StyledLineRenderer::new(cursor, state)
             .draw(&mut display)
             .unwrap();
 
         display.assert_pattern(&[
-            "..##...........................##.........",
-            ".#..#...........................#.........",
-            ".#.....####..###..##.#..####....#....###..",
-            "###...#.........#.#.#.#.#...#...#...#...#.",
-            ".#.....###...####.#...#.#...#...#...#####.",
-            ".#........#.#...#.#...#.####....#...#.....",
-            ".#....####...####.#...#.#......###...###..",
-            "........................#.................",
+            "..........................................",
+            "...#...........................##.........",
+            "..#.#...........................#.........",
+            "..#.....###...###.##.#...###....#.....##..",
+            ".###...##....#..#.#.#.#..#..#...#....#.##.",
+            "..#......##..#..#.#.#.#..#..#...#....##...",
+            "..#....###....###.#...#..###...###....###.",
+            ".........................#................",
+            ".........................#................",
         ]);
     }
 }

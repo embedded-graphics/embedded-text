@@ -1,6 +1,10 @@
 //! This example demonstrates text styling using in-line ANSI escape sequences.
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::Rgb888, prelude::*};
+use embedded_graphics::{
+    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    pixelcolor::Rgb888,
+    prelude::*,
+};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::prelude::*;
 
@@ -34,8 +38,13 @@ fn main() {
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Draw the text with black, which will be overridden by in-line styling.
     // * Use 2px line spacing because we'll draw underlines.
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x10)
         .text_color(Rgb888::BLACK)
+        .build();
+
+    let textbox_style = TextBoxStyleBuilder::new()
+        .character_style(character_style)
         .line_spacing(2)
         .build();
 

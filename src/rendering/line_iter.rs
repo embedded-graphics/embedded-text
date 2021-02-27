@@ -1,15 +1,14 @@
 //! Line iterator.
 //!
-//! Provide elements (spaces or characters) to render as long as they fit in the current line
+//! Turns a token stream into a number of events. A single `LineElementParser` object operates on
+//! a single line and is responsible for handling word wrapping, eating leading/trailing whitespace,
+//! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
 use crate::{
     alignment::HorizontalTextAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
-    rendering::{cursor::Cursor, space_config::*},
-    style::TabSize,
-    utils::font_ext::FontExt,
+    rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
-use core::{marker::PhantomData, str::Chars};
-use embedded_graphics::prelude::*;
+use core::marker::PhantomData;
 
 #[cfg(feature = "ansi")]
 use super::ansi::{try_parse_sgr, Sgr};
@@ -18,140 +17,96 @@ use ansi_parser::AnsiSequence;
 #[cfg(feature = "ansi")]
 use as_slice::AsSlice;
 
-/// Internal state used to render a line.
-#[derive(Debug)]
-enum State<'a> {
-    /// Decide what to do next.
-    ProcessToken(Token<'a>),
-
-    /// Render a character in a word. (remaining_characters, current_character)
-    Word(Chars<'a>),
-
-    /// Signal that the renderer has finished.
-    Done,
-}
-
-/// What to draw
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum RenderElement {
-    /// Render a whitespace block with the given width and count
-    Space(u32, u32),
-
-    /// Render the given character
-    PrintedCharacter(char),
-
-    /// A Select Graphic Rendition code
-    #[cfg(feature = "ansi")]
-    Sgr(Sgr),
-}
-
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
-pub struct LineElementParser<'a, 'b, F, SP, A> {
+pub struct LineElementParser<'a, 'b, SP, A> {
     /// Position information.
-    pub cursor: &'b mut Cursor<F>,
+    cursor: LineCursor,
 
     /// The text to draw.
-    pub parser: &'b mut Parser<'a>,
+    parser: &'b mut Parser<'a>,
 
-    pub(crate) pos: Point,
-    current_token: State<'a>,
-    config: SP,
-    first_word: bool,
+    first_token: Option<Token<'a>>,
+    spaces: SP,
     alignment: PhantomData<A>,
-    tab_size: TabSize<F>,
-    carried_token: &'b mut Option<Token<'a>>,
+    empty: bool,
 }
 
-impl<'a, 'b, F, SP, A> LineElementParser<'a, 'b, F, SP, A>
+pub trait ElementHandler {
+    type Error;
+
+    /// Returns the width of the given string in pixels.
+    fn measure(&self, st: &str) -> u32;
+
+    /// A whitespace block with the given width.
+    fn whitespace(&mut self, _width: u32) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    /// A string of printable characters.
+    fn printed_characters(&mut self, _st: &str, _width: u32) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    /// A cursor movement event.
+    fn move_cursor(&mut self, _by: i32) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    /// A Select Graphic Rendition code.
+    #[cfg(feature = "ansi")]
+    fn sgr(&mut self, _sgr: Sgr) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
+impl<'a, 'b, SP, A> LineElementParser<'a, 'b, SP, A>
 where
-    F: MonoFont,
+    SP: SpaceConfig,
+    A: HorizontalTextAlignment,
 {
     /// Creates a new element parser.
     #[inline]
     #[must_use]
     pub fn new(
         parser: &'b mut Parser<'a>,
-        cursor: &'b mut Cursor<F>,
-        config: SP,
-        carried_token: &'b mut Option<Token<'a>>,
-        tab_size: TabSize<F>,
+        cursor: LineCursor,
+        spaces: SP,
+        carried_token: Option<Token<'a>>,
     ) -> Self {
-        let current_token = carried_token
-            .take() // forget the old carried token
-            .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t))
-            .or_else(|| parser.next())
-            .map_or(State::Done, State::ProcessToken);
+        let first_token = carried_token
+            .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t));
 
         Self {
             parser,
-            current_token,
-            config,
+            first_token,
+            spaces,
             cursor,
-            first_word: true,
             alignment: PhantomData,
-            pos: Point::zero(),
-            tab_size,
-            carried_token,
+            empty: true,
         }
     }
+}
 
-    fn next_token(&mut self) {
-        match self.parser.next() {
-            None => self.finish_end_of_string(),
-            Some(t) => self.current_token = State::ProcessToken(t),
-        }
-    }
-
-    fn finish_end_of_string(&mut self) {
-        self.current_token = State::Done;
-    }
-
-    fn finish_wrapped(&mut self) {
-        self.finish(Token::Break(None));
-    }
-
-    fn finish(&mut self, t: Token<'a>) {
-        self.current_token = match t {
-            Token::NewLine => {
-                self.cursor.new_line();
-                self.cursor.carriage_return();
-
-                self.carried_token.replace(Token::NewLine);
-                State::Done
-            }
-
-            Token::CarriageReturn => {
-                self.cursor.carriage_return();
-
-                self.carried_token.replace(Token::CarriageReturn);
-                State::Done
-            }
-
-            c => {
-                self.cursor.new_line();
-                self.cursor.carriage_return();
-
-                self.carried_token.replace(c);
-                State::Done
-            }
-        };
-    }
-
-    fn next_word_width(&mut self) -> Option<u32> {
+impl<'a, SP, A> LineElementParser<'a, '_, SP, A>
+where
+    SP: SpaceConfig,
+    A: HorizontalTextAlignment,
+{
+    fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
         let mut width = None;
         let mut lookahead = self.parser.clone();
 
         'lookahead: loop {
             match lookahead.next() {
                 Some(Token::Word(w)) => {
-                    let w = F::str_width_nocr(w);
+                    let w = handler.measure(w);
 
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                 }
 
-                Some(Token::Break(Some(_))) => {
-                    let w = F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
+                Some(Token::Break(Some(c))) => {
+                    let w = handler.measure(c);
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                     break 'lookahead;
                 }
@@ -165,600 +120,602 @@ where
 
         width
     }
-}
 
-impl<F, SP, A> LineElementParser<'_, '_, F, SP, A>
-where
-    F: MonoFont,
-    SP: SpaceConfig,
-    A: HorizontalTextAlignment,
-{
-    fn count_widest_space_seq(&self, n: u32) -> u32 {
-        // we could also binary search but I don't think it's worth it
-        let mut spaces_to_render = 0;
-        let available = self.cursor.space();
-        while spaces_to_render < n && self.config.peek_next_width(spaces_to_render + 1) < available
-        {
-            spaces_to_render += 1;
+    fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
+        self.cursor.move_cursor(by as i32)
+    }
+
+    fn longest_fitting_substr<E: ElementHandler>(
+        &mut self,
+        handler: &E,
+        w: &'a str,
+    ) -> (&'a str, Option<&'a str>) {
+        let mut width = 0;
+        for (idx, c) in w.char_indices() {
+            let char_width = handler.measure(unsafe {
+                // SAFETY: we are working on character boundaries
+                w.get_unchecked(idx..idx + c.len_utf8())
+            });
+            if !self.cursor.fits_in_line(width + char_width) {
+                return (
+                    unsafe {
+                        // SAFETY: we are working on character boundaries
+                        w.get_unchecked(0..idx)
+                    },
+                    w.get(idx..),
+                );
+            }
+            width += char_width;
         }
 
-        spaces_to_render
+        (w, None)
     }
-}
 
-impl<F, SP, A> Iterator for LineElementParser<'_, '_, F, SP, A>
-where
-    F: MonoFont,
-    SP: SpaceConfig,
-    A: HorizontalTextAlignment,
-{
-    type Item = RenderElement;
+    fn next_word_fits<E: ElementHandler>(&self, handler: &mut E) -> bool {
+        let mut lookahead = self.parser.clone();
+        let mut cursor = self.cursor.clone();
+        let mut spaces = self.spaces;
 
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            self.pos = self.cursor.position;
-            match self.current_token {
-                // No token being processed, get next one
-                State::ProcessToken(ref token) => {
-                    let token = token.clone();
-                    match token {
-                        Token::Whitespace(n) => {
-                            // This mess decides if we want to render whitespace at all.
-                            // The current horizontal alignment can ignore spaces at the beginning
-                            // and end of a line.
-                            let mut would_wrap = false;
-                            let render_whitespace = if self.first_word {
-                                if A::STARTING_SPACES {
-                                    self.first_word = false;
-                                }
-                                A::STARTING_SPACES
-                            } else if let Some(word_width) = self.next_word_width() {
-                                // Check if space + w fits in line, otherwise it's up to config
-                                let space_width = self.config.peek_next_width(n);
-                                let fits = self.cursor.fits_in_line(space_width + word_width);
-
-                                would_wrap = !fits;
-
-                                A::ENDING_SPACES || fits
-                            } else {
-                                A::ENDING_SPACES
-                            };
-
-                            if render_whitespace {
-                                // take as many spaces as possible and save the rest in state
-                                let n = if would_wrap { n.saturating_sub(1) } else { n };
-                                let spaces_to_render = self.count_widest_space_seq(n);
-
-                                if spaces_to_render > 0 {
-                                    let space_width = self.config.consume(spaces_to_render);
-                                    self.cursor.advance_unchecked(space_width);
-                                    let carried = n - spaces_to_render;
-
-                                    if carried == 0 {
-                                        self.next_token();
-                                    } else {
-                                        // n > 0 only if not every space was rendered
-                                        self.finish(Token::Whitespace(carried));
-                                    }
-
-                                    break Some(RenderElement::Space(
-                                        space_width,
-                                        spaces_to_render,
-                                    ));
-                                } else {
-                                    // there are spaces to render but none fit the line
-                                    // eat one as a newline and stop
-                                    if n > 1 {
-                                        self.finish(Token::Whitespace(n - 1));
-                                    } else {
-                                        self.finish_wrapped();
-                                    }
-                                }
-                            } else if would_wrap {
-                                self.finish_wrapped();
-                            } else {
-                                // nothing, process next token
-                                self.next_token();
-                            }
-                        }
-
-                        Token::Break(c) => {
-                            let fits = if let Some(word_width) = self.next_word_width() {
-                                self.cursor.fits_in_line(word_width)
-                            } else {
-                                // Next token is not a Word, consume Break and continue
-                                true
-                            };
-
-                            if fits {
-                                self.next_token();
-                            } else if let Some(c) = c {
-                                // If a Break contains a character, display it if the next
-                                // Word token does not fit the line.
-                                if self
-                                    .cursor
-                                    .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
-                                {
-                                    self.finish_wrapped();
-                                    break Some(RenderElement::PrintedCharacter(c));
-                                } else {
-                                    // this line is done
-                                    self.finish(Token::ExtraCharacter(c));
-                                }
-                            } else {
-                                // this line is done
-                                self.finish_wrapped();
-                            }
-                        }
-
-                        Token::ExtraCharacter(c) => {
-                            if self
-                                .cursor
-                                .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
-                            {
-                                self.next_token();
-                                break Some(RenderElement::PrintedCharacter(c));
-                            }
-
-                            // ExtraCharacter currently may only be the first one.
-                            // If it doesn't fit, stop.
-                            self.finish_end_of_string();
-                        }
-
-                        Token::Word(w) => {
-                            // FIXME: this isn't exactly optimal when outside of the display area
-                            if self.first_word {
-                                self.first_word = false;
-                                self.current_token = State::Word(w.chars());
-                            } else if self.cursor.fits_in_line(F::str_width_nocr(w)) {
-                                self.current_token = State::Word(w.chars());
-                            } else {
-                                self.finish(token);
-                            }
-                        }
-
-                        Token::Tab => {
-                            let sp_width = self.tab_size.next_width(self.cursor.x_in_line());
-                            let tab_width = if self.cursor.advance(sp_width) {
-                                self.next_token();
-                                sp_width
-                            } else {
-                                // If we can't render the whole tab since we don't fit in the line,
-                                // render it using all the available space - it will be < tab size.
-                                let available_space = self.cursor.space();
-                                self.finish_wrapped();
-                                available_space
-                            };
-
-                            // don't count tabs as spaces
-                            break Some(RenderElement::Space(tab_width, 0));
-                        }
-
-                        #[cfg(feature = "ansi")]
-                        Token::EscapeSequence(seq) => {
-                            self.next_token();
-                            match seq {
-                                AnsiSequence::SetGraphicsMode(vec) => {
-                                    if let Some(sgr) = try_parse_sgr(vec.as_slice()) {
-                                        break Some(RenderElement::Sgr(sgr));
-                                    }
-                                }
-
-                                AnsiSequence::CursorForward(n) => {
-                                    let delta = n * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
-                                    let width = if self.cursor.advance(delta) {
-                                        delta
-                                    } else {
-                                        let space = self.cursor.space();
-                                        self.cursor.advance_unchecked(space);
-                                        space
-                                    };
-                                    break Some(RenderElement::Space(width, 0));
-                                }
-
-                                AnsiSequence::CursorBackward(n) => {
-                                    let delta = n * F::CHARACTER_SIZE.width + F::CHARACTER_SPACING;
-                                    if !self.cursor.rewind(delta) {
-                                        self.cursor.carriage_return();
-                                    }
-                                    // no spaces rendered here
-                                }
-
-                                _ => {
-                                    // ignore for now
-                                }
-                            }
-                        }
-
-                        Token::NewLine | Token::CarriageReturn => {
-                            // we're done
-                            self.finish(token);
-                        }
-                    }
+        let mut exit = false;
+        while !exit {
+            let width = match lookahead.next() {
+                Some(Token::Word(w)) => {
+                    exit = true;
+                    handler.measure(w) as i32
+                }
+                Some(Token::Break(Some(w))) => {
+                    exit = true;
+                    handler.measure(w) as i32
                 }
 
-                State::Word(ref mut chars) => {
-                    let word = chars.as_str();
+                Some(Token::Whitespace(n)) => spaces.consume(n) as i32,
+                Some(Token::Tab) => cursor.next_tab_width() as i32,
 
-                    match chars.next() {
-                        Some(c) => {
-                            let mut ret_val = None;
-                            let pos = self.cursor.position;
+                #[cfg(feature = "ansi")]
+                Some(Token::EscapeSequence(AnsiSequence::CursorForward(by))) => by as i32,
 
-                            if c == SPEC_CHAR_NBSP {
-                                // nbsp
-                                let sp_width = self.config.peek_next_width(1);
+                #[cfg(feature = "ansi")]
+                Some(Token::EscapeSequence(AnsiSequence::CursorBackward(by))) => -(by as i32),
 
-                                if self.cursor.advance(sp_width) {
-                                    ret_val = Some(RenderElement::Space(sp_width, 1));
-                                    self.config.consume(1); // we have peeked the value, consume it
-                                }
-                            } else if self
-                                .cursor
-                                .advance(F::CHARACTER_SIZE.width + F::CHARACTER_SPACING)
-                            {
-                                ret_val = Some(RenderElement::PrintedCharacter(c));
-                            }
+                #[cfg(feature = "ansi")]
+                Some(Token::EscapeSequence(_)) => continue,
 
-                            if ret_val.is_some() {
-                                // We have something to return
-                                self.pos = pos;
-                                self.current_token = State::Word(chars.clone());
+                _ => return false,
+            };
 
-                                break ret_val;
-                            } else if self.cursor.x_in_line() > 0 {
-                                // There's already something in this line, let's carry the whole
-                                // word (the part that wasn't consumed so far) to the next.
-                                // This can happen because words can be longer than the line itself.
-                                self.finish(Token::Word(word));
-                            } else {
-                                // Weird case where width doesn't permit drawing anything. Consume
-                                // token to avoid infinite loop.
-                                self.finish_end_of_string();
-                            }
-                        }
-
-                        None => self.next_token(),
-                    }
-                }
-
-                State::Done => break None,
+            if cursor.move_cursor(width).is_err() {
+                return false;
             }
         }
+
+        true
+    }
+
+    fn draw_whitespace<E: ElementHandler>(
+        &mut self,
+        handler: &mut E,
+        space_width: i32,
+    ) -> Result<Option<Token<'a>>, E::Error> {
+        if self.empty && A::IGNORE_LEADING_SPACES {
+            return Ok(None);
+        }
+
+        match self.move_cursor(space_width) {
+            Ok(moved) if self.empty => handler.whitespace(moved as u32)?,
+            Ok(moved) if self.next_word_fits(handler) => handler.whitespace(moved as u32)?,
+
+            Ok(moved) | Err(moved) => {
+                handler.move_cursor(moved)?;
+                return Ok(Some(Token::Break(None)));
+            }
+        }
+        Ok(None)
+    }
+
+    #[inline]
+    pub fn process<E: ElementHandler>(
+        &mut self,
+        handler: &mut E,
+    ) -> Result<Option<Token<'a>>, E::Error> {
+        while let Some(token) = self.first_token.take().or_else(|| self.parser.next()) {
+            match token {
+                Token::Whitespace(n) => {
+                    let space_width = self.spaces.consume(n) as i32;
+                    if let Some(token) = self.draw_whitespace(handler, space_width)? {
+                        return Ok(Some(token));
+                    }
+                }
+
+                Token::Tab => {
+                    let space_width = self.cursor.next_tab_width() as i32;
+                    if let Some(token) = self.draw_whitespace(handler, space_width)? {
+                        return Ok(Some(token));
+                    }
+                }
+
+                Token::Break(c) => {
+                    if let Some(word_width) = self.next_word_width(handler) {
+                        if !self.cursor.fits_in_line(word_width) {
+                            // this line is done, decide how to end
+                            let token = if let Some(c) = c {
+                                // If a Break contains a character, display it if the next
+                                // Word token does not fit the line.
+                                let width = handler.measure(c);
+                                if self.move_cursor(width as i32).is_ok() {
+                                    handler.printed_characters(c, width)?;
+                                    Token::Break(None)
+                                } else {
+                                    Token::Word(c)
+                                }
+                            } else {
+                                Token::Break(None)
+                            };
+
+                            return Ok(Some(token));
+                        }
+                    } else {
+                        // Next token is not a Word, consume Break and continue
+                    }
+                }
+
+                Token::Word(w) => {
+                    let width = handler.measure(w);
+                    let (word, remainder) = if self.move_cursor(width as i32).is_ok() {
+                        // We can move the cursor here since `process_word()`
+                        // doesn't depend on it.
+                        (w, None)
+                    } else if self.empty {
+                        // This word does not fit into an empty line. Find longest part
+                        // that fits and push the rest to the next line.
+                        match self.longest_fitting_substr(handler, w) {
+                            ("", _) => {
+                                // Weird case where width doesn't permit drawing anything.
+                                // End here to prevent infinite looping.
+                                return Ok(None);
+                            }
+                            (word, remainder) => (word, remainder),
+                        }
+                    } else {
+                        // word wrapping - push this word to the next line
+                        return Ok(Some(token));
+                    };
+
+                    self.empty = false;
+                    self.process_word(handler, word)?;
+
+                    if let Some(remainder) = remainder {
+                        return Ok(Some(Token::Word(remainder)));
+                    }
+                }
+
+                #[cfg(feature = "ansi")]
+                Token::EscapeSequence(seq) => {
+                    match seq {
+                        AnsiSequence::SetGraphicsMode(vec) => {
+                            if let Some(sgr) = try_parse_sgr(vec.as_slice()) {
+                                handler.sgr(sgr)?;
+                            }
+                        }
+
+                        AnsiSequence::CursorForward(n) => {
+                            // Cursor movement can't rely on the text, as it's permitted
+                            // to move the cursor outside of the current line.
+                            // Example:
+                            // (| denotes the cursor, [ and ] are the limits of the line):
+                            // [Some text|    ]
+                            // Cursor forward 2 characters
+                            // [Some text  |  ]
+                            let delta = (n * handler.measure(" ")) as i32;
+                            match self.move_cursor(delta) {
+                                Ok(delta) | Err(delta) => {
+                                    handler.whitespace(delta as u32)?;
+                                }
+                            }
+                        }
+
+                        AnsiSequence::CursorBackward(n) => {
+                            // The above poses an issue with variable-width fonts.
+                            // If cursor movement ignores the variable width, the cursor
+                            // will be placed in positions other than glyph boundaries.
+                            let delta = -((n * handler.measure(" ")) as i32);
+                            match self.move_cursor(delta) {
+                                Ok(delta) | Err(delta) => {
+                                    handler.move_cursor(delta)?;
+                                    handler.whitespace(delta.abs() as u32)?;
+                                    handler.move_cursor(delta)?;
+                                }
+                            }
+                        }
+
+                        _ => {
+                            // ignore for now
+                        }
+                    }
+                }
+
+                Token::NewLine | Token::CarriageReturn => {
+                    // we're done
+                    return Ok(Some(token));
+                }
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn process_word<E: ElementHandler>(
+        &mut self,
+        handler: &mut E,
+        w: &str,
+    ) -> Result<(), E::Error> {
+        match w.char_indices().find(|(_, c)| *c == SPEC_CHAR_NBSP) {
+            Some((space_pos, _)) => {
+                // If we have anything before the space...
+                if space_pos != 0 {
+                    let word = unsafe {
+                        // Safety: space_pos must be a character boundary
+                        w.get_unchecked(0..space_pos)
+                    };
+                    handler.printed_characters(word, handler.measure(word))?;
+                }
+
+                handler.whitespace(self.spaces.consume(1))?;
+
+                // If we have anything after the space...
+                if let Some(word) = w.get(space_pos + SPEC_CHAR_NBSP.len_utf8()..) {
+                    return self.process_word(handler, word);
+                }
+            }
+
+            None => {
+                handler.printed_characters(w, handler.measure(w))?;
+            }
+        }
+
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::convert::Infallible;
+
     use super::*;
-    use crate::alignment::LeftAligned;
-    use embedded_graphics::fonts::Font6x8;
-    use embedded_graphics_core::primitives::Rectangle;
+    use crate::{
+        alignment::LeftAligned,
+        rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
+        style::TabSize,
+        utils::{str_width, test::size_for},
+    };
+    use embedded_graphics::{
+        geometry::Point,
+        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        pixelcolor::BinaryColor,
+        prelude::Size,
+        primitives::Rectangle,
+        text::TextRenderer,
+    };
 
-    pub fn collect_mut<I: Iterator<Item = T>, T>(iter: &mut I) -> Vec<T> {
-        let mut v = Vec::new();
-        v.extend(iter);
+    #[derive(PartialEq, Eq, Debug)]
+    pub(super) enum RenderElement {
+        Space(u32),
+        String(String, u32),
+        MoveCursor(i32),
+        #[cfg(feature = "ansi")]
+        Sgr(Sgr),
+    }
 
-        v
+    impl RenderElement {
+        pub fn string(st: &str, width: u32) -> Self {
+            Self::String(st.to_owned(), width)
+        }
+    }
+
+    struct TestElementHandler<F> {
+        elements: Vec<RenderElement>,
+        style: F,
+    }
+
+    impl<F> TestElementHandler<F> {
+        fn new(style: F) -> Self {
+            Self {
+                elements: vec![],
+                style,
+            }
+        }
+    }
+
+    impl<'el, F: TextRenderer> ElementHandler for TestElementHandler<F> {
+        type Error = Infallible;
+
+        fn measure(&self, st: &str) -> u32 {
+            str_width(&self.style, st)
+        }
+
+        fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
+            self.elements.push(RenderElement::Space(width));
+            Ok(())
+        }
+
+        fn printed_characters(&mut self, st: &str, width: u32) -> Result<(), Self::Error> {
+            self.elements
+                .push(RenderElement::String(st.to_owned(), width));
+            Ok(())
+        }
+
+        fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
+            self.elements.push(RenderElement::MoveCursor(by));
+            Ok(())
+        }
+
+        #[cfg(feature = "ansi")]
+        fn sgr(&mut self, sgr: Sgr) -> Result<(), Self::Error> {
+            self.elements.push(RenderElement::Sgr(sgr));
+            Ok(())
+        }
+    }
+
+    pub(super) fn assert_line_elements<'a>(
+        parser: &mut Parser<'a>,
+        carried: &mut Option<Token<'a>>,
+        max_chars: u32,
+        elements: &[RenderElement],
+    ) {
+        let style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let config = UniformSpaceConfig::new(&style);
+        let cursor = Cursor::new(
+            Rectangle::new(Point::zero(), size_for(Font6x9, max_chars, 1)),
+            style.line_height(),
+            0,
+            TabSize::Spaces(4).into_pixels(&style),
+        )
+        .line();
+
+        let mut handler = TestElementHandler::new(style);
+        let mut line1: LineElementParser<'_, '_, _, LeftAligned> =
+            LineElementParser::new(parser, cursor, config, carried.clone());
+
+        *carried = line1.process(&mut handler).unwrap();
+
+        assert_eq!(handler.elements, elements);
+    }
+
+    #[test]
+    fn insufficient_width_no_looping() {
+        let mut parser = Parser::parse("foobar");
+
+        let style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
+            .text_color(BinaryColor::On)
+            .build();
+
+        let config = UniformSpaceConfig::new(&style);
+        let cursor = Cursor::new(
+            Rectangle::new(Point::zero(), size_for(Font6x9, 1, 1) - Size::new(1, 0)),
+            style.line_height(),
+            0,
+            TabSize::Spaces(4).into_pixels(&style),
+        )
+        .line();
+
+        let mut handler = TestElementHandler::new(style);
+        let mut line1: LineElementParser<'_, '_, _, LeftAligned> =
+            LineElementParser::new(&mut parser, cursor, config, None);
+
+        line1.process(&mut handler).unwrap();
+
+        assert_eq!(handler.elements, &[]);
     }
 
     #[test]
     fn soft_hyphen_no_wrapping() {
-        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
-
         let mut parser = Parser::parse("sam\u{00AD}ple");
-        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6, 8)), 0);
         let mut carried = None;
 
-        let iter: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
-        );
-
-        assert_eq!(
-            iter.collect::<Vec<RenderElement>>(),
-            vec![
-                RenderElement::PrintedCharacter('s'),
-                RenderElement::PrintedCharacter('a'),
-                RenderElement::PrintedCharacter('m'),
-                RenderElement::PrintedCharacter('p'),
-                RenderElement::PrintedCharacter('l'),
-                RenderElement::PrintedCharacter('e'),
-            ]
+            6,
+            &[
+                RenderElement::string("sam", 18),
+                RenderElement::string("ple", 18),
+            ],
         );
     }
 
     #[test]
     fn soft_hyphen() {
-        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
-
         let mut parser = Parser::parse("sam\u{00AD}ple");
-        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(6 * 6 - 1, 16)), 0);
         let mut carried = None;
 
-        let mut line1: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
+            5,
+            &[
+                RenderElement::string("sam", 18),
+                RenderElement::string("-", 6),
+            ],
         );
-
-        assert_eq!(
-            collect_mut(&mut line1),
-            vec![
-                RenderElement::PrintedCharacter('s'),
-                RenderElement::PrintedCharacter('a'),
-                RenderElement::PrintedCharacter('m'),
-                RenderElement::PrintedCharacter('-'),
-            ]
-        );
-
-        assert_eq!(line1.cursor.position, Point::new(0, 8));
-
-        let line2: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
+            5,
+            &[RenderElement::string("ple", 18)],
         );
+    }
 
-        assert_eq!(
-            line2.collect::<Vec<RenderElement>>(),
-            vec![
-                RenderElement::PrintedCharacter('p'),
-                RenderElement::PrintedCharacter('l'),
-                RenderElement::PrintedCharacter('e'),
-            ]
+    #[test]
+    fn nbsp_issue() {
+        let mut parser = Parser::parse("a b c\u{a0}d e f");
+        let mut carried = None;
+
+        assert_line_elements(
+            &mut parser,
+            &mut carried,
+            5,
+            &[
+                RenderElement::string("a", 6),
+                RenderElement::Space(6),
+                RenderElement::string("b", 6),
+                RenderElement::MoveCursor(6),
+            ],
+        );
+        assert_line_elements(
+            &mut parser,
+            &mut carried,
+            5,
+            &[
+                RenderElement::string("c", 6),
+                RenderElement::Space(6),
+                RenderElement::string("d", 6),
+                RenderElement::Space(6),
+                RenderElement::string("e", 6),
+                RenderElement::MoveCursor(0),
+            ],
+        );
+        assert_line_elements(
+            &mut parser,
+            &mut carried,
+            5,
+            &[RenderElement::string("f", 6)],
         );
     }
 
     #[test]
     fn soft_hyphen_issue_42() {
-        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
-
         let mut parser =
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
-        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(5 * 6, 16)), 0);
-
         let mut carried = None;
-        let mut line1: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
+            5,
+            &[RenderElement::string("super", 30)],
         );
-
-        assert_eq!(
-            collect_mut(&mut line1),
-            vec![
-                RenderElement::PrintedCharacter('s'),
-                RenderElement::PrintedCharacter('u'),
-                RenderElement::PrintedCharacter('p'),
-                RenderElement::PrintedCharacter('e'),
-                RenderElement::PrintedCharacter('r'),
-            ]
-        );
-
-        assert_eq!(line1.cursor.position, Point::new(0, 8));
-
-        let line2: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
-        );
-
-        assert_eq!(
-            line2.collect::<Vec<RenderElement>>(),
-            vec![
-                RenderElement::PrintedCharacter('-'),
-                RenderElement::PrintedCharacter('c'),
-                RenderElement::PrintedCharacter('a'),
-                RenderElement::PrintedCharacter('l'),
-                RenderElement::PrintedCharacter('i'),
-            ]
+            5,
+            &[
+                RenderElement::string("-", 6),
+                RenderElement::string("cali", 24),
+            ],
         );
     }
 
     #[test]
     fn nbsp_is_rendered_as_space() {
-        let text = "glued\u{a0}words";
-        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
+        let mut parser = Parser::parse("glued\u{a0}words");
 
-        let mut parser = Parser::parse(text);
-        let mut cursor = Cursor::new(
-            Rectangle::new(
-                Point::zero(),
-                Size::new(text.chars().count() as u32 * 6, 16),
-            ),
-            0,
-        );
-        let mut carried = None;
-
-        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
-
-        assert_eq!(
-            collect_mut(&mut line),
-            vec![
-                RenderElement::PrintedCharacter('g'),
-                RenderElement::PrintedCharacter('l'),
-                RenderElement::PrintedCharacter('u'),
-                RenderElement::PrintedCharacter('e'),
-                RenderElement::PrintedCharacter('d'),
-                RenderElement::Space(6, 1),
-                RenderElement::PrintedCharacter('w'),
-                RenderElement::PrintedCharacter('o'),
-                RenderElement::PrintedCharacter('r'),
-                RenderElement::PrintedCharacter('d'),
-                RenderElement::PrintedCharacter('s'),
-            ]
+            &mut None,
+            50,
+            &[
+                RenderElement::string("glued", 30),
+                RenderElement::Space(6),
+                RenderElement::string("words", 30),
+            ],
         );
     }
 
     #[test]
     fn tabs() {
-        let text = "a\tword\nand\t\tanother\t";
-        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
-
-        let mut parser = Parser::parse(text);
-        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(16 * 6, 16)), 0);
-
+        let mut parser = Parser::parse("a\tword\nand\t\tanother\t");
         let mut carried = None;
-        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
+            16,
+            &[
+                RenderElement::string("a", 6),
+                RenderElement::Space(6 * 3),
+                RenderElement::string("word", 24),
+            ],
         );
-
-        assert_eq!(
-            collect_mut(&mut line),
-            vec![
-                RenderElement::PrintedCharacter('a'),
-                RenderElement::Space(6 * 3, 0),
-                RenderElement::PrintedCharacter('w'),
-                RenderElement::PrintedCharacter('o'),
-                RenderElement::PrintedCharacter('r'),
-                RenderElement::PrintedCharacter('d'),
-            ]
-        );
-
-        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
+            16,
+            &[
+                RenderElement::string("and", 18),
+                RenderElement::Space(6),
+                RenderElement::Space(6 * 4),
+                RenderElement::string("another", 42),
+                RenderElement::MoveCursor(6),
+            ],
         );
+    }
 
-        assert_eq!(
-            collect_mut(&mut line),
-            vec![
-                RenderElement::PrintedCharacter('a'),
-                RenderElement::PrintedCharacter('n'),
-                RenderElement::PrintedCharacter('d'),
-                RenderElement::Space(6, 0),
-                RenderElement::Space(6 * 4, 0),
-                RenderElement::PrintedCharacter('a'),
-                RenderElement::PrintedCharacter('n'),
-                RenderElement::PrintedCharacter('o'),
-                RenderElement::PrintedCharacter('t'),
-                RenderElement::PrintedCharacter('h'),
-                RenderElement::PrintedCharacter('e'),
-                RenderElement::PrintedCharacter('r'),
-                RenderElement::Space(6, 0),
-            ]
+    #[test]
+    fn cursor_limit() {
+        let mut parser = Parser::parse("Some sample text");
+
+        assert_line_elements(
+            &mut parser,
+            &mut None,
+            2,
+            &[RenderElement::string("So", 12)],
         );
     }
 }
 
 #[cfg(all(test, feature = "ansi"))]
 mod ansi_parser_tests {
-    use super::{test::collect_mut, *};
-    use crate::{alignment::LeftAligned, style::color::Rgb};
-    use embedded_graphics::fonts::Font6x8;
-    use embedded_graphics_core::primitives::Rectangle;
+    use super::{
+        test::{assert_line_elements, RenderElement},
+        *,
+    };
+    use crate::style::color::Rgb;
 
     #[test]
     fn colors() {
-        let text = "Lorem \x1b[92mIpsum";
-        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
+        let mut parser = Parser::parse("Lorem \x1b[92mIpsum");
 
-        let mut parser = Parser::parse(text);
-        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(100 * 6, 16)), 0);
-        let mut carried = None;
-
-        let mut line1: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
-            &mut carried,
-            TabSize::default(),
-        );
-
-        assert_eq!(
-            collect_mut(&mut line1),
-            vec![
-                RenderElement::PrintedCharacter('L'),
-                RenderElement::PrintedCharacter('o'),
-                RenderElement::PrintedCharacter('r'),
-                RenderElement::PrintedCharacter('e'),
-                RenderElement::PrintedCharacter('m'),
-                RenderElement::Space(6, 1),
+            &mut None,
+            100,
+            &[
+                RenderElement::string("Lorem", 30),
+                RenderElement::Space(6),
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
-                RenderElement::PrintedCharacter('I'),
-                RenderElement::PrintedCharacter('p'),
-                RenderElement::PrintedCharacter('s'),
-                RenderElement::PrintedCharacter('u'),
-                RenderElement::PrintedCharacter('m'),
-            ]
+                RenderElement::string("Ipsum", 30),
+            ],
         );
     }
 
     #[test]
     fn ansi_code_does_not_break_word() {
-        let text = "Lorem foo\x1b[92mbarum";
-        let config: UniformSpaceConfig = UniformSpaceConfig::new(Font6x8::CHARACTER_SIZE.width);
+        let mut parser = Parser::parse("Lorem foo\x1b[92mbarum");
 
-        let mut parser = Parser::parse(text);
-        let mut cursor = Cursor::new(Rectangle::new(Point::zero(), Size::new(8 * 6, 16)), 0);
         let mut carried = None;
-
-        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
+            8,
+            &[
+                RenderElement::string("Lorem", 30),
+                RenderElement::MoveCursor(6),
+            ],
         );
 
-        assert_eq!(
-            collect_mut(&mut line),
-            vec![
-                RenderElement::PrintedCharacter('L'),
-                RenderElement::PrintedCharacter('o'),
-                RenderElement::PrintedCharacter('r'),
-                RenderElement::PrintedCharacter('e'),
-                RenderElement::PrintedCharacter('m'),
-            ]
-        );
-
-        let mut line: LineElementParser<'_, '_, Font6x8, _, LeftAligned> = LineElementParser::new(
+        assert_line_elements(
             &mut parser,
-            &mut cursor,
-            config,
             &mut carried,
-            TabSize::default(),
-        );
-
-        assert_eq!(
-            collect_mut(&mut line),
-            vec![
-                RenderElement::PrintedCharacter('f'),
-                RenderElement::PrintedCharacter('o'),
-                RenderElement::PrintedCharacter('o'),
+            8,
+            &[
+                RenderElement::string("foo", 18),
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
-                RenderElement::PrintedCharacter('b'),
-                RenderElement::PrintedCharacter('a'),
-                RenderElement::PrintedCharacter('r'),
-                RenderElement::PrintedCharacter('u'),
-                RenderElement::PrintedCharacter('m'),
-            ]
+                RenderElement::string("barum", 30),
+            ],
         );
     }
 }

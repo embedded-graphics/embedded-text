@@ -1,12 +1,11 @@
 //! Vertical overdraw options.
 use crate::rendering::cursor::Cursor;
 use core::ops::Range;
-use embedded_graphics::fonts::MonoFont;
 
 /// Implementors of this trait specify how drawing vertically outside the bounding box is handled.
 pub trait VerticalOverdraw: Copy {
     /// Calculate the range of rows of the current line that can be drawn.
-    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32>;
+    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32>;
 }
 
 /// Only render full rows of text.
@@ -14,9 +13,9 @@ pub trait VerticalOverdraw: Copy {
 pub struct FullRowsOnly;
 impl VerticalOverdraw for FullRowsOnly {
     #[inline]
-    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
+    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
         if cursor.in_display_area() {
-            0..F::CHARACTER_SIZE.height as i32
+            0..cursor.line_height()
         } else {
             0..0
         }
@@ -28,11 +27,9 @@ impl VerticalOverdraw for FullRowsOnly {
 pub struct Hidden;
 impl VerticalOverdraw for Hidden {
     #[inline]
-    fn calculate_displayed_row_range<F: MonoFont>(cursor: &Cursor<F>) -> Range<i32> {
-        let offset_top = (cursor.bounds.top_left.y - cursor.position.y).max(0);
-
-        let offset_bottom =
-            (cursor.bottom_right().y - cursor.position.y + 1).min(F::CHARACTER_SIZE.height as i32);
+    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
+        let offset_top = (cursor.top_left().y - cursor.y).max(0);
+        let offset_bottom = (cursor.bottom_right().y - cursor.y + 1).min(cursor.line_height());
 
         offset_top..offset_bottom
     }
@@ -43,17 +40,21 @@ impl VerticalOverdraw for Hidden {
 pub struct Visible;
 impl VerticalOverdraw for Visible {
     #[inline]
-    fn calculate_displayed_row_range<F: MonoFont>(_: &Cursor<F>) -> Range<i32> {
-        0..F::CHARACTER_SIZE.height as i32
+    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
+        0..cursor.line_height()
     }
 }
 
 #[cfg(test)]
 mod test {
     use embedded_graphics::{
-        fonts::Font6x8, mock_display::MockDisplay, pixelcolor::BinaryColor, prelude::*,
+        geometry::{Point, Size},
+        mock_display::MockDisplay,
+        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        pixelcolor::BinaryColor,
+        primitives::Rectangle,
+        Drawable,
     };
-    use embedded_graphics_core::primitives::Rectangle;
 
     use crate::{
         alignment::*,
@@ -64,30 +65,37 @@ mod test {
     #[test]
     fn default_is_full_rows_only() {
         // This test verifies that FullRowsOnly does not draw partial rows
-
         let mut display = MockDisplay::new();
-        let style = TextBoxStyleBuilder::new(Font6x8)
-            .alignment(LeftAligned)
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
+            .alignment(LeftAligned)
             .build();
 
         TextBox::new(
             "word and other words",
-            Rectangle::new(Point::new(0, 0), Size::new(55, 15)),
+            Rectangle::new(Point::zero(), Size::new(55, 15)),
         )
         .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
         display.assert_pattern(&[
-            "                      #                       #",
-            "                      #                       #",
-            "#   #  ###  # ##   ## #        ###  # ##   ## #",
-            "#   # #   # ##  # #  ##           # ##  # #  ##",
-            "# # # #   # #     #   #        #### #   # #   #",
-            "# # # #   # #     #   #       #   # #   # #   #",
-            " # #   ###  #      ####        #### #   #  ####",
-            "                                               ",
+            "................................................",
+            "......................#.......................#.",
+            "......................#.......................#.",
+            "#...#...##...#.#....###.........###..###....###.",
+            "#.#.#..#..#..##.#..#..#........#..#..#..#..#..#.",
+            "#.#.#..#..#..#.....#..#........#..#..#..#..#..#.",
+            ".#.#....##...#......###.........###..#..#...###.",
+            "................................................",
+            "................................................",
         ]);
     }
 
@@ -96,27 +104,36 @@ mod test {
         // This test verifies that FullRowsOnly does not draw partial rows
 
         let mut display = MockDisplay::new();
-        let style = TextBoxStyleBuilder::new(Font6x8)
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
-            .text_color(BinaryColor::On)
             .height_mode(Exact(Visible))
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::new(0, 2), Size::new(55, 3)))
+        // Drawing at Point(0, 3) so we don't draw outside the display due to vertical centering.
+        TextBox::new("word", Rectangle::new(Point::new(0, 3), Size::new(55, 3)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
 
         display.assert_pattern(&[
-            "                      #",
-            "                      #",
-            "#   #  ###  # ##   ## #",
-            "#   # #   # ##  # #  ##",
-            "# # # #   # #     #   #",
-            "# # # #   # #     #   #",
-            " # #   ###  #      ####",
-            "                       ",
+            "........................",
+            "......................#.",
+            "......................#.",
+            "#...#...##...#.#....###.",
+            "#.#.#..#..#..##.#..#..#.",
+            "#.#.#..#..#..#.....#..#.",
+            ".#.#....##...#......###.",
+            "........................",
+            "........................",
         ]);
     }
 
@@ -125,27 +142,30 @@ mod test {
         // This test verifies that FullRowsOnly does not draw partial rows
 
         let mut display = MockDisplay::new();
-        let style = TextBoxStyleBuilder::new(Font6x8)
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
-            .text_color(BinaryColor::On)
             .height_mode(Exact(Hidden))
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::new(0, 2), Size::new(55, 4)))
+        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 4)))
             .into_styled(style)
             .draw(&mut display)
             .unwrap();
 
         display.assert_pattern(&[
-            "                       ",
-            "                       ",
-            "#   #  ###  # ##   ## #",
-            "#   # #   # ##  # #  ##",
-            "# # # #   # #     #   #",
-            "# # # #   # #     #   #",
-            "                       ",
-            "                       ",
+            "......................#.",
+            "#...#...##...#.#....###.",
+            "#.#.#..#..#..##.#..#..#.",
+            "#.#.#..#..#..#.....#..#.",
         ]);
     }
 }

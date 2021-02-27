@@ -1,6 +1,10 @@
 //! This example draws text in three columns to demonstrate the common vertical alignments.
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics::{
+    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
@@ -9,7 +13,12 @@ use embedded_text::prelude::*;
 fn main() {
     let text = "The quick brown fox jumped over the lazy dog.";
 
-    let base_style = TextBoxStyleBuilder::new(Font6x8).text_color(BinaryColor::On);
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x10)
+        .text_color(BinaryColor::On)
+        .build();
+
+    let base_style = TextBoxStyleBuilder::new().character_style(character_style);
 
     // Create a 192x129 px simulated display.
     let mut display = SimulatorDisplay::new(Size::new(192, 129));

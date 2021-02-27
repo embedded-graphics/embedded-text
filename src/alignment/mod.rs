@@ -1,11 +1,10 @@
 //! Text alignment options.
 use crate::{
-    parser::Token,
     rendering::{cursor::Cursor, space_config::SpaceConfig},
-    style::height_mode::HeightMode,
+    style::{color::Rgb, height_mode::HeightMode, LineMeasurement},
     StyledTextBox,
 };
-use embedded_graphics::prelude::*;
+use embedded_graphics::text::{CharacterStyle, TextRenderer};
 
 pub mod bottom;
 pub mod center;
@@ -25,18 +24,14 @@ pub trait HorizontalTextAlignment: Copy {
     /// Type of the associated whitespace information.
     type SpaceConfig: SpaceConfig;
 
-    /// Whether or not render spaces in the start of the line.
-    const STARTING_SPACES: bool;
-
-    /// Whether or not render spaces in the end of the line.
-    const ENDING_SPACES: bool;
+    /// Whether to move cursor via leading spaces in the first line.
+    const IGNORE_LEADING_SPACES: bool = true;
 
     /// Calculate offset from the left side and whitespace information.
-    fn place_line<F: MonoFont>(
-        max_width: u32,
-        text_width: u32,
-        n_spaces: u32,
-        carried_token: Option<Token>,
+    fn place_line(
+        line: &str,
+        renderer: &impl TextRenderer,
+        measurement: LineMeasurement,
     ) -> (u32, Self::SpaceConfig);
 }
 
@@ -48,12 +43,12 @@ pub trait HorizontalTextAlignment: Copy {
 /// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
 pub trait VerticalTextAlignment: Copy {
     /// Set the cursor's initial vertical position
-    fn apply_vertical_alignment<'a, C, F, A, H>(
-        cursor: &mut Cursor<F>,
-        styled_text_box: &'a StyledTextBox<'a, C, F, A, Self, H>,
+    fn apply_vertical_alignment<'a, F, A, H>(
+        cursor: &mut Cursor,
+        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
     ) where
-        C: PixelColor,
-        F: MonoFont,
+        F: TextRenderer + CharacterStyle,
+        <F as CharacterStyle>::Color: From<Rgb>,
         A: HorizontalTextAlignment,
         H: HeightMode;
 }

@@ -1,6 +1,10 @@
 //! This example demonstrates additional text decoration options (underlined and strike-through text).
 
-use embedded_graphics::{fonts::Font6x8, pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics::{
+    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
@@ -14,20 +18,27 @@ fn main() {
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let base_style = TextBoxStyleBuilder::new(Font6x8)
-        .text_color(BinaryColor::On)
+    let base_style = MonoTextStyleBuilder::new()
+        .font(Font6x10)
+        .text_color(BinaryColor::On);
+
+    let base_tb_style = TextBoxStyleBuilder::new()
+        .vertical_alignment(Scrolling)
         .height_mode(FitToText)
         .line_spacing(2);
 
     // Specify underlined and strike-through decorations, one for each text box.
-    let underlined_style = base_style.underlined(true).build();
-    let strikethrough_style = base_style.strikethrough(true).build();
+    let underlined_style = base_style.underline().build();
+    let strikethrough_style = base_style.strikethrough().build();
+
+    let underlined_tb_style = base_tb_style.character_style(underlined_style).build();
+    let strikethrough_tb_style = base_tb_style.character_style(strikethrough_style).build();
 
     let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Size::new(97, 0)))
-        .into_styled(underlined_style);
+        .into_styled(underlined_tb_style);
 
     let text_box2 = TextBox::new(text, Rectangle::new(Point::new(96, 0), Size::new(97, 0)))
-        .into_styled(strikethrough_style);
+        .into_styled(strikethrough_tb_style);
 
     // Create a window for both text boxes.
     let mut display = SimulatorDisplay::new(Size::new(

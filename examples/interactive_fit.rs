@@ -7,10 +7,11 @@ use embedded_graphics_simulator::{
 };
 
 use embedded_graphics::{
-    fonts::{Font6x8, Text},
+    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
-    style::PrimitiveStyle,
+    primitives::PrimitiveStyle,
+    text::Text,
 };
 use embedded_text::{prelude::*, style::vertical_overdraw::*};
 use sdl2::keyboard::Keycode;
@@ -78,8 +79,13 @@ where
         // * Draw the text horizontally left aligned (default option, not specified here).
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         // * Use the height mode that was given to the `demo_loop()` function.
-        let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+        let character_style = MonoTextStyleBuilder::new()
+            .font(Font6x9)
             .text_color(BinaryColor::On)
+            .build();
+
+        let textbox_style = TextBoxStyleBuilder::new()
+            .character_style(character_style)
             .height_mode(height_mode)
             .build();
 
@@ -100,7 +106,7 @@ where
         // Display the name of the height mode above the text box.
         let height_text = format!("Mode: {:?}", height_mode);
         Text::new(&height_text, Point::new(0, 6))
-            .into_styled(textbox_style.text_style)
+            .into_styled(character_style)
             .draw(&mut display)
             .unwrap();
 
@@ -111,7 +117,12 @@ where
         for event in window.events() {
             match ProcessedEvent::new(event) {
                 ProcessedEvent::Resize(bottom_right) => {
-                    *bounds = Rectangle::with_corners(bounds.top_left, bottom_right);
+                    // Make sure we don't move the text box
+                    let new_bottom_right = Point::new(
+                        bottom_right.x.max(bounds.top_left.x),
+                        bottom_right.y.max(bounds.top_left.y),
+                    );
+                    *bounds = Rectangle::with_corners(bounds.top_left, new_bottom_right);
                 }
                 ProcessedEvent::Quit => return false,
                 ProcessedEvent::Next => return true,

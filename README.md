@@ -37,7 +37,7 @@ The examples are based on [the embedded-graphics simulator]. The simulator is bu
 
 ```rust
 use embedded_graphics::{
-    fonts::Font6x8, pixelcolor::BinaryColor, prelude::*, primitives::Rectangle,
+    mono_font::{ascii::Font6x9, MonoTextStyleBuilder}, pixelcolor::BinaryColor, prelude::*,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -51,24 +51,28 @@ fn main() {
     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 
     // Specify the styling options:
-    // * Use the 6x8 font from embedded-graphics.
+    // * Use the 6x9 monospace Font from embedded-graphics.
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let textbox_style = TextBoxStyleBuilder::new(Font6x8)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(Font6x9)
         .text_color(BinaryColor::On)
+        .build();
+    let textbox_style = TextBoxStyleBuilder::new()
+        .character_style(character_style)
         .height_mode(FitToText)
         .build();
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
     // measure and adjust the height of the text box in `into_styled()`.
-    let bounds = Rectangle::new(Point::zero(), Point::new(128, 0));
+    let bounds = Rectangle::new(Point::zero(), Size::new(128, 0));
 
     // Create the text box and apply styling options.
     let text_box = TextBox::new(text, bounds).into_styled(textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
-    let mut display = SimulatorDisplay::new(text_box.size());
+    let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
 
     // Draw the text box.
     text_box.draw(&mut display).unwrap();
@@ -92,7 +96,7 @@ fn main() {
 ## Development setup
 
 ### Minimum supported Rust version
-The minimum supported Rust version for embedded-text is 1.41.0 or greater. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
+The minimum supported Rust version for embedded-text is 1.43.0 or greater. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
 
 ### Installation
 
