@@ -30,6 +30,8 @@ Unreleased
 ## Added
 
  * `TextBoxStyleBuilder` now implements `Default`
+ * `StyledTextBox::draw()` now returns unconsumed text.
+ * Added `interactive_columns` example to show flowing text into multiple columns.
 
 0.4.0 (2020-11-26)
 ==================

@@ -33,10 +33,13 @@ where
     H: HeightMode,
 {
     type Color = <F as CharacterStyle>::Color;
-    type Output = ();
+    type Output = &'a str;
 
     #[inline]
-    fn draw<D: DrawTarget<Color = Self::Color>>(&self, display: &mut D) -> Result<(), D::Error> {
+    fn draw<D: DrawTarget<Color = Self::Color>>(
+        &self,
+        display: &mut D,
+    ) -> Result<&'a str, D::Error> {
         let mut cursor = Cursor::new(
             self.text_box.bounds,
             self.style.character_style.line_height(),
@@ -52,10 +55,27 @@ where
             carried_token: None,
         };
 
+        let mut anything_drawn = false;
         while !state.is_finished() {
             let line_cursor = cursor.line();
             let display_range = H::calculate_displayed_row_range(&cursor);
             let display_size = Size::new(cursor.line_width(), display_range.clone().count() as u32);
+
+            if display_range.start == display_range.end {
+                if anything_drawn {
+                    let carried_bytes = if let Some(Token::Word(word)) = state.carried_token {
+                        word.len()
+                    } else {
+                        0
+                    };
+
+                    let remaining_bytes = state.parser.as_str().len();
+                    let consumed_bytes = self.text_box.text.len() - remaining_bytes - carried_bytes;
+                    return Ok(self.text_box.text.get(consumed_bytes..).unwrap());
+                }
+            } else {
+                anything_drawn = true;
+            }
 
             // FIXME: cropping isn't necessary for whole lines, but make sure not to blow up the
             // binary size as well.
@@ -70,7 +90,7 @@ where
             }
         }
 
-        Ok(())
+        Ok("")
     }
 }
 
