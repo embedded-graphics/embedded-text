@@ -75,11 +75,11 @@ mod test {
             .alignment(RightAligned)
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "O\rX",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 3, 1)),
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 

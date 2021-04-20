@@ -9,7 +9,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
     style::{color::Rgb, vertical_overdraw::VerticalOverdraw},
-    StyledTextBox,
+    TextBox,
 };
 use core::ops::Range;
 use embedded_graphics::{
@@ -21,13 +21,10 @@ use embedded_graphics::{
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
 pub trait HeightMode: Copy {
-    /// Apply the height mode to the textbox
+    /// Apply the height mode to the textbox.
     ///
-    /// *Note:* This function is used by [`TextBox::into_styled`] and normally does not need to be
-    /// called manually.
-    ///
-    /// [`TextBox::into_styled`]: ../../struct.TextBox.html#method.into_styled
-    fn apply<F, A, V, H>(text_box: &mut StyledTextBox<'_, F, A, V, H>)
+    /// *Note:* This function normally does not need to be called manually.
+    fn apply<F, A, V, H>(text_box: &mut TextBox<'_, F, A, V, H>)
     where
         F: TextRenderer + CharacterStyle,
         <F as CharacterStyle>::Color: From<Rgb>,
@@ -66,14 +63,15 @@ pub trait HeightMode: Copy {
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 60px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     style,
 /// );
 ///
 /// // Exact does not change the size of the TextBox
 /// let orig_size = text_box.bounding_box().size;
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, orig_size);
 /// ```
 ///
@@ -86,7 +84,7 @@ where
     OV: VerticalOverdraw,
 {
     #[inline]
-    fn apply<F, A, V, H>(_text_box: &mut StyledTextBox<'_, F, A, V, H>)
+    fn apply<F, A, V, H>(_text_box: &mut TextBox<'_, F, A, V, H>)
     where
         F: TextRenderer + CharacterStyle,
         <F as CharacterStyle>::Color: From<Rgb>,
@@ -129,13 +127,14 @@ where
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
+///     style,
 /// );
 ///
 /// // FitToText grows the TextBox to the height of the text
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, Size::new(60, 18));
 /// ```
 ///
@@ -161,13 +160,14 @@ where
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     style,
 /// );
 ///
 /// // FitToText shrinks the TextBox to the height of the text
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, Size::new(60, 18));
 /// ```
 ///
@@ -178,7 +178,7 @@ pub struct FitToText;
 
 impl HeightMode for FitToText {
     #[inline]
-    fn apply<F, A, V, H>(text_box: &mut StyledTextBox<'_, F, A, V, H>)
+    fn apply<F, A, V, H>(text_box: &mut TextBox<'_, F, A, V, H>)
     where
         F: TextRenderer + CharacterStyle,
         <F as CharacterStyle>::Color: From<Rgb>,
@@ -222,12 +222,13 @@ impl HeightMode for FitToText {
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
+///     style,
 /// );
 ///
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, Size::new(60, 0));
 /// ```
 ///
@@ -253,12 +254,13 @@ impl HeightMode for FitToText {
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 60px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     style,
 /// );
 ///
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, Size::new(60, 18));
 /// ```
 ///
@@ -271,7 +273,7 @@ where
     OV: VerticalOverdraw,
 {
     #[inline]
-    fn apply<F, A, V, H>(text_box: &mut StyledTextBox<'_, F, A, V, H>)
+    fn apply<F, A, V, H>(text_box: &mut TextBox<'_, F, A, V, H>)
     where
         F: TextRenderer + CharacterStyle,
         <F as CharacterStyle>::Color: From<Rgb>,

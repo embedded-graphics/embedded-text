@@ -74,11 +74,11 @@ mod test {
             .alignment(LeftAligned)
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "O\rX",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1)),
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
@@ -167,11 +167,11 @@ mod test {
             .line_spacing(2)
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "wrapping word",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 8, 3)),
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
@@ -216,11 +216,11 @@ mod test {
             .line_spacing(-2)
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "wrapping word",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 8, 2)),
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 

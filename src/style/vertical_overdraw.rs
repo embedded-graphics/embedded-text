@@ -78,11 +78,11 @@ mod test {
             .alignment(LeftAligned)
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "word and other words",
             Rectangle::new(Point::zero(), Size::new(55, 15)),
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
@@ -119,10 +119,13 @@ mod test {
             .build();
 
         // Drawing at Point(0, 3) so we don't draw outside the display due to vertical centering.
-        TextBox::new("word", Rectangle::new(Point::new(0, 3), Size::new(55, 3)))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            "word",
+            Rectangle::new(Point::new(0, 3), Size::new(55, 3)),
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             "........................",
@@ -156,10 +159,13 @@ mod test {
             .height_mode(Exact(Hidden))
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 4)))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            "word",
+            Rectangle::new(Point::zero(), Size::new(55, 4)),
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             "......................#.",

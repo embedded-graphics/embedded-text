@@ -31,14 +31,26 @@ fn main() {
     let underlined_style = base_style.underline().build();
     let strikethrough_style = base_style.strikethrough().build();
 
-    let underlined_tb_style = base_tb_style.character_style(underlined_style).build();
-    let strikethrough_tb_style = base_tb_style.character_style(strikethrough_style).build();
+    let underlined_tb_style = base_tb_style
+        .clone()
+        .character_style(underlined_style)
+        .build();
+    let strikethrough_tb_style = base_tb_style
+        .clone()
+        .character_style(strikethrough_style)
+        .build();
 
-    let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Size::new(97, 0)))
-        .into_styled(underlined_tb_style);
+    let text_box = TextBox::with_textbox_style(
+        text,
+        Rectangle::new(Point::zero(), Size::new(97, 0)),
+        underlined_tb_style,
+    );
 
-    let text_box2 = TextBox::new(text, Rectangle::new(Point::new(96, 0), Size::new(97, 0)))
-        .into_styled(strikethrough_tb_style);
+    let text_box2 = TextBox::with_textbox_style(
+        text,
+        Rectangle::new(Point::new(96, 0), Size::new(97, 0)),
+        strikethrough_tb_style,
+    );
 
     // Create a window for both text boxes.
     let mut display = SimulatorDisplay::new(Size::new(

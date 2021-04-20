@@ -3,7 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
     style::{color::Rgb, height_mode::HeightMode, LineMeasurement},
-    StyledTextBox,
+    TextBox,
 };
 
 use embedded_graphics::{
@@ -36,7 +36,7 @@ impl VerticalTextAlignment for CenterAligned {
     #[inline]
     fn apply_vertical_alignment<'a, F, A, H>(
         cursor: &mut Cursor,
-        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, F, A, Self, H>,
     ) where
         F: TextRenderer + CharacterStyle,
         <F as CharacterStyle>::Color: From<Rgb>,
@@ -45,7 +45,7 @@ impl VerticalTextAlignment for CenterAligned {
     {
         let text_height = styled_text_box
             .style
-            .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
+            .measure_text_height(styled_text_box.text, cursor.line_width())
             as i32;
 
         let box_height = styled_text_box.bounding_box().size.height as i32;
@@ -106,11 +106,11 @@ mod test_horizontal {
             .alignment(CenterAligned)
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "O\rX",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 3, 1)),
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
@@ -281,8 +281,7 @@ mod test_vertical {
             .vertical_alignment(CenterAligned)
             .build();
 
-        TextBox::new(text, Rectangle::new(Point::zero(), size))
-            .into_styled(style)
+        TextBox::with_textbox_style(text, Rectangle::new(Point::zero(), size), style)
             .draw(&mut display)
             .unwrap();
 

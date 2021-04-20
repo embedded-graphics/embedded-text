@@ -44,7 +44,7 @@ fn main() {
     let bounds = Rectangle::new(Point::zero(), Size::new(180, 0));
 
     // Create the text box and apply styling options.
-    let text_box = TextBox::new(text, bounds).into_styled(textbox_style);
+    let text_box = TextBox::with_textbox_style(text, bounds, textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
     let mut display = SimulatorDisplay::new(text_box.bounding_box().size);

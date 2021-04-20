@@ -67,7 +67,7 @@
 //!     let bounds = Rectangle::new(Point::zero(), Size::new(128, 0));
 //!
 //!     // Create the text box and apply styling options.
-//!     let text_box = TextBox::new(text, bounds).into_styled(textbox_style);
+//!     let text_box = TextBox::with_textbox_style(text, bounds, textbox_style);
 //!
 //!     // Create a simulated display with the dimensions of the text box.
 //!     let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
@@ -114,8 +114,9 @@ pub mod style;
 mod utils;
 
 use crate::{
-    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
+    alignment::HorizontalTextAlignment,
+    prelude::{Exact, HeightMode, LeftAligned, TopAligned, VerticalTextAlignment},
+    style::{color::Rgb, vertical_overdraw::FullRowsOnly, TextBoxStyle, TextBoxStyleBuilder},
 };
 use embedded_graphics::{
     geometry::{Dimensions, Point},
@@ -136,7 +137,7 @@ pub mod prelude {
             height_mode::{Exact, FitToText, HeightMode, ShrinkToText},
             TabSize, TextBoxStyle, TextBoxStyleBuilder,
         },
-        StyledTextBox, TextBox,
+        TextBox,
     };
 
     #[doc(no_inline)]
@@ -148,9 +149,7 @@ pub mod prelude {
 /// The `TextBox` struct represents a piece of text that can be drawn on a display inside the given
 /// bounding box.
 ///
-/// The struct only contains the text and the bounding box, no additional information. To draw
-/// a `TextBox` it is necessary to attach a [`TextBoxStyle`] to it using the [`into_styled`] method
-/// to create a [`StyledTextBox`] object.
+/// Use the [`draw`] method to draw the textbox on a display.
 ///
 /// See the [module-level documentation] for more information.
 ///
@@ -158,95 +157,84 @@ pub mod prelude {
 /// [`StyledTextBox`]: struct.StyledTextBox.html
 /// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
 /// [module-level documentation]: index.html
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct TextBox<'a> {
+/// [`draw`]: #method.draw
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct TextBox<'a, S, A, V, H>
+where
+    S: Clone,
+{
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
 
     /// The bounding box of this `TextBox`
     pub bounds: Rectangle,
+
+    /// The style of the [`TextBox`].
+    pub style: TextBoxStyle<S, A, V, H>,
 }
 
-impl<'a> TextBox<'a> {
+impl<'a, S, A, V, H> TextBox<'a, S, A, V, H>
+where
+    S: TextRenderer + CharacterStyle,
+    <S as CharacterStyle>::Color: From<Rgb>,
+    A: HorizontalTextAlignment,
+    V: VerticalTextAlignment,
+    H: HeightMode,
+{
     /// Creates a new `TextBox` instance with a given bounding `Rectangle`.
     #[inline]
     #[must_use]
-    pub fn new(text: &'a str, bounds: Rectangle) -> Self {
-        Self { text, bounds }
+    pub fn new(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+    ) -> TextBox<S, LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+        let mut styled = TextBox {
+            text,
+            bounds,
+            style: TextBoxStyleBuilder::new()
+                .character_style(character_style)
+                .build(),
+        };
+
+        H::apply(&mut styled);
+
+        styled
     }
 
-    /// Creates a [`StyledTextBox`] by attaching a [`TextBoxStyle`] to the `TextBox` object.
-    ///
-    /// By default, the size of the [`StyledTextBox`] is equal to the size of the [`TextBox`]. Use
-    /// [`HeightMode`] options to change this.
-    ///
-    /// # Example:
-    ///
-    /// In this example, we make a [`TextBox`] and give it all our available space as size.
-    /// We create a [`TextBoxStyle`] object to set how our [`TextBox`] should be drawn.
-    ///  * Set the 6x8 MonoFont
-    ///  * Set the text color to `BinaryColor::On`
-    ///  * Leave the background color transparent
-    ///  * Leave text alignment top/left
-    ///  * Set [`ShrinkToText`] [`HeightMode`] to shrink the [`TextBox`] when possible.
-    ///
-    /// ```rust
-    /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
-    /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
-    ///     pixelcolor::BinaryColor,
-    ///     prelude::*,
-    /// };
-    ///
-    /// let character_style = MonoTextStyleBuilder::new()
-    ///     .font(&FONT_6X9)
-    ///     .text_color(BinaryColor::On)
-    ///     .build();
-    /// let style = TextBoxStyleBuilder::new()
-    ///     .character_style(character_style)
-    ///     .height_mode(ShrinkToText(FullRowsOnly))
-    ///     .build();
-    /// let text_box = TextBox::new(
-    ///     "Two lines\nof text",
-    ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
-    /// );
-    ///
-    /// let styled_text_box = text_box.into_styled(style);
-    /// assert_eq!(18, styled_text_box.bounding_box().size.height);
-    /// ```
-    ///
-    /// [`HeightMode`]: style/height_mode/trait.HeightMode.html
-    /// [`ShrinkToText`]: style/height_mode/struct.ShrinkToText.html
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
     #[must_use]
-    pub fn into_styled<F, A, V, H>(
-        self,
-        style: TextBoxStyle<F, A, V, H>,
-    ) -> StyledTextBox<'a, F, A, V, H>
-    where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
-        A: HorizontalTextAlignment,
-        V: VerticalTextAlignment,
-        H: HeightMode,
-    {
-        let mut styled = StyledTextBox {
-            text_box: self,
-            style,
+    pub fn with_textbox_style(
+        text: &'a str,
+        bounds: Rectangle,
+        textbox_style: TextBoxStyle<S, A, V, H>,
+    ) -> Self {
+        let mut styled = TextBox {
+            text,
+            bounds,
+            style: textbox_style,
         };
+
         H::apply(&mut styled);
 
         styled
     }
 }
 
-impl Transform for TextBox<'_> {
+impl<S, A, V, H> Transform for TextBox<'_, S, A, V, H>
+where
+    S: Clone,
+    A: Clone,
+    V: Clone,
+    H: Clone,
+{
     #[inline]
     #[must_use]
     fn translate(&self, by: Point) -> Self {
         Self {
             bounds: self.bounds.translate(by),
-            ..*self
+            ..self.clone()
         }
     }
 
@@ -258,7 +246,10 @@ impl Transform for TextBox<'_> {
     }
 }
 
-impl Dimensions for TextBox<'_> {
+impl<S, A, V, H> Dimensions for TextBox<'_, S, A, V, H>
+where
+    S: Clone,
+{
     #[inline]
     #[must_use]
     fn bounding_box(&self) -> Rectangle {
@@ -266,29 +257,7 @@ impl Dimensions for TextBox<'_> {
     }
 }
 
-/// A styled [`TextBox`] struct.
-///
-/// This structure is constructed by calling the [`into_styled`] method of a [`TextBox`] object.
-/// Use the [`draw`] method to draw the textbox on a display.
-///
-/// [`TextBox`]: struct.TextBox.html
-/// [`into_styled`]: struct.TextBox.html#method.into_styled
-/// [`draw`]: #method.draw
-#[derive(Copy, Clone, Debug)]
-pub struct StyledTextBox<'a, F, A, V, H>
-where
-    F: TextRenderer,
-{
-    /// A [`TextBox`] that has an associated [`TextBoxStyle`].
-    ///
-    /// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
-    pub text_box: TextBox<'a>,
-
-    /// The style of the [`TextBox`].
-    pub style: TextBoxStyle<F, A, V, H>,
-}
-
-impl<F, A, V, H> StyledTextBox<'_, F, A, V, H>
+impl<F, A, V, H> TextBox<'_, F, A, V, H>
 where
     F: TextRenderer + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
@@ -309,48 +278,13 @@ where
         // Measure text given the width of the textbox
         let text_height = self
             .style
-            .measure_text_height(self.text_box.text, self.text_box.bounding_box().size.width)
+            .measure_text_height(self.text, self.bounding_box().size.width)
             .min(max_height)
             .min(i32::max_value() as u32);
 
         // Apply height
-        self.text_box.bounds.size.height = text_height;
+        self.bounds.size.height = text_height;
 
         self
-    }
-}
-
-impl<F, A, V, H> Transform for StyledTextBox<'_, F, A, V, H>
-where
-    F: TextRenderer + Clone,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-{
-    #[inline]
-    #[must_use]
-    fn translate(&self, by: Point) -> Self {
-        Self {
-            text_box: self.text_box.translate(by),
-            style: self.style.clone(),
-        }
-    }
-
-    #[inline]
-    fn translate_mut(&mut self, by: Point) -> &mut Self {
-        self.text_box.bounds.translate_mut(by);
-
-        self
-    }
-}
-
-impl<F, A, V, H> Dimensions for StyledTextBox<'_, F, A, V, H>
-where
-    F: TextRenderer,
-{
-    #[inline]
-    #[must_use]
-    fn bounding_box(&self) -> Rectangle {
-        self.text_box.bounds
     }
 }

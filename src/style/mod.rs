@@ -208,7 +208,7 @@ impl TabSize {
 }
 
 /// Placeholder character style that needs to be changed in order to draw a `StyledTextBox`.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct UndefinedCharacterStyle;
 
 /// Styling options of a [`TextBox`].
@@ -227,10 +227,13 @@ pub struct UndefinedCharacterStyle;
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct TextBoxStyle<F, A, V, H> {
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub struct TextBoxStyle<S, A, V, H>
+where
+    S: Clone,
+{
     /// Character style used to measure and draw text.
-    pub character_style: F,
+    pub character_style: S,
 
     /// Horizontal text alignment.
     pub alignment: A,

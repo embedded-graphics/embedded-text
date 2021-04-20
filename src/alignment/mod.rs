@@ -2,7 +2,7 @@
 use crate::{
     rendering::{cursor::Cursor, space_config::SpaceConfig},
     style::{color::Rgb, height_mode::HeightMode, LineMeasurement},
-    StyledTextBox,
+    TextBox,
 };
 use embedded_graphics::text::renderer::{CharacterStyle, TextRenderer};
 
@@ -45,7 +45,7 @@ pub trait VerticalTextAlignment: Copy {
     /// Set the cursor's initial vertical position
     fn apply_vertical_alignment<'a, F, A, H>(
         cursor: &mut Cursor,
-        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, F, A, Self, H>,
     ) where
         F: TextRenderer + CharacterStyle,
         <F as CharacterStyle>::Color: From<Rgb>,

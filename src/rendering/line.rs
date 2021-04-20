@@ -24,19 +24,28 @@ use super::{line_iter::ElementHandler, space_config::UniformSpaceConfig};
 
 /// Render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineRenderer<'a, F, A, V, H> {
+pub struct StyledLineRenderer<'a, S, A, V, H>
+where
+    S: Clone,
+{
     cursor: LineCursor,
-    state: LineRenderState<'a, F, A, V, H>,
+    state: LineRenderState<'a, S, A, V, H>,
 }
 
 #[derive(Debug, Clone)]
-pub struct LineRenderState<'a, F, A, V, H> {
+pub struct LineRenderState<'a, S, A, V, H>
+where
+    S: Clone,
+{
     pub parser: Parser<'a>,
-    pub style: TextBoxStyle<F, A, V, H>,
+    pub style: TextBoxStyle<S, A, V, H>,
     pub carried_token: Option<Token<'a>>,
 }
 
-impl<F, A, V, H> LineRenderState<'_, F, A, V, H> {
+impl<S, A, V, H> LineRenderState<'_, S, A, V, H>
+where
+    S: Clone,
+{
     pub fn is_finished(&self) -> bool {
         self.carried_token.is_none() && self.parser.is_empty()
     }

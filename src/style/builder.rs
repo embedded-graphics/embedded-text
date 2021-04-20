@@ -12,9 +12,12 @@ use embedded_graphics::text::renderer::TextRenderer;
 /// [`TextBoxStyle`] builder object.
 ///
 /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct TextBoxStyleBuilder<F, A, V, H> {
-    text_box_style: TextBoxStyle<F, A, V, H>,
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub struct TextBoxStyleBuilder<S, A, V, H>
+where
+    S: Clone,
+{
+    text_box_style: TextBoxStyle<S, A, V, H>,
 }
 
 impl Default
@@ -54,6 +57,7 @@ impl TextBoxStyleBuilder<UndefinedCharacterStyle, LeftAligned, TopAligned, Exact
 
 impl<F, A, V, H> TextBoxStyleBuilder<F, A, V, H>
 where
+    F: Clone,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -95,10 +99,10 @@ where
     /// Sets the character style.
     #[inline]
     #[must_use]
-    pub fn character_style<CS: TextRenderer>(
-        self,
-        character_style: CS,
-    ) -> TextBoxStyleBuilder<CS, A, V, H> {
+    pub fn character_style<CS>(self, character_style: CS) -> TextBoxStyleBuilder<CS, A, V, H>
+    where
+        CS: TextRenderer + Clone,
+    {
         TextBoxStyleBuilder {
             text_box_style: TextBoxStyle {
                 character_style,
@@ -180,7 +184,7 @@ where
 
 impl<F, A, V, H> TextBoxStyleBuilder<F, A, V, H>
 where
-    F: TextRenderer,
+    F: TextRenderer + Clone,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,

@@ -8,7 +8,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
     style::{color::Rgb, height_mode::HeightMode},
-    StyledTextBox,
+    TextBox,
 };
 
 /// Align text to the bottom of the TextBox.
@@ -19,7 +19,7 @@ impl VerticalTextAlignment for BottomAligned {
     #[inline]
     fn apply_vertical_alignment<'a, F, A, H>(
         cursor: &mut Cursor,
-        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, F, A, Self, H>,
     ) where
         F: TextRenderer + CharacterStyle,
         <F as CharacterStyle>::Color: From<Rgb>,
@@ -28,7 +28,7 @@ impl VerticalTextAlignment for BottomAligned {
     {
         let text_height = styled_text_box
             .style
-            .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
+            .measure_text_height(styled_text_box.text, cursor.line_width())
             as i32;
 
         let box_height = styled_text_box.bounding_box().size.height as i32;
@@ -69,8 +69,7 @@ mod test {
             .vertical_alignment(BottomAligned)
             .build();
 
-        TextBox::new(text, Rectangle::new(Point::zero(), size))
-            .into_styled(style)
+        TextBox::with_textbox_style(text, Rectangle::new(Point::zero(), size), style)
             .draw(&mut display)
             .unwrap();
 
@@ -151,11 +150,11 @@ mod test {
             .line_spacing(2)
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "word1 word2 word3 word4",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 2)),
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 

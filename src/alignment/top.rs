@@ -3,7 +3,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
     style::height_mode::HeightMode,
-    StyledTextBox,
+    TextBox,
 };
 use embedded_graphics::text::renderer::TextRenderer;
 
@@ -15,9 +15,9 @@ impl VerticalTextAlignment for TopAligned {
     #[inline]
     fn apply_vertical_alignment<'a, F, A, H>(
         _cursor: &mut Cursor,
-        _styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
+        _styled_text_box: &'a TextBox<'a, F, A, Self, H>,
     ) where
-        F: TextRenderer,
+        F: TextRenderer + Clone,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
@@ -52,10 +52,13 @@ mod test {
             .vertical_alignment(TopAligned)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 16)))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            "word",
+            Rectangle::new(Point::zero(), Size::new(55, 16)),
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             "........................",

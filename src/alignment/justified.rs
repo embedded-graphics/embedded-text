@@ -137,11 +137,11 @@ mod test {
             .alignment(Justified)
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "O\rX",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1)),
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 

@@ -28,21 +28,18 @@ fn main() {
     let bounds_center = Rectangle::new(Point::new(64, 0), Size::new(64, 129));
     let bounds_bottom = Rectangle::new(Point::new(128, 0), Size::new(64, 129));
 
-    let textbox_style_top = base_style.vertical_alignment(TopAligned).build();
-    TextBox::new(text, bounds_top)
-        .into_styled(textbox_style_top)
+    let textbox_style_top = base_style.clone().vertical_alignment(TopAligned).build();
+    TextBox::with_textbox_style(text, bounds_top, textbox_style_top)
         .draw(&mut display)
         .unwrap();
 
-    let textbox_style_center = base_style.vertical_alignment(CenterAligned).build();
-    TextBox::new(text, bounds_center)
-        .into_styled(textbox_style_center)
+    let textbox_style_center = base_style.clone().vertical_alignment(CenterAligned).build();
+    TextBox::with_textbox_style(text, bounds_center, textbox_style_center)
         .draw(&mut display)
         .unwrap();
 
-    let textbox_style_bottom = base_style.vertical_alignment(BottomAligned).build();
-    TextBox::new(text, bounds_bottom)
-        .into_styled(textbox_style_bottom)
+    let textbox_style_bottom = base_style.clone().vertical_alignment(BottomAligned).build();
+    TextBox::with_textbox_style(text, bounds_bottom, textbox_style_bottom)
         .draw(&mut display)
         .unwrap();
 

@@ -14,7 +14,7 @@ use crate::{
         line::{LineRenderState, StyledLineRenderer},
     },
     style::{color::Rgb, height_mode::HeightMode},
-    StyledTextBox,
+    TextBox,
 };
 use embedded_graphics::{
     draw_target::{DrawTarget, DrawTargetExt},
@@ -24,7 +24,7 @@ use embedded_graphics::{
     Drawable,
 };
 
-impl<'a, F, A, V, H> Drawable for StyledTextBox<'a, F, A, V, H>
+impl<'a, F, A, V, H> Drawable for TextBox<'a, F, A, V, H>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
     <F as CharacterStyle>::Color: From<Rgb>,
@@ -41,7 +41,7 @@ where
         display: &mut D,
     ) -> Result<&'a str, D::Error> {
         let mut cursor = Cursor::new(
-            self.text_box.bounds,
+            self.bounds,
             self.style.character_style.line_height(),
             self.style.line_spacing,
             self.style.tab_size.into_pixels(&self.style.character_style),
@@ -51,7 +51,7 @@ where
 
         let mut state = LineRenderState {
             style: self.style.clone(),
-            parser: Parser::parse(self.text_box.text),
+            parser: Parser::parse(self.text),
             carried_token: None,
         };
 
@@ -70,8 +70,8 @@ where
                     };
 
                     let remaining_bytes = state.parser.as_str().len();
-                    let consumed_bytes = self.text_box.text.len() - remaining_bytes - carried_bytes;
-                    return Ok(self.text_box.text.get(consumed_bytes..).unwrap());
+                    let consumed_bytes = self.text.len() - remaining_bytes - carried_bytes;
+                    return Ok(self.text.get(consumed_bytes..).unwrap());
                 }
             } else {
                 anything_drawn = true;
@@ -130,8 +130,7 @@ pub mod test {
             .alignment(alignment)
             .build();
 
-        TextBox::new(text, Rectangle::new(Point::zero(), size))
-            .into_styled(style)
+        TextBox::with_textbox_style(text, Rectangle::new(Point::zero(), size), style)
             .draw(&mut display)
             .unwrap();
 
