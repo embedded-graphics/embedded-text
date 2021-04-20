@@ -1,7 +1,7 @@
 //! This example demonstrates text styling using in-line ANSI escape sequences.
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::Rgb888,
     prelude::*,
 };
@@ -39,7 +39,7 @@ fn main() {
     // * Draw the text with black, which will be overridden by in-line styling.
     // * Use 2px line spacing because we'll draw underlines.
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x10)
+        .font(&FONT_6X10)
         .text_color(Rgb888::BLACK)
         .build();
 

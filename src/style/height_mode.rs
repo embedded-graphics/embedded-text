@@ -14,7 +14,7 @@ use crate::{
 use core::ops::Range;
 use embedded_graphics::{
     geometry::Dimensions,
-    text::{CharacterStyle, TextRenderer},
+    text::renderer::{CharacterStyle, TextRenderer},
 };
 
 /// Specifies how the [`TextBox`]'s height is adjusted when it is turned into a [`StyledTextBox`].
@@ -50,13 +50,13 @@ pub trait HeightMode: Copy {
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
@@ -112,13 +112,13 @@ where
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
@@ -144,13 +144,13 @@ where
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
@@ -205,13 +205,13 @@ impl HeightMode for FitToText {
 /// ```rust
 /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
@@ -236,13 +236,13 @@ impl HeightMode for FitToText {
 /// ```rust
 /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///

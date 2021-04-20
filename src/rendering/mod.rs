@@ -20,7 +20,7 @@ use embedded_graphics::{
     draw_target::{DrawTarget, DrawTargetExt},
     prelude::{Point, Size},
     primitives::Rectangle,
-    text::{CharacterStyle, TextRenderer},
+    text::renderer::{CharacterStyle, TextRenderer},
     Drawable,
 };
 
@@ -98,7 +98,7 @@ where
 pub mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
@@ -120,7 +120,7 @@ pub mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -143,7 +143,7 @@ pub mod test {
         assert_rendered(
             LeftAligned,
             "a b c\u{a0}d e f",
-            size_for(Font6x9, 5, 3),
+            size_for(&FONT_6X9, 5, 3),
             &[
                 "..................            ",
                 ".............#....            ",

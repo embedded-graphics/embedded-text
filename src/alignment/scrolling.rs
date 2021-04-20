@@ -7,7 +7,7 @@ use crate::{
 };
 use embedded_graphics::{
     geometry::Dimensions,
-    text::{CharacterStyle, TextRenderer},
+    text::renderer::{CharacterStyle, TextRenderer},
 };
 
 /// Align text to the TextBox so that the last lines are always displayed.
@@ -47,7 +47,7 @@ impl VerticalTextAlignment for Scrolling {
 mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
@@ -64,7 +64,7 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -86,7 +86,7 @@ mod test {
     fn scrolling_behaves_as_top_if_lines_dont_overflow() {
         assert_rendered(
             "word",
-            size_for(Font6x9, 4, 2),
+            size_for(&FONT_6X9, 4, 2),
             &[
                 "........................",
                 "......................#.",
@@ -114,7 +114,7 @@ mod test {
     fn scrolling_behaves_as_bottom_if_lines_overflow() {
         assert_rendered(
             "word word2 word3 word4",
-            size_for(Font6x9, 5, 2),
+            size_for(&FONT_6X9, 5, 2),
             &[
                 "..............................",
                 "......................#..####.",
@@ -142,7 +142,7 @@ mod test {
     fn scrolling_applies_full_rows_vertical_overflow() {
         assert_rendered(
             "word word2 word3 word4",
-            size_for(Font6x9, 5, 2) - Size::new(0, 5),
+            size_for(&FONT_6X9, 5, 2) - Size::new(0, 5),
             &[
                 "                              ",
                 "                              ",
@@ -166,7 +166,7 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -179,7 +179,7 @@ mod test {
 
         TextBox::new(
             "word word2 word3 word4",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 5, 2) - Size::new(0, 5)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 2) - Size::new(0, 5)),
         )
         .into_styled(style)
         .draw(&mut display)

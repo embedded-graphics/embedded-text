@@ -3,7 +3,7 @@ use crate::{
     alignment::HorizontalTextAlignment, rendering::space_config::UniformSpaceConfig,
     style::LineMeasurement,
 };
-use embedded_graphics::text::TextRenderer;
+use embedded_graphics::text::renderer::TextRenderer;
 
 /// Marks text to be rendered left aligned.
 #[derive(Copy, Clone, Debug)]
@@ -28,7 +28,7 @@ mod test {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
         Drawable,
@@ -44,7 +44,7 @@ mod test {
         assert_rendered(
             LeftAligned,
             "word",
-            size_for(Font6x9, 6, 1),
+            size_for(&FONT_6X9, 6, 1),
             &[
                 "........................",
                 "......................#.",
@@ -65,7 +65,7 @@ mod test {
         display.set_allow_overdraw(true);
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -76,7 +76,7 @@ mod test {
 
         TextBox::new(
             "O\rX",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 1, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -98,7 +98,7 @@ mod test {
         assert_rendered(
             LeftAligned,
             " word wrapping",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "..............................                  ",
                 "............................#.                  ",
@@ -127,7 +127,7 @@ mod test {
         assert_rendered(
             LeftAligned,
             "wrapping word",
-            size_for(Font6x9, 8, 2),
+            size_for(&FONT_6X9, 8, 2),
             &[
                 "................................................",
                 "................................#...............",
@@ -156,7 +156,7 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -169,7 +169,7 @@ mod test {
 
         TextBox::new(
             "wrapping word",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 8, 3)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 8, 3)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -205,7 +205,7 @@ mod test {
         display.set_allow_overdraw(true);
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -218,7 +218,7 @@ mod test {
 
         TextBox::new(
             "wrapping word",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 8, 2)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 8, 2)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -249,7 +249,7 @@ mod test {
         assert_rendered(
             LeftAligned,
             "word  wrap",
-            size_for(Font6x9, 6, 2),
+            size_for(&FONT_6X9, 6, 2),
             &[
                 "........................",
                 "......................#.",
@@ -278,7 +278,7 @@ mod test {
         assert_rendered(
             LeftAligned,
             "word  somereallylongword",
-            size_for(Font6x9, 9, 3),
+            size_for(&FONT_6X9, 9, 3),
             &[
                 "........................                              ",
                 "......................#.                              ",
@@ -316,7 +316,7 @@ mod test {
         assert_rendered(
             LeftAligned,
             "somereallylongword",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "......................................................",
                 "...........................................##....##...",
@@ -345,7 +345,7 @@ mod test {
         assert_rendered(
             LeftAligned,
             "soft\u{AD}hyphen",
-            size_for(Font6x9, 6, 2),
+            size_for(&FONT_6X9, 6, 2),
             &[
                 "..............................      ",
                 "...............#....#.........      ",

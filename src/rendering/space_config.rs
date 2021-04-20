@@ -1,6 +1,6 @@
 //! Space rendering config
 
-use embedded_graphics::text::TextRenderer;
+use embedded_graphics::text::renderer::TextRenderer;
 
 use crate::utils::str_width;
 

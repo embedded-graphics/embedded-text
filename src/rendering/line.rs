@@ -11,7 +11,10 @@ use crate::{
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
-    text::{CharacterStyle, TextRenderer},
+    text::{
+        renderer::{CharacterStyle, TextRenderer},
+        Baseline,
+    },
     Drawable,
 };
 
@@ -71,12 +74,16 @@ where
     }
 
     fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
-        self.pos = self.style.draw_whitespace(width, self.pos, self.display)?;
+        self.pos =
+            self.style
+                .draw_whitespace(width, self.pos, Baseline::Alphabetic, self.display)?;
         Ok(())
     }
 
     fn printed_characters(&mut self, st: &str, _: u32) -> Result<(), Self::Error> {
-        self.pos = self.style.draw_string(st, self.pos, self.display)?;
+        self.pos = self
+            .style
+            .draw_string(st, self.pos, Baseline::Alphabetic, self.display)?;
         Ok(())
     }
 
@@ -249,10 +256,10 @@ mod test {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
-        text::{CharacterStyle, TextRenderer},
+        text::renderer::{CharacterStyle, TextRenderer},
         Drawable,
     };
 
@@ -292,7 +299,7 @@ mod test {
     #[test]
     fn simple_render() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -303,7 +310,7 @@ mod test {
 
         test_rendered_text(
             "Some sample text",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 7, 1)),
             style,
             &[
                 "........................",
@@ -322,7 +329,7 @@ mod test {
     #[test]
     fn simple_render_nbsp() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -333,7 +340,7 @@ mod test {
 
         test_rendered_text(
             "Some\u{A0}sample text",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 7, 1)),
             style,
             &[
                 "..........................................",
@@ -352,7 +359,7 @@ mod test {
     #[test]
     fn simple_render_first_word_not_wrapped() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -363,7 +370,7 @@ mod test {
 
         test_rendered_text(
             "Some sample text",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 2, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 2, 1)),
             style,
             &[
                 "............",
@@ -382,7 +389,7 @@ mod test {
     #[test]
     fn newline_stops_render() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -393,7 +400,7 @@ mod test {
 
         test_rendered_text(
             "Some \nsample text",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 7, 1)),
             style,
             &[
                 "........................",
@@ -423,7 +430,7 @@ mod ansi_parser_tests {
     };
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         Drawable,
     };
@@ -436,7 +443,7 @@ mod ansi_parser_tests {
         let parser = Parser::parse("foo\x1b[2Dsample");
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -446,7 +453,7 @@ mod ansi_parser_tests {
             .build();
 
         let cursor = LineCursor::new(
-            size_for(Font6x9, 7, 1).width,
+            size_for(&FONT_6X9, 7, 1).width,
             TabSize::Spaces(4).into_pixels(&character_style),
         );
         let state = LineRenderState {

@@ -7,7 +7,7 @@ use crate::{
         TabSize, TextBoxStyle, UndefinedCharacterStyle,
     },
 };
-use embedded_graphics::text::TextRenderer;
+use embedded_graphics::text::renderer::TextRenderer;
 
 /// [`TextBoxStyle`] builder object.
 ///
@@ -67,13 +67,13 @@ where
     /// ```rust
     /// # use embedded_text::prelude::*;
     /// # use embedded_graphics::{
-    /// #     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     /// #     pixelcolor::BinaryColor,
     /// #     prelude::*,
     /// # };
     /// #
     /// # let character_style = MonoTextStyleBuilder::new()
-    /// #     .font(Font6x9)
+    /// #     .font(&FONT_6X9)
     /// #     .text_color(BinaryColor::On)
     /// #     .build();
     /// let style = TextBoxStyleBuilder::new()

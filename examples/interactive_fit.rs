@@ -7,7 +7,7 @@ use embedded_graphics_simulator::{
 };
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::PrimitiveStyle,
@@ -80,7 +80,7 @@ where
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         // * Use the height mode that was given to the `demo_loop()` function.
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -105,8 +105,7 @@ where
 
         // Display the name of the height mode above the text box.
         let height_text = format!("Mode: {:?}", height_mode);
-        Text::new(&height_text, Point::new(0, 6))
-            .into_styled(character_style)
+        Text::new(&height_text, Point::new(0, 6), character_style)
             .draw(&mut display)
             .unwrap();
 

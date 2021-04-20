@@ -1,7 +1,7 @@
 //! This example demonstrates support for the horizontal tab `\t` character.
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::Rectangle,
@@ -28,7 +28,7 @@ fn main() {
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     // * 10 character wide tabs
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x9)
+        .font(&FONT_6X9)
         .text_color(BinaryColor::On)
         .build();
 

@@ -3,7 +3,7 @@ use crate::{
     alignment::HorizontalTextAlignment, parser::SPEC_CHAR_NBSP,
     rendering::space_config::SpaceConfig, style::LineMeasurement, utils::str_width,
 };
-use embedded_graphics::text::TextRenderer;
+use embedded_graphics::text::renderer::TextRenderer;
 
 /// Marks text to be rendered fully justified.
 #[derive(Copy, Clone, Debug)]
@@ -91,7 +91,7 @@ mod test {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
         Drawable,
@@ -107,7 +107,7 @@ mod test {
         assert_rendered(
             Justified,
             "word",
-            size_for(Font6x9, 6, 1),
+            size_for(&FONT_6X9, 6, 1),
             &[
                 "........................",
                 "......................#.",
@@ -128,7 +128,7 @@ mod test {
         display.set_allow_overdraw(true);
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -139,7 +139,7 @@ mod test {
 
         TextBox::new(
             "O\rX",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 1, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -161,7 +161,7 @@ mod test {
         assert_rendered(
             Justified,
             "A word",
-            size_for(Font6x9, 5, 1),
+            size_for(&FONT_6X9, 5, 1),
             &[
                 "......            ",
                 "..#...            ",
@@ -181,7 +181,7 @@ mod test {
         assert_rendered(
             Justified,
             "word wrapping",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "........................                        ",
                 "......................#.                        ",
@@ -210,7 +210,7 @@ mod test {
         assert_rendered(
             Justified,
             "word and other word last line",
-            size_for(Font6x9, 10, 3),
+            size_for(&FONT_6X9, 10, 3),
             &[
                 "............................................................",
                 "......................#...................................#.",
@@ -248,7 +248,7 @@ mod test {
         assert_rendered(
             Justified,
             "word somereallylongword",
-            size_for(Font6x9, 9, 3),
+            size_for(&FONT_6X9, 9, 3),
             &[
                 "........................                              ",
                 "......................#.                              ",
@@ -286,7 +286,7 @@ mod test {
         assert_rendered(
             Justified,
             "somereallylongword",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "......................................................",
                 "...........................................##....##...",
@@ -315,7 +315,7 @@ mod test {
         assert_rendered(
             Justified,
             "soft\u{AD}hyphen",
-            size_for(Font6x9, 6, 2),
+            size_for(&FONT_6X9, 6, 2),
             &[
                 "..............................      ",
                 "...............#....#.........      ",
@@ -345,7 +345,7 @@ mod test {
         assert_rendered(
             Justified,
             "a\ttab + two te xt words",
-            size_for(Font6x9, 10, 3),
+            size_for(&FONT_6X9, 10, 3),
             &[
                 "............................................................",
                 "..........................#..........#......................",

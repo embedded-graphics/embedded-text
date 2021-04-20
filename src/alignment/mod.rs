@@ -4,7 +4,7 @@ use crate::{
     style::{color::Rgb, height_mode::HeightMode, LineMeasurement},
     StyledTextBox,
 };
-use embedded_graphics::text::{CharacterStyle, TextRenderer};
+use embedded_graphics::text::renderer::{CharacterStyle, TextRenderer};
 
 pub mod bottom;
 pub mod center;

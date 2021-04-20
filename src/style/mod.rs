@@ -172,7 +172,7 @@ use crate::{
     utils::str_width,
 };
 use color::Rgb;
-use embedded_graphics::text::{CharacterStyle, TextRenderer};
+use embedded_graphics::text::renderer::{CharacterStyle, TextRenderer};
 
 pub use self::builder::TextBoxStyleBuilder;
 
@@ -350,12 +350,12 @@ where
     /// ```rust
     /// # use embedded_text::style::builder::TextBoxStyleBuilder;
     /// # use embedded_graphics::{
-    /// #     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     /// #     pixelcolor::BinaryColor,
     /// # };
     /// #
     /// let character_style = MonoTextStyleBuilder::new()
-    ///     .font(Font6x9)
+    ///     .font(&FONT_6X9)
     ///     .text_color(BinaryColor::On)
     ///     .build();
     /// let style = TextBoxStyleBuilder::new()
@@ -421,15 +421,15 @@ where
 mod test {
     use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
     use embedded_graphics::{
-        mono_font::{ascii::Font6x9, MonoFont, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
-        text::TextRenderer,
+        text::renderer::TextRenderer,
     };
 
     #[test]
     fn no_infinite_loop() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -470,7 +470,7 @@ mod test {
         ];
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -506,7 +506,7 @@ mod test {
         ];
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -529,7 +529,7 @@ mod test {
     #[test]
     fn test_measure_line() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -540,15 +540,15 @@ mod test {
 
         let mut text = Parser::parse("123 45 67");
 
-        let lm = style.measure_line(&mut text, &mut None, 6 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.width, 6 * Font6x9::CHARACTER_SIZE.width);
+        let lm = style.measure_line(&mut text, &mut None, 6 * FONT_6X9.character_size.width);
+        assert_eq!(lm.width, 6 * FONT_6X9.character_size.width);
     }
 
     #[test]
     #[cfg(feature = "ansi")]
     fn test_measure_line_cursor_back() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -559,21 +559,21 @@ mod test {
 
         let mut text = Parser::parse("123\x1b[2D");
 
-        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.width, 3 * Font6x9::CHARACTER_SIZE.width);
+        let lm = style.measure_line(&mut text, &mut None, 5 * FONT_6X9.character_size.width);
+        assert_eq!(lm.width, 3 * FONT_6X9.character_size.width);
 
         // Now a case where the string itself without rewind is wider than the line and the
         // continuation after rewind extends the line.
         let mut text = Parser::parse("123\x1b[2D456");
 
-        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.width, 4 * Font6x9::CHARACTER_SIZE.width);
+        let lm = style.measure_line(&mut text, &mut None, 5 * FONT_6X9.character_size.width);
+        assert_eq!(lm.width, 4 * FONT_6X9.character_size.width);
     }
 
     #[test]
     fn test_measure_line_counts_nbsp() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -584,14 +584,14 @@ mod test {
 
         let mut text = Parser::parse("123\u{A0}45");
 
-        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.width, 5 * Font6x9::CHARACTER_SIZE.width);
+        let lm = style.measure_line(&mut text, &mut None, 5 * FONT_6X9.character_size.width);
+        assert_eq!(lm.width, 5 * FONT_6X9.character_size.width);
     }
 
     #[test]
     fn test_measure_height_nbsp() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -601,7 +601,7 @@ mod test {
             .build();
         let text = "123\u{A0}45 123";
 
-        let height = style.measure_text_height(text, 5 * Font6x9::CHARACTER_SIZE.width);
+        let height = style.measure_text_height(text, 5 * FONT_6X9.character_size.width);
         assert_eq!(height, 2 * character_style.line_height());
 
         // bug discovered while using the interactive example
@@ -619,7 +619,7 @@ mod test {
     #[test]
     fn height_with_line_spacing() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -639,7 +639,7 @@ mod test {
     #[test]
     fn soft_hyphenated_line_width_includes_hyphen_width() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 

@@ -1,7 +1,7 @@
 //! This example draws text in three columns to demonstrate the common vertical alignments.
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
 };
@@ -14,7 +14,7 @@ fn main() {
     let text = "The quick brown fox jumped over the lazy dog.";
 
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x10)
+        .font(&FONT_6X10)
         .text_color(BinaryColor::On)
         .build();
 

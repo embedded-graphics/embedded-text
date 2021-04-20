@@ -8,7 +8,7 @@ use crate::{
 
 use embedded_graphics::{
     geometry::Dimensions,
-    text::{CharacterStyle, TextRenderer},
+    text::renderer::{CharacterStyle, TextRenderer},
 };
 
 /// Marks text to be rendered center aligned.
@@ -60,7 +60,7 @@ mod test_horizontal {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
         Drawable,
@@ -76,7 +76,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "word",
-            size_for(Font6x9, 6, 1),
+            size_for(&FONT_6X9, 6, 1),
             &[
                 "      ........................      ",
                 "      ......................#.      ",
@@ -97,7 +97,7 @@ mod test_horizontal {
         display.set_allow_overdraw(true);
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
@@ -108,7 +108,7 @@ mod test_horizontal {
 
         TextBox::new(
             "O\rX",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 3, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 3, 1)),
         )
         .into_styled(style)
         .draw(&mut display)
@@ -130,7 +130,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "word wrapping",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "               ........................               ",
                 "               ......................#.               ",
@@ -159,7 +159,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "word  somereallylongword",
-            size_for(Font6x9, 9, 3),
+            size_for(&FONT_6X9, 9, 3),
             &[
                 "               ........................               ",
                 "               ......................#.               ",
@@ -197,7 +197,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "somereallylongword",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "......................................................",
                 "...........................................##....##...",
@@ -226,7 +226,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "soft\u{AD}hyphen",
-            size_for(Font6x9, 6, 2),
+            size_for(&FONT_6X9, 6, 2),
             &[
                 "   ..............................   ",
                 "   ...............#....#.........   ",
@@ -256,7 +256,7 @@ mod test_vertical {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         prelude::Size,
         primitives::Rectangle,
@@ -271,7 +271,7 @@ mod test_vertical {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -293,7 +293,7 @@ mod test_vertical {
     fn test_center_alignment() {
         assert_rendered(
             "word",
-            size_for(Font6x9, 4, 2),
+            size_for(&FONT_6X9, 4, 2),
             &[
                 "                        ",
                 "                        ",

@@ -1,7 +1,7 @@
 //! Bottom vertical text alignment.
 use embedded_graphics::{
     geometry::Dimensions,
-    text::{CharacterStyle, TextRenderer},
+    text::renderer::{CharacterStyle, TextRenderer},
 };
 
 use crate::{
@@ -42,7 +42,7 @@ impl VerticalTextAlignment for BottomAligned {
 mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
@@ -59,7 +59,7 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -81,7 +81,7 @@ mod test {
     fn test_bottom_alignment() {
         assert_rendered(
             "word",
-            size_for(Font6x9, 4, 2),
+            size_for(&FONT_6X9, 4, 2),
             &[
                 "                        ",
                 "                        ",
@@ -109,7 +109,7 @@ mod test {
     fn test_bottom_alignment_tall_text() {
         assert_rendered(
             "word word2 word3 word4",
-            size_for(Font6x9, 5, 2),
+            size_for(&FONT_6X9, 5, 2),
             &[
                 "..............................",
                 "......................#..####.",
@@ -139,7 +139,7 @@ mod test {
         display.set_allow_out_of_bounds_drawing(true);
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
@@ -153,7 +153,7 @@ mod test {
 
         TextBox::new(
             "word1 word2 word3 word4",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 5, 2)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 2)),
         )
         .into_styled(style)
         .draw(&mut display)

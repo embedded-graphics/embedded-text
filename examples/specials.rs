@@ -2,7 +2,7 @@
 //! characters to modify text layout behaviour.
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
 };
@@ -27,7 +27,7 @@ fn main() {
     // * Draw the text with `BinaryColor::Off` background color, which will be rendered as dark
     //   blue. This is used to overwrite parts of the text in this example.
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x10)
+        .font(&FONT_6X10)
         .text_color(BinaryColor::On)
         .background_color(BinaryColor::Off)
         .build();

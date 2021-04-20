@@ -37,7 +37,7 @@ The examples are based on [the embedded-graphics simulator]. The simulator is bu
 
 ```rust
 use embedded_graphics::{
-    mono_font::{ascii::Font6x9, MonoTextStyleBuilder}, pixelcolor::BinaryColor, prelude::*,
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder}, pixelcolor::BinaryColor, prelude::*,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -56,7 +56,7 @@ fn main() {
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x9)
+        .font(&FONT_6X9)
         .text_color(BinaryColor::On)
         .build();
     let textbox_style = TextBoxStyleBuilder::new()

@@ -1,7 +1,7 @@
 //! This example demonstrates additional text decoration options (underlined and strike-through text).
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
 };
@@ -19,7 +19,7 @@ fn main() {
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     let base_style = MonoTextStyleBuilder::new()
-        .font(Font6x10)
+        .font(&FONT_6X10)
         .text_color(BinaryColor::On);
 
     let base_tb_style = TextBoxStyleBuilder::new()

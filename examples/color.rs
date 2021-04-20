@@ -1,7 +1,7 @@
 //! This example demonstrates styling a piece of text using text box styling options.
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::Rgb565,
     prelude::*,
 };
@@ -19,7 +19,7 @@ fn main() {
     // * Draw the text fully justified.
     // * Draw the text with cyan text color and a gray background color.
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x9)
+        .font(&FONT_6X9)
         .text_color(Rgb565::CYAN)
         .background_color(Rgb565::new(10, 20, 10))
         .build();
