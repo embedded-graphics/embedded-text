@@ -17,7 +17,7 @@ pub struct TextBoxStyleBuilder<S, A, V, H>
 where
     S: Clone,
 {
-    text_box_style: TextBoxStyle<S, A, V, H>,
+    style: TextBoxStyle<S, A, V, H>,
 }
 
 impl Default
@@ -41,15 +41,15 @@ impl TextBoxStyleBuilder<UndefinedCharacterStyle, LeftAligned, TopAligned, Exact
     ///  - Line spacing: 0px
     #[inline]
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            text_box_style: TextBoxStyle {
+            style: TextBoxStyle {
                 character_style: UndefinedCharacterStyle,
                 alignment: LeftAligned,
                 vertical_alignment: TopAligned,
                 height_mode: Exact(FullRowsOnly),
                 line_spacing: 0,
-                tab_size: TabSize::default(),
+                tab_size: TabSize::Spaces(4),
             },
         }
     }
@@ -87,13 +87,10 @@ where
     /// ```
     #[inline]
     #[must_use]
-    pub fn line_spacing(self, line_spacing: i32) -> Self {
-        Self {
-            text_box_style: TextBoxStyle {
-                line_spacing,
-                ..self.text_box_style
-            },
-        }
+    pub fn line_spacing(mut self, line_spacing: i32) -> Self {
+        self.style.line_spacing = line_spacing;
+
+        self
     }
 
     /// Sets the character style.
@@ -104,13 +101,13 @@ where
         CS: TextRenderer + Clone,
     {
         TextBoxStyleBuilder {
-            text_box_style: TextBoxStyle {
+            style: TextBoxStyle {
                 character_style,
-                alignment: self.text_box_style.alignment,
-                line_spacing: self.text_box_style.line_spacing,
-                vertical_alignment: self.text_box_style.vertical_alignment,
-                height_mode: self.text_box_style.height_mode,
-                tab_size: self.text_box_style.tab_size,
+                alignment: self.style.alignment,
+                line_spacing: self.style.line_spacing,
+                vertical_alignment: self.style.vertical_alignment,
+                height_mode: self.style.height_mode,
+                tab_size: self.style.tab_size,
             },
         }
     }
@@ -123,13 +120,13 @@ where
         alignment: TA,
     ) -> TextBoxStyleBuilder<F, TA, V, H> {
         TextBoxStyleBuilder {
-            text_box_style: TextBoxStyle {
-                character_style: self.text_box_style.character_style,
+            style: TextBoxStyle {
+                character_style: self.style.character_style,
                 alignment,
-                line_spacing: self.text_box_style.line_spacing,
-                vertical_alignment: self.text_box_style.vertical_alignment,
-                height_mode: self.text_box_style.height_mode,
-                tab_size: self.text_box_style.tab_size,
+                line_spacing: self.style.line_spacing,
+                vertical_alignment: self.style.vertical_alignment,
+                height_mode: self.style.height_mode,
+                tab_size: self.style.tab_size,
             },
         }
     }
@@ -142,13 +139,13 @@ where
         vertical_alignment: VA,
     ) -> TextBoxStyleBuilder<F, A, VA, H> {
         TextBoxStyleBuilder {
-            text_box_style: TextBoxStyle {
-                character_style: self.text_box_style.character_style,
-                alignment: self.text_box_style.alignment,
-                line_spacing: self.text_box_style.line_spacing,
+            style: TextBoxStyle {
+                character_style: self.style.character_style,
+                alignment: self.style.alignment,
+                line_spacing: self.style.line_spacing,
                 vertical_alignment,
-                height_mode: self.text_box_style.height_mode,
-                tab_size: self.text_box_style.tab_size,
+                height_mode: self.style.height_mode,
+                tab_size: self.style.tab_size,
             },
         }
     }
@@ -158,13 +155,13 @@ where
     #[must_use]
     pub fn height_mode<HM: HeightMode>(self, height_mode: HM) -> TextBoxStyleBuilder<F, A, V, HM> {
         TextBoxStyleBuilder {
-            text_box_style: TextBoxStyle {
-                character_style: self.text_box_style.character_style,
-                alignment: self.text_box_style.alignment,
-                line_spacing: self.text_box_style.line_spacing,
-                vertical_alignment: self.text_box_style.vertical_alignment,
+            style: TextBoxStyle {
+                character_style: self.style.character_style,
+                alignment: self.style.alignment,
+                line_spacing: self.style.line_spacing,
+                vertical_alignment: self.style.vertical_alignment,
                 height_mode,
-                tab_size: self.text_box_style.tab_size,
+                tab_size: self.style.tab_size,
             },
         }
     }
@@ -172,13 +169,10 @@ where
     /// Sets the tab size.
     #[inline]
     #[must_use]
-    pub fn tab_size(self, tab_size: TabSize) -> Self {
-        Self {
-            text_box_style: TextBoxStyle {
-                tab_size,
-                ..self.text_box_style
-            },
-        }
+    pub fn tab_size(mut self, tab_size: TabSize) -> Self {
+        self.style.tab_size = tab_size;
+
+        self
     }
 }
 
@@ -195,6 +189,6 @@ where
     #[inline]
     #[must_use]
     pub fn build(self) -> TextBoxStyle<F, A, V, H> {
-        self.text_box_style
+        self.style
     }
 }
