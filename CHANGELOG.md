@@ -32,6 +32,7 @@ Unreleased
 
 ## Added
 
+ * `TextBoxStyle::{with_alignment, with_vertical_alignment}`
  * `TextBox::with_textbox_style()`
  * `TextBoxStyleBuilder` now implements `Default`
  * `StyledTextBox::draw()` now returns unconsumed text.

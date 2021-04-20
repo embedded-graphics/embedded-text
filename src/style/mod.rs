@@ -162,13 +162,14 @@ pub mod vertical_overdraw;
 use core::convert::Infallible;
 
 use crate::{
-    alignment::HorizontalTextAlignment,
+    alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
         cursor::LineCursor,
         line_iter::{ElementHandler, LineElementParser},
         space_config::UniformSpaceConfig,
     },
+    style::{height_mode::Exact, vertical_overdraw::FullRowsOnly},
     utils::str_width,
 };
 use embedded_graphics::text::renderer::{CharacterStyle, TextRenderer};
@@ -241,6 +242,30 @@ pub struct TextBoxStyle<A, V, H> {
     pub tab_size: TabSize,
 }
 
+impl TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+    /// Creates a new text box style with the given alignment.
+    pub fn with_alignment<A: HorizontalTextAlignment>(
+        alignment: A,
+    ) -> TextBoxStyle<A, TopAligned, Exact<FullRowsOnly>> {
+        TextBoxStyleBuilder::new().alignment(alignment).build()
+    }
+
+    /// Creates a new text box style with the given vertical alignment.
+    pub fn with_vertical_alignment<V: VerticalTextAlignment>(
+        alignment: V,
+    ) -> TextBoxStyle<LeftAligned, V, Exact<FullRowsOnly>> {
+        TextBoxStyleBuilder::new()
+            .vertical_alignment(alignment)
+            .build()
+    }
+}
+
+impl Default for TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+    fn default() -> Self {
+        TextBoxStyleBuilder::new().build()
+    }
+}
+
 /// Information about a line.
 #[derive(Debug)]
 pub struct LineMeasurement {
@@ -254,14 +279,14 @@ pub struct LineMeasurement {
     pub last_line: bool,
 }
 
-struct MeasureLineElementHandler<'a, F> {
-    style: &'a F,
+struct MeasureLineElementHandler<'a, S> {
+    style: &'a S,
     right: u32,
     max_line_width: u32,
     pos: u32,
 }
 
-impl<'a, F: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, F> {
+impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     type Error = Infallible;
 
     fn measure(&self, st: &str) -> u32 {

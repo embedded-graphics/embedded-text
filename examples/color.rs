@@ -24,7 +24,7 @@ fn main() {
         .background_color(Rgb565::new(10, 20, 10))
         .build();
 
-    let textbox_style = TextBoxStyleBuilder::new().alignment(Justified).build();
+    let textbox_style = TextBoxStyle::with_alignment(Justified);
 
     // Specify the bounding box. Note that in this example the text box will be taller than the text.
     let bounds = Rectangle::new(Point::zero(), Size::new(129, 129));
