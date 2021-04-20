@@ -132,14 +132,12 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(Justified)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(Justified).build();
 
         TextBox::with_textbox_style(
             "O\rX",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1)),
+            character_style,
             style,
         )
         .draw(&mut display)

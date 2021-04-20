@@ -48,13 +48,13 @@ mod test {
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(TopAligned)
             .build();
 
         TextBox::with_textbox_style(
             "word",
             Rectangle::new(Point::zero(), Size::new(55, 16)),
+            character_style,
             style,
         )
         .draw(&mut display)

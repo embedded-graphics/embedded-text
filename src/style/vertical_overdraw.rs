@@ -73,14 +73,12 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(LeftAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(LeftAligned).build();
 
         TextBox::with_textbox_style(
             "word and other words",
             Rectangle::new(Point::zero(), Size::new(55, 15)),
+            character_style,
             style,
         )
         .draw(&mut display)
@@ -112,7 +110,6 @@ mod test {
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
             .height_mode(Exact(Visible))
@@ -122,6 +119,7 @@ mod test {
         TextBox::with_textbox_style(
             "word",
             Rectangle::new(Point::new(0, 3), Size::new(55, 3)),
+            character_style,
             style,
         )
         .draw(&mut display)
@@ -153,7 +151,6 @@ mod test {
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
             .height_mode(Exact(Hidden))
@@ -162,6 +159,7 @@ mod test {
         TextBox::with_textbox_style(
             "word",
             Rectangle::new(Point::zero(), Size::new(55, 4)),
+            character_style,
             style,
         )
         .draw(&mut display)

@@ -29,10 +29,11 @@ impl VerticalTextAlignment for Scrolling {
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
-        let text_height = styled_text_box
-            .style
-            .measure_text_height(styled_text_box.text, cursor.line_width())
-            as i32;
+        let text_height = styled_text_box.style.measure_text_height(
+            &styled_text_box.character_style,
+            styled_text_box.text,
+            cursor.line_width(),
+        ) as i32;
 
         let box_height = styled_text_box.bounding_box().size.height as i32;
         if text_height > box_height {
@@ -70,13 +71,17 @@ mod test {
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(Scrolling)
             .build();
 
-        TextBox::with_textbox_style(text, Rectangle::new(Point::zero(), size), style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), size),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(pattern);
     }
@@ -171,7 +176,6 @@ mod test {
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(Scrolling)
             .height_mode(Exact(Hidden))
             .build();
@@ -179,6 +183,7 @@ mod test {
         TextBox::with_textbox_style(
             "word word2 word3 word4",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 2) - Size::new(0, 5)),
+            character_style,
             style,
         )
         .draw(&mut display)

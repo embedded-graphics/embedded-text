@@ -103,7 +103,6 @@ fn main() {
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
-        .character_style(character_style)
         .vertical_alignment(Scrolling)
         .build();
 
@@ -121,7 +120,12 @@ fn main() {
         let text_and_cursor = format!("{}\u{200b}_", text);
 
         // Create the text box and apply styling options.
-        let text_box = TextBox::with_textbox_style(&text_and_cursor, bounds, textbox_style.clone());
+        let text_box = TextBox::with_textbox_style(
+            &text_and_cursor,
+            bounds,
+            character_style,
+            textbox_style.clone(),
+        );
 
         // Create a simulated display with the dimensions of the text box.
         let mut display = SimulatorDisplay::new(text_box.bounding_box().size);

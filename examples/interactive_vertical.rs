@@ -85,12 +85,11 @@ where
             .build();
 
         let textbox_style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(alignment)
             .build();
 
         // Create the text box and apply styling options.
-        let text_box = TextBox::with_textbox_style(text, *bounds, textbox_style);
+        let text_box = TextBox::with_textbox_style(text, *bounds, character_style, textbox_style);
 
         // Draw the text box.
         text_box.draw(&mut display).unwrap();

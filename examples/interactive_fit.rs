@@ -84,13 +84,10 @@ where
             .text_color(BinaryColor::On)
             .build();
 
-        let textbox_style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .height_mode(height_mode)
-            .build();
+        let textbox_style = TextBoxStyleBuilder::new().height_mode(height_mode).build();
 
         // Create the text box and apply styling options.
-        let text_box = TextBox::with_textbox_style(text, *bounds, textbox_style);
+        let text_box = TextBox::with_textbox_style(text, *bounds, character_style, textbox_style);
 
         // Draw the text box.
         text_box.draw(&mut display).unwrap();

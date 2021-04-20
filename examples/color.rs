@@ -24,16 +24,13 @@ fn main() {
         .background_color(Rgb565::new(10, 20, 10))
         .build();
 
-    let textbox_style = TextBoxStyleBuilder::new()
-        .character_style(character_style)
-        .alignment(Justified)
-        .build();
+    let textbox_style = TextBoxStyleBuilder::new().alignment(Justified).build();
 
     // Specify the bounding box. Note that in this example the text box will be taller than the text.
     let bounds = Rectangle::new(Point::zero(), Size::new(129, 129));
 
     // Create the text box and apply styling options.
-    let text_box = TextBox::with_textbox_style(text, bounds, textbox_style);
+    let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
     let mut display = SimulatorDisplay::new(text_box.bounding_box().size);

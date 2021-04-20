@@ -83,10 +83,7 @@ where
             .text_color(BinaryColor::On)
             .build();
 
-        let textbox_style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(alignment)
-            .build();
+        let textbox_style = TextBoxStyleBuilder::new().alignment(alignment).build();
 
         // Create bounding boxes
         let size = Size::new(bounds.size.width / 2 - 1, bounds.size.height);
@@ -100,10 +97,16 @@ where
         );
 
         // Create and draw the text boxes.
-        let text_box1 = TextBox::with_textbox_style(text, bounds1, textbox_style.clone());
+        let text_box1 =
+            TextBox::with_textbox_style(text, bounds1, character_style, textbox_style.clone());
         let remaining_text = text_box1.draw(&mut display).unwrap();
 
-        let text_box2 = TextBox::with_textbox_style(remaining_text, bounds2, textbox_style.clone());
+        let text_box2 = TextBox::with_textbox_style(
+            remaining_text,
+            bounds2,
+            character_style,
+            textbox_style.clone(),
+        );
         text_box2.draw(&mut display).unwrap();
 
         // Draw the bounding box of the text box.

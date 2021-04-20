@@ -18,38 +18,32 @@ fn main() {
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let base_style = MonoTextStyleBuilder::new()
+    let character_style = MonoTextStyleBuilder::new()
         .font(&FONT_6X10)
         .text_color(BinaryColor::On);
 
-    let base_tb_style = TextBoxStyleBuilder::new()
+    let text_box_style = TextBoxStyleBuilder::new()
         .vertical_alignment(Scrolling)
         .height_mode(FitToText)
-        .line_spacing(2);
+        .line_spacing(2)
+        .build();
 
     // Specify underlined and strike-through decorations, one for each text box.
-    let underlined_style = base_style.underline().build();
-    let strikethrough_style = base_style.strikethrough().build();
-
-    let underlined_tb_style = base_tb_style
-        .clone()
-        .character_style(underlined_style)
-        .build();
-    let strikethrough_tb_style = base_tb_style
-        .clone()
-        .character_style(strikethrough_style)
-        .build();
+    let underlined_style = character_style.underline().build();
+    let strikethrough_style = character_style.strikethrough().build();
 
     let text_box = TextBox::with_textbox_style(
         text,
         Rectangle::new(Point::zero(), Size::new(97, 0)),
-        underlined_tb_style,
+        underlined_style,
+        text_box_style.clone(),
     );
 
     let text_box2 = TextBox::with_textbox_style(
         text,
         Rectangle::new(Point::new(96, 0), Size::new(97, 0)),
-        strikethrough_tb_style,
+        strikethrough_style,
+        text_box_style.clone(),
     );
 
     // Create a window for both text boxes.

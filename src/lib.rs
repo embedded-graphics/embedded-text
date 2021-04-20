@@ -169,8 +169,11 @@ where
     /// The bounding box of this `TextBox`
     pub bounds: Rectangle,
 
+    /// The character style of the [`TextBox`].
+    pub character_style: S,
+
     /// The style of the [`TextBox`].
-    pub style: TextBoxStyle<S, A, V, H>,
+    pub style: TextBoxStyle<A, V, H>,
 }
 
 impl<'a, S, A, V, H> TextBox<'a, S, A, V, H>
@@ -192,9 +195,8 @@ where
         let mut styled = TextBox {
             text,
             bounds,
-            style: TextBoxStyleBuilder::new()
-                .character_style(character_style)
-                .build(),
+            character_style,
+            style: TextBoxStyleBuilder::new().build(),
         };
 
         H::apply(&mut styled);
@@ -208,11 +210,13 @@ where
     pub fn with_textbox_style(
         text: &'a str,
         bounds: Rectangle,
-        textbox_style: TextBoxStyle<S, A, V, H>,
+        character_style: S,
+        textbox_style: TextBoxStyle<A, V, H>,
     ) -> Self {
         let mut styled = TextBox {
             text,
             bounds,
+            character_style,
             style: textbox_style,
         };
 
@@ -278,7 +282,11 @@ where
         // Measure text given the width of the textbox
         let text_height = self
             .style
-            .measure_text_height(self.text, self.bounding_box().size.width)
+            .measure_text_height(
+                &self.character_style,
+                self.text,
+                self.bounding_box().size.width,
+            )
             .min(max_height)
             .min(i32::max_value() as u32);
 

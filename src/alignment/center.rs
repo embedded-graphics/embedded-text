@@ -43,10 +43,11 @@ impl VerticalTextAlignment for CenterAligned {
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
-        let text_height = styled_text_box
-            .style
-            .measure_text_height(styled_text_box.text, cursor.line_width())
-            as i32;
+        let text_height = styled_text_box.style.measure_text_height(
+            &styled_text_box.character_style,
+            styled_text_box.text,
+            cursor.line_width(),
+        ) as i32;
 
         let box_height = styled_text_box.bounding_box().size.height as i32;
         let offset = (box_height - text_height) / 2;
@@ -101,14 +102,12 @@ mod test_horizontal {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(CenterAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
 
         TextBox::with_textbox_style(
             "O\rX",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 3, 1)),
+            character_style,
             style,
         )
         .draw(&mut display)
@@ -277,13 +276,17 @@ mod test_vertical {
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(CenterAligned)
             .build();
 
-        TextBox::with_textbox_style(text, Rectangle::new(Point::zero(), size), style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), size),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(pattern);
     }

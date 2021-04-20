@@ -42,15 +42,16 @@ where
     ) -> Result<&'a str, D::Error> {
         let mut cursor = Cursor::new(
             self.bounds,
-            self.style.character_style.line_height(),
+            self.character_style.line_height(),
             self.style.line_spacing,
-            self.style.tab_size.into_pixels(&self.style.character_style),
+            self.style.tab_size.into_pixels(&self.character_style),
         );
 
         V::apply_vertical_alignment(&mut cursor, self);
 
         let mut state = LineRenderState {
             style: self.style.clone(),
+            character_style: self.character_style.clone(),
             parser: Parser::parse(self.text),
             carried_token: None,
         };
@@ -125,14 +126,16 @@ pub mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(alignment)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(alignment).build();
 
-        TextBox::with_textbox_style(text, Rectangle::new(Point::zero(), size), style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), size),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(pattern);
     }
