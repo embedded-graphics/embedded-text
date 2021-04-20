@@ -58,14 +58,13 @@ pub trait HeightMode: Copy {
 ///     .build();
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-/// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
-///     .build();
+/// let style = TextBoxStyleBuilder::new().build();
 ///
 /// // This TextBox contains two lines of text, but is 60px high
 /// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     character_style,
 ///     style,
 /// );
 ///
@@ -122,7 +121,6 @@ where
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .height_mode(FitToText)
 ///     .build();
 ///
@@ -130,6 +128,7 @@ where
 /// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
+///     character_style,
 ///     style,
 /// );
 ///
@@ -155,7 +154,6 @@ where
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .height_mode(FitToText)
 ///     .build();
 ///
@@ -163,6 +161,7 @@ where
 /// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     character_style,
 ///     style,
 /// );
 ///
@@ -217,7 +216,6 @@ impl HeightMode for FitToText {
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .build();
 ///
@@ -225,6 +223,7 @@ impl HeightMode for FitToText {
 /// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
+///     character_style,
 ///     style,
 /// );
 ///
@@ -249,7 +248,6 @@ impl HeightMode for FitToText {
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .build();
 ///
@@ -257,6 +255,7 @@ impl HeightMode for FitToText {
 /// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     character_style,
 ///     style,
 /// );
 ///

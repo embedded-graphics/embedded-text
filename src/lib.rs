@@ -58,7 +58,6 @@
 //!         .text_color(BinaryColor::On)
 //!         .build();
 //!     let textbox_style = TextBoxStyleBuilder::new()
-//!         .character_style(character_style)
 //!         .height_mode(FitToText)
 //!         .build();
 //!
@@ -67,7 +66,7 @@
 //!     let bounds = Rectangle::new(Point::zero(), Size::new(128, 0));
 //!
 //!     // Create the text box and apply styling options.
-//!     let text_box = TextBox::with_textbox_style(text, bounds, textbox_style);
+//!     let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
 //!
 //!     // Create a simulated display with the dimensions of the text box.
 //!     let mut display = SimulatorDisplay::new(text_box.bounding_box().size);

@@ -68,12 +68,7 @@ where
     /// #     prelude::*,
     /// # };
     /// #
-    /// # let character_style = MonoTextStyleBuilder::new()
-    /// #     .font(&FONT_6X9)
-    /// #     .text_color(BinaryColor::On)
-    /// #     .build();
     /// let style = TextBoxStyleBuilder::new()
-    ///     .character_style(character_style)
     ///     .line_spacing(3)
     ///     .build();
     /// ```

@@ -352,10 +352,10 @@ where
     ///     .text_color(BinaryColor::On)
     ///     .build();
     /// let style = TextBoxStyleBuilder::new()
-    ///     .character_style(character_style)
     ///     .build();
     ///
     /// let height = style.measure_text_height(
+    ///     &character_style,
     ///     "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
     ///     72,
     /// );
