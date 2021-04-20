@@ -11,7 +11,7 @@ use crate::{
 /// [`TextBoxStyle`] builder object.
 ///
 /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TextBoxStyleBuilder<A, V, H> {
     style: TextBoxStyle<A, V, H>,
 }

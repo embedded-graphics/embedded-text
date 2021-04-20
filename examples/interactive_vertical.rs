@@ -60,7 +60,7 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<'a, V>(window: &mut Window, bounds: &mut Rectangle, alignment: V) -> bool
+fn demo_loop<V>(window: &mut Window, bounds: &mut Rectangle, alignment: V) -> bool
 where
     V: VerticalTextAlignment + std::fmt::Debug,
 {

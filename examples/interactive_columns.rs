@@ -60,7 +60,7 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<'a, A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
+fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
 where
     A: HorizontalTextAlignment + core::fmt::Debug,
 {
@@ -97,16 +97,11 @@ where
         );
 
         // Create and draw the text boxes.
-        let text_box1 =
-            TextBox::with_textbox_style(text, bounds1, character_style, textbox_style.clone());
+        let text_box1 = TextBox::with_textbox_style(text, bounds1, character_style, textbox_style);
         let remaining_text = text_box1.draw(&mut display).unwrap();
 
-        let text_box2 = TextBox::with_textbox_style(
-            remaining_text,
-            bounds2,
-            character_style,
-            textbox_style.clone(),
-        );
+        let text_box2 =
+            TextBox::with_textbox_style(remaining_text, bounds2, character_style, textbox_style);
         text_box2.draw(&mut display).unwrap();
 
         // Draw the bounding box of the text box.

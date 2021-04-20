@@ -36,14 +36,14 @@ fn main() {
         text,
         Rectangle::new(Point::zero(), Size::new(97, 0)),
         underlined_style,
-        text_box_style.clone(),
+        text_box_style,
     );
 
     let text_box2 = TextBox::with_textbox_style(
         text,
         Rectangle::new(Point::new(96, 0), Size::new(97, 0)),
         strikethrough_style,
-        text_box_style.clone(),
+        text_box_style,
     );
 
     // Create a window for both text boxes.

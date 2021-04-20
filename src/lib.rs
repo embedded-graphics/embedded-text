@@ -176,6 +176,28 @@ where
     pub style: TextBoxStyle<A, V, H>,
 }
 
+impl<'a, S> TextBox<'a, S, LeftAligned, TopAligned, Exact<FullRowsOnly>>
+where
+    S: TextRenderer + CharacterStyle,
+    <S as CharacterStyle>::Color: From<Rgb>,
+{
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle`.
+    #[inline]
+    #[must_use]
+    pub fn new(text: &'a str, bounds: Rectangle, character_style: S) -> Self {
+        let mut styled = TextBox {
+            text,
+            bounds,
+            character_style,
+            style: TextBoxStyleBuilder::new().build(),
+        };
+
+        Exact::<FullRowsOnly>::apply(&mut styled);
+
+        styled
+    }
+}
+
 impl<'a, S, A, V, H> TextBox<'a, S, A, V, H>
 where
     S: TextRenderer + CharacterStyle,
@@ -184,26 +206,6 @@ where
     V: VerticalTextAlignment,
     H: HeightMode,
 {
-    /// Creates a new `TextBox` instance with a given bounding `Rectangle`.
-    #[inline]
-    #[must_use]
-    pub fn new(
-        text: &'a str,
-        bounds: Rectangle,
-        character_style: S,
-    ) -> TextBox<S, LeftAligned, TopAligned, Exact<FullRowsOnly>> {
-        let mut styled = TextBox {
-            text,
-            bounds,
-            character_style,
-            style: TextBoxStyleBuilder::new().build(),
-        };
-
-        H::apply(&mut styled);
-
-        styled
-    }
-
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
     #[must_use]

@@ -50,7 +50,7 @@ where
         V::apply_vertical_alignment(&mut cursor, self);
 
         let mut state = LineRenderState {
-            style: self.style.clone(),
+            style: self.style,
             character_style: self.character_style.clone(),
             parser: Parser::parse(self.text),
             carried_token: None,

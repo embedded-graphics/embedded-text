@@ -60,7 +60,7 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<'a, H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
+fn demo_loop<H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
 where
     H: HeightMode + std::fmt::Debug,
 {

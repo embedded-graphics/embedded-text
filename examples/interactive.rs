@@ -60,7 +60,7 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<'a, A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
+fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
 where
     A: HorizontalTextAlignment + core::fmt::Debug,
 {

@@ -173,7 +173,7 @@ where
             // We have to resort to trickery to figure out the string that is rendered as the line.
             let mut cloned_parser = parser.clone();
             let lm = style.measure_line(
-                &mut character_style,
+                &character_style,
                 &mut cloned_parser,
                 &mut carried_token.clone(),
                 self.cursor.line_width(),

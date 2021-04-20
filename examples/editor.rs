@@ -120,12 +120,8 @@ fn main() {
         let text_and_cursor = format!("{}\u{200b}_", text);
 
         // Create the text box and apply styling options.
-        let text_box = TextBox::with_textbox_style(
-            &text_and_cursor,
-            bounds,
-            character_style,
-            textbox_style.clone(),
-        );
+        let text_box =
+            TextBox::with_textbox_style(&text_and_cursor, bounds, character_style, textbox_style);
 
         // Create a simulated display with the dimensions of the text box.
         let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
@@ -149,9 +145,9 @@ fn main() {
                         text.pop();
                     }
                     _ => {
-                        inputs.get(&keycode).map(|k| {
+                        if let Some(k) = inputs.get(&keycode) {
                             text += k.select_modified(keymod);
-                        });
+                        }
                     }
                 },
 
