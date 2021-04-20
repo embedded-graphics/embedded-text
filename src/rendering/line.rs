@@ -74,16 +74,16 @@ where
     }
 
     fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
-        self.pos =
-            self.style
-                .draw_whitespace(width, self.pos, Baseline::Alphabetic, self.display)?;
+        self.pos = self
+            .style
+            .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
         Ok(())
     }
 
     fn printed_characters(&mut self, st: &str, _: u32) -> Result<(), Self::Error> {
         self.pos = self
             .style
-            .draw_string(st, self.pos, Baseline::Alphabetic, self.display)?;
+            .draw_string(st, self.pos, Baseline::Top, self.display)?;
         Ok(())
     }
 
