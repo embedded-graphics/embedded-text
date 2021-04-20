@@ -3,6 +3,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Added `#[non_exhaustive]` to `TextBoxStyle`.
  * **breaking** Need to pass character style to text box constructors.
  * **breaking** Changed `TextBoxStyleBuilder` API to better align with embedded-graphics' `TextStyleBuilder`.
  * **breaking** Changed measurement of lines that only contain whitespace.

@@ -223,6 +223,7 @@ impl TabSize {
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[non_exhaustive]
 pub struct TextBoxStyle<A, V, H> {
     /// Horizontal text alignment.
     pub alignment: A,
