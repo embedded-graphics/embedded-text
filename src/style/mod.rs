@@ -171,7 +171,6 @@ use crate::{
     },
     utils::str_width,
 };
-use color::Rgb;
 use embedded_graphics::text::renderer::{CharacterStyle, TextRenderer};
 
 pub use self::builder::TextBoxStyleBuilder;
@@ -310,7 +309,6 @@ where
     ) -> LineMeasurement
     where
         S: TextRenderer + CharacterStyle,
-        <S as CharacterStyle>::Color: From<Rgb>,
     {
         let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
@@ -377,7 +375,6 @@ where
     pub fn measure_text_height<S>(&self, character_style: &S, text: &str, max_width: u32) -> u32
     where
         S: TextRenderer + CharacterStyle,
-        <S as CharacterStyle>::Color: From<Rgb>,
     {
         let mut n_lines = 0_i32;
         let mut parser = Parser::parse(text);

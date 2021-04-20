@@ -158,10 +158,7 @@ pub mod prelude {
 /// [module-level documentation]: index.html
 /// [`draw`]: #method.draw
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct TextBox<'a, S, A, V, H>
-where
-    S: Clone,
-{
+pub struct TextBox<'a, S, A, V, H> {
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
 
@@ -229,10 +226,7 @@ where
 
 impl<S, A, V, H> Transform for TextBox<'_, S, A, V, H>
 where
-    S: Clone,
-    A: Clone,
-    V: Clone,
-    H: Clone,
+    Self: Clone,
 {
     #[inline]
     #[must_use]
@@ -251,10 +245,7 @@ where
     }
 }
 
-impl<S, A, V, H> Dimensions for TextBox<'_, S, A, V, H>
-where
-    S: Clone,
-{
+impl<S, A, V, H> Dimensions for TextBox<'_, S, A, V, H> {
     #[inline]
     #[must_use]
     fn bounding_box(&self) -> Rectangle {
@@ -265,7 +256,6 @@ where
 impl<F, A, V, H> TextBox<'_, F, A, V, H>
 where
     F: TextRenderer + CharacterStyle,
-    <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
 {
     /// Sets the height of the [`StyledTextBox`] to the height of the text.
