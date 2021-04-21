@@ -43,7 +43,7 @@ where
         let mut cursor = Cursor::new(
             self.bounds,
             self.character_style.line_height(),
-            self.style.line_spacing,
+            self.style.line_height,
             self.style.tab_size.into_pixels(&self.character_style),
         );
 

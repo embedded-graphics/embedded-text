@@ -388,12 +388,11 @@ mod test {
         utils::{str_width, test::size_for},
     };
     use embedded_graphics::{
-        geometry::Point,
+        geometry::{Point, Size},
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
-        prelude::Size,
         primitives::Rectangle,
-        text::renderer::TextRenderer,
+        text::{renderer::TextRenderer, LineHeight},
     };
 
     #[derive(PartialEq, Eq, Debug)]
@@ -470,7 +469,7 @@ mod test {
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, max_chars, 1)),
             style.line_height(),
-            0,
+            LineHeight::Percent(100),
             TabSize::Spaces(4).into_pixels(&style),
         )
         .line();
@@ -497,7 +496,7 @@ mod test {
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1) - Size::new(1, 0)),
             style.line_height(),
-            0,
+            LineHeight::Percent(100),
             TabSize::Spaces(4).into_pixels(&style),
         )
         .line();

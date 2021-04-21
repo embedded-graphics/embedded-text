@@ -4,6 +4,7 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::Rgb888,
     prelude::*,
+    text::LineHeight,
 };
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::prelude::*;
@@ -43,7 +44,9 @@ fn main() {
         .text_color(Rgb888::BLACK)
         .build();
 
-    let textbox_style = TextBoxStyleBuilder::new().line_spacing(2).build();
+    let textbox_style = TextBoxStyleBuilder::new()
+        .line_height(LineHeight::Percent(125))
+        .build();
 
     // Specify the bounding box.
     let bounds = Rectangle::new(Point::zero(), Size::new(241, 97));

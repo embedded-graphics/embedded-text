@@ -1,5 +1,5 @@
 //! Cursor to track rendering position.
-use embedded_graphics::{geometry::Point, primitives::Rectangle};
+use embedded_graphics::{geometry::Point, primitives::Rectangle, text::LineHeight};
 
 /// Tracks position within a line.
 #[derive(Debug, Clone)]
@@ -102,11 +102,18 @@ impl Cursor {
     /// Creates a new `Cursor` object located at the top left of the given bounding [`Rectangle`].
     #[inline]
     #[must_use]
-    pub fn new(bounds: Rectangle, line_height: u32, line_spacing: i32, tab_width: u32) -> Self {
+    pub fn new(
+        bounds: Rectangle,
+        base_line_height: u32,
+        line_height: LineHeight,
+        tab_width: u32,
+    ) -> Self {
         Self {
             y: bounds.top_left.y,
-            line_spacing,
-            line_height: line_height.min(i32::MAX as u32) as i32,
+            line_height: base_line_height.min(i32::MAX as u32) as i32,
+            line_spacing: line_height
+                .to_absolute(base_line_height)
+                .min(i32::MAX as u32) as i32,
             bounds,
             tab_width,
         }
@@ -151,7 +158,7 @@ impl Cursor {
     /// Starts a new line.
     #[inline]
     pub fn new_line(&mut self) {
-        self.y += self.line_height + self.line_spacing;
+        self.y += self.line_spacing;
     }
 
     /// Returns whether the cursor is completely in the bounding box.

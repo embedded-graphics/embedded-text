@@ -3,6 +3,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Replaced `TextStyle::line_spacing` with `line_height`.
  * **breaking** Added `#[non_exhaustive]` to `TextBoxStyle`.
  * **breaking** Need to pass character style to text box constructors.
  * **breaking** Changed `TextBoxStyleBuilder` API to better align with embedded-graphics' `TextStyleBuilder`.

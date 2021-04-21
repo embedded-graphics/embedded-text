@@ -47,6 +47,7 @@ mod test {
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
+        text::LineHeight,
     };
 
     use crate::{
@@ -151,7 +152,7 @@ mod test {
         let style = TextBoxStyleBuilder::new()
             .vertical_alignment(BottomAligned)
             .height_mode(Exact(Visible))
-            .line_spacing(2)
+            .line_height(LineHeight::Pixels(11))
             .build();
 
         TextBox::with_textbox_style(
@@ -164,8 +165,6 @@ mod test {
         .unwrap();
 
         display.assert_pattern(&[
-            "......................#....#..",
-            "#...#...##...#.#....###...##..",
             "#.#.#..#..#..##.#..#..#.....#.",
             "#.#.#..#..#..#.....#..#.....#.",
             ".#.#....##...#......###..###..",
@@ -182,6 +181,8 @@ mod test {
             ".#.#....##...#......###....#..",
             "..............................",
             "..............................",
+            "                              ",
+            "                              ",
         ]);
     }
 }

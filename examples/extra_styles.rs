@@ -4,6 +4,7 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
+    text::LineHeight,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -25,7 +26,7 @@ fn main() {
     let text_box_style = TextBoxStyleBuilder::new()
         .vertical_alignment(Scrolling)
         .height_mode(FitToText)
-        .line_spacing(2)
+        .line_height(LineHeight::Pixels(11))
         .build();
 
     // Specify underlined and strike-through decorations, one for each text box.

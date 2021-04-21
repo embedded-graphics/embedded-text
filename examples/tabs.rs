@@ -5,6 +5,7 @@ use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::Rectangle,
+    text::LineHeight,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -35,7 +36,7 @@ fn main() {
     let textbox_style = TextBoxStyleBuilder::new()
         .height_mode(FitToText)
         .tab_size(TabSize::Spaces(10))
-        .line_spacing(2)
+        .line_height(LineHeight::Pixels(11))
         .build();
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will

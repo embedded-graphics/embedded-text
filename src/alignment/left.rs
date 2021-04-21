@@ -31,6 +31,7 @@ mod test {
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
+        text::LineHeight,
         Drawable,
     };
 
@@ -161,7 +162,7 @@ mod test {
 
         let style = TextBoxStyleBuilder::new()
             .alignment(LeftAligned)
-            .line_spacing(2)
+            .line_height(LineHeight::Pixels(11))
             .build();
 
         TextBox::with_textbox_style(
@@ -210,7 +211,7 @@ mod test {
 
         let style = TextBoxStyleBuilder::new()
             .alignment(LeftAligned)
-            .line_spacing(-2)
+            .line_height(LineHeight::Pixels(7))
             .build();
 
         TextBox::with_textbox_style(

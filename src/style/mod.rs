@@ -172,7 +172,10 @@ use crate::{
     style::{height_mode::Exact, vertical_overdraw::FullRowsOnly},
     utils::str_width,
 };
-use embedded_graphics::text::renderer::{CharacterStyle, TextRenderer};
+use embedded_graphics::text::{
+    renderer::{CharacterStyle, TextRenderer},
+    LineHeight,
+};
 
 pub use self::builder::TextBoxStyleBuilder;
 
@@ -235,8 +238,8 @@ pub struct TextBoxStyle<A, V, H> {
     /// The height behaviour
     pub height_mode: H,
 
-    /// Desired space between lines, in pixels
-    pub line_spacing: i32,
+    /// Line height.
+    pub line_height: LineHeight,
 
     /// Desired column width for tabs
     pub tab_size: TabSize,
@@ -402,12 +405,12 @@ where
     where
         S: TextRenderer + CharacterStyle,
     {
-        let mut n_lines = 0_i32;
+        let mut n_lines = 0_u32;
         let mut parser = Parser::parse(text);
         let mut carry = None;
         let mut cr_width = None;
         let mut empty_lines = 0;
-        let line_height = character_style.line_height() as i32;
+        let line_height = self.line_height.to_absolute(character_style.line_height());
 
         loop {
             let lm = self.measure_line(character_style, &mut parser, &mut carry, max_width);
@@ -430,8 +433,7 @@ where
             }
 
             if carry.is_none() {
-                return (n_lines * line_height + n_lines.saturating_sub(1) * self.line_spacing)
-                    as u32;
+                return n_lines * line_height;
             }
         }
     }
@@ -443,7 +445,7 @@ mod test {
     use embedded_graphics::{
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
-        text::renderer::TextRenderer,
+        text::{renderer::TextRenderer, LineHeight},
     };
 
     #[test]
@@ -643,7 +645,9 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().line_spacing(2).build();
+        let style = TextBoxStyleBuilder::new()
+            .line_height(LineHeight::Pixels(11))
+            .build();
 
         let height = style.measure_text_height(
             &character_style,
@@ -651,7 +655,7 @@ mod test {
             72,
         );
 
-        assert_eq!(height, 7 * character_style.line_height() + 6 * 2);
+        assert_eq!(height, 7 * 11);
     }
 
     #[test]
@@ -661,7 +665,9 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().line_spacing(2).build();
+        let style = TextBoxStyleBuilder::new()
+            .line_height(LineHeight::Pixels(11))
+            .build();
 
         let lm = style.measure_line(
             &character_style,

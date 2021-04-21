@@ -1,4 +1,6 @@
 //! Textbox style builder.
+use embedded_graphics::text::LineHeight;
+
 use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     style::{
@@ -41,7 +43,7 @@ impl TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
                 alignment: LeftAligned,
                 vertical_alignment: TopAligned,
                 height_mode: Exact(FullRowsOnly),
-                line_spacing: 0,
+                line_height: LineHeight::Percent(100),
                 tab_size: TabSize::Spaces(4),
             },
         }
@@ -66,16 +68,17 @@ where
     /// #     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     /// #     pixelcolor::BinaryColor,
     /// #     prelude::*,
+    /// #     text::LineHeight,
     /// # };
     /// #
     /// let style = TextBoxStyleBuilder::new()
-    ///     .line_spacing(3)
+    ///     .line_height(LineHeight::Pixels(12))
     ///     .build();
     /// ```
     #[inline]
     #[must_use]
-    pub fn line_spacing(mut self, line_spacing: i32) -> Self {
-        self.style.line_spacing = line_spacing;
+    pub fn line_height(mut self, line_height: LineHeight) -> Self {
+        self.style.line_height = line_height;
 
         self
     }
@@ -90,7 +93,7 @@ where
         TextBoxStyleBuilder {
             style: TextBoxStyle {
                 alignment,
-                line_spacing: self.style.line_spacing,
+                line_height: self.style.line_height,
                 vertical_alignment: self.style.vertical_alignment,
                 height_mode: self.style.height_mode,
                 tab_size: self.style.tab_size,
@@ -108,7 +111,7 @@ where
         TextBoxStyleBuilder {
             style: TextBoxStyle {
                 alignment: self.style.alignment,
-                line_spacing: self.style.line_spacing,
+                line_height: self.style.line_height,
                 vertical_alignment,
                 height_mode: self.style.height_mode,
                 tab_size: self.style.tab_size,
@@ -123,7 +126,7 @@ where
         TextBoxStyleBuilder {
             style: TextBoxStyle {
                 alignment: self.style.alignment,
-                line_spacing: self.style.line_spacing,
+                line_height: self.style.line_height,
                 vertical_alignment: self.style.vertical_alignment,
                 height_mode,
                 tab_size: self.style.tab_size,
