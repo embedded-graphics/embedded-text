@@ -26,7 +26,7 @@ fn main() {
     let text_box_style = TextBoxStyleBuilder::new()
         .vertical_alignment(Scrolling)
         .height_mode(FitToText)
-        .line_height(LineHeight::Pixels(11))
+        .line_height(LineHeight::Pixels(12))
         .build();
 
     // Specify underlined and strike-through decorations, one for each text box.
