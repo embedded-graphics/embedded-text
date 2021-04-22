@@ -411,6 +411,7 @@ where
         let mut cr_width = None;
         let mut empty_lines = 0;
         let line_height = self.line_height.to_absolute(character_style.line_height());
+        let last_line_height = character_style.line_height();
 
         loop {
             let lm = self.measure_line(character_style, &mut parser, &mut carry, max_width);
@@ -433,7 +434,8 @@ where
             }
 
             if carry.is_none() {
-                return n_lines * line_height;
+                return n_lines.saturating_sub(1) * line_height
+                    + (n_lines > 0) as u32 * last_line_height;
             }
         }
     }
@@ -655,7 +657,7 @@ mod test {
             72,
         );
 
-        assert_eq!(height, 7 * 11);
+        assert_eq!(height, 6 * 11 + 9);
     }
 
     #[test]
