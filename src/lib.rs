@@ -115,7 +115,7 @@ mod utils;
 use crate::{
     alignment::HorizontalTextAlignment,
     prelude::{Exact, HeightMode, LeftAligned, TopAligned, VerticalTextAlignment},
-    style::{color::Rgb, vertical_overdraw::FullRowsOnly, TextBoxStyle, TextBoxStyleBuilder},
+    style::{vertical_overdraw::FullRowsOnly, TextBoxStyle},
 };
 use embedded_graphics::{
     geometry::{Dimensions, Point},
@@ -143,7 +143,7 @@ pub mod prelude {
     pub use embedded_graphics::primitives::Rectangle;
 }
 
-/// A textbox object.
+/// A text box object.
 ///
 /// The `TextBox` struct represents a piece of text that can be drawn on a display inside the given
 /// bounding box.
@@ -175,29 +175,18 @@ pub struct TextBox<'a, S, A, V, H> {
 impl<'a, S> TextBox<'a, S, LeftAligned, TopAligned, Exact<FullRowsOnly>>
 where
     S: TextRenderer + CharacterStyle,
-    <S as CharacterStyle>::Color: From<Rgb>,
 {
     /// Creates a new `TextBox` instance with a given bounding `Rectangle`.
     #[inline]
     #[must_use]
     pub fn new(text: &'a str, bounds: Rectangle, character_style: S) -> Self {
-        let mut styled = TextBox {
-            text,
-            bounds,
-            character_style,
-            style: TextBoxStyleBuilder::new().build(),
-        };
-
-        Exact::<FullRowsOnly>::apply(&mut styled);
-
-        styled
+        TextBox::with_textbox_style(text, bounds, character_style, TextBoxStyle::default())
     }
 }
 
 impl<'a, S, A, V, H> TextBox<'a, S, A, V, H>
 where
     S: TextRenderer + CharacterStyle,
-    <S as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -232,16 +221,12 @@ where
         character_style: S,
         alignment: A,
     ) -> TextBox<'a, S, A, TopAligned, Exact<FullRowsOnly>> {
-        let mut styled = TextBox {
+        TextBox::with_textbox_style(
             text,
             bounds,
             character_style,
-            style: TextBoxStyle::with_alignment(alignment),
-        };
-
-        H::apply(&mut styled);
-
-        styled
+            TextBoxStyle::with_alignment(alignment),
+        )
     }
 
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
@@ -253,16 +238,12 @@ where
         character_style: S,
         vertical_alignment: V,
     ) -> TextBox<'a, S, LeftAligned, V, Exact<FullRowsOnly>> {
-        let mut styled = TextBox {
+        TextBox::with_textbox_style(
             text,
             bounds,
             character_style,
-            style: TextBoxStyle::with_vertical_alignment(vertical_alignment),
-        };
-
-        H::apply(&mut styled);
-
-        styled
+            TextBoxStyle::with_vertical_alignment(vertical_alignment),
+        )
     }
 }
 
@@ -295,9 +276,9 @@ impl<S, A, V, H> Dimensions for TextBox<'_, S, A, V, H> {
     }
 }
 
-impl<F, A, V, H> TextBox<'_, F, A, V, H>
+impl<S, A, V, H> TextBox<'_, S, A, V, H>
 where
-    F: TextRenderer + CharacterStyle,
+    S: TextRenderer,
     A: HorizontalTextAlignment,
 {
     /// Sets the height of the [`StyledTextBox`] to the height of the text.

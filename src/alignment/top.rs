@@ -13,11 +13,11 @@ pub struct TopAligned;
 
 impl VerticalTextAlignment for TopAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, F, A, H>(
+    fn apply_vertical_alignment<'a, S, A, H>(
         _cursor: &mut Cursor,
-        _styled_text_box: &'a TextBox<'a, F, A, Self, H>,
+        _styled_text_box: &'a TextBox<'a, S, A, Self, H>,
     ) where
-        F: TextRenderer + Clone,
+        S: TextRenderer,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {

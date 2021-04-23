@@ -134,7 +134,7 @@ where
 
 impl<'a, F, A, V, H> Drawable for StyledLineRenderer<'a, F, A, V, H>
 where
-    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
+    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,

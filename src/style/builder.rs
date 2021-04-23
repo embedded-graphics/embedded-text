@@ -1,4 +1,4 @@
-//! Textbox style builder.
+//! Text box style builder.
 use embedded_graphics::text::LineHeight;
 
 use crate::{

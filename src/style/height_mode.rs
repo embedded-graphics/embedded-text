@@ -8,29 +8,24 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::{color::Rgb, vertical_overdraw::VerticalOverdraw},
+    style::vertical_overdraw::VerticalOverdraw,
     TextBox,
 };
 use core::ops::Range;
-use embedded_graphics::{
-    geometry::Dimensions,
-    text::renderer::{CharacterStyle, TextRenderer},
-};
+use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
 /// Specifies how the [`TextBox`]'s height is adjusted when it is turned into a [`StyledTextBox`].
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
 pub trait HeightMode: Copy {
-    /// Apply the height mode to the textbox.
+    /// Apply the height mode to the text box.
     ///
     /// *Note:* This function normally does not need to be called manually.
-    fn apply<F, A, V, H>(text_box: &mut TextBox<'_, F, A, V, H>)
+    fn apply<F, A, V>(text_box: &mut TextBox<'_, F, A, V, Self>)
     where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
-        V: VerticalTextAlignment,
-        H: HeightMode;
+        V: VerticalTextAlignment;
 
     /// Calculate the range of rows of the current line that can be drawn.
     ///
@@ -57,15 +52,11 @@ pub trait HeightMode: Copy {
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
-/// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-/// let style = TextBoxStyleBuilder::new().build();
-///
 /// // This TextBox contains two lines of text, but is 60px high
-/// let text_box = TextBox::with_textbox_style(
+/// let text_box = TextBox::new(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
 ///     character_style,
-///     style,
 /// );
 ///
 /// // Exact does not change the size of the TextBox
@@ -83,13 +74,11 @@ where
     OV: VerticalOverdraw,
 {
     #[inline]
-    fn apply<F, A, V, H>(_text_box: &mut TextBox<'_, F, A, V, H>)
+    fn apply<F, A, V>(_text_box: &mut TextBox<'_, F, A, V, Self>)
     where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
-        H: HeightMode,
     {
     }
 
@@ -177,13 +166,11 @@ pub struct FitToText;
 
 impl HeightMode for FitToText {
     #[inline]
-    fn apply<F, A, V, H>(text_box: &mut TextBox<'_, F, A, V, H>)
+    fn apply<F, A, V>(text_box: &mut TextBox<'_, F, A, V, Self>)
     where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
-        H: HeightMode,
     {
         text_box.fit_height();
     }
@@ -272,13 +259,11 @@ where
     OV: VerticalOverdraw,
 {
     #[inline]
-    fn apply<F, A, V, H>(text_box: &mut TextBox<'_, F, A, V, H>)
+    fn apply<F, A, V>(text_box: &mut TextBox<'_, F, A, V, Self>)
     where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
-        H: HeightMode,
     {
         text_box.fit_height_limited(text_box.bounding_box().size.height);
     }

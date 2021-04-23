@@ -172,10 +172,7 @@ use crate::{
     style::{height_mode::Exact, vertical_overdraw::FullRowsOnly},
     utils::str_width,
 };
-use embedded_graphics::text::{
-    renderer::{CharacterStyle, TextRenderer},
-    LineHeight,
-};
+use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
 
 pub use self::builder::TextBoxStyleBuilder;
 
@@ -337,7 +334,7 @@ where
         max_line_width: u32,
     ) -> LineMeasurement
     where
-        S: TextRenderer + CharacterStyle,
+        S: TextRenderer,
     {
         let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
@@ -403,7 +400,7 @@ where
     #[must_use]
     pub fn measure_text_height<S>(&self, character_style: &S, text: &str, max_width: u32) -> u32
     where
-        S: TextRenderer + CharacterStyle,
+        S: TextRenderer,
     {
         let mut n_lines = 0_u32;
         let mut parser = Parser::parse(text);

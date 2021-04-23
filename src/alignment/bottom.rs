@@ -1,13 +1,10 @@
 //! Bottom vertical text alignment.
-use embedded_graphics::{
-    geometry::Dimensions,
-    text::renderer::{CharacterStyle, TextRenderer},
-};
+use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::{color::Rgb, height_mode::HeightMode},
+    style::height_mode::HeightMode,
     TextBox,
 };
 
@@ -17,12 +14,11 @@ pub struct BottomAligned;
 
 impl VerticalTextAlignment for BottomAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, F, A, H>(
+    fn apply_vertical_alignment<'a, S, A, H>(
         cursor: &mut Cursor,
-        styled_text_box: &'a TextBox<'a, F, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, S, A, Self, H>,
     ) where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        S: TextRenderer,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
