@@ -26,15 +26,7 @@ impl Default for TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly
 }
 
 impl TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
-    /// Creates a new `TextBoxStyleBuilder` with a given MonoFont.
-    ///
-    /// Default settings are:
-    ///  - [`LeftAligned`]
-    ///  - [`TopAligned`]
-    ///  - Text color: transparent
-    ///  - Background color: transparent
-    ///  - Height mode: [`Exact`]
-    ///  - Line spacing: 0px
+    /// Creates a new text box style builder object.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -50,24 +42,17 @@ impl TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
     }
 }
 
-impl<A, V, H> TextBoxStyleBuilder<A, V, H>
-where
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-{
-    /// Sets the vertical space between lines, in pixels.
+impl<A, V, H> TextBoxStyleBuilder<A, V, H> {
+    /// Sets the line height.
     ///
-    /// *Note:* You can set negative values as line spacing if you wish your lines to overlap.
+    /// The line height is defined as the vertical distance between the baseline of two adjacent lines
+    /// of text.
     ///
     /// # Example
     ///
     /// ```rust
     /// # use embedded_text::prelude::*;
     /// # use embedded_graphics::{
-    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
-    /// #     pixelcolor::BinaryColor,
-    /// #     prelude::*,
     /// #     text::LineHeight,
     /// # };
     /// #

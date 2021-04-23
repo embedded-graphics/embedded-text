@@ -33,6 +33,7 @@ Unreleased
 
 ## Added
 
+ * `TextBox::{with_alignment, with_vertical_alignment}`
  * `TextBoxStyle::{with_alignment, with_vertical_alignment}`
  * `TextBox::with_textbox_style()`
  * `TextBoxStyleBuilder` now implements `Default`

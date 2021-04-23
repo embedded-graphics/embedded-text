@@ -222,6 +222,48 @@ where
 
         styled
     }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    #[inline]
+    #[must_use]
+    pub fn with_alignment(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        alignment: A,
+    ) -> TextBox<'a, S, A, TopAligned, Exact<FullRowsOnly>> {
+        let mut styled = TextBox {
+            text,
+            bounds,
+            character_style,
+            style: TextBoxStyle::with_alignment(alignment),
+        };
+
+        H::apply(&mut styled);
+
+        styled
+    }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    #[inline]
+    #[must_use]
+    pub fn with_vertical_alignment(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        vertical_alignment: V,
+    ) -> TextBox<'a, S, LeftAligned, V, Exact<FullRowsOnly>> {
+        let mut styled = TextBox {
+            text,
+            bounds,
+            character_style,
+            style: TextBoxStyle::with_vertical_alignment(vertical_alignment),
+        };
+
+        H::apply(&mut styled);
+
+        styled
+    }
 }
 
 impl<S, A, V, H> Transform for TextBox<'_, S, A, V, H>
