@@ -144,3 +144,14 @@ where
         self.style
     }
 }
+
+impl<A, V, H> From<&TextBoxStyle<A, V, H>> for TextBoxStyleBuilder<A, V, H>
+where
+    A: Copy,
+    V: Copy,
+    H: Copy,
+{
+    fn from(style: &TextBoxStyle<A, V, H>) -> Self {
+        Self { style: *style }
+    }
+}
