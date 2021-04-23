@@ -151,6 +151,7 @@ where
     V: Copy,
     H: Copy,
 {
+    #[inline]
     fn from(style: &TextBoxStyle<A, V, H>) -> Self {
         Self { style: *style }
     }

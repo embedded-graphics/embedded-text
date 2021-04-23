@@ -244,6 +244,7 @@ pub struct TextBoxStyle<A, V, H> {
 
 impl TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
     /// Creates a new text box style with the given alignment.
+    #[inline]
     pub fn with_alignment<A: HorizontalTextAlignment>(
         alignment: A,
     ) -> TextBoxStyle<A, TopAligned, Exact<FullRowsOnly>> {
@@ -251,6 +252,7 @@ impl TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
     }
 
     /// Creates a new text box style with the given vertical alignment.
+    #[inline]
     pub fn with_vertical_alignment<V: VerticalTextAlignment>(
         alignment: V,
     ) -> TextBoxStyle<LeftAligned, V, Exact<FullRowsOnly>> {
@@ -261,6 +263,7 @@ impl TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
 }
 
 impl Default for TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+    #[inline]
     fn default() -> Self {
         TextBoxStyleBuilder::new().build()
     }
