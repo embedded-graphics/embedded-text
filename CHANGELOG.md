@@ -30,6 +30,7 @@ Unreleased
 
  * `interactive_*` examples: fix accidental moving of bounding box.
  * `editor` example: cursor now doesn't stick to the text.
+ * The `ansi` feature can now be used in `no_std` environments.
 
 ## Added
 
