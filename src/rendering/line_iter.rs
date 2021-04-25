@@ -388,12 +388,11 @@ mod test {
         utils::{str_width, test::size_for},
     };
     use embedded_graphics::{
-        geometry::Point,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        geometry::{Point, Size},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
-        prelude::Size,
         primitives::Rectangle,
-        text::TextRenderer,
+        text::{renderer::TextRenderer, LineHeight},
     };
 
     #[derive(PartialEq, Eq, Debug)]
@@ -462,15 +461,15 @@ mod test {
         elements: &[RenderElement],
     ) {
         let style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
         let config = UniformSpaceConfig::new(&style);
         let cursor = Cursor::new(
-            Rectangle::new(Point::zero(), size_for(Font6x9, max_chars, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, max_chars, 1)),
             style.line_height(),
-            0,
+            LineHeight::Percent(100),
             TabSize::Spaces(4).into_pixels(&style),
         )
         .line();
@@ -489,15 +488,15 @@ mod test {
         let mut parser = Parser::parse("foobar");
 
         let style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
         let config = UniformSpaceConfig::new(&style);
         let cursor = Cursor::new(
-            Rectangle::new(Point::zero(), size_for(Font6x9, 1, 1) - Size::new(1, 0)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1) - Size::new(1, 0)),
             style.line_height(),
-            0,
+            LineHeight::Percent(100),
             TabSize::Spaces(4).into_pixels(&style),
         )
         .line();

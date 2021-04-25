@@ -8,32 +8,24 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::{color::Rgb, vertical_overdraw::VerticalOverdraw},
-    StyledTextBox,
+    style::vertical_overdraw::VerticalOverdraw,
+    TextBox,
 };
 use core::ops::Range;
-use embedded_graphics::{
-    geometry::Dimensions,
-    text::{CharacterStyle, TextRenderer},
-};
+use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
 /// Specifies how the [`TextBox`]'s height is adjusted when it is turned into a [`StyledTextBox`].
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
 pub trait HeightMode: Copy {
-    /// Apply the height mode to the textbox
+    /// Apply the height mode to the text box.
     ///
-    /// *Note:* This function is used by [`TextBox::into_styled`] and normally does not need to be
-    /// called manually.
-    ///
-    /// [`TextBox::into_styled`]: ../../struct.TextBox.html#method.into_styled
-    fn apply<F, A, V, H>(text_box: &mut StyledTextBox<'_, F, A, V, H>)
+    /// *Note:* This function normally does not need to be called manually.
+    fn apply<F, A, V>(text_box: &mut TextBox<'_, F, A, V, Self>)
     where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
-        V: VerticalTextAlignment,
-        H: HeightMode;
+        V: VerticalTextAlignment;
 
     /// Calculate the range of rows of the current line that can be drawn.
     ///
@@ -50,30 +42,26 @@ pub trait HeightMode: Copy {
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
-///     .build();
-///
-/// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-/// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 60px high
 /// let text_box = TextBox::new(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     character_style,
 /// );
 ///
 /// // Exact does not change the size of the TextBox
 /// let orig_size = text_box.bounding_box().size;
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, orig_size);
 /// ```
 ///
@@ -86,13 +74,11 @@ where
     OV: VerticalOverdraw,
 {
     #[inline]
-    fn apply<F, A, V, H>(_text_box: &mut StyledTextBox<'_, F, A, V, H>)
+    fn apply<F, A, V>(_text_box: &mut TextBox<'_, F, A, V, Self>)
     where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
-        H: HeightMode,
     {
     }
 
@@ -112,30 +98,31 @@ where
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .height_mode(FitToText)
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
+///     character_style,
+///     style,
 /// );
 ///
 /// // FitToText grows the TextBox to the height of the text
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, Size::new(60, 18));
 /// ```
 ///
@@ -144,30 +131,31 @@ where
 /// ```rust
 /// use embedded_text::prelude::*;
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .height_mode(FitToText)
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     character_style,
+///     style,
 /// );
 ///
 /// // FitToText shrinks the TextBox to the height of the text
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, Size::new(60, 18));
 /// ```
 ///
@@ -178,13 +166,11 @@ pub struct FitToText;
 
 impl HeightMode for FitToText {
     #[inline]
-    fn apply<F, A, V, H>(text_box: &mut StyledTextBox<'_, F, A, V, H>)
+    fn apply<F, A, V>(text_box: &mut TextBox<'_, F, A, V, Self>)
     where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
-        H: HeightMode,
     {
         text_box.fit_height();
     }
@@ -205,29 +191,30 @@ impl HeightMode for FitToText {
 /// ```rust
 /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
+///     character_style,
+///     style,
 /// );
 ///
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, Size::new(60, 0));
 /// ```
 ///
@@ -236,29 +223,30 @@ impl HeightMode for FitToText {
 /// ```rust
 /// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{
-///     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
-///     .font(Font6x9)
+///     .font(&FONT_6X9)
 ///     .text_color(BinaryColor::On)
 ///     .build();
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .character_style(character_style)
 ///     .height_mode(ShrinkToText(FullRowsOnly))
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 60px high
-/// let text_box = TextBox::new(
+/// let text_box = TextBox::with_textbox_style(
 ///     "Two lines\nof text",
 ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+///     character_style,
+///     style,
 /// );
 ///
-/// let size = text_box.into_styled(style).bounding_box().size;
+/// let size = text_box.bounding_box().size;
 /// assert_eq!(size, Size::new(60, 18));
 /// ```
 ///
@@ -271,13 +259,11 @@ where
     OV: VerticalOverdraw,
 {
     #[inline]
-    fn apply<F, A, V, H>(text_box: &mut StyledTextBox<'_, F, A, V, H>)
+    fn apply<F, A, V>(text_box: &mut TextBox<'_, F, A, V, Self>)
     where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        F: TextRenderer,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
-        H: HeightMode,
     {
         text_box.fit_height_limited(text_box.bounding_box().size.height);
     }

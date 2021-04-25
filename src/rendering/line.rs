@@ -11,7 +11,10 @@ use crate::{
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
-    text::{CharacterStyle, TextRenderer},
+    text::{
+        renderer::{CharacterStyle, TextRenderer},
+        Baseline,
+    },
     Drawable,
 };
 
@@ -21,19 +24,29 @@ use super::{line_iter::ElementHandler, space_config::UniformSpaceConfig};
 
 /// Render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineRenderer<'a, F, A, V, H> {
+pub struct StyledLineRenderer<'a, S, A, V, H>
+where
+    S: Clone,
+{
     cursor: LineCursor,
-    state: LineRenderState<'a, F, A, V, H>,
+    state: LineRenderState<'a, S, A, V, H>,
 }
 
 #[derive(Debug, Clone)]
-pub struct LineRenderState<'a, F, A, V, H> {
+pub struct LineRenderState<'a, S, A, V, H>
+where
+    S: Clone,
+{
     pub parser: Parser<'a>,
-    pub style: TextBoxStyle<F, A, V, H>,
+    pub character_style: S,
+    pub style: TextBoxStyle<A, V, H>,
     pub carried_token: Option<Token<'a>>,
 }
 
-impl<F, A, V, H> LineRenderState<'_, F, A, V, H> {
+impl<S, A, V, H> LineRenderState<'_, S, A, V, H>
+where
+    S: Clone,
+{
     pub fn is_finished(&self) -> bool {
         self.carried_token.is_none() && self.parser.is_empty()
     }
@@ -71,12 +84,16 @@ where
     }
 
     fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
-        self.pos = self.style.draw_whitespace(width, self.pos, self.display)?;
+        self.pos = self
+            .style
+            .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
         Ok(())
     }
 
     fn printed_characters(&mut self, st: &str, _: u32) -> Result<(), Self::Error> {
-        self.pos = self.style.draw_string(st, self.pos, self.display)?;
+        self.pos = self
+            .style
+            .draw_string(st, self.pos, Baseline::Top, self.display)?;
         Ok(())
     }
 
@@ -117,7 +134,7 @@ where
 
 impl<'a, F, A, V, H> Drawable for StyledLineRenderer<'a, F, A, V, H>
 where
-    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
+    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
@@ -133,7 +150,8 @@ where
     {
         let LineRenderState {
             mut parser,
-            mut style,
+            mut character_style,
+            style,
             carried_token,
         } = self.state.clone();
 
@@ -142,19 +160,20 @@ where
             let mut elements = LineElementParser::<'_, '_, _, A>::new(
                 &mut parser,
                 self.cursor.clone(),
-                UniformSpaceConfig::new(&style.character_style),
+                UniformSpaceConfig::new(&character_style),
                 carried_token,
             );
 
             elements
                 .process(&mut StyleOnlyRenderElementHandler {
-                    style: &mut style.character_style,
+                    style: &mut character_style,
                 })
                 .unwrap()
         } else {
             // We have to resort to trickery to figure out the string that is rendered as the line.
             let mut cloned_parser = parser.clone();
             let lm = style.measure_line(
+                &character_style,
                 &mut cloned_parser,
                 &mut carried_token.clone(),
                 self.cursor.line_width(),
@@ -163,7 +182,7 @@ where
             let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
             let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
 
-            let (left, space_config) = A::place_line(line_str, &style.character_style, lm);
+            let (left, space_config) = A::place_line(line_str, &character_style, lm);
 
             let mut cursor = self.cursor.clone();
             cursor.move_cursor(left as i32).ok();
@@ -177,7 +196,7 @@ where
             );
 
             elements.process(&mut RenderElementHandler {
-                style: &mut style.character_style,
+                style: &mut character_style,
                 display,
                 pos,
             })?
@@ -185,6 +204,7 @@ where
 
         Ok(LineRenderState {
             parser,
+            character_style,
             style,
             carried_token: carried,
         })
@@ -249,21 +269,22 @@ mod test {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
-        text::{CharacterStyle, TextRenderer},
+        text::renderer::{CharacterStyle, TextRenderer},
         Drawable,
     };
 
-    fn test_rendered_text<'a, F, A, V, H>(
+    fn test_rendered_text<'a, S, A, V, H>(
         text: &'a str,
         bounds: Rectangle,
-        style: TextBoxStyle<F, A, V, H>,
+        character_style: S,
+        style: TextBoxStyle<A, V, H>,
         pattern: &[&str],
     ) where
-        F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
-        <F as CharacterStyle>::Color: From<Rgb> + embedded_graphics::mock_display::ColorMapping,
+        S: TextRenderer<Color = <S as CharacterStyle>::Color> + CharacterStyle,
+        <S as CharacterStyle>::Color: From<Rgb> + embedded_graphics::mock_display::ColorMapping,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
         H: HeightMode,
@@ -271,11 +292,12 @@ mod test {
         let parser = Parser::parse(text);
         let cursor = LineCursor::new(
             bounds.size.width,
-            TabSize::Spaces(4).into_pixels(&style.character_style),
+            TabSize::Spaces(4).into_pixels(&character_style),
         );
 
         let state = LineRenderState {
             parser,
+            character_style,
             style,
             carried_token: None,
         };
@@ -292,18 +314,17 @@ mod test {
     #[test]
     fn simple_render() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .build();
+        let style = TextBoxStyleBuilder::new().build();
 
         test_rendered_text(
             "Some sample text",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 7, 1)),
+            character_style,
             style,
             &[
                 "........................",
@@ -322,18 +343,17 @@ mod test {
     #[test]
     fn simple_render_nbsp() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .build();
+        let style = TextBoxStyleBuilder::new().build();
 
         test_rendered_text(
             "Some\u{A0}sample text",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 7, 1)),
+            character_style,
             style,
             &[
                 "..........................................",
@@ -352,18 +372,17 @@ mod test {
     #[test]
     fn simple_render_first_word_not_wrapped() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .build();
+        let style = TextBoxStyleBuilder::new().build();
 
         test_rendered_text(
             "Some sample text",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 2, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 2, 1)),
+            character_style,
             style,
             &[
                 "............",
@@ -382,18 +401,17 @@ mod test {
     #[test]
     fn newline_stops_render() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .build();
+        let style = TextBoxStyleBuilder::new().build();
 
         test_rendered_text(
             "Some \nsample text",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 7, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 7, 1)),
+            character_style,
             style,
             &[
                 "........................",
@@ -423,7 +441,7 @@ mod ansi_parser_tests {
     };
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         Drawable,
     };
@@ -436,21 +454,20 @@ mod ansi_parser_tests {
         let parser = Parser::parse("foo\x1b[2Dsample");
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .build();
+        let style = TextBoxStyleBuilder::new().build();
 
         let cursor = LineCursor::new(
-            size_for(Font6x9, 7, 1).width,
+            size_for(&FONT_6X9, 7, 1).width,
             TabSize::Spaces(4).into_pixels(&character_style),
         );
         let state = LineRenderState {
             parser,
+            character_style,
             style,
             carried_token: None,
         };

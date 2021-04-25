@@ -7,7 +7,7 @@ use embedded_graphics_simulator::{
 };
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
 };
@@ -97,13 +97,12 @@ fn main() {
     // * Use `Scrolling` vertical layout - this will make sure the cursor is always in view.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x9)
+        .font(&FONT_6X9)
         .text_color(BinaryColor::Off)
         .background_color(BinaryColor::On)
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
-        .character_style(character_style)
         .vertical_alignment(Scrolling)
         .build();
 
@@ -121,7 +120,8 @@ fn main() {
         let text_and_cursor = format!("{}\u{200b}_", text);
 
         // Create the text box and apply styling options.
-        let text_box = TextBox::new(&text_and_cursor, bounds).into_styled(textbox_style);
+        let text_box =
+            TextBox::with_textbox_style(&text_and_cursor, bounds, character_style, textbox_style);
 
         // Create a simulated display with the dimensions of the text box.
         let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
@@ -145,9 +145,9 @@ fn main() {
                         text.pop();
                     }
                     _ => {
-                        inputs.get(&keycode).map(|k| {
+                        if let Some(k) = inputs.get(&keycode) {
                             text += k.select_modified(keymod);
-                        });
+                        }
                     }
                 },
 

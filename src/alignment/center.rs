@@ -2,14 +2,11 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
-    style::{color::Rgb, height_mode::HeightMode, LineMeasurement},
-    StyledTextBox,
+    style::{height_mode::HeightMode, LineMeasurement},
+    TextBox,
 };
 
-use embedded_graphics::{
-    geometry::Dimensions,
-    text::{CharacterStyle, TextRenderer},
-};
+use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
 /// Marks text to be rendered center aligned.
 ///
@@ -34,19 +31,19 @@ impl HorizontalTextAlignment for CenterAligned {
 
 impl VerticalTextAlignment for CenterAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, F, A, H>(
+    fn apply_vertical_alignment<'a, S, A, H>(
         cursor: &mut Cursor,
-        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, S, A, Self, H>,
     ) where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        S: TextRenderer,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
-        let text_height = styled_text_box
-            .style
-            .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
-            as i32;
+        let text_height = styled_text_box.style.measure_text_height(
+            &styled_text_box.character_style,
+            styled_text_box.text,
+            cursor.line_width(),
+        ) as i32;
 
         let box_height = styled_text_box.bounding_box().size.height as i32;
         let offset = (box_height - text_height) / 2;
@@ -60,7 +57,7 @@ mod test_horizontal {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
         Drawable,
@@ -76,7 +73,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "word",
-            size_for(Font6x9, 6, 1),
+            size_for(&FONT_6X9, 6, 1),
             &[
                 "      ........................      ",
                 "      ......................#.      ",
@@ -97,20 +94,18 @@ mod test_horizontal {
         display.set_allow_overdraw(true);
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(CenterAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "O\rX",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 3, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 3, 1)),
+            character_style,
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
@@ -130,7 +125,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "word wrapping",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "               ........................               ",
                 "               ......................#.               ",
@@ -159,7 +154,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "word  somereallylongword",
-            size_for(Font6x9, 9, 3),
+            size_for(&FONT_6X9, 9, 3),
             &[
                 "               ........................               ",
                 "               ......................#.               ",
@@ -197,7 +192,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "somereallylongword",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "......................................................",
                 "...........................................##....##...",
@@ -226,7 +221,7 @@ mod test_horizontal {
         assert_rendered(
             CenterAligned,
             "soft\u{AD}hyphen",
-            size_for(Font6x9, 6, 2),
+            size_for(&FONT_6X9, 6, 2),
             &[
                 "   ..............................   ",
                 "   ...............#....#.........   ",
@@ -256,7 +251,7 @@ mod test_vertical {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         prelude::Size,
         primitives::Rectangle,
@@ -271,20 +266,23 @@ mod test_vertical {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(CenterAligned)
             .build();
 
-        TextBox::new(text, Rectangle::new(Point::zero(), size))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), size),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(pattern);
     }
@@ -293,7 +291,7 @@ mod test_vertical {
     fn test_center_alignment() {
         assert_rendered(
             "word",
-            size_for(Font6x9, 4, 2),
+            size_for(&FONT_6X9, 4, 2),
             &[
                 "                        ",
                 "                        ",

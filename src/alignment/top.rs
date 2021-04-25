@@ -3,9 +3,9 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
     style::height_mode::HeightMode,
-    StyledTextBox,
+    TextBox,
 };
-use embedded_graphics::text::TextRenderer;
+use embedded_graphics::text::renderer::TextRenderer;
 
 /// Align text to the top of the TextBox.
 #[derive(Copy, Clone, Debug)]
@@ -13,11 +13,11 @@ pub struct TopAligned;
 
 impl VerticalTextAlignment for TopAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, F, A, H>(
+    fn apply_vertical_alignment<'a, S, A, H>(
         _cursor: &mut Cursor,
-        _styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
+        _styled_text_box: &'a TextBox<'a, S, A, Self, H>,
     ) where
-        F: TextRenderer,
+        S: TextRenderer,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
@@ -29,7 +29,7 @@ impl VerticalTextAlignment for TopAligned {
 mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
@@ -42,20 +42,23 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(TopAligned)
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 16)))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            "word",
+            Rectangle::new(Point::zero(), Size::new(55, 16)),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             "........................",

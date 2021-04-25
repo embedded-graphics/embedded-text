@@ -3,6 +3,9 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Replaced `TextStyle::line_spacing` with `line_height`.
+ * **breaking** Added `#[non_exhaustive]` to `TextBoxStyle`.
+ * **breaking** Need to pass character style to text box constructors.
  * **breaking** Changed `TextBoxStyleBuilder` API to better align with embedded-graphics' `TextStyleBuilder`.
  * **breaking** Changed measurement of lines that only contain whitespace.
  * **breaking** (developer-facing) Simplified `HorizontalTextAlignment` API.
@@ -21,6 +24,7 @@ Unreleased
  * **breaking** Removed deprecated `TextBoxStyleBuilder::{text_style, background_color, text_color, from_text_style, underlined, strikethrough}`. Use `TextBoxStyleBuilder::character_style` instead.
  * **breaking** (developer-facing) The following types and modules have been removed or hidden:
    * `rendering::ansi`, `rendering::cursor`, `rendering::character`, `rendering::decorated_space`, `rendering::line`, `rendering::line_iter`, `rendering::space_config`
+ * Removed `TextBox::into_styled()`
 
 ## Fixed
 
@@ -29,6 +33,10 @@ Unreleased
 
 ## Added
 
+ * Added `From<&TextBoxStyle>` impl for `TextBoxStyleBuilder`
+ * `TextBox::{with_alignment, with_vertical_alignment}`
+ * `TextBoxStyle::{with_alignment, with_vertical_alignment}`
+ * `TextBox::with_textbox_style()`
  * `TextBoxStyleBuilder` now implements `Default`
  * `StyledTextBox::draw()` now returns unconsumed text.
  * Added `interactive_columns` example to show flowing text into multiple columns.

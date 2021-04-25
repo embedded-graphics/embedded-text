@@ -2,13 +2,10 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::{color::Rgb, height_mode::HeightMode},
-    StyledTextBox,
+    style::height_mode::HeightMode,
+    TextBox,
 };
-use embedded_graphics::{
-    geometry::Dimensions,
-    text::{CharacterStyle, TextRenderer},
-};
+use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
 /// Align text to the TextBox so that the last lines are always displayed.
 ///
@@ -20,19 +17,19 @@ pub struct Scrolling;
 
 impl VerticalTextAlignment for Scrolling {
     #[inline]
-    fn apply_vertical_alignment<'a, F, A, H>(
+    fn apply_vertical_alignment<'a, S, A, H>(
         cursor: &mut Cursor,
-        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, S, A, Self, H>,
     ) where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        S: TextRenderer,
         A: HorizontalTextAlignment,
         H: HeightMode,
     {
-        let text_height = styled_text_box
-            .style
-            .measure_text_height(styled_text_box.text_box.text, cursor.line_width())
-            as i32;
+        let text_height = styled_text_box.style.measure_text_height(
+            &styled_text_box.character_style,
+            styled_text_box.text,
+            cursor.line_width(),
+        ) as i32;
 
         let box_height = styled_text_box.bounding_box().size.height as i32;
         if text_height > box_height {
@@ -47,7 +44,7 @@ impl VerticalTextAlignment for Scrolling {
 mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
@@ -64,20 +61,23 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(Scrolling)
             .build();
 
-        TextBox::new(text, Rectangle::new(Point::zero(), size))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), size),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(pattern);
     }
@@ -86,7 +86,7 @@ mod test {
     fn scrolling_behaves_as_top_if_lines_dont_overflow() {
         assert_rendered(
             "word",
-            size_for(Font6x9, 4, 2),
+            size_for(&FONT_6X9, 4, 2),
             &[
                 "........................",
                 "......................#.",
@@ -114,7 +114,7 @@ mod test {
     fn scrolling_behaves_as_bottom_if_lines_overflow() {
         assert_rendered(
             "word word2 word3 word4",
-            size_for(Font6x9, 5, 2),
+            size_for(&FONT_6X9, 5, 2),
             &[
                 "..............................",
                 "......................#..####.",
@@ -142,7 +142,7 @@ mod test {
     fn scrolling_applies_full_rows_vertical_overflow() {
         assert_rendered(
             "word word2 word3 word4",
-            size_for(Font6x9, 5, 2) - Size::new(0, 5),
+            size_for(&FONT_6X9, 5, 2) - Size::new(0, 5),
             &[
                 "                              ",
                 "                              ",
@@ -166,22 +166,22 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(Scrolling)
             .height_mode(Exact(Hidden))
             .build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "word word2 word3 word4",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 5, 2) - Size::new(0, 5)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 2) - Size::new(0, 5)),
+            character_style,
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 

@@ -1,10 +1,10 @@
 //! Text alignment options.
 use crate::{
     rendering::{cursor::Cursor, space_config::SpaceConfig},
-    style::{color::Rgb, height_mode::HeightMode, LineMeasurement},
-    StyledTextBox,
+    style::{height_mode::HeightMode, LineMeasurement},
+    TextBox,
 };
-use embedded_graphics::text::{CharacterStyle, TextRenderer};
+use embedded_graphics::text::renderer::TextRenderer;
 
 pub mod bottom;
 pub mod center;
@@ -43,12 +43,11 @@ pub trait HorizontalTextAlignment: Copy {
 /// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
 pub trait VerticalTextAlignment: Copy {
     /// Set the cursor's initial vertical position
-    fn apply_vertical_alignment<'a, F, A, H>(
+    fn apply_vertical_alignment<'a, S, A, H>(
         cursor: &mut Cursor,
-        styled_text_box: &'a StyledTextBox<'a, F, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, S, A, Self, H>,
     ) where
-        F: TextRenderer + CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        S: TextRenderer,
         A: HorizontalTextAlignment,
         H: HeightMode;
 }

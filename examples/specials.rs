@@ -2,7 +2,7 @@
 //! characters to modify text layout behaviour.
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
 };
@@ -27,13 +27,12 @@ fn main() {
     // * Draw the text with `BinaryColor::Off` background color, which will be rendered as dark
     //   blue. This is used to overwrite parts of the text in this example.
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x10)
+        .font(&FONT_6X10)
         .text_color(BinaryColor::On)
         .background_color(BinaryColor::Off)
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
-        .character_style(character_style)
         .alignment(Justified)
         .height_mode(FitToText)
         .build();
@@ -43,7 +42,7 @@ fn main() {
     let bounds = Rectangle::new(Point::zero(), Size::new(129, 0));
 
     // Create the text box and apply styling options.
-    let text_box = TextBox::new(text, bounds).into_styled(textbox_style);
+    let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
     let mut display = SimulatorDisplay::new(text_box.bounding_box().size);

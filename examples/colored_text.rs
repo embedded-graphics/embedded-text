@@ -1,9 +1,10 @@
 //! This example demonstrates text styling using in-line ANSI escape sequences.
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::Rgb888,
     prelude::*,
+    text::LineHeight,
 };
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::prelude::*;
@@ -39,20 +40,19 @@ fn main() {
     // * Draw the text with black, which will be overridden by in-line styling.
     // * Use 2px line spacing because we'll draw underlines.
     let character_style = MonoTextStyleBuilder::new()
-        .font(Font6x10)
+        .font(&FONT_6X10)
         .text_color(Rgb888::BLACK)
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
-        .character_style(character_style)
-        .line_spacing(2)
+        .line_height(LineHeight::Percent(125))
         .build();
 
     // Specify the bounding box.
     let bounds = Rectangle::new(Point::zero(), Size::new(241, 97));
 
     // Create the text box and apply styling options.
-    let text_box = TextBox::new(&text, bounds).into_styled(textbox_style);
+    let text_box = TextBox::with_textbox_style(&text, bounds, character_style, textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
     let mut display = SimulatorDisplay::new(text_box.bounding_box().size);

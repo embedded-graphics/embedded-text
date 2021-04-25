@@ -7,13 +7,13 @@ use embedded_graphics_simulator::{
 };
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x9, MonoTextStyle, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::PrimitiveStyle,
     text::Text,
 };
-use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
+use embedded_text::prelude::*;
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
@@ -60,11 +60,9 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<'a, A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
+fn demo_loop<A>(window: &mut Window, bounds: &mut Rectangle, alignment: A) -> bool
 where
     A: HorizontalTextAlignment + core::fmt::Debug,
-    StyledTextBox<'a, MonoTextStyle<BinaryColor, Font6x9>, A, TopAligned, Exact<FullRowsOnly>>:
-        Drawable<Color = BinaryColor>,
 {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
@@ -81,24 +79,20 @@ where
         // * Use the horizontal alignmnet mode that was given to the `demo_loop()` function.
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let textbox_style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(alignment)
-            .build();
+        let textbox_style = TextBoxStyleBuilder::new().alignment(alignment).build();
 
         // Create the text box and apply styling options.
-        let text_box = TextBox::new(text, *bounds).into_styled(textbox_style);
+        let text_box = TextBox::with_textbox_style(text, *bounds, character_style, textbox_style);
 
         // Draw the text box.
         text_box.draw(&mut display).unwrap();
 
         // Draw the bounding box of the text box.
         text_box
-            .text_box
             .bounds
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
             .draw(&mut display)
@@ -106,10 +100,13 @@ where
 
         // Display the name of the horizontal alignment mode above the text box.
         let horizontal_alignment_text = format!("Alignment: {:?}", alignment);
-        Text::new(&horizontal_alignment_text, Point::new(0, 6))
-            .into_styled(character_style)
-            .draw(&mut display)
-            .unwrap();
+        Text::new(
+            &horizontal_alignment_text,
+            Point::new(0, 6),
+            character_style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         // Update the window.
         window.update(&display);

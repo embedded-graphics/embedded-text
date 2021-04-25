@@ -50,7 +50,7 @@ mod test {
     use embedded_graphics::{
         geometry::{Point, Size},
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
         Drawable,
@@ -68,21 +68,19 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(LeftAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(LeftAligned).build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "word and other words",
             Rectangle::new(Point::zero(), Size::new(55, 15)),
+            character_style,
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
@@ -106,23 +104,26 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
             .height_mode(Exact(Visible))
             .build();
 
         // Drawing at Point(0, 3) so we don't draw outside the display due to vertical centering.
-        TextBox::new("word", Rectangle::new(Point::new(0, 3), Size::new(55, 3)))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            "word",
+            Rectangle::new(Point::new(0, 3), Size::new(55, 3)),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             "........................",
@@ -144,22 +145,25 @@ mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
             .height_mode(Exact(Hidden))
             .build();
 
-        TextBox::new("word", Rectangle::new(Point::zero(), Size::new(55, 4)))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            "word",
+            Rectangle::new(Point::zero(), Size::new(55, 4)),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             "......................#.",

@@ -1,9 +1,10 @@
 //! This example demonstrates additional text decoration options (underlined and strike-through text).
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
+    text::LineHeight,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
@@ -18,27 +19,33 @@ fn main() {
     // * Draw the text horizontally left aligned (default option, not specified here).
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let base_style = MonoTextStyleBuilder::new()
-        .font(Font6x10)
+    let character_style = MonoTextStyleBuilder::new()
+        .font(&FONT_6X10)
         .text_color(BinaryColor::On);
 
-    let base_tb_style = TextBoxStyleBuilder::new()
+    let text_box_style = TextBoxStyleBuilder::new()
         .vertical_alignment(Scrolling)
         .height_mode(FitToText)
-        .line_spacing(2);
+        .line_height(LineHeight::Pixels(12))
+        .build();
 
     // Specify underlined and strike-through decorations, one for each text box.
-    let underlined_style = base_style.underline().build();
-    let strikethrough_style = base_style.strikethrough().build();
+    let underlined_style = character_style.underline().build();
+    let strikethrough_style = character_style.strikethrough().build();
 
-    let underlined_tb_style = base_tb_style.character_style(underlined_style).build();
-    let strikethrough_tb_style = base_tb_style.character_style(strikethrough_style).build();
+    let text_box = TextBox::with_textbox_style(
+        text,
+        Rectangle::new(Point::zero(), Size::new(97, 0)),
+        underlined_style,
+        text_box_style,
+    );
 
-    let text_box = TextBox::new(text, Rectangle::new(Point::zero(), Size::new(97, 0)))
-        .into_styled(underlined_tb_style);
-
-    let text_box2 = TextBox::new(text, Rectangle::new(Point::new(96, 0), Size::new(97, 0)))
-        .into_styled(strikethrough_tb_style);
+    let text_box2 = TextBox::with_textbox_style(
+        text,
+        Rectangle::new(Point::new(96, 0), Size::new(97, 0)),
+        strikethrough_style,
+        text_box_style,
+    );
 
     // Create a window for both text boxes.
     let mut display = SimulatorDisplay::new(Size::new(

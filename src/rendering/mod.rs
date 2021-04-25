@@ -14,19 +14,19 @@ use crate::{
         line::{LineRenderState, StyledLineRenderer},
     },
     style::{color::Rgb, height_mode::HeightMode},
-    StyledTextBox,
+    TextBox,
 };
 use embedded_graphics::{
     draw_target::{DrawTarget, DrawTargetExt},
     prelude::{Point, Size},
     primitives::Rectangle,
-    text::{CharacterStyle, TextRenderer},
+    text::renderer::{CharacterStyle, TextRenderer},
     Drawable,
 };
 
-impl<'a, F, A, V, H> Drawable for StyledTextBox<'a, F, A, V, H>
+impl<'a, F, A, V, H> Drawable for TextBox<'a, F, A, V, H>
 where
-    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle + Clone,
+    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
@@ -41,17 +41,18 @@ where
         display: &mut D,
     ) -> Result<&'a str, D::Error> {
         let mut cursor = Cursor::new(
-            self.text_box.bounds,
-            self.style.character_style.line_height(),
-            self.style.line_spacing,
-            self.style.tab_size.into_pixels(&self.style.character_style),
+            self.bounds,
+            self.character_style.line_height(),
+            self.style.line_height,
+            self.style.tab_size.into_pixels(&self.character_style),
         );
 
         V::apply_vertical_alignment(&mut cursor, self);
 
         let mut state = LineRenderState {
-            style: self.style.clone(),
-            parser: Parser::parse(self.text_box.text),
+            style: self.style,
+            character_style: self.character_style.clone(),
+            parser: Parser::parse(self.text),
             carried_token: None,
         };
 
@@ -70,8 +71,8 @@ where
                     };
 
                     let remaining_bytes = state.parser.as_str().len();
-                    let consumed_bytes = self.text_box.text.len() - remaining_bytes - carried_bytes;
-                    return Ok(self.text_box.text.get(consumed_bytes..).unwrap());
+                    let consumed_bytes = self.text.len() - remaining_bytes - carried_bytes;
+                    return Ok(self.text.get(consumed_bytes..).unwrap());
                 }
             } else {
                 anything_drawn = true;
@@ -98,7 +99,7 @@ where
 pub mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
@@ -120,20 +121,21 @@ pub mod test {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(alignment)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(alignment).build();
 
-        TextBox::new(text, Rectangle::new(Point::zero(), size))
-            .into_styled(style)
-            .draw(&mut display)
-            .unwrap();
+        TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), size),
+            character_style,
+            style,
+        )
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(pattern);
     }
@@ -143,7 +145,7 @@ pub mod test {
         assert_rendered(
             LeftAligned,
             "a b c\u{a0}d e f",
-            size_for(Font6x9, 5, 3),
+            size_for(&FONT_6X9, 5, 3),
             &[
                 "..................            ",
                 ".............#....            ",

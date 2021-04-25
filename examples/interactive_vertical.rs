@@ -7,7 +7,7 @@ use embedded_graphics_simulator::{
 };
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::PrimitiveStyle,
@@ -60,7 +60,7 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<'a, V>(window: &mut Window, bounds: &mut Rectangle, alignment: V) -> bool
+fn demo_loop<V>(window: &mut Window, bounds: &mut Rectangle, alignment: V) -> bool
 where
     V: VerticalTextAlignment + std::fmt::Debug,
 {
@@ -80,24 +80,22 @@ where
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         // * Use the vertical alignmnet mode that was given to the `demo_loop()` function.
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
         let textbox_style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .vertical_alignment(alignment)
             .build();
 
         // Create the text box and apply styling options.
-        let text_box = TextBox::new(text, *bounds).into_styled(textbox_style);
+        let text_box = TextBox::with_textbox_style(text, *bounds, character_style, textbox_style);
 
         // Draw the text box.
         text_box.draw(&mut display).unwrap();
 
         // Draw the bounding box of the text box.
         text_box
-            .text_box
             .bounds
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
             .draw(&mut display)
@@ -105,8 +103,7 @@ where
 
         // Display the name of the vertical alignment mode above the text box.
         let vertical_alignment_text = format!("Vertical Alignment: {:?}", alignment);
-        Text::new(&vertical_alignment_text, Point::new(0, 6))
-            .into_styled(character_style)
+        Text::new(&vertical_alignment_text, Point::new(0, 6), character_style)
             .draw(&mut display)
             .unwrap();
 

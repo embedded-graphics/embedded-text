@@ -162,17 +162,17 @@ pub mod vertical_overdraw;
 use core::convert::Infallible;
 
 use crate::{
-    alignment::HorizontalTextAlignment,
+    alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
         cursor::LineCursor,
         line_iter::{ElementHandler, LineElementParser},
         space_config::UniformSpaceConfig,
     },
+    style::{height_mode::Exact, vertical_overdraw::FullRowsOnly},
     utils::str_width,
 };
-use color::Rgb;
-use embedded_graphics::text::{CharacterStyle, TextRenderer};
+use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
 
 pub use self::builder::TextBoxStyleBuilder;
 
@@ -207,10 +207,6 @@ impl TabSize {
     }
 }
 
-/// Placeholder character style that needs to be changed in order to draw a `StyledTextBox`.
-#[derive(Copy, Clone, Debug)]
-pub struct UndefinedCharacterStyle;
-
 /// Styling options of a [`TextBox`].
 ///
 /// `TextBoxStyle` contains the font, foreground and background `PixelColor`, line spacing,
@@ -228,10 +224,8 @@ pub struct UndefinedCharacterStyle;
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct TextBoxStyle<F, A, V, H> {
-    /// Character style used to measure and draw text.
-    pub character_style: F,
-
+#[non_exhaustive]
+pub struct TextBoxStyle<A, V, H> {
     /// Horizontal text alignment.
     pub alignment: A,
 
@@ -241,11 +235,38 @@ pub struct TextBoxStyle<F, A, V, H> {
     /// The height behaviour
     pub height_mode: H,
 
-    /// Desired space between lines, in pixels
-    pub line_spacing: i32,
+    /// Line height.
+    pub line_height: LineHeight,
 
     /// Desired column width for tabs
     pub tab_size: TabSize,
+}
+
+impl TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+    /// Creates a new text box style with the given alignment.
+    #[inline]
+    pub fn with_alignment<A: HorizontalTextAlignment>(
+        alignment: A,
+    ) -> TextBoxStyle<A, TopAligned, Exact<FullRowsOnly>> {
+        TextBoxStyleBuilder::new().alignment(alignment).build()
+    }
+
+    /// Creates a new text box style with the given vertical alignment.
+    #[inline]
+    pub fn with_vertical_alignment<V: VerticalTextAlignment>(
+        alignment: V,
+    ) -> TextBoxStyle<LeftAligned, V, Exact<FullRowsOnly>> {
+        TextBoxStyleBuilder::new()
+            .vertical_alignment(alignment)
+            .build()
+    }
+}
+
+impl Default for TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+    #[inline]
+    fn default() -> Self {
+        TextBoxStyleBuilder::new().build()
+    }
 }
 
 /// Information about a line.
@@ -261,14 +282,14 @@ pub struct LineMeasurement {
     pub last_line: bool,
 }
 
-struct MeasureLineElementHandler<'a, F> {
-    style: &'a F,
+struct MeasureLineElementHandler<'a, S> {
+    style: &'a S,
     right: u32,
     max_line_width: u32,
     pos: u32,
 }
 
-impl<'a, F: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, F> {
+impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     type Error = Infallible;
 
     fn measure(&self, st: &str) -> u32 {
@@ -295,10 +316,8 @@ impl<'a, F: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, F> {
     }
 }
 
-impl<F, A, V, H> TextBoxStyle<F, A, V, H>
+impl<A, V, H> TextBoxStyle<A, V, H>
 where
-    F: TextRenderer + CharacterStyle,
-    <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
 {
     /// Measure the width and count spaces in a single line of text.
@@ -310,26 +329,27 @@ where
     /// If the carried token is `None`, the parser has finished processing the text.
     #[inline]
     #[must_use]
-    pub(crate) fn measure_line<'a>(
+    pub(crate) fn measure_line<'a, S>(
         &self,
+        character_style: &S,
         parser: &mut Parser<'a>,
         carried_token: &mut Option<Token<'a>>,
         max_line_width: u32,
-    ) -> LineMeasurement {
-        let cursor = LineCursor::new(
-            max_line_width,
-            self.tab_size.into_pixels(&self.character_style),
-        );
+    ) -> LineMeasurement
+    where
+        S: TextRenderer,
+    {
+        let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
         let mut iter = LineElementParser::<'_, '_, _, A>::new(
             parser,
             cursor,
-            UniformSpaceConfig::new(&self.character_style),
+            UniformSpaceConfig::new(character_style),
             carried_token.clone(),
         );
 
         let mut handler = MeasureLineElementHandler {
-            style: &self.character_style,
+            style: character_style,
             right: 0,
             pos: 0,
             max_line_width,
@@ -350,19 +370,19 @@ where
     /// ```rust
     /// # use embedded_text::style::builder::TextBoxStyleBuilder;
     /// # use embedded_graphics::{
-    /// #     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     /// #     pixelcolor::BinaryColor,
     /// # };
     /// #
     /// let character_style = MonoTextStyleBuilder::new()
-    ///     .font(Font6x9)
+    ///     .font(&FONT_6X9)
     ///     .text_color(BinaryColor::On)
     ///     .build();
     /// let style = TextBoxStyleBuilder::new()
-    ///     .character_style(character_style)
     ///     .build();
     ///
     /// let height = style.measure_text_height(
+    ///     &character_style,
     ///     "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
     ///     72,
     /// );
@@ -381,16 +401,20 @@ where
     /// ```
     #[inline]
     #[must_use]
-    pub fn measure_text_height(&self, text: &str, max_width: u32) -> u32 {
-        let mut n_lines = 0_i32;
+    pub fn measure_text_height<S>(&self, character_style: &S, text: &str, max_width: u32) -> u32
+    where
+        S: TextRenderer,
+    {
+        let mut n_lines = 0_u32;
         let mut parser = Parser::parse(text);
         let mut carry = None;
         let mut cr_width = None;
         let mut empty_lines = 0;
-        let line_height = self.character_style.line_height() as i32;
+        let line_height = self.line_height.to_absolute(character_style.line_height());
+        let last_line_height = character_style.line_height();
 
         loop {
-            let lm = self.measure_line(&mut parser, &mut carry, max_width);
+            let lm = self.measure_line(character_style, &mut parser, &mut carry, max_width);
 
             if matches!(carry, Some(Token::CarriageReturn)) {
                 cr_width = cr_width.map_or(Some(lm.width), |width: u32| Some(width.max(lm.width)));
@@ -410,8 +434,8 @@ where
             }
 
             if carry.is_none() {
-                return (n_lines * line_height + n_lines.saturating_sub(1) * self.line_spacing)
-                    as u32;
+                return n_lines.saturating_sub(1) * line_height
+                    + (n_lines > 0) as u32 * last_line_height;
             }
         }
     }
@@ -421,22 +445,21 @@ where
 mod test {
     use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
     use embedded_graphics::{
-        mono_font::{ascii::Font6x9, MonoFont, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
-        text::TextRenderer,
+        text::{renderer::TextRenderer, LineHeight},
     };
 
     #[test]
     fn no_infinite_loop() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
         let _ = TextBoxStyleBuilder::new()
-            .character_style(character_style)
             .build()
-            .measure_text_height("a", 5);
+            .measure_text_height(&character_style, "a", 5);
     }
 
     #[test]
@@ -470,16 +493,14 @@ mod test {
         ];
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .build();
+        let style = TextBoxStyleBuilder::new().build();
 
         for (i, (text, width, expected_n_lines)) in data.iter().enumerate() {
-            let height = style.measure_text_height(text, *width);
+            let height = style.measure_text_height(&character_style, text, *width);
             let expected_height = *expected_n_lines * character_style.line_height();
             assert_eq!(
                 height,
@@ -506,17 +527,14 @@ mod test {
         ];
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(CenterAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
 
         for (i, (text, width, expected_n_lines)) in data.iter().enumerate() {
-            let height = style.measure_text_height(text, *width);
+            let height = style.measure_text_height(&character_style, text, *width);
             let expected_height = *expected_n_lines * character_style.line_height();
             assert_eq!(
                 height, expected_height,
@@ -529,126 +547,136 @@ mod test {
     #[test]
     fn test_measure_line() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(CenterAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
 
         let mut text = Parser::parse("123 45 67");
 
-        let lm = style.measure_line(&mut text, &mut None, 6 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.width, 6 * Font6x9::CHARACTER_SIZE.width);
+        let lm = style.measure_line(
+            &character_style,
+            &mut text,
+            &mut None,
+            6 * FONT_6X9.character_size.width,
+        );
+        assert_eq!(lm.width, 6 * FONT_6X9.character_size.width);
     }
 
     #[test]
     #[cfg(feature = "ansi")]
     fn test_measure_line_cursor_back() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(CenterAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
 
         let mut text = Parser::parse("123\x1b[2D");
 
-        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.width, 3 * Font6x9::CHARACTER_SIZE.width);
+        let lm = style.measure_line(
+            &character_style,
+            &mut text,
+            &mut None,
+            5 * FONT_6X9.character_size.width,
+        );
+        assert_eq!(lm.width, 3 * FONT_6X9.character_size.width);
 
         // Now a case where the string itself without rewind is wider than the line and the
         // continuation after rewind extends the line.
         let mut text = Parser::parse("123\x1b[2D456");
 
-        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.width, 4 * Font6x9::CHARACTER_SIZE.width);
+        let lm = style.measure_line(
+            &character_style,
+            &mut text,
+            &mut None,
+            5 * FONT_6X9.character_size.width,
+        );
+        assert_eq!(lm.width, 4 * FONT_6X9.character_size.width);
     }
 
     #[test]
     fn test_measure_line_counts_nbsp() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(CenterAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
 
         let mut text = Parser::parse("123\u{A0}45");
 
-        let lm = style.measure_line(&mut text, &mut None, 5 * Font6x9::CHARACTER_SIZE.width);
-        assert_eq!(lm.width, 5 * Font6x9::CHARACTER_SIZE.width);
+        let lm = style.measure_line(
+            &character_style,
+            &mut text,
+            &mut None,
+            5 * FONT_6X9.character_size.width,
+        );
+        assert_eq!(lm.width, 5 * FONT_6X9.character_size.width);
     }
 
     #[test]
     fn test_measure_height_nbsp() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(CenterAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
         let text = "123\u{A0}45 123";
 
-        let height = style.measure_text_height(text, 5 * Font6x9::CHARACTER_SIZE.width);
+        let height =
+            style.measure_text_height(&character_style, text, 5 * FONT_6X9.character_size.width);
         assert_eq!(height, 2 * character_style.line_height());
 
         // bug discovered while using the interactive example
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(LeftAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(LeftAligned).build();
 
         let text = "embedded-text also\u{A0}supports non-breaking spaces.";
 
-        let height = style.measure_text_height(text, 79);
+        let height = style.measure_text_height(&character_style, text, 79);
         assert_eq!(height, 4 * character_style.line_height());
     }
 
     #[test]
     fn height_with_line_spacing() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .line_spacing(2)
+            .line_height(LineHeight::Pixels(11))
             .build();
 
         let height = style.measure_text_height(
+            &character_style,
             "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
             72,
         );
 
-        assert_eq!(height, 7 * character_style.line_height() + 6 * 2);
+        assert_eq!(height, 6 * 11 + 9);
     }
 
     #[test]
     fn soft_hyphenated_line_width_includes_hyphen_width() {
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .line_spacing(2)
+            .line_height(LineHeight::Pixels(11))
             .build();
 
-        let lm = style.measure_line(&mut Parser::parse("soft\u{AD}hyphen"), &mut None, 50);
+        let lm = style.measure_line(
+            &character_style,
+            &mut Parser::parse("soft\u{AD}hyphen"),
+            &mut None,
+            50,
+        );
 
         assert_eq!(lm.width, 30);
     }

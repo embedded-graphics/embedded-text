@@ -19,7 +19,7 @@ ansi = ["ansi-parser", "as-slice"]
 default = ["ansi"]
 
 [dependencies]
-embedded-graphics = "0.7.0-alpha.3"
+embedded-graphics = "0.7.0-beta.1"
 # ansi-parser = { version = "0.7.0", default-features = false, optional = true }
 ansi-parser = { git = "https://gitlab.com/daniel.buga/ansi-parser", default-features = false, optional = true }
 as-slice = { version = "0.1.4", optional = true }
@@ -28,7 +28,3 @@ as-slice = { version = "0.1.4", optional = true }
 embedded-graphics-simulator = "0.3.0-alpha.2"
 sdl2 = "0.32.2"
 heapless = "0.5.6"
-
-[patch.crates-io]
-embedded-graphics = { git = "https://github.com/embedded-graphics/embedded-graphics" }
-embedded-graphics-core = { git = "https://github.com/embedded-graphics/embedded-graphics" }

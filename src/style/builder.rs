@@ -1,114 +1,71 @@
-//! Textbox style builder.
+//! Text box style builder.
+use embedded_graphics::text::LineHeight;
+
 use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     style::{
         height_mode::{Exact, HeightMode},
         vertical_overdraw::FullRowsOnly,
-        TabSize, TextBoxStyle, UndefinedCharacterStyle,
+        TabSize, TextBoxStyle,
     },
 };
-use embedded_graphics::text::TextRenderer;
 
 /// [`TextBoxStyle`] builder object.
 ///
 /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct TextBoxStyleBuilder<F, A, V, H> {
-    text_box_style: TextBoxStyle<F, A, V, H>,
+pub struct TextBoxStyleBuilder<A, V, H> {
+    style: TextBoxStyle<A, V, H>,
 }
 
-impl Default
-    for TextBoxStyleBuilder<UndefinedCharacterStyle, LeftAligned, TopAligned, Exact<FullRowsOnly>>
-{
+impl Default for TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl TextBoxStyleBuilder<UndefinedCharacterStyle, LeftAligned, TopAligned, Exact<FullRowsOnly>> {
-    /// Creates a new `TextBoxStyleBuilder` with a given MonoFont.
-    ///
-    /// Default settings are:
-    ///  - [`LeftAligned`]
-    ///  - [`TopAligned`]
-    ///  - Text color: transparent
-    ///  - Background color: transparent
-    ///  - Height mode: [`Exact`]
-    ///  - Line spacing: 0px
+impl TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+    /// Creates a new text box style builder object.
     #[inline]
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            text_box_style: TextBoxStyle {
-                character_style: UndefinedCharacterStyle,
+            style: TextBoxStyle {
                 alignment: LeftAligned,
                 vertical_alignment: TopAligned,
                 height_mode: Exact(FullRowsOnly),
-                line_spacing: 0,
-                tab_size: TabSize::default(),
+                line_height: LineHeight::Percent(100),
+                tab_size: TabSize::Spaces(4),
             },
         }
     }
 }
 
-impl<F, A, V, H> TextBoxStyleBuilder<F, A, V, H>
-where
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
-    H: HeightMode,
-{
-    /// Sets the vertical space between lines, in pixels.
+impl<A, V, H> TextBoxStyleBuilder<A, V, H> {
+    /// Sets the line height.
     ///
-    /// *Note:* You can set negative values as line spacing if you wish your lines to overlap.
+    /// The line height is defined as the vertical distance between the baseline of two adjacent lines
+    /// of text.
     ///
     /// # Example
     ///
     /// ```rust
     /// # use embedded_text::prelude::*;
     /// # use embedded_graphics::{
-    /// #     mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
-    /// #     pixelcolor::BinaryColor,
-    /// #     prelude::*,
+    /// #     text::LineHeight,
     /// # };
     /// #
-    /// # let character_style = MonoTextStyleBuilder::new()
-    /// #     .font(Font6x9)
-    /// #     .text_color(BinaryColor::On)
-    /// #     .build();
     /// let style = TextBoxStyleBuilder::new()
-    ///     .character_style(character_style)
-    ///     .line_spacing(3)
+    ///     .line_height(LineHeight::Pixels(12))
     ///     .build();
     /// ```
     #[inline]
     #[must_use]
-    pub fn line_spacing(self, line_spacing: i32) -> Self {
-        Self {
-            text_box_style: TextBoxStyle {
-                line_spacing,
-                ..self.text_box_style
-            },
-        }
-    }
+    pub fn line_height(mut self, line_height: LineHeight) -> Self {
+        self.style.line_height = line_height;
 
-    /// Sets the character style.
-    #[inline]
-    #[must_use]
-    pub fn character_style<CS: TextRenderer>(
-        self,
-        character_style: CS,
-    ) -> TextBoxStyleBuilder<CS, A, V, H> {
-        TextBoxStyleBuilder {
-            text_box_style: TextBoxStyle {
-                character_style,
-                alignment: self.text_box_style.alignment,
-                line_spacing: self.text_box_style.line_spacing,
-                vertical_alignment: self.text_box_style.vertical_alignment,
-                height_mode: self.text_box_style.height_mode,
-                tab_size: self.text_box_style.tab_size,
-            },
-        }
+        self
     }
 
     /// Sets the horizontal text alignment.
@@ -117,15 +74,14 @@ where
     pub fn alignment<TA: HorizontalTextAlignment>(
         self,
         alignment: TA,
-    ) -> TextBoxStyleBuilder<F, TA, V, H> {
+    ) -> TextBoxStyleBuilder<TA, V, H> {
         TextBoxStyleBuilder {
-            text_box_style: TextBoxStyle {
-                character_style: self.text_box_style.character_style,
+            style: TextBoxStyle {
                 alignment,
-                line_spacing: self.text_box_style.line_spacing,
-                vertical_alignment: self.text_box_style.vertical_alignment,
-                height_mode: self.text_box_style.height_mode,
-                tab_size: self.text_box_style.tab_size,
+                line_height: self.style.line_height,
+                vertical_alignment: self.style.vertical_alignment,
+                height_mode: self.style.height_mode,
+                tab_size: self.style.tab_size,
             },
         }
     }
@@ -136,15 +92,14 @@ where
     pub fn vertical_alignment<VA: VerticalTextAlignment>(
         self,
         vertical_alignment: VA,
-    ) -> TextBoxStyleBuilder<F, A, VA, H> {
+    ) -> TextBoxStyleBuilder<A, VA, H> {
         TextBoxStyleBuilder {
-            text_box_style: TextBoxStyle {
-                character_style: self.text_box_style.character_style,
-                alignment: self.text_box_style.alignment,
-                line_spacing: self.text_box_style.line_spacing,
+            style: TextBoxStyle {
+                alignment: self.style.alignment,
+                line_height: self.style.line_height,
                 vertical_alignment,
-                height_mode: self.text_box_style.height_mode,
-                tab_size: self.text_box_style.tab_size,
+                height_mode: self.style.height_mode,
+                tab_size: self.style.tab_size,
             },
         }
     }
@@ -152,15 +107,14 @@ where
     /// Sets the height mode.
     #[inline]
     #[must_use]
-    pub fn height_mode<HM: HeightMode>(self, height_mode: HM) -> TextBoxStyleBuilder<F, A, V, HM> {
+    pub fn height_mode<HM: HeightMode>(self, height_mode: HM) -> TextBoxStyleBuilder<A, V, HM> {
         TextBoxStyleBuilder {
-            text_box_style: TextBoxStyle {
-                character_style: self.text_box_style.character_style,
-                alignment: self.text_box_style.alignment,
-                line_spacing: self.text_box_style.line_spacing,
-                vertical_alignment: self.text_box_style.vertical_alignment,
+            style: TextBoxStyle {
+                alignment: self.style.alignment,
+                line_height: self.style.line_height,
+                vertical_alignment: self.style.vertical_alignment,
                 height_mode,
-                tab_size: self.text_box_style.tab_size,
+                tab_size: self.style.tab_size,
             },
         }
     }
@@ -168,19 +122,15 @@ where
     /// Sets the tab size.
     #[inline]
     #[must_use]
-    pub fn tab_size(self, tab_size: TabSize) -> Self {
-        Self {
-            text_box_style: TextBoxStyle {
-                tab_size,
-                ..self.text_box_style
-            },
-        }
+    pub fn tab_size(mut self, tab_size: TabSize) -> Self {
+        self.style.tab_size = tab_size;
+
+        self
     }
 }
 
-impl<F, A, V, H> TextBoxStyleBuilder<F, A, V, H>
+impl<A, V, H> TextBoxStyleBuilder<A, V, H>
 where
-    F: TextRenderer,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
     H: HeightMode,
@@ -190,7 +140,19 @@ where
     /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
     #[inline]
     #[must_use]
-    pub fn build(self) -> TextBoxStyle<F, A, V, H> {
-        self.text_box_style
+    pub fn build(self) -> TextBoxStyle<A, V, H> {
+        self.style
+    }
+}
+
+impl<A, V, H> From<&TextBoxStyle<A, V, H>> for TextBoxStyleBuilder<A, V, H>
+where
+    A: Copy,
+    V: Copy,
+    H: Copy,
+{
+    #[inline]
+    fn from(style: &TextBoxStyle<A, V, H>) -> Self {
+        Self { style: *style }
     }
 }

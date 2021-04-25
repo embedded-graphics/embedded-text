@@ -3,7 +3,7 @@ use crate::{
     alignment::HorizontalTextAlignment, rendering::space_config::UniformSpaceConfig,
     style::LineMeasurement,
 };
-use embedded_graphics::text::TextRenderer;
+use embedded_graphics::text::renderer::TextRenderer;
 
 /// Marks text to be rendered right aligned.
 #[derive(Copy, Clone, Debug)]
@@ -29,7 +29,7 @@ mod test {
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
-        mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
         Drawable,
@@ -45,7 +45,7 @@ mod test {
         assert_rendered(
             RightAligned,
             "word",
-            size_for(Font6x9, 6, 1),
+            size_for(&FONT_6X9, 6, 1),
             &[
                 "            ........................",
                 "            ......................#.",
@@ -66,20 +66,18 @@ mod test {
         display.set_allow_overdraw(true);
 
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .alignment(RightAligned)
-            .build();
+        let style = TextBoxStyleBuilder::new().alignment(RightAligned).build();
 
-        TextBox::new(
+        TextBox::with_textbox_style(
             "O\rX",
-            Rectangle::new(Point::zero(), size_for(Font6x9, 3, 1)),
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 3, 1)),
+            character_style,
+            style,
         )
-        .into_styled(style)
         .draw(&mut display)
         .unwrap();
 
@@ -99,7 +97,7 @@ mod test {
         assert_rendered(
             RightAligned,
             "word wrapping",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "                              ........................",
                 "                              ......................#.",
@@ -128,7 +126,7 @@ mod test {
         assert_rendered(
             RightAligned,
             "word  somereallylongword",
-            size_for(Font6x9, 9, 3),
+            size_for(&FONT_6X9, 9, 3),
             &[
                 "                              ........................",
                 "                              ......................#.",
@@ -166,7 +164,7 @@ mod test {
         assert_rendered(
             RightAligned,
             "somereallylongword",
-            size_for(Font6x9, 9, 2),
+            size_for(&FONT_6X9, 9, 2),
             &[
                 "......................................................",
                 "...........................................##....##...",
@@ -195,7 +193,7 @@ mod test {
         assert_rendered(
             RightAligned,
             "soft\u{AD}hyphen",
-            size_for(Font6x9, 6, 2),
+            size_for(&FONT_6X9, 6, 2),
             &[
                 "      ..............................",
                 "      ...............#....#.........",

@@ -7,7 +7,7 @@ use embedded_graphics_simulator::{
 };
 
 use embedded_graphics::{
-    mono_font::{ascii::Font6x9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::PrimitiveStyle,
@@ -60,7 +60,7 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<'a, H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
+fn demo_loop<H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
 where
     H: HeightMode + std::fmt::Debug,
 {
@@ -80,24 +80,20 @@ where
         // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
         // * Use the height mode that was given to the `demo_loop()` function.
         let character_style = MonoTextStyleBuilder::new()
-            .font(Font6x9)
+            .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .build();
 
-        let textbox_style = TextBoxStyleBuilder::new()
-            .character_style(character_style)
-            .height_mode(height_mode)
-            .build();
+        let textbox_style = TextBoxStyleBuilder::new().height_mode(height_mode).build();
 
         // Create the text box and apply styling options.
-        let text_box = TextBox::new(text, *bounds).into_styled(textbox_style);
+        let text_box = TextBox::with_textbox_style(text, *bounds, character_style, textbox_style);
 
         // Draw the text box.
         text_box.draw(&mut display).unwrap();
 
         // Draw the bounding box of the text box.
         text_box
-            .text_box
             .bounds
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
             .draw(&mut display)
@@ -105,8 +101,7 @@ where
 
         // Display the name of the height mode above the text box.
         let height_text = format!("Mode: {:?}", height_mode);
-        Text::new(&height_text, Point::new(0, 6))
-            .into_styled(character_style)
+        Text::new(&height_text, Point::new(0, 6), character_style)
             .draw(&mut display)
             .unwrap();
 
