@@ -1,6 +1,6 @@
 [package]
 name = "embedded-text"
-version = "0.4.0"
+version = "0.4.1"
 license = "MIT"
 description = "TextBox for embedded-graphics"
 repository = "https://github.com/embedded-graphics/embedded-text"
@@ -28,7 +28,7 @@ harness = false
 
 [dependencies]
 embedded-graphics = "0.6.2"
-ansi-parser = { version = "0.7.0", default-features = false, optional = true }
+ansi-parser = { version = "0.8.0", default-features = false, optional = true }
 as-slice = { version = "0.1.4", optional = true }
 
 [dev-dependencies]
