@@ -41,6 +41,19 @@ Unreleased
  * `StyledTextBox::draw()` now returns unconsumed text.
  * Added `interactive_columns` example to show flowing text into multiple columns.
 
+0.4.1 (2021-04-25)
+==================
+
+## Changed:
+ 
+ * Updated `ansi-parser` dependency to `0.8.0`.
+ * ANSI sequence support now requires the `ansi` feature which is on by default.
+ * Fields of the `style::color::Rgb` struct are now public.
+
+## Fixed:
+
+ * The `ansi` feature can now be used in `no_std` environments.
+
 0.4.0 (2020-11-26)
 ==================
 
