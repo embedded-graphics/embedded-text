@@ -153,7 +153,6 @@ pub mod prelude {
 /// See the [module-level documentation] for more information.
 ///
 /// [`into_styled`]: #method.into_styled
-/// [`StyledTextBox`]: struct.StyledTextBox.html
 /// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
 /// [module-level documentation]: index.html
 /// [`draw`]: #method.draw
@@ -281,15 +280,15 @@ where
     S: TextRenderer,
     A: HorizontalTextAlignment,
 {
-    /// Sets the height of the [`StyledTextBox`] to the height of the text.
+    /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]
     pub fn fit_height(&mut self) -> &mut Self {
         self.fit_height_limited(u32::max_value())
     }
 
-    /// Sets the height of the [`StyledTextBox`] to the height of the text, limited to `max_height`.
+    /// Sets the height of the [`TextBox`] to the height of the text, limited to `max_height`.
     ///
-    /// This method allows you to set a maximum height. The [`StyledTextBox`] will take up at most
+    /// This method allows you to set a maximum height. The [`TextBox`] will take up at most
     /// `max_height` pixel vertical space.
     #[inline]
     pub fn fit_height_limited(&mut self, max_height: u32) -> &mut Self {
