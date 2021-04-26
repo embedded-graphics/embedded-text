@@ -10,8 +10,9 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
+    primitives::Rectangle,
 };
-use embedded_text::prelude::*;
+use embedded_text::{alignment::Scrolling, style::TextBoxStyleBuilder, TextBox};
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, thread, time::Duration};
 

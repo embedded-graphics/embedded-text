@@ -40,12 +40,13 @@ pub trait HeightMode: Copy {
 /// # Example:
 ///
 /// ```rust
-/// use embedded_text::prelude::*;
 /// use embedded_graphics::{
 ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
+///     primitives::Rectangle,
 /// };
+/// use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 ///
 /// let character_style = MonoTextStyleBuilder::new()
 ///     .font(&FONT_6X9)
@@ -96,11 +97,15 @@ where
 /// # Example: `FitToText` grows the [`TextBox`].
 ///
 /// ```rust
-/// use embedded_text::prelude::*;
 /// use embedded_graphics::{
 ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
+///     primitives::Rectangle,
+/// };
+/// use embedded_text::{
+///     style::{height_mode::FitToText, TextBoxStyleBuilder},
+///     TextBox,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
@@ -109,9 +114,7 @@ where
 ///     .build();
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-/// let style = TextBoxStyleBuilder::new()
-///     .height_mode(FitToText)
-///     .build();
+/// let style = TextBoxStyleBuilder::new().height_mode(FitToText).build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
 /// let text_box = TextBox::with_textbox_style(
@@ -129,11 +132,15 @@ where
 /// # Example: `FitToText` also shrinks the [`TextBox`].
 ///
 /// ```rust
-/// use embedded_text::prelude::*;
 /// use embedded_graphics::{
 ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
+///     primitives::Rectangle,
+/// };
+/// use embedded_text::{
+///     style::{height_mode::FitToText, TextBoxStyleBuilder},
+///     TextBox,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
@@ -142,9 +149,7 @@ where
 ///     .build();
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-/// let style = TextBoxStyleBuilder::new()
-///     .height_mode(FitToText)
-///     .build();
+/// let style = TextBoxStyleBuilder::new().height_mode(FitToText).build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
 /// let text_box = TextBox::with_textbox_style(
@@ -189,11 +194,15 @@ impl HeightMode for FitToText {
 /// # Example: `ShrinkToText` does not grow the [`TextBox`].
 ///
 /// ```rust
-/// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{
 ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
+///     primitives::Rectangle,
+/// };
+/// use embedded_text::{
+///     style::{height_mode::ShrinkToText, vertical_overdraw::FullRowsOnly, TextBoxStyleBuilder},
+///     TextBox,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()
@@ -221,11 +230,15 @@ impl HeightMode for FitToText {
 /// # Example: `ShrinkToText` shrinks the [`TextBox`].
 ///
 /// ```rust
-/// use embedded_text::{prelude::*, style::vertical_overdraw::FullRowsOnly};
 /// use embedded_graphics::{
 ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
 ///     pixelcolor::BinaryColor,
 ///     prelude::*,
+///     primitives::Rectangle,
+/// };
+/// use embedded_text::{
+///     style::{height_mode::ShrinkToText, vertical_overdraw::FullRowsOnly, TextBoxStyleBuilder},
+///     TextBox,
 /// };
 ///
 /// let character_style = MonoTextStyleBuilder::new()

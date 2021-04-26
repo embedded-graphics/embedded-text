@@ -4,10 +4,11 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::Rgb888,
     prelude::*,
+    primitives::Rectangle,
     text::LineHeight,
 };
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
-use embedded_text::prelude::*;
+use embedded_text::{style::TextBoxStyleBuilder, TextBox};
 
 fn main() {
     let text = format!(

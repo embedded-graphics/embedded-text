@@ -37,13 +37,18 @@ The examples are based on [the embedded-graphics simulator]. The simulator is bu
 
 ```rust
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder}, pixelcolor::BinaryColor, prelude::*,
+    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+    primitives::Rectangle,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-use embedded_text::prelude::*;
-
+use embedded_text::{
+    style::{height_mode::FitToText, TextBoxStyleBuilder},
+    TextBox,
+};
 fn main() {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
@@ -59,17 +64,15 @@ fn main() {
         .font(&FONT_6X9)
         .text_color(BinaryColor::On)
         .build();
-    let textbox_style = TextBoxStyleBuilder::new()
-        .character_style(character_style)
-        .height_mode(FitToText)
-        .build();
+
+    let textbox_style = TextBoxStyleBuilder::new().height_mode(FitToText).build();
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
     // measure and adjust the height of the text box in `into_styled()`.
     let bounds = Rectangle::new(Point::zero(), Size::new(128, 0));
 
     // Create the text box and apply styling options.
-    let text_box = TextBox::with_textbox_style(text, bounds).into_styled(textbox_style);
+    let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
 
     // Create a simulated display with the dimensions of the text box.
     let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
@@ -81,6 +84,7 @@ fn main() {
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
+
     Window::new("Left aligned TextBox example", &output_settings).show_static(&display);
 }
 ```

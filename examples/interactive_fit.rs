@@ -10,10 +10,17 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::PrimitiveStyle,
+    primitives::{PrimitiveStyle, Rectangle},
     text::Text,
 };
-use embedded_text::{prelude::*, style::vertical_overdraw::*};
+use embedded_text::{
+    style::{
+        height_mode::{Exact, FitToText, HeightMode, ShrinkToText},
+        vertical_overdraw::{FullRowsOnly, Hidden, Visible},
+        TextBoxStyleBuilder,
+    },
+    TextBox,
+};
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 

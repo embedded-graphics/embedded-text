@@ -10,7 +10,10 @@ use embedded_graphics::{
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-use embedded_text::prelude::*;
+use embedded_text::{
+    style::{height_mode::FitToText, TabSize, TextBoxStyleBuilder},
+    TextBox,
+};
 
 fn main() {
     // A simple example table
