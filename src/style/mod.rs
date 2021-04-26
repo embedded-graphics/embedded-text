@@ -154,7 +154,7 @@
 //! [`TextBoxStyleBuilder::new`]: builder/struct.TextBoxStyleBuilder.html#method.new
 //! [`TextBox::into_styled`]: ../struct.TextBox.html#method.into_styled
 
-pub mod builder;
+mod builder;
 pub mod color;
 pub mod height_mode;
 pub mod vertical_overdraw;
@@ -368,7 +368,7 @@ where
     /// # Example: measure height of text when rendered using a 6x8 MonoFont and 72px width.
     ///
     /// ```rust
-    /// # use embedded_text::style::builder::TextBoxStyleBuilder;
+    /// # use embedded_text::style::TextBoxStyleBuilder;
     /// # use embedded_graphics::{
     /// #     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     /// #     pixelcolor::BinaryColor,
