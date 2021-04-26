@@ -107,7 +107,7 @@
 
 pub mod alignment;
 mod parser;
-pub mod rendering;
+mod rendering;
 pub mod style;
 
 mod utils;
