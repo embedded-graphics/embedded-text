@@ -12,7 +12,7 @@ use crate::{
 
 /// [`TextBoxStyle`] builder object.
 ///
-/// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
+/// [`TextBoxStyle`]: struct.TextBoxStyle.html
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TextBoxStyleBuilder<A, V, H> {
     style: TextBoxStyle<A, V, H>,
@@ -137,7 +137,7 @@ where
 {
     /// Builds the [`TextBoxStyle`].
     ///
-    /// [`TextBoxStyle`]: ../struct.TextBoxStyle.html
+    /// [`TextBoxStyle`]: struct.TextBoxStyle.html
     #[inline]
     #[must_use]
     pub fn build(self) -> TextBoxStyle<A, V, H> {
