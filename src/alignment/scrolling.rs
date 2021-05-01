@@ -52,7 +52,7 @@ mod test {
 
     use crate::{
         alignment::Scrolling,
-        style::{height_mode::Exact, vertical_overdraw::Hidden, TextBoxStyleBuilder},
+        style::{height_mode::Exact, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
         utils::test::size_for,
         TextBox,
     };
@@ -173,7 +173,7 @@ mod test {
 
         let style = TextBoxStyleBuilder::new()
             .vertical_alignment(Scrolling)
-            .height_mode(Exact(Hidden))
+            .height_mode(Exact(VerticalOverdraw::Hidden))
             .build();
 
         TextBox::with_textbox_style(

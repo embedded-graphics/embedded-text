@@ -16,7 +16,7 @@ use embedded_graphics::{
 use embedded_text::{
     style::{
         height_mode::{Exact, FitToText, HeightMode, ShrinkToText},
-        vertical_overdraw::{FullRowsOnly, Hidden, Visible},
+        vertical_overdraw::VerticalOverdraw,
         TextBoxStyleBuilder,
     },
     TextBox,
@@ -148,25 +148,41 @@ fn main() {
     let mut bounds = Rectangle::new(Point::new(0, 8), Size::new(128, 200));
 
     'running: loop {
-        if !demo_loop(&mut window, &mut bounds, Exact(FullRowsOnly)) {
+        if !demo_loop(
+            &mut window,
+            &mut bounds,
+            Exact(VerticalOverdraw::FullRowsOnly),
+        ) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, Exact(Visible)) {
+        if !demo_loop(&mut window, &mut bounds, Exact(VerticalOverdraw::Visible)) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, Exact(Hidden)) {
+        if !demo_loop(&mut window, &mut bounds, Exact(VerticalOverdraw::Hidden)) {
             break 'running;
         }
         if !demo_loop(&mut window, &mut bounds, FitToText) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, ShrinkToText(FullRowsOnly)) {
+        if !demo_loop(
+            &mut window,
+            &mut bounds,
+            ShrinkToText(VerticalOverdraw::FullRowsOnly),
+        ) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, ShrinkToText(Visible)) {
+        if !demo_loop(
+            &mut window,
+            &mut bounds,
+            ShrinkToText(VerticalOverdraw::Visible),
+        ) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, ShrinkToText(Hidden)) {
+        if !demo_loop(
+            &mut window,
+            &mut bounds,
+            ShrinkToText(VerticalOverdraw::Hidden),
+        ) {
             break 'running;
         }
     }

@@ -169,7 +169,7 @@ use crate::{
         line_iter::{ElementHandler, LineElementParser},
         space_config::UniformSpaceConfig,
     },
-    style::{height_mode::Exact, vertical_overdraw::FullRowsOnly},
+    style::height_mode::Exact,
     utils::str_width,
 };
 use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
@@ -242,12 +242,12 @@ pub struct TextBoxStyle<A, V, H> {
     pub tab_size: TabSize,
 }
 
-impl TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+impl TextBoxStyle<LeftAligned, TopAligned, Exact> {
     /// Creates a new text box style with the given alignment.
     #[inline]
     pub fn with_alignment<A: HorizontalTextAlignment>(
         alignment: A,
-    ) -> TextBoxStyle<A, TopAligned, Exact<FullRowsOnly>> {
+    ) -> TextBoxStyle<A, TopAligned, Exact> {
         TextBoxStyleBuilder::new().alignment(alignment).build()
     }
 
@@ -255,14 +255,14 @@ impl TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
     #[inline]
     pub fn with_vertical_alignment<V: VerticalTextAlignment>(
         alignment: V,
-    ) -> TextBoxStyle<LeftAligned, V, Exact<FullRowsOnly>> {
+    ) -> TextBoxStyle<LeftAligned, V, Exact> {
         TextBoxStyleBuilder::new()
             .vertical_alignment(alignment)
             .build()
     }
 }
 
-impl Default for TextBoxStyle<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+impl Default for TextBoxStyle<LeftAligned, TopAligned, Exact> {
     #[inline]
     fn default() -> Self {
         TextBoxStyleBuilder::new().build()

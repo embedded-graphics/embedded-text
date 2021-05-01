@@ -121,7 +121,6 @@ use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     style::{
         height_mode::{Exact, HeightMode},
-        vertical_overdraw::FullRowsOnly,
         TextBoxStyle,
     },
 };
@@ -160,7 +159,7 @@ pub struct TextBox<'a, S, A, V, H> {
     pub style: TextBoxStyle<A, V, H>,
 }
 
-impl<'a, S> TextBox<'a, S, LeftAligned, TopAligned, Exact<FullRowsOnly>>
+impl<'a, S> TextBox<'a, S, LeftAligned, TopAligned, Exact>
 where
     S: TextRenderer + CharacterStyle,
 {
@@ -208,7 +207,7 @@ where
         bounds: Rectangle,
         character_style: S,
         alignment: A,
-    ) -> TextBox<'a, S, A, TopAligned, Exact<FullRowsOnly>> {
+    ) -> TextBox<'a, S, A, TopAligned, Exact> {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -225,7 +224,7 @@ where
         bounds: Rectangle,
         character_style: S,
         vertical_alignment: V,
-    ) -> TextBox<'a, S, LeftAligned, V, Exact<FullRowsOnly>> {
+    ) -> TextBox<'a, S, LeftAligned, V, Exact> {
         TextBox::with_textbox_style(
             text,
             bounds,

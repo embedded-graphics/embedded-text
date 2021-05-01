@@ -5,7 +5,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
     style::{
         height_mode::{Exact, HeightMode},
-        vertical_overdraw::FullRowsOnly,
+        vertical_overdraw::VerticalOverdraw,
         TabSize, TextBoxStyle,
     },
 };
@@ -18,14 +18,14 @@ pub struct TextBoxStyleBuilder<A, V, H> {
     style: TextBoxStyle<A, V, H>,
 }
 
-impl Default for TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+impl Default for TextBoxStyleBuilder<LeftAligned, TopAligned, Exact> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
+impl TextBoxStyleBuilder<LeftAligned, TopAligned, Exact> {
     /// Creates a new text box style builder object.
     #[inline]
     #[must_use]
@@ -34,7 +34,7 @@ impl TextBoxStyleBuilder<LeftAligned, TopAligned, Exact<FullRowsOnly>> {
             style: TextBoxStyle {
                 alignment: LeftAligned,
                 vertical_alignment: TopAligned,
-                height_mode: Exact(FullRowsOnly),
+                height_mode: Exact(VerticalOverdraw::FullRowsOnly),
                 line_height: LineHeight::Percent(100),
                 tab_size: TabSize::Spaces(4),
             },

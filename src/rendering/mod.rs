@@ -59,7 +59,10 @@ where
         let mut anything_drawn = false;
         while !state.is_finished() {
             let line_cursor = cursor.line();
-            let display_range = H::calculate_displayed_row_range(&cursor);
+            let display_range = self
+                .style
+                .height_mode
+                .calculate_displayed_row_range(&cursor);
             let display_size = Size::new(cursor.line_width(), display_range.clone().count() as u32);
 
             if display_range.start == display_range.end {

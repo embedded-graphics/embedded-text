@@ -17,7 +17,7 @@ use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 /// Specifies how the [`TextBox`]'s height should be adjusted.
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
-pub trait HeightMode: Copy {
+pub trait HeightMode: Copy + Sized {
     /// Apply the height mode to the text box.
     ///
     /// *Note:* This function normally does not need to be called manually.
@@ -32,7 +32,7 @@ pub trait HeightMode: Copy {
     /// If a line does not fully fit in the bounding box, some `HeightMode` options allow drawing
     /// partial lines. For a partial line, this function calculates, which rows of each character
     /// should be displayed.
-    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32>;
+    fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32>;
 }
 
 /// Keep the original [`TextBox`] height.
@@ -68,12 +68,9 @@ pub trait HeightMode: Copy {
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
 #[derive(Copy, Clone, Debug)]
-pub struct Exact<OV: VerticalOverdraw>(pub OV);
+pub struct Exact(pub VerticalOverdraw);
 
-impl<OV> HeightMode for Exact<OV>
-where
-    OV: VerticalOverdraw,
-{
+impl HeightMode for Exact {
     #[inline]
     fn apply<F, A, V>(_text_box: &mut TextBox<'_, F, A, V, Self>)
     where
@@ -84,8 +81,8 @@ where
     }
 
     #[inline]
-    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
-        OV::calculate_displayed_row_range(cursor)
+    fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
+        self.0.calculate_displayed_row_range(cursor)
     }
 }
 
@@ -181,7 +178,7 @@ impl HeightMode for FitToText {
     }
 
     #[inline]
-    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
+    fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
         // FitToText always sets the bounding box to the exact size of the text, so every row is
         // always fully displayed
         0..cursor.line_height() as i32
@@ -201,7 +198,7 @@ impl HeightMode for FitToText {
 ///     primitives::Rectangle,
 /// };
 /// use embedded_text::{
-///     style::{height_mode::ShrinkToText, vertical_overdraw::FullRowsOnly, TextBoxStyleBuilder},
+///     style::{height_mode::ShrinkToText, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
 ///     TextBox,
 /// };
 ///
@@ -212,7 +209,7 @@ impl HeightMode for FitToText {
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .height_mode(ShrinkToText(FullRowsOnly))
+///     .height_mode(ShrinkToText(VerticalOverdraw::FullRowsOnly))
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 1px high
@@ -237,7 +234,7 @@ impl HeightMode for FitToText {
 ///     primitives::Rectangle,
 /// };
 /// use embedded_text::{
-///     style::{height_mode::ShrinkToText, vertical_overdraw::FullRowsOnly, TextBoxStyleBuilder},
+///     style::{height_mode::ShrinkToText, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
 ///     TextBox,
 /// };
 ///
@@ -248,7 +245,7 @@ impl HeightMode for FitToText {
 ///
 /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
 /// let style = TextBoxStyleBuilder::new()
-///     .height_mode(ShrinkToText(FullRowsOnly))
+///     .height_mode(ShrinkToText(VerticalOverdraw::FullRowsOnly))
 ///     .build();
 ///
 /// // This TextBox contains two lines of text, but is 60px high
@@ -265,12 +262,9 @@ impl HeightMode for FitToText {
 ///
 /// [`TextBox`]: ../../struct.TextBox.html
 #[derive(Copy, Clone, Debug)]
-pub struct ShrinkToText<OV: VerticalOverdraw>(pub OV);
+pub struct ShrinkToText(pub VerticalOverdraw);
 
-impl<OV> HeightMode for ShrinkToText<OV>
-where
-    OV: VerticalOverdraw,
-{
+impl HeightMode for ShrinkToText {
     #[inline]
     fn apply<F, A, V>(text_box: &mut TextBox<'_, F, A, V, Self>)
     where
@@ -282,7 +276,7 @@ where
     }
 
     #[inline]
-    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
-        OV::calculate_displayed_row_range(cursor)
+    fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
+        self.0.calculate_displayed_row_range(cursor)
     }
 }

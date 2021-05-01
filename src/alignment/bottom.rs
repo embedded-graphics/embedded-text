@@ -48,7 +48,7 @@ mod test {
 
     use crate::{
         alignment::BottomAligned,
-        style::{height_mode::Exact, vertical_overdraw::Visible, TextBoxStyleBuilder},
+        style::{height_mode::Exact, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
         utils::test::size_for,
         TextBox,
     };
@@ -147,7 +147,7 @@ mod test {
 
         let style = TextBoxStyleBuilder::new()
             .vertical_alignment(BottomAligned)
-            .height_mode(Exact(Visible))
+            .height_mode(Exact(VerticalOverdraw::Visible))
             .line_height(LineHeight::Pixels(11))
             .build();
 
