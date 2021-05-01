@@ -44,7 +44,7 @@
 //!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 //! };
 //! use embedded_text::{
-//!     style::{height_mode::HeightMode, TextBoxStyleBuilder},
+//!     style::{HeightMode, TextBoxStyleBuilder},
 //!     TextBox,
 //! };
 //! fn main() {

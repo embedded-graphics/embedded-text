@@ -14,7 +14,7 @@ use embedded_graphics::{
     text::Text,
 };
 use embedded_text::{
-    style::{height_mode::HeightMode, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
+    style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     TextBox,
 };
 use sdl2::keyboard::Keycode;

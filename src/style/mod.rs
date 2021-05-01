@@ -156,8 +156,8 @@
 
 mod builder;
 pub mod color;
-pub mod height_mode;
-pub mod vertical_overdraw;
+mod height_mode;
+mod vertical_overdraw;
 
 use core::convert::Infallible;
 
@@ -169,12 +169,13 @@ use crate::{
         line_iter::{ElementHandler, LineElementParser},
         space_config::UniformSpaceConfig,
     },
-    style::height_mode::HeightMode,
     utils::str_width,
 };
 use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
 
-pub use self::builder::TextBoxStyleBuilder;
+pub use self::{
+    builder::TextBoxStyleBuilder, height_mode::HeightMode, vertical_overdraw::VerticalOverdraw,
+};
 
 /// Tab size helper
 ///
@@ -217,7 +218,7 @@ impl TabSize {
 /// the [`TextBoxStyleBuilder`] object.
 ///
 /// [`TextBox`]: ../struct.TextBox.html
-/// [`HeightMode`]: ./height_mode/trait.HeightMode.html
+/// [`HeightMode`]: ./enum.HeightMode.html
 /// [`HorizontalTextAlignment`]: ../alignment/trait.HorizontalTextAlignment.html
 /// [`VerticalTextAlignment`]: ../alignment/trait.VerticalTextAlignment.html
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html

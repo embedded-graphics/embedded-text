@@ -3,7 +3,7 @@ use embedded_graphics::text::LineHeight;
 
 use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
-    style::{height_mode::HeightMode, vertical_overdraw::VerticalOverdraw, TabSize, TextBoxStyle},
+    style::{HeightMode, TabSize, TextBoxStyle, VerticalOverdraw},
 };
 
 /// [`TextBoxStyle`] builder object.

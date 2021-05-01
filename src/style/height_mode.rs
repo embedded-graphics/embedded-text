@@ -8,7 +8,7 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::vertical_overdraw::VerticalOverdraw,
+    style::VerticalOverdraw,
     TextBox,
 };
 use core::ops::Range;
@@ -16,7 +16,7 @@ use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
 /// Specifies how the [`TextBox`]'s height should be adjusted.
 ///
-/// [`TextBox`]: ../../struct.TextBox.html
+/// [`TextBox`]: ../struct.TextBox.html
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum HeightMode {
     /// Keep the original [`TextBox`] height.
@@ -66,7 +66,7 @@ pub enum HeightMode {
     ///     primitives::Rectangle,
     /// };
     /// use embedded_text::{
-    ///     style::{height_mode::HeightMode, TextBoxStyleBuilder},
+    ///     style::{HeightMode, TextBoxStyleBuilder},
     ///     TextBox,
     /// };
     ///
@@ -101,7 +101,7 @@ pub enum HeightMode {
     ///     primitives::Rectangle,
     /// };
     /// use embedded_text::{
-    ///     style::{height_mode::HeightMode, TextBoxStyleBuilder},
+    ///     style::{HeightMode, TextBoxStyleBuilder},
     ///     TextBox,
     /// };
     ///
@@ -126,7 +126,7 @@ pub enum HeightMode {
     /// assert_eq!(size, Size::new(60, 18));
     /// ```
     ///
-    /// [`TopAligned`]: ../../alignment/top/struct.TopAligned.html
+    /// [`TopAligned`]: ../alignment/top/struct.TopAligned.html
     FitToText,
 
     /// If the text does not fill the bounding box, shrink the [`TextBox`] to be as tall as the
@@ -142,7 +142,7 @@ pub enum HeightMode {
     ///     primitives::Rectangle,
     /// };
     /// use embedded_text::{
-    ///     style::{height_mode::HeightMode, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
+    ///     style::{HeightMode, VerticalOverdraw, TextBoxStyleBuilder},
     ///     TextBox,
     /// };
     ///
@@ -178,7 +178,7 @@ pub enum HeightMode {
     ///     primitives::Rectangle,
     /// };
     /// use embedded_text::{
-    ///     style::{height_mode::HeightMode, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
+    ///     style::{HeightMode, VerticalOverdraw, TextBoxStyleBuilder},
     ///     TextBox,
     /// };
     ///

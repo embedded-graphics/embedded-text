@@ -46,9 +46,7 @@ mod test {
 
     use crate::{
         alignment::BottomAligned,
-        style::{
-            height_mode::HeightMode, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder,
-        },
+        style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
         utils::test::size_for,
         TextBox,
     };

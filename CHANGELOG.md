@@ -3,6 +3,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Moved `VerticalOverdraw` and `HeightMode` to the `style` module.
  * **breaking** Replaced type-state `VerticalOverdraw`, `HeightMode` with an enum.
  * **breaking** Replaced `TextStyle::line_spacing` with `line_height`.
  * **breaking** Added `#[non_exhaustive]` to `TextBoxStyle`.

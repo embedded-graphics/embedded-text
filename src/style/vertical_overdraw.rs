@@ -51,9 +51,7 @@ mod test {
 
     use crate::{
         alignment::*,
-        style::{
-            height_mode::HeightMode, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder,
-        },
+        style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
         TextBox,
     };
 

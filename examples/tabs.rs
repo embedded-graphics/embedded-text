@@ -11,7 +11,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    style::{height_mode::HeightMode, TabSize, TextBoxStyleBuilder},
+    style::{HeightMode, TabSize, TextBoxStyleBuilder},
     TextBox,
 };
 

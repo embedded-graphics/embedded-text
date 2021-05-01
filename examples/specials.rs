@@ -12,7 +12,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::{
     alignment::Justified,
-    style::{height_mode::HeightMode, TextBoxStyleBuilder},
+    style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
 
