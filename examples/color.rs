@@ -4,9 +4,10 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::Rgb565,
     prelude::*,
+    primitives::Rectangle,
 };
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
-use embedded_text::prelude::*;
+use embedded_text::{alignment::Justified, style::TextBoxStyle, TextBox};
 
 fn main() {
     let text = "Hello, World!\n\

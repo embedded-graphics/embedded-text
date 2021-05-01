@@ -51,10 +51,8 @@ impl<A, V, H> TextBoxStyleBuilder<A, V, H> {
     /// # Example
     ///
     /// ```rust
-    /// # use embedded_text::prelude::*;
-    /// # use embedded_graphics::{
-    /// #     text::LineHeight,
-    /// # };
+    /// # use embedded_text::style::TextBoxStyleBuilder;
+    /// # use embedded_graphics::text::LineHeight;
     /// #
     /// let style = TextBoxStyleBuilder::new()
     ///     .line_height(LineHeight::Pixels(12))

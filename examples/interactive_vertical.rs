@@ -10,10 +10,14 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::PrimitiveStyle,
+    primitives::{PrimitiveStyle, Rectangle},
     text::Text,
 };
-use embedded_text::prelude::*;
+use embedded_text::{
+    alignment::{BottomAligned, CenterAligned, Scrolling, TopAligned, VerticalTextAlignment},
+    style::TextBoxStyleBuilder,
+    TextBox,
+};
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 

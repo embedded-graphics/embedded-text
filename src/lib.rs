@@ -35,13 +35,18 @@
 //!
 //! ```rust,no_run
 //! use embedded_graphics::{
-//!     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder}, pixelcolor::BinaryColor, prelude::*,
+//!     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+//!     pixelcolor::BinaryColor,
+//!     prelude::*,
+//!     primitives::Rectangle,
 //! };
 //! use embedded_graphics_simulator::{
 //!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 //! };
-//! use embedded_text::prelude::*;
-//!
+//! use embedded_text::{
+//!     style::{height_mode::FitToText, TextBoxStyleBuilder},
+//!     TextBox,
+//! };
 //! fn main() {
 //!     let text = "Hello, World!\n\
 //!     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
@@ -57,9 +62,8 @@
 //!         .font(&FONT_6X9)
 //!         .text_color(BinaryColor::On)
 //!         .build();
-//!     let textbox_style = TextBoxStyleBuilder::new()
-//!         .height_mode(FitToText)
-//!         .build();
+//!
+//!     let textbox_style = TextBoxStyleBuilder::new().height_mode(FitToText).build();
 //!
 //!     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
 //!     // measure and adjust the height of the text box in `into_styled()`.
@@ -78,6 +82,7 @@
 //!     let output_settings = OutputSettingsBuilder::new()
 //!         .theme(BinaryColorTheme::OledBlue)
 //!         .build();
+//!
 //!     Window::new("Left aligned TextBox example", &output_settings).show_static(&display);
 //! }
 //! ```
@@ -113,9 +118,12 @@ pub mod style;
 mod utils;
 
 use crate::{
-    alignment::HorizontalTextAlignment,
-    prelude::{Exact, HeightMode, LeftAligned, TopAligned, VerticalTextAlignment},
-    style::{vertical_overdraw::FullRowsOnly, TextBoxStyle},
+    alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
+    style::{
+        height_mode::{Exact, HeightMode},
+        vertical_overdraw::FullRowsOnly,
+        TextBoxStyle,
+    },
 };
 use embedded_graphics::{
     geometry::{Dimensions, Point},
@@ -123,25 +131,6 @@ use embedded_graphics::{
     text::renderer::{CharacterStyle, TextRenderer},
     transform::Transform,
 };
-
-/// Prelude.
-///
-/// A collection of useful imports. Also re-exports some types from `embedded-graphics` for
-/// convenience.
-pub mod prelude {
-    #[doc(no_inline)]
-    pub use crate::{
-        alignment::*,
-        style::{
-            height_mode::{Exact, FitToText, HeightMode, ShrinkToText},
-            TabSize, TextBoxStyle, TextBoxStyleBuilder,
-        },
-        TextBox,
-    };
-
-    #[doc(no_inline)]
-    pub use embedded_graphics::primitives::Rectangle;
-}
 
 /// A text box object.
 ///

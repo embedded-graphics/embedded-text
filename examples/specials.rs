@@ -5,11 +5,16 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
+    primitives::Rectangle,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-use embedded_text::prelude::*;
+use embedded_text::{
+    alignment::Justified,
+    style::{height_mode::FitToText, TextBoxStyleBuilder},
+    TextBox,
+};
 
 fn main() {
     // Example text sprinkled with special characters. Note that "supports" will not be displayed

@@ -378,8 +378,7 @@ where
     ///     .font(&FONT_6X9)
     ///     .text_color(BinaryColor::On)
     ///     .build();
-    /// let style = TextBoxStyleBuilder::new()
-    ///     .build();
+    /// let style = TextBoxStyleBuilder::new().build();
     ///
     /// let height = style.measure_text_height(
     ///     &character_style,

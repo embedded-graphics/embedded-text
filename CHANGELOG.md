@@ -20,6 +20,7 @@ Unreleased
 ## Removed
 
  * **breaking** Removed benchmarks.
+ * **breaking** Removed `prelude`.
  * **breaking** Removed `Rectangle` extensions.
  * **breaking** Removed deprecated `TextBoxStyleBuilder::{text_style, background_color, text_color, from_text_style, underlined, strikethrough}`. Use `TextBoxStyleBuilder::character_style` instead.
  * **breaking** (developer-facing) The following types and modules have been removed or hidden:

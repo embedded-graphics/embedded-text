@@ -4,12 +4,17 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
+    primitives::Rectangle,
     text::LineHeight,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-use embedded_text::prelude::*;
+use embedded_text::{
+    alignment::Scrolling,
+    style::{height_mode::FitToText, TextBoxStyleBuilder},
+    TextBox,
+};
 
 fn main() {
     let text = "Lorem Ipsum is simply dummy text of the printing and typesetting industry.";
