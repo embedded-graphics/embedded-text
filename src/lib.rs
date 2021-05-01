@@ -44,7 +44,7 @@
 //!     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 //! };
 //! use embedded_text::{
-//!     style::{height_mode::FitToText, TextBoxStyleBuilder},
+//!     style::{HeightMode, TextBoxStyleBuilder},
 //!     TextBox,
 //! };
 //! fn main() {
@@ -63,7 +63,7 @@
 //!         .text_color(BinaryColor::On)
 //!         .build();
 //!
-//!     let textbox_style = TextBoxStyleBuilder::new().height_mode(FitToText).build();
+//!     let textbox_style = TextBoxStyleBuilder::new().height_mode(HeightMode::FitToText).build();
 //!
 //!     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
 //!     // measure and adjust the height of the text box in `into_styled()`.
@@ -119,11 +119,7 @@ mod utils;
 
 use crate::{
     alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
-    style::{
-        height_mode::{Exact, HeightMode},
-        vertical_overdraw::FullRowsOnly,
-        TextBoxStyle,
-    },
+    style::TextBoxStyle,
 };
 use embedded_graphics::{
     geometry::{Dimensions, Point},
@@ -146,7 +142,7 @@ use embedded_graphics::{
 /// [module-level documentation]: index.html
 /// [`draw`]: #method.draw
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct TextBox<'a, S, A, V, H> {
+pub struct TextBox<'a, S, A, V> {
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
 
@@ -157,10 +153,10 @@ pub struct TextBox<'a, S, A, V, H> {
     pub character_style: S,
 
     /// The style of the [`TextBox`].
-    pub style: TextBoxStyle<A, V, H>,
+    pub style: TextBoxStyle<A, V>,
 }
 
-impl<'a, S> TextBox<'a, S, LeftAligned, TopAligned, Exact<FullRowsOnly>>
+impl<'a, S> TextBox<'a, S, LeftAligned, TopAligned>
 where
     S: TextRenderer + CharacterStyle,
 {
@@ -172,12 +168,11 @@ where
     }
 }
 
-impl<'a, S, A, V, H> TextBox<'a, S, A, V, H>
+impl<'a, S, A, V> TextBox<'a, S, A, V>
 where
     S: TextRenderer + CharacterStyle,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    H: HeightMode,
 {
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
@@ -186,7 +181,7 @@ where
         text: &'a str,
         bounds: Rectangle,
         character_style: S,
-        textbox_style: TextBoxStyle<A, V, H>,
+        textbox_style: TextBoxStyle<A, V>,
     ) -> Self {
         let mut styled = TextBox {
             text,
@@ -195,7 +190,7 @@ where
             style: textbox_style,
         };
 
-        H::apply(&mut styled);
+        styled.style.height_mode.apply(&mut styled);
 
         styled
     }
@@ -208,7 +203,7 @@ where
         bounds: Rectangle,
         character_style: S,
         alignment: A,
-    ) -> TextBox<'a, S, A, TopAligned, Exact<FullRowsOnly>> {
+    ) -> TextBox<'a, S, A, TopAligned> {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -225,7 +220,7 @@ where
         bounds: Rectangle,
         character_style: S,
         vertical_alignment: V,
-    ) -> TextBox<'a, S, LeftAligned, V, Exact<FullRowsOnly>> {
+    ) -> TextBox<'a, S, LeftAligned, V> {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -235,7 +230,7 @@ where
     }
 }
 
-impl<S, A, V, H> Transform for TextBox<'_, S, A, V, H>
+impl<S, A, V> Transform for TextBox<'_, S, A, V>
 where
     Self: Clone,
 {
@@ -256,7 +251,7 @@ where
     }
 }
 
-impl<S, A, V, H> Dimensions for TextBox<'_, S, A, V, H> {
+impl<S, A, V> Dimensions for TextBox<'_, S, A, V> {
     #[inline]
     #[must_use]
     fn bounding_box(&self) -> Rectangle {
@@ -264,7 +259,7 @@ impl<S, A, V, H> Dimensions for TextBox<'_, S, A, V, H> {
     }
 }
 
-impl<S, A, V, H> TextBox<'_, S, A, V, H>
+impl<S, A, V> TextBox<'_, S, A, V>
 where
     S: TextRenderer,
     A: HorizontalTextAlignment,

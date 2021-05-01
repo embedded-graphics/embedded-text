@@ -14,11 +14,7 @@ use embedded_graphics::{
     text::Text,
 };
 use embedded_text::{
-    style::{
-        height_mode::{Exact, FitToText, HeightMode, ShrinkToText},
-        vertical_overdraw::{FullRowsOnly, Hidden, Visible},
-        TextBoxStyleBuilder,
-    },
+    style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     TextBox,
 };
 use sdl2::keyboard::Keycode;
@@ -67,10 +63,7 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<H>(window: &mut Window, bounds: &mut Rectangle, height_mode: H) -> bool
-where
-    H: HeightMode + std::fmt::Debug,
-{
+fn demo_loop(window: &mut Window, bounds: &mut Rectangle, height_mode: HeightMode) -> bool {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
     Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
@@ -147,27 +140,20 @@ fn main() {
     // Specify the bounding box. Leave 8px of space above.
     let mut bounds = Rectangle::new(Point::new(0, 8), Size::new(128, 200));
 
+    let modes = [
+        HeightMode::Exact(VerticalOverdraw::FullRowsOnly),
+        HeightMode::Exact(VerticalOverdraw::Visible),
+        HeightMode::Exact(VerticalOverdraw::Hidden),
+        HeightMode::ShrinkToText(VerticalOverdraw::FullRowsOnly),
+        HeightMode::ShrinkToText(VerticalOverdraw::Visible),
+        HeightMode::ShrinkToText(VerticalOverdraw::Hidden),
+    ];
+
     'running: loop {
-        if !demo_loop(&mut window, &mut bounds, Exact(FullRowsOnly)) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, Exact(Visible)) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, Exact(Hidden)) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, FitToText) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, ShrinkToText(FullRowsOnly)) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, ShrinkToText(Visible)) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, ShrinkToText(Hidden)) {
-            break 'running;
+        for mode in modes.iter() {
+            if !demo_loop(&mut window, &mut bounds, *mode) {
+                break 'running;
+            }
         }
     }
 }

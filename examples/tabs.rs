@@ -11,7 +11,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    style::{height_mode::FitToText, TabSize, TextBoxStyleBuilder},
+    style::{HeightMode, TabSize, TextBoxStyleBuilder},
     TextBox,
 };
 
@@ -37,7 +37,7 @@ fn main() {
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(FitToText)
+        .height_mode(HeightMode::FitToText)
         .tab_size(TabSize::Spaces(10))
         .line_height(LineHeight::Pixels(11))
         .build();

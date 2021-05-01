@@ -2,7 +2,6 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::height_mode::HeightMode,
     TextBox,
 };
 use embedded_graphics::text::renderer::TextRenderer;
@@ -13,13 +12,12 @@ pub struct TopAligned;
 
 impl VerticalTextAlignment for TopAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, S, A, H>(
+    fn apply_vertical_alignment<'a, S, A>(
         _cursor: &mut Cursor,
-        _styled_text_box: &'a TextBox<'a, S, A, Self, H>,
+        _styled_text_box: &'a TextBox<'a, S, A, Self>,
     ) where
         S: TextRenderer,
         A: HorizontalTextAlignment,
-        H: HeightMode,
     {
         // nothing to do here
     }

@@ -13,7 +13,7 @@ use crate::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
-    style::{color::Rgb, height_mode::HeightMode},
+    style::color::Rgb,
     TextBox,
 };
 use embedded_graphics::{
@@ -24,13 +24,12 @@ use embedded_graphics::{
     Drawable,
 };
 
-impl<'a, F, A, V, H> Drawable for TextBox<'a, F, A, V, H>
+impl<'a, F, A, V> Drawable for TextBox<'a, F, A, V>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    H: HeightMode,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = &'a str;
@@ -59,7 +58,10 @@ where
         let mut anything_drawn = false;
         while !state.is_finished() {
             let line_cursor = cursor.line();
-            let display_range = H::calculate_displayed_row_range(&cursor);
+            let display_range = self
+                .style
+                .height_mode
+                .calculate_displayed_row_range(&cursor);
             let display_size = Size::new(cursor.line_width(), display_range.clone().count() as u32);
 
             if display_range.start == display_range.end {

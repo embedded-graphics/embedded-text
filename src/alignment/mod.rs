@@ -1,7 +1,7 @@
 //! Text alignment options.
 use crate::{
     rendering::{cursor::Cursor, space_config::SpaceConfig},
-    style::{height_mode::HeightMode, LineMeasurement},
+    style::LineMeasurement,
     TextBox,
 };
 use embedded_graphics::text::renderer::TextRenderer;
@@ -43,13 +43,12 @@ pub trait HorizontalTextAlignment: Copy {
 /// [`TextBoxStyleBuilder`]: ../style/builder/struct.TextBoxStyleBuilder.html
 pub trait VerticalTextAlignment: Copy {
     /// Set the cursor's initial vertical position
-    fn apply_vertical_alignment<'a, S, A, H>(
+    fn apply_vertical_alignment<'a, S, A>(
         cursor: &mut Cursor,
-        styled_text_box: &'a TextBox<'a, S, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, S, A, Self>,
     ) where
         S: TextRenderer,
-        A: HorizontalTextAlignment,
-        H: HeightMode;
+        A: HorizontalTextAlignment;
 }
 
 pub use bottom::BottomAligned;

@@ -11,7 +11,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::{
     alignment::RightAligned,
-    style::{height_mode::FitToText, TextBoxStyleBuilder},
+    style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
 
@@ -33,7 +33,7 @@ fn main() {
 
     let textbox_style = TextBoxStyleBuilder::new()
         .alignment(RightAligned)
-        .height_mode(FitToText)
+        .height_mode(HeightMode::FitToText)
         .build();
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will

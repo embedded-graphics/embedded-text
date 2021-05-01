@@ -2,46 +2,39 @@
 use crate::rendering::cursor::Cursor;
 use core::ops::Range;
 
-/// Implementors of this trait specify how drawing vertically outside the bounding box is handled.
-pub trait VerticalOverdraw: Copy {
+/// Vertical overdraw options used by height modes that don't conform exactly to the text size.
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+pub enum VerticalOverdraw {
+    /// Only render full rows of text.
+    FullRowsOnly,
+    /// Render partially visible rows, but only inside the bounding box.
+    Hidden,
+    /// Display text even if it's outside the bounding box.
+    Visible,
+}
+
+impl VerticalOverdraw {
     /// Calculate the range of rows of the current line that can be drawn.
-    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32>;
-}
+    pub fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
+        match self {
+            VerticalOverdraw::FullRowsOnly => {
+                if cursor.in_display_area() {
+                    0..cursor.line_height()
+                } else {
+                    0..0
+                }
+            }
 
-/// Only render full rows of text.
-#[derive(Copy, Clone, Debug)]
-pub struct FullRowsOnly;
-impl VerticalOverdraw for FullRowsOnly {
-    #[inline]
-    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
-        if cursor.in_display_area() {
-            0..cursor.line_height()
-        } else {
-            0..0
+            VerticalOverdraw::Hidden => {
+                let offset_top = (cursor.top_left().y - cursor.y).max(0);
+                let offset_bottom =
+                    (cursor.bottom_right().y - cursor.y + 1).min(cursor.line_height());
+
+                offset_top..offset_bottom
+            }
+
+            VerticalOverdraw::Visible => 0..cursor.line_height(),
         }
-    }
-}
-
-/// Render partially visible rows, but only inside the bounding box.
-#[derive(Copy, Clone, Debug)]
-pub struct Hidden;
-impl VerticalOverdraw for Hidden {
-    #[inline]
-    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
-        let offset_top = (cursor.top_left().y - cursor.y).max(0);
-        let offset_bottom = (cursor.bottom_right().y - cursor.y + 1).min(cursor.line_height());
-
-        offset_top..offset_bottom
-    }
-}
-
-/// Display text even if it's outside the bounding box.
-#[derive(Copy, Clone, Debug)]
-pub struct Visible;
-impl VerticalOverdraw for Visible {
-    #[inline]
-    fn calculate_displayed_row_range(cursor: &Cursor) -> Range<i32> {
-        0..cursor.line_height()
     }
 }
 
@@ -58,7 +51,7 @@ mod test {
 
     use crate::{
         alignment::*,
-        style::{height_mode::Exact, vertical_overdraw::*, TextBoxStyleBuilder},
+        style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
         TextBox,
     };
 
@@ -112,7 +105,7 @@ mod test {
         let style = TextBoxStyleBuilder::new()
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
-            .height_mode(Exact(Visible))
+            .height_mode(HeightMode::Exact(VerticalOverdraw::Visible))
             .build();
 
         // Drawing at Point(0, 3) so we don't draw outside the display due to vertical centering.
@@ -153,7 +146,7 @@ mod test {
         let style = TextBoxStyleBuilder::new()
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
-            .height_mode(Exact(Hidden))
+            .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
             .build();
 
         TextBox::with_textbox_style(
