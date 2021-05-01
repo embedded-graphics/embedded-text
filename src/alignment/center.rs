@@ -2,7 +2,7 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
-    style::{height_mode::HeightMode, LineMeasurement},
+    style::LineMeasurement,
     TextBox,
 };
 
@@ -31,13 +31,12 @@ impl HorizontalTextAlignment for CenterAligned {
 
 impl VerticalTextAlignment for CenterAligned {
     #[inline]
-    fn apply_vertical_alignment<'a, S, A, H>(
+    fn apply_vertical_alignment<'a, S, A>(
         cursor: &mut Cursor,
-        styled_text_box: &'a TextBox<'a, S, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, S, A, Self>,
     ) where
         S: TextRenderer,
         A: HorizontalTextAlignment,
-        H: HeightMode,
     {
         let text_height = styled_text_box.style.measure_text_height(
             &styled_text_box.character_style,

@@ -3,7 +3,7 @@ use crate::rendering::cursor::Cursor;
 use core::ops::Range;
 
 /// Vertical overdraw options used by height modes that don't conform exactly to the text size.
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum VerticalOverdraw {
     /// Only render full rows of text.
     FullRowsOnly,
@@ -51,7 +51,9 @@ mod test {
 
     use crate::{
         alignment::*,
-        style::{height_mode::Exact, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
+        style::{
+            height_mode::HeightMode, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder,
+        },
         TextBox,
     };
 
@@ -105,7 +107,7 @@ mod test {
         let style = TextBoxStyleBuilder::new()
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
-            .height_mode(Exact(VerticalOverdraw::Visible))
+            .height_mode(HeightMode::Exact(VerticalOverdraw::Visible))
             .build();
 
         // Drawing at Point(0, 3) so we don't draw outside the display due to vertical centering.
@@ -146,7 +148,7 @@ mod test {
         let style = TextBoxStyleBuilder::new()
             .alignment(LeftAligned)
             .vertical_alignment(CenterAligned)
-            .height_mode(Exact(VerticalOverdraw::Hidden))
+            .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
             .build();
 
         TextBox::with_textbox_style(

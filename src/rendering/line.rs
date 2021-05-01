@@ -5,7 +5,7 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{cursor::LineCursor, line_iter::LineElementParser},
-    style::{color::Rgb, height_mode::HeightMode, TextBoxStyle},
+    style::{color::Rgb, TextBoxStyle},
     utils::str_width,
 };
 use embedded_graphics::{
@@ -24,26 +24,26 @@ use super::{line_iter::ElementHandler, space_config::UniformSpaceConfig};
 
 /// Render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineRenderer<'a, S, A, V, H>
+pub struct StyledLineRenderer<'a, S, A, V>
 where
     S: Clone,
 {
     cursor: LineCursor,
-    state: LineRenderState<'a, S, A, V, H>,
+    state: LineRenderState<'a, S, A, V>,
 }
 
 #[derive(Debug, Clone)]
-pub struct LineRenderState<'a, S, A, V, H>
+pub struct LineRenderState<'a, S, A, V>
 where
     S: Clone,
 {
     pub parser: Parser<'a>,
     pub character_style: S,
-    pub style: TextBoxStyle<A, V, H>,
+    pub style: TextBoxStyle<A, V>,
     pub carried_token: Option<Token<'a>>,
 }
 
-impl<S, A, V, H> LineRenderState<'_, S, A, V, H>
+impl<S, A, V> LineRenderState<'_, S, A, V>
 where
     S: Clone,
 {
@@ -52,15 +52,14 @@ where
     }
 }
 
-impl<'a, F, A, V, H> StyledLineRenderer<'a, F, A, V, H>
+impl<'a, F, A, V> StyledLineRenderer<'a, F, A, V>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
-    H: HeightMode,
 {
     /// Creates a new line renderer.
     #[inline]
-    pub fn new(cursor: LineCursor, state: LineRenderState<'a, F, A, V, H>) -> Self {
+    pub fn new(cursor: LineCursor, state: LineRenderState<'a, F, A, V>) -> Self {
         Self { cursor, state }
     }
 }
@@ -132,16 +131,15 @@ where
     }
 }
 
-impl<'a, F, A, V, H> Drawable for StyledLineRenderer<'a, F, A, V, H>
+impl<'a, F, A, V> Drawable for StyledLineRenderer<'a, F, A, V>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    H: HeightMode,
 {
     type Color = <F as CharacterStyle>::Color;
-    type Output = LineRenderState<'a, F, A, V, H>;
+    type Output = LineRenderState<'a, F, A, V>;
 
     #[inline]
     fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
@@ -263,7 +261,7 @@ mod test {
             cursor::LineCursor,
             line::{LineRenderState, StyledLineRenderer},
         },
-        style::{color::Rgb, height_mode::HeightMode, TabSize, TextBoxStyle, TextBoxStyleBuilder},
+        style::{color::Rgb, TabSize, TextBoxStyle, TextBoxStyleBuilder},
         utils::test::size_for,
     };
     use embedded_graphics::{
@@ -276,18 +274,17 @@ mod test {
         Drawable,
     };
 
-    fn test_rendered_text<'a, S, A, V, H>(
+    fn test_rendered_text<'a, S, A, V>(
         text: &'a str,
         bounds: Rectangle,
         character_style: S,
-        style: TextBoxStyle<A, V, H>,
+        style: TextBoxStyle<A, V>,
         pattern: &[&str],
     ) where
         S: TextRenderer<Color = <S as CharacterStyle>::Color> + CharacterStyle,
         <S as CharacterStyle>::Color: From<Rgb> + embedded_graphics::mock_display::ColorMapping,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
-        H: HeightMode,
     {
         let parser = Parser::parse(text);
         let cursor = LineCursor::new(

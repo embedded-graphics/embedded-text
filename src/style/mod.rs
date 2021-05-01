@@ -169,7 +169,7 @@ use crate::{
         line_iter::{ElementHandler, LineElementParser},
         space_config::UniformSpaceConfig,
     },
-    style::height_mode::Exact,
+    style::height_mode::HeightMode,
     utils::str_width,
 };
 use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
@@ -225,7 +225,7 @@ impl TabSize {
 /// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 #[non_exhaustive]
-pub struct TextBoxStyle<A, V, H> {
+pub struct TextBoxStyle<A, V> {
     /// Horizontal text alignment.
     pub alignment: A,
 
@@ -233,7 +233,7 @@ pub struct TextBoxStyle<A, V, H> {
     pub vertical_alignment: V,
 
     /// The height behaviour
-    pub height_mode: H,
+    pub height_mode: HeightMode,
 
     /// Line height.
     pub line_height: LineHeight,
@@ -242,12 +242,10 @@ pub struct TextBoxStyle<A, V, H> {
     pub tab_size: TabSize,
 }
 
-impl TextBoxStyle<LeftAligned, TopAligned, Exact> {
+impl TextBoxStyle<LeftAligned, TopAligned> {
     /// Creates a new text box style with the given alignment.
     #[inline]
-    pub fn with_alignment<A: HorizontalTextAlignment>(
-        alignment: A,
-    ) -> TextBoxStyle<A, TopAligned, Exact> {
+    pub fn with_alignment<A: HorizontalTextAlignment>(alignment: A) -> TextBoxStyle<A, TopAligned> {
         TextBoxStyleBuilder::new().alignment(alignment).build()
     }
 
@@ -255,14 +253,14 @@ impl TextBoxStyle<LeftAligned, TopAligned, Exact> {
     #[inline]
     pub fn with_vertical_alignment<V: VerticalTextAlignment>(
         alignment: V,
-    ) -> TextBoxStyle<LeftAligned, V, Exact> {
+    ) -> TextBoxStyle<LeftAligned, V> {
         TextBoxStyleBuilder::new()
             .vertical_alignment(alignment)
             .build()
     }
 }
 
-impl Default for TextBoxStyle<LeftAligned, TopAligned, Exact> {
+impl Default for TextBoxStyle<LeftAligned, TopAligned> {
     #[inline]
     fn default() -> Self {
         TextBoxStyleBuilder::new().build()
@@ -316,7 +314,7 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     }
 }
 
-impl<A, V, H> TextBoxStyle<A, V, H>
+impl<A, V> TextBoxStyle<A, V>
 where
     A: HorizontalTextAlignment,
 {

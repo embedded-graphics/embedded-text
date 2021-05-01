@@ -2,7 +2,6 @@
 use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     rendering::cursor::Cursor,
-    style::height_mode::HeightMode,
     TextBox,
 };
 use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
@@ -17,13 +16,12 @@ pub struct Scrolling;
 
 impl VerticalTextAlignment for Scrolling {
     #[inline]
-    fn apply_vertical_alignment<'a, S, A, H>(
+    fn apply_vertical_alignment<'a, S, A>(
         cursor: &mut Cursor,
-        styled_text_box: &'a TextBox<'a, S, A, Self, H>,
+        styled_text_box: &'a TextBox<'a, S, A, Self>,
     ) where
         S: TextRenderer,
         A: HorizontalTextAlignment,
-        H: HeightMode,
     {
         let text_height = styled_text_box.style.measure_text_height(
             &styled_text_box.character_style,
@@ -52,7 +50,9 @@ mod test {
 
     use crate::{
         alignment::Scrolling,
-        style::{height_mode::Exact, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder},
+        style::{
+            height_mode::HeightMode, vertical_overdraw::VerticalOverdraw, TextBoxStyleBuilder,
+        },
         utils::test::size_for,
         TextBox,
     };
@@ -173,7 +173,7 @@ mod test {
 
         let style = TextBoxStyleBuilder::new()
             .vertical_alignment(Scrolling)
-            .height_mode(Exact(VerticalOverdraw::Hidden))
+            .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
             .build();
 
         TextBox::with_textbox_style(

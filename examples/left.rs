@@ -10,7 +10,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    style::{height_mode::FitToText, TextBoxStyleBuilder},
+    style::{height_mode::HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
 
@@ -30,7 +30,9 @@ fn main() {
         .text_color(BinaryColor::On)
         .build();
 
-    let textbox_style = TextBoxStyleBuilder::new().height_mode(FitToText).build();
+    let textbox_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::FitToText)
+        .build();
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
     // measure and adjust the height of the text box in `into_styled()`.

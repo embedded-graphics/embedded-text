@@ -12,7 +12,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::{
     alignment::Scrolling,
-    style::{height_mode::FitToText, TextBoxStyleBuilder},
+    style::{height_mode::HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
 
@@ -30,7 +30,7 @@ fn main() {
 
     let text_box_style = TextBoxStyleBuilder::new()
         .vertical_alignment(Scrolling)
-        .height_mode(FitToText)
+        .height_mode(HeightMode::FitToText)
         .line_height(LineHeight::Pixels(12))
         .build();
 

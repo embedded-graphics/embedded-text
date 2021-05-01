@@ -13,7 +13,7 @@ use crate::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
-    style::{color::Rgb, height_mode::HeightMode},
+    style::color::Rgb,
     TextBox,
 };
 use embedded_graphics::{
@@ -24,13 +24,12 @@ use embedded_graphics::{
     Drawable,
 };
 
-impl<'a, F, A, V, H> Drawable for TextBox<'a, F, A, V, H>
+impl<'a, F, A, V> Drawable for TextBox<'a, F, A, V>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
-    H: HeightMode,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = &'a str;

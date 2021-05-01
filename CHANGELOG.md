@@ -3,7 +3,7 @@ Unreleased
 
 ## Changed:
 
- * **breaking** Replaced type-state `VerticalOverdraw` with an enum.
+ * **breaking** Replaced type-state `VerticalOverdraw`, `HeightMode` with an enum.
  * **breaking** Replaced `TextStyle::line_spacing` with `line_height`.
  * **breaking** Added `#[non_exhaustive]` to `TextBoxStyle`.
  * **breaking** Need to pass character style to text box constructors.
