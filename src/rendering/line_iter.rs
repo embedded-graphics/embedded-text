@@ -672,7 +672,8 @@ mod ansi_parser_tests {
         test::{assert_line_elements, RenderElement},
         *,
     };
-    use crate::style::color::Rgb;
+
+    use embedded_graphics::pixelcolor::Rgb888;
 
     #[test]
     fn colors() {
@@ -685,7 +686,7 @@ mod ansi_parser_tests {
             &[
                 RenderElement::string("Lorem", 30),
                 RenderElement::Space(6),
-                RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
+                RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
                 RenderElement::string("Ipsum", 30),
             ],
         );
@@ -712,7 +713,7 @@ mod ansi_parser_tests {
             8,
             &[
                 RenderElement::string("foo", 18),
-                RenderElement::Sgr(Sgr::ChangeTextColor(Rgb::new(22, 198, 12))),
+                RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
                 RenderElement::string("barum", 30),
             ],
         );

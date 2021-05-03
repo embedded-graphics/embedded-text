@@ -13,11 +13,11 @@ use crate::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
-    style::color::Rgb,
     TextBox,
 };
 use embedded_graphics::{
     draw_target::{DrawTarget, DrawTargetExt},
+    pixelcolor::Rgb888,
     prelude::{Point, Size},
     primitives::Rectangle,
     text::renderer::{CharacterStyle, TextRenderer},
@@ -27,7 +27,7 @@ use embedded_graphics::{
 impl<'a, F, A, V> Drawable for TextBox<'a, F, A, V>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
-    <F as CharacterStyle>::Color: From<Rgb>,
+    <F as CharacterStyle>::Color: From<Rgb888>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
 {
