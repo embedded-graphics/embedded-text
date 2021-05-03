@@ -155,7 +155,6 @@
 //! [`TextBox::into_styled`]: ../struct.TextBox.html#method.into_styled
 
 mod builder;
-pub mod color;
 mod height_mode;
 mod vertical_overdraw;
 

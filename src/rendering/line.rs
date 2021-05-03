@@ -5,12 +5,13 @@ use crate::{
     alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{cursor::LineCursor, line_iter::LineElementParser},
-    style::{color::Rgb, TextBoxStyle},
+    style::TextBoxStyle,
     utils::str_width,
 };
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
+    pixelcolor::Rgb888,
     text::{
         renderer::{CharacterStyle, TextRenderer},
         Baseline,
@@ -55,7 +56,7 @@ where
 impl<'a, F, A, V> StyledLineRenderer<'a, F, A, V>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
-    <F as CharacterStyle>::Color: From<Rgb>,
+    <F as CharacterStyle>::Color: From<Rgb888>,
 {
     /// Creates a new line renderer.
     #[inline]
@@ -73,7 +74,7 @@ struct RenderElementHandler<'a, F, D> {
 impl<'a, F, D> ElementHandler for RenderElementHandler<'a, F, D>
 where
     F: CharacterStyle + TextRenderer,
-    <F as CharacterStyle>::Color: From<Rgb>,
+    <F as CharacterStyle>::Color: From<Rgb888>,
     D: DrawTarget<Color = <F as TextRenderer>::Color>,
 {
     type Error = D::Error;
@@ -116,7 +117,7 @@ struct StyleOnlyRenderElementHandler<'a, F> {
 impl<'a, F> ElementHandler for StyleOnlyRenderElementHandler<'a, F>
 where
     F: CharacterStyle + TextRenderer,
-    <F as CharacterStyle>::Color: From<Rgb>,
+    <F as CharacterStyle>::Color: From<Rgb888>,
 {
     type Error = Infallible;
 
@@ -134,7 +135,7 @@ where
 impl<'a, F, A, V> Drawable for StyledLineRenderer<'a, F, A, V>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
-    <F as CharacterStyle>::Color: From<Rgb>,
+    <F as CharacterStyle>::Color: From<Rgb888>,
     A: HorizontalTextAlignment,
     V: VerticalTextAlignment,
 {
@@ -214,7 +215,7 @@ impl Sgr {
     fn apply<F>(self, renderer: &mut F)
     where
         F: CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb>,
+        <F as CharacterStyle>::Color: From<Rgb888>,
     {
         use embedded_graphics::text::DecorationColor;
         match self {
@@ -261,14 +262,14 @@ mod test {
             cursor::LineCursor,
             line::{LineRenderState, StyledLineRenderer},
         },
-        style::{color::Rgb, TabSize, TextBoxStyle, TextBoxStyleBuilder},
+        style::{TabSize, TextBoxStyle, TextBoxStyleBuilder},
         utils::test::size_for,
     };
     use embedded_graphics::{
         geometry::Point,
         mock_display::MockDisplay,
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
-        pixelcolor::BinaryColor,
+        pixelcolor::{BinaryColor, Rgb888},
         primitives::Rectangle,
         text::renderer::{CharacterStyle, TextRenderer},
         Drawable,
@@ -282,7 +283,7 @@ mod test {
         pattern: &[&str],
     ) where
         S: TextRenderer<Color = <S as CharacterStyle>::Color> + CharacterStyle,
-        <S as CharacterStyle>::Color: From<Rgb> + embedded_graphics::mock_display::ColorMapping,
+        <S as CharacterStyle>::Color: From<Rgb888> + embedded_graphics::mock_display::ColorMapping,
         A: HorizontalTextAlignment,
         V: VerticalTextAlignment,
     {

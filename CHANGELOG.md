@@ -16,8 +16,8 @@ Unreleased
  * **breaking** Raised MSRV to 1.43.
  * **breaking** Updated to embedded-graphics 0.7.
     Changes in embedded-graphics required changing the type signatures of almost every embedded-text type. For example, former `Font` and `PixelColor` type bounds have been replaced by `TextRenderer`, `CharacterStyle` and their `Color` associated type.
+ * **breaking** Replaced `style::color::Rgb` with `embedded_graphics::pixelcolor::Rgb888`.
  * ANSI sequence support now requires the `ansi` feature which is enabled by default.
- * Fields of the `style::color::Rgb` struct are now public.
 
 ## Removed
 
