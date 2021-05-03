@@ -129,7 +129,6 @@
 //!  - Move the cursor backward `<n>` characters: `\x1b[<n>D`. This command will stop at the start
 //!    of line.
 //!
-//! [`Rgb`]: ./color/struct.Rgb.html
 //! [`TextBox`]: ../struct.TextBox.html
 //! [`TextBoxStyle`]: struct.TextBoxStyle.html
 //! [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
