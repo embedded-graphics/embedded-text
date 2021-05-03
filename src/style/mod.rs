@@ -87,30 +87,12 @@
 //! `\x1b[48;2;<r>;<g>;<b>m` (background color) sequence. Here, `<r>`, `<g>` and `<b>` can take any
 //! value between `0` and `255`.
 //!
-//! Color values on color spaces other than `Rgb888`
-//! ------------------------------------------------
+//! Supported color types
+//! ---------------------
 //!
-//! By default, `embedded-text` uses the following color types provided by `embedded-graphics`:
+//! `embedded-text` supports all color types that are included in `embedded-graphics`.
 //!
-//!  * `Rgb888`
-//!  * `Rgb565`
-//!  * `Rgb555`
-//!  * `BinaryColor`
-//!
-//! Internally, all ANSI color sequences are turned into the [`Rgb`] type, which can be converted
-//! to the above types. The resulting color will be the closest match to what you specify.
-//!
-//! If you wish to use a different color type, you'll need to implement `From<Rgb>` for your color
-//! type and write the conversion yourself.
-//!
-//! Color values on monochrome displays
-//! -----------------------------------
-//!
-//! Monochrome displays use the `BinaryColor` color which can have two values: `On` or `Off`.
-//! You can still use the ANSI colors with the following considerations:
-//!
-//!  * If the value of all three color channels are greater than `127`, the resulting color in `On`
-//!  * Otherwise, the color is converted to `Off`.
+//! If you wish to use a different color type, the types needs to implement `From<Rgb888>`.
 //!
 //! Other text styling options
 //! --------------------------
