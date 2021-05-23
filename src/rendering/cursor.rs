@@ -1,6 +1,8 @@
 //! Cursor to track rendering position.
 use embedded_graphics::{geometry::Point, primitives::Rectangle, text::LineHeight};
 
+use crate::SaturatingCast;
+
 /// Tracks position within a line.
 #[derive(Debug, Clone)]
 pub struct LineCursor {
@@ -63,7 +65,7 @@ impl LineCursor {
     #[inline]
     pub fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
         if by < 0 {
-            let abs = by.abs() as u32;
+            let abs = by.unsigned_abs();
             if abs <= self.position {
                 self.position -= abs;
                 Ok(by)
@@ -71,8 +73,9 @@ impl LineCursor {
                 Err(-(self.position as i32))
             }
         } else {
-            let space = self.space() as i32;
+            let space = self.space().saturating_cast();
             if by <= space {
+                // Here we know by > 0, cast is safe
                 self.position += by as u32;
                 Ok(by)
             } else {

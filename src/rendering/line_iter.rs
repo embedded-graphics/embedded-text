@@ -7,6 +7,7 @@ use crate::{
     alignment::HorizontalAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
+    SaturatingCast,
 };
 
 #[cfg(feature = "ansi")]
@@ -114,7 +115,7 @@ impl<'a> LineElementParser<'a, '_> {
     }
 
     fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
-        self.cursor.move_cursor(by as i32)
+        self.cursor.move_cursor(by)
     }
 
     fn longest_fitting_substr<E: ElementHandler>(
@@ -186,13 +187,13 @@ impl<'a> LineElementParser<'a, '_> {
     fn draw_whitespace<E: ElementHandler>(
         &mut self,
         handler: &mut E,
-        space_width: i32,
+        space_width: u32,
     ) -> Result<Option<Token<'a>>, E::Error> {
         if self.empty && self.alignment.ignores_leading_spaces() {
             return Ok(None);
         }
 
-        match self.move_cursor(space_width) {
+        match self.move_cursor(space_width.saturating_cast()) {
             Ok(moved) if self.empty => handler.whitespace(moved as u32)?,
             Ok(moved) if self.next_word_fits(handler) => handler.whitespace(moved as u32)?,
 
@@ -212,14 +213,14 @@ impl<'a> LineElementParser<'a, '_> {
         while let Some(token) = self.first_token.take().or_else(|| self.parser.next()) {
             match token {
                 Token::Whitespace(n) => {
-                    let space_width = self.spaces.consume(n) as i32;
+                    let space_width = self.spaces.consume(n);
                     if let Some(token) = self.draw_whitespace(handler, space_width)? {
                         return Ok(Some(token));
                     }
                 }
 
                 Token::Tab => {
-                    let space_width = self.cursor.next_tab_width() as i32;
+                    let space_width = self.cursor.next_tab_width();
                     if let Some(token) = self.draw_whitespace(handler, space_width)? {
                         return Ok(Some(token));
                     }
