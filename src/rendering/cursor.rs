@@ -65,7 +65,7 @@ impl LineCursor {
     #[inline]
     pub fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
         if by < 0 {
-            let abs = by.unsigned_abs();
+            let abs = by.abs() as u32;
             if abs <= self.position {
                 self.position -= abs;
                 Ok(by)
