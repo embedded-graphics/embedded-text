@@ -112,10 +112,10 @@ pub enum VerticalAlignment {
 
 impl VerticalAlignment {
     /// Set the cursor's initial vertical position
-    pub fn apply_vertical_alignment<'a, S>(
+    pub fn apply_vertical_alignment<'a, 'b, S>(
         self,
         cursor: &mut Cursor,
-        styled_text_box: &'a TextBox<'a, S>,
+        styled_text_box: &'b TextBox<'a, S>,
     ) where
         S: TextRenderer,
     {
