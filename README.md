@@ -7,14 +7,14 @@ This crate provides a configurable `TextBox` to render multiline text inside a b
 
 `TextBox` supports the common text alignments:
  - Horizontal:
-     - `LeftAligned`
-     - `RightAligned`
-     - `CenterAligned`
+     - `Left`
+     - `Right`
+     - `Center`
      - `Justified`
  - Vertical:
-     - `TopAligned`
-     - `CenterAligned`
-     - `BottomAligned`
+     - `Top`
+     - `Middle`
+     - `Bottom`
      - `Scrolling`
 
 `TextBox` also supports some special characters not handled by embedded-graphics' `Text`:

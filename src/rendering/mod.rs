@@ -7,7 +7,6 @@ pub(crate) mod line_iter;
 pub(crate) mod space_config;
 
 use crate::{
-    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{
         cursor::Cursor,
@@ -24,12 +23,10 @@ use embedded_graphics::{
     Drawable,
 };
 
-impl<'a, F, A, V> Drawable for TextBox<'a, F, A, V>
+impl<'a, F> Drawable for TextBox<'a, F>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = &'a str;
@@ -46,7 +43,9 @@ where
             self.style.tab_size.into_pixels(&self.character_style),
         );
 
-        V::apply_vertical_alignment(&mut cursor, self);
+        self.style
+            .vertical_alignment
+            .apply_vertical_alignment(&mut cursor, self);
 
         let mut state = LineRenderState {
             style: self.style,
@@ -108,14 +107,11 @@ pub mod test {
     };
 
     use crate::{
-        alignment::{HorizontalTextAlignment, LeftAligned},
-        style::TextBoxStyleBuilder,
-        utils::test::size_for,
-        TextBox,
+        alignment::HorizontalAlignment, style::TextBoxStyleBuilder, utils::test::size_for, TextBox,
     };
 
-    pub fn assert_rendered<A: HorizontalTextAlignment>(
-        alignment: A,
+    pub fn assert_rendered(
+        alignment: HorizontalAlignment,
         text: &str,
         size: Size,
         pattern: &[&str],
@@ -145,7 +141,7 @@ pub mod test {
     #[test]
     fn nbsp_doesnt_break() {
         assert_rendered(
-            LeftAligned,
+            HorizontalAlignment::Left,
             "a b c\u{a0}d e f",
             size_for(&FONT_6X9, 5, 3),
             &[

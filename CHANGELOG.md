@@ -3,6 +3,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** Replaced `{Horizontal, Vertical}TextAlignment` traits with `{Horizontal, Vertical}Alignment` enums. Vertical centering option has been renamed to `Middle`.
  * **breaking** Moved `VerticalOverdraw` and `HeightMode` to the `style` module.
  * **breaking** Replaced type-state `VerticalOverdraw`, `HeightMode` with an enum.
  * **breaking** Replaced `TextStyle::line_spacing` with `line_height`.

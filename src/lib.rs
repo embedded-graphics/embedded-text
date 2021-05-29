@@ -4,16 +4,16 @@
 //! `Rectangle` using [embedded-graphics].
 //!
 //! [`TextBox`] supports the common text alignments:
-//!  - Horizontal:
-//!      - [`LeftAligned`]
-//!      - [`RightAligned`]
-//!      - [`CenterAligned`]
-//!      - [`Justified`]
-//!  - Vertical:
-//!      - [`TopAligned`]
-//!      - [`CenterAligned`]
-//!      - [`BottomAligned`]
-//!      - [`Scrolling`]
+//!  - [`Horizontal`]:
+//!      - `Left`
+//!      - `Right`
+//!      - `Center`
+//!      - `Justified`
+//!  - [`Vertical`]:
+//!      - `Top`
+//!      - `Middle`
+//!      - `Bottom`
+//!      - `Scrolling`
 //!
 //! [`TextBox`] also supports some special characters not handled by embedded-graphics' `Text`:
 //!  - non-breaking space (`\u{200b}`)
@@ -95,13 +95,8 @@
 //! [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
 //! [simulator README]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator#usage-without-sdl2
 //! [`TextBox`]: ./struct.TextBox.html
-//! [`LeftAligned`]: ./alignment/left/struct.LeftAligned.html
-//! [`RightAligned`]: ./alignment/right/struct.RightAligned.html
-//! [`CenterAligned`]: ./alignment/center/struct.CenterAligned.html
-//! [`Justified`]: ./alignment/justified/struct.Justified.html
-//! [`TopAligned`]: ./alignment/top/struct.TopAligned.html
-//! [`BottomAligned`]: ./alignment/bottom/struct.BottomAligned.html
-//! [`Scrolling`]: ./alignment/scrolling/struct.Scrolling.html
+//! [`Horizontal`]: ./alignment/enum.HorizontalAlignment.html
+//! [`Vertical`]: ./alignment/enum.VerticalAlignment.html
 
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
@@ -118,7 +113,7 @@ pub mod style;
 mod utils;
 
 use crate::{
-    alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
+    alignment::{HorizontalAlignment, VerticalAlignment},
     style::TextBoxStyle,
 };
 use embedded_graphics::{
@@ -142,7 +137,7 @@ use embedded_graphics::{
 /// [module-level documentation]: index.html
 /// [`draw`]: #method.draw
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct TextBox<'a, S, A, V> {
+pub struct TextBox<'a, S> {
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
 
@@ -153,10 +148,10 @@ pub struct TextBox<'a, S, A, V> {
     pub character_style: S,
 
     /// The style of the [`TextBox`].
-    pub style: TextBoxStyle<A, V>,
+    pub style: TextBoxStyle,
 }
 
-impl<'a, S> TextBox<'a, S, LeftAligned, TopAligned>
+impl<'a, S> TextBox<'a, S>
 where
     S: TextRenderer + CharacterStyle,
 {
@@ -168,11 +163,9 @@ where
     }
 }
 
-impl<'a, S, A, V> TextBox<'a, S, A, V>
+impl<'a, S> TextBox<'a, S>
 where
     S: TextRenderer + CharacterStyle,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
 {
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
@@ -181,7 +174,7 @@ where
         text: &'a str,
         bounds: Rectangle,
         character_style: S,
-        textbox_style: TextBoxStyle<A, V>,
+        textbox_style: TextBoxStyle,
     ) -> Self {
         let mut styled = TextBox {
             text,
@@ -202,8 +195,8 @@ where
         text: &'a str,
         bounds: Rectangle,
         character_style: S,
-        alignment: A,
-    ) -> TextBox<'a, S, A, TopAligned> {
+        alignment: HorizontalAlignment,
+    ) -> TextBox<'a, S> {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -219,8 +212,8 @@ where
         text: &'a str,
         bounds: Rectangle,
         character_style: S,
-        vertical_alignment: V,
-    ) -> TextBox<'a, S, LeftAligned, V> {
+        vertical_alignment: VerticalAlignment,
+    ) -> TextBox<'a, S> {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -230,7 +223,7 @@ where
     }
 }
 
-impl<S, A, V> Transform for TextBox<'_, S, A, V>
+impl<S> Transform for TextBox<'_, S>
 where
     Self: Clone,
 {
@@ -251,7 +244,7 @@ where
     }
 }
 
-impl<S, A, V> Dimensions for TextBox<'_, S, A, V> {
+impl<S> Dimensions for TextBox<'_, S> {
     #[inline]
     #[must_use]
     fn bounding_box(&self) -> Rectangle {
@@ -259,10 +252,9 @@ impl<S, A, V> Dimensions for TextBox<'_, S, A, V> {
     }
 }
 
-impl<S, A, V> TextBox<'_, S, A, V>
+impl<S> TextBox<'_, S>
 where
     S: TextRenderer,
-    A: HorizontalTextAlignment,
 {
     /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]

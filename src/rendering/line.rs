@@ -2,7 +2,6 @@
 use core::convert::Infallible;
 
 use crate::{
-    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
     parser::{Parser, Token},
     rendering::{cursor::LineCursor, line_iter::LineElementParser},
     style::TextBoxStyle,
@@ -21,30 +20,30 @@ use embedded_graphics::{
 
 #[cfg(feature = "ansi")]
 use super::ansi::Sgr;
-use super::{line_iter::ElementHandler, space_config::UniformSpaceConfig};
+use super::{line_iter::ElementHandler, space_config::SpaceConfig};
 
 /// Render a single line of styled text.
 #[derive(Debug)]
-pub struct StyledLineRenderer<'a, S, A, V>
+pub struct StyledLineRenderer<'a, S>
 where
     S: Clone,
 {
     cursor: LineCursor,
-    state: LineRenderState<'a, S, A, V>,
+    state: LineRenderState<'a, S>,
 }
 
 #[derive(Debug, Clone)]
-pub struct LineRenderState<'a, S, A, V>
+pub struct LineRenderState<'a, S>
 where
     S: Clone,
 {
     pub parser: Parser<'a>,
     pub character_style: S,
-    pub style: TextBoxStyle<A, V>,
+    pub style: TextBoxStyle,
     pub carried_token: Option<Token<'a>>,
 }
 
-impl<S, A, V> LineRenderState<'_, S, A, V>
+impl<S> LineRenderState<'_, S>
 where
     S: Clone,
 {
@@ -53,14 +52,14 @@ where
     }
 }
 
-impl<'a, F, A, V> StyledLineRenderer<'a, F, A, V>
+impl<'a, F> StyledLineRenderer<'a, F>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
 {
     /// Creates a new line renderer.
     #[inline]
-    pub fn new(cursor: LineCursor, state: LineRenderState<'a, F, A, V>) -> Self {
+    pub fn new(cursor: LineCursor, state: LineRenderState<'a, F>) -> Self {
         Self { cursor, state }
     }
 }
@@ -132,15 +131,13 @@ where
     }
 }
 
-impl<'a, F, A, V> Drawable for StyledLineRenderer<'a, F, A, V>
+impl<'a, F> Drawable for StyledLineRenderer<'a, F>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
-    A: HorizontalTextAlignment,
-    V: VerticalTextAlignment,
 {
     type Color = <F as CharacterStyle>::Color;
-    type Output = LineRenderState<'a, F, A, V>;
+    type Output = LineRenderState<'a, F>;
 
     #[inline]
     fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
@@ -156,11 +153,12 @@ where
 
         let carried = if display.bounding_box().size.height == 0 {
             // We're outside of the view - no need for a separate measure pass.
-            let mut elements = LineElementParser::<'_, '_, _, A>::new(
+            let mut elements = LineElementParser::new(
                 &mut parser,
                 self.cursor.clone(),
-                UniformSpaceConfig::new(&character_style),
+                SpaceConfig::new_from_renderer(&character_style),
                 carried_token,
+                style.alignment,
             );
 
             elements
@@ -181,17 +179,18 @@ where
             let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
             let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
 
-            let (left, space_config) = A::place_line(line_str, &character_style, lm);
+            let (left, space_config) = style.alignment.place_line(line_str, &character_style, lm);
 
             let mut cursor = self.cursor.clone();
             cursor.move_cursor(left as i32).ok();
 
             let pos = cursor.pos();
-            let mut elements = LineElementParser::<'_, '_, _, A>::new(
+            let mut elements = LineElementParser::new(
                 &mut parser,
                 cursor,
                 space_config,
                 carried_token,
+                style.alignment,
             );
 
             elements.process(&mut RenderElementHandler {
@@ -256,7 +255,6 @@ impl Sgr {
 #[cfg(test)]
 mod test {
     use crate::{
-        alignment::{HorizontalTextAlignment, VerticalTextAlignment},
         parser::Parser,
         rendering::{
             cursor::LineCursor,
@@ -275,17 +273,15 @@ mod test {
         Drawable,
     };
 
-    fn test_rendered_text<'a, S, A, V>(
+    fn test_rendered_text<'a, S>(
         text: &'a str,
         bounds: Rectangle,
         character_style: S,
-        style: TextBoxStyle<A, V>,
+        style: TextBoxStyle,
         pattern: &[&str],
     ) where
         S: TextRenderer<Color = <S as CharacterStyle>::Color> + CharacterStyle,
         <S as CharacterStyle>::Color: From<Rgb888> + embedded_graphics::mock_display::ColorMapping,
-        A: HorizontalTextAlignment,
-        V: VerticalTextAlignment,
     {
         let parser = Parser::parse(text);
         let cursor = LineCursor::new(

@@ -12,7 +12,7 @@ use embedded_graphics::{
     prelude::*,
     primitives::Rectangle,
 };
-use embedded_text::{alignment::Scrolling, style::TextBoxStyleBuilder, TextBox};
+use embedded_text::{alignment::VerticalAlignment, style::TextBoxStyleBuilder, TextBox};
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, thread, time::Duration};
 
@@ -104,7 +104,7 @@ fn main() {
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
-        .vertical_alignment(Scrolling)
+        .vertical_alignment(VerticalAlignment::Scrolling)
         .build();
 
     // Set up the window.

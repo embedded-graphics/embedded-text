@@ -11,7 +11,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    alignment::Scrolling,
+    alignment::VerticalAlignment,
     style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
@@ -29,7 +29,7 @@ fn main() {
         .text_color(BinaryColor::On);
 
     let text_box_style = TextBoxStyleBuilder::new()
-        .vertical_alignment(Scrolling)
+        .vertical_alignment(VerticalAlignment::Scrolling)
         .height_mode(HeightMode::FitToText)
         .line_height(LineHeight::Pixels(12))
         .build();

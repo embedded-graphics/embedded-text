@@ -7,7 +7,7 @@ use embedded_graphics::{
     primitives::Rectangle,
 };
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
-use embedded_text::{alignment::Justified, style::TextBoxStyle, TextBox};
+use embedded_text::{alignment::HorizontalAlignment, style::TextBoxStyle, TextBox};
 
 fn main() {
     let text = "Hello, World!\n\
@@ -25,7 +25,7 @@ fn main() {
         .background_color(Rgb565::new(10, 20, 10))
         .build();
 
-    let textbox_style = TextBoxStyle::with_alignment(Justified);
+    let textbox_style = TextBoxStyle::with_alignment(HorizontalAlignment::Justified);
 
     // Specify the bounding box. Note that in this example the text box will be taller than the text.
     let bounds = Rectangle::new(Point::zero(), Size::new(129, 129));
