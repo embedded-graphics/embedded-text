@@ -66,7 +66,9 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new().alignment(LeftAligned).build();
+        let style = TextBoxStyleBuilder::new()
+            .alignment(HorizontalAlignment::Left)
+            .build();
 
         TextBox::with_textbox_style(
             "word and other words",
@@ -103,8 +105,8 @@ mod test {
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .alignment(LeftAligned)
-            .vertical_alignment(CenterAligned)
+            .alignment(HorizontalAlignment::Left)
+            .vertical_alignment(VerticalAlignment::Middle)
             .height_mode(HeightMode::Exact(VerticalOverdraw::Visible))
             .build();
 
@@ -144,8 +146,8 @@ mod test {
             .build();
 
         let style = TextBoxStyleBuilder::new()
-            .alignment(LeftAligned)
-            .vertical_alignment(CenterAligned)
+            .alignment(HorizontalAlignment::Left)
+            .vertical_alignment(VerticalAlignment::Middle)
             .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
             .build();
 

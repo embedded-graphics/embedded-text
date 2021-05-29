@@ -142,12 +142,12 @@ mod vertical_overdraw;
 use core::convert::Infallible;
 
 use crate::{
-    alignment::{HorizontalTextAlignment, LeftAligned, TopAligned, VerticalTextAlignment},
+    alignment::{HorizontalAlignment, VerticalAlignment},
     parser::{Parser, Token},
     rendering::{
         cursor::LineCursor,
         line_iter::{ElementHandler, LineElementParser},
-        space_config::UniformSpaceConfig,
+        space_config::SpaceConfig,
     },
     utils::str_width,
 };
@@ -191,7 +191,7 @@ impl TabSize {
 /// Styling options of a [`TextBox`].
 ///
 /// `TextBoxStyle` contains the font, foreground and background `PixelColor`, line spacing,
-/// [`HeightMode`], [`HorizontalTextAlignment`] and [`VerticalTextAlignment`] information necessary
+/// [`HeightMode`], [`HorizontalAlignment`] and [`VerticalAlignment`] information necessary
 /// to draw a [`TextBox`].
 ///
 /// To construct a new `TextBoxStyle` object, use the [`new`] or [`from_text_style`] methods or
@@ -199,21 +199,21 @@ impl TabSize {
 ///
 /// [`TextBox`]: ../struct.TextBox.html
 /// [`HeightMode`]: ./enum.HeightMode.html
-/// [`HorizontalTextAlignment`]: ../alignment/trait.HorizontalTextAlignment.html
-/// [`VerticalTextAlignment`]: ../alignment/trait.VerticalTextAlignment.html
+/// [`HorizontalAlignment`]: ../alignment/enum.HorizontalAlignment.html
+/// [`VerticalAlignment`]: ../alignment/enum.VerticalAlignment.html
 /// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
 /// [`new`]: #method.new
 /// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 #[non_exhaustive]
-pub struct TextBoxStyle<A, V> {
+pub struct TextBoxStyle {
     /// Horizontal text alignment.
-    pub alignment: A,
+    pub alignment: HorizontalAlignment,
 
     /// Vertical text alignment.
-    pub vertical_alignment: V,
+    pub vertical_alignment: VerticalAlignment,
 
-    /// The height behaviour
+    /// The height behaviour.
     pub height_mode: HeightMode,
 
     /// Line height.
@@ -223,25 +223,23 @@ pub struct TextBoxStyle<A, V> {
     pub tab_size: TabSize,
 }
 
-impl TextBoxStyle<LeftAligned, TopAligned> {
+impl TextBoxStyle {
     /// Creates a new text box style with the given alignment.
     #[inline]
-    pub fn with_alignment<A: HorizontalTextAlignment>(alignment: A) -> TextBoxStyle<A, TopAligned> {
+    pub const fn with_alignment(alignment: HorizontalAlignment) -> TextBoxStyle {
         TextBoxStyleBuilder::new().alignment(alignment).build()
     }
 
     /// Creates a new text box style with the given vertical alignment.
     #[inline]
-    pub fn with_vertical_alignment<V: VerticalTextAlignment>(
-        alignment: V,
-    ) -> TextBoxStyle<LeftAligned, V> {
+    pub const fn with_vertical_alignment(alignment: VerticalAlignment) -> TextBoxStyle {
         TextBoxStyleBuilder::new()
             .vertical_alignment(alignment)
             .build()
     }
 }
 
-impl Default for TextBoxStyle<LeftAligned, TopAligned> {
+impl Default for TextBoxStyle {
     #[inline]
     fn default() -> Self {
         TextBoxStyleBuilder::new().build()
@@ -295,10 +293,7 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     }
 }
 
-impl<A, V> TextBoxStyle<A, V>
-where
-    A: HorizontalTextAlignment,
-{
+impl TextBoxStyle {
     /// Measure the width and count spaces in a single line of text.
     ///
     /// Returns (width, rendered space count, carried token)
@@ -320,11 +315,12 @@ where
     {
         let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
-        let mut iter = LineElementParser::<'_, '_, _, A>::new(
+        let mut iter = LineElementParser::new(
             parser,
             cursor,
-            UniformSpaceConfig::new(character_style),
+            SpaceConfig::new(str_width(character_style, " "), None),
             carried_token.clone(),
+            self.alignment,
         );
 
         let mut handler = MeasureLineElementHandler {
@@ -509,7 +505,9 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
+        let style = TextBoxStyleBuilder::new()
+            .alignment(HorizontalAlignment::Center)
+            .build();
 
         for (i, (text, width, expected_n_lines)) in data.iter().enumerate() {
             let height = style.measure_text_height(&character_style, text, *width);
@@ -529,7 +527,9 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
+        let style = TextBoxStyleBuilder::new()
+            .alignment(HorizontalAlignment::Center)
+            .build();
 
         let mut text = Parser::parse("123 45 67");
 
@@ -550,7 +550,9 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
+        let style = TextBoxStyleBuilder::new()
+            .alignment(HorizontalAlignment::Center)
+            .build();
 
         let mut text = Parser::parse("123\x1b[2D");
 
@@ -582,7 +584,9 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
+        let style = TextBoxStyleBuilder::new()
+            .alignment(HorizontalAlignment::Center)
+            .build();
 
         let mut text = Parser::parse("123\u{A0}45");
 
@@ -602,7 +606,9 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().alignment(CenterAligned).build();
+        let style = TextBoxStyleBuilder::new()
+            .alignment(HorizontalAlignment::Center)
+            .build();
         let text = "123\u{A0}45 123";
 
         let height =
@@ -610,7 +616,9 @@ mod test {
         assert_eq!(height, 2 * character_style.line_height());
 
         // bug discovered while using the interactive example
-        let style = TextBoxStyleBuilder::new().alignment(LeftAligned).build();
+        let style = TextBoxStyleBuilder::new()
+            .alignment(HorizontalAlignment::Left)
+            .build();
 
         let text = "embedded-text also\u{A0}supports non-breaking spaces.";
 

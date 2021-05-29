@@ -5,12 +5,7 @@
 //! shrink the text box. Height modes help us achieve this.
 //!
 //! [`TextBox`]: ../../struct.TextBox.html
-use crate::{
-    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
-    rendering::cursor::Cursor,
-    style::VerticalOverdraw,
-    TextBox,
-};
+use crate::{rendering::cursor::Cursor, style::VerticalOverdraw, TextBox};
 use core::ops::Range;
 use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
@@ -53,8 +48,8 @@ pub enum HeightMode {
 
     /// Sets the height of the [`TextBox`] to exactly fit the text.
     ///
-    /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`TopAligned`] for
-    /// efficiency.
+    /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`Top`] alignment
+    /// for efficiency.
     ///
     /// # Example: `FitToText` grows the [`TextBox`].
     ///
@@ -126,7 +121,7 @@ pub enum HeightMode {
     /// assert_eq!(size, Size::new(60, 18));
     /// ```
     ///
-    /// [`TopAligned`]: ../alignment/top/struct.TopAligned.html
+    /// [`TopAligned`]: ../alignment/enum.VerticalAlignment.html#variant.Top
     FitToText,
 
     /// If the text does not fill the bounding box, shrink the [`TextBox`] to be as tall as the
@@ -210,11 +205,9 @@ impl HeightMode {
     /// Apply the height mode to the text box.
     ///
     /// *Note:* This function normally does not need to be called manually.
-    pub fn apply<F, A, V>(self, text_box: &mut TextBox<'_, F, A, V>)
+    pub fn apply<F>(self, text_box: &mut TextBox<'_, F>)
     where
         F: TextRenderer,
-        A: HorizontalTextAlignment,
-        V: VerticalTextAlignment,
     {
         match self {
             HeightMode::Exact(_) => {}

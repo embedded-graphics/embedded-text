@@ -10,7 +10,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    alignment::RightAligned,
+    alignment::HorizontalAlignment,
     style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
@@ -32,7 +32,7 @@ fn main() {
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
-        .alignment(RightAligned)
+        .alignment(HorizontalAlignment::Right)
         .height_mode(HeightMode::FitToText)
         .build();
 

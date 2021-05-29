@@ -13,11 +13,7 @@ use embedded_graphics::{
     primitives::{PrimitiveStyle, Rectangle},
     text::Text,
 };
-use embedded_text::{
-    alignment::{BottomAligned, CenterAligned, Scrolling, TopAligned, VerticalTextAlignment},
-    style::TextBoxStyleBuilder,
-    TextBox,
-};
+use embedded_text::{alignment::VerticalAlignment, style::TextBoxStyleBuilder, TextBox};
 use sdl2::keyboard::Keycode;
 use std::{thread, time::Duration};
 
@@ -64,10 +60,7 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop<V>(window: &mut Window, bounds: &mut Rectangle, alignment: V) -> bool
-where
-    V: VerticalTextAlignment + std::fmt::Debug,
-{
+fn demo_loop(window: &mut Window, bounds: &mut Rectangle, alignment: VerticalAlignment) -> bool {
     let text = "Hello, World!\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
     Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
@@ -147,16 +140,16 @@ fn main() {
     let mut bounds = Rectangle::new(Point::new(0, 8), Size::new(128, 200));
 
     'running: loop {
-        if !demo_loop(&mut window, &mut bounds, TopAligned) {
+        if !demo_loop(&mut window, &mut bounds, VerticalAlignment::Top) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, CenterAligned) {
+        if !demo_loop(&mut window, &mut bounds, VerticalAlignment::Middle) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, BottomAligned) {
+        if !demo_loop(&mut window, &mut bounds, VerticalAlignment::Bottom) {
             break 'running;
         }
-        if !demo_loop(&mut window, &mut bounds, Scrolling) {
+        if !demo_loop(&mut window, &mut bounds, VerticalAlignment::Scrolling) {
             break 'running;
         }
     }

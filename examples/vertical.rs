@@ -9,11 +9,7 @@ use embedded_graphics::{
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
-use embedded_text::{
-    alignment::{BottomAligned, CenterAligned, TopAligned},
-    style::TextBoxStyleBuilder,
-    TextBox,
-};
+use embedded_text::{alignment::VerticalAlignment, style::TextBoxStyleBuilder, TextBox};
 
 fn main() {
     let text = "The quick brown fox jumped over the lazy dog.";
@@ -32,21 +28,21 @@ fn main() {
     let bounds_bottom = Rectangle::new(Point::new(128, 0), Size::new(64, 129));
 
     let textbox_style_top = TextBoxStyleBuilder::new()
-        .vertical_alignment(TopAligned)
+        .vertical_alignment(VerticalAlignment::Top)
         .build();
     TextBox::with_textbox_style(text, bounds_top, character_style, textbox_style_top)
         .draw(&mut display)
         .unwrap();
 
     let textbox_style_center = TextBoxStyleBuilder::new()
-        .vertical_alignment(CenterAligned)
+        .vertical_alignment(VerticalAlignment::Middle)
         .build();
     TextBox::with_textbox_style(text, bounds_center, character_style, textbox_style_center)
         .draw(&mut display)
         .unwrap();
 
     let textbox_style_bottom = TextBoxStyleBuilder::new()
-        .vertical_alignment(BottomAligned)
+        .vertical_alignment(VerticalAlignment::Bottom)
         .build();
     TextBox::with_textbox_style(text, bounds_bottom, character_style, textbox_style_bottom)
         .draw(&mut display)

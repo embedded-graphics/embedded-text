@@ -4,11 +4,10 @@
 //! a single line and is responsible for handling word wrapping, eating leading/trailing whitespace,
 //! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
 use crate::{
-    alignment::HorizontalTextAlignment,
+    alignment::HorizontalAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
-use core::marker::PhantomData;
 
 #[cfg(feature = "ansi")]
 use super::ansi::{try_parse_sgr, Sgr};
@@ -19,7 +18,7 @@ use as_slice::AsSlice;
 
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
-pub struct LineElementParser<'a, 'b, SP, A> {
+pub struct LineElementParser<'a, 'b> {
     /// Position information.
     cursor: LineCursor,
 
@@ -27,8 +26,8 @@ pub struct LineElementParser<'a, 'b, SP, A> {
     parser: &'b mut Parser<'a>,
 
     first_token: Option<Token<'a>>,
-    spaces: SP,
-    alignment: PhantomData<A>,
+    spaces: SpaceConfig,
+    alignment: HorizontalAlignment,
     empty: bool,
 }
 
@@ -60,19 +59,16 @@ pub trait ElementHandler {
     }
 }
 
-impl<'a, 'b, SP, A> LineElementParser<'a, 'b, SP, A>
-where
-    SP: SpaceConfig,
-    A: HorizontalTextAlignment,
-{
+impl<'a, 'b> LineElementParser<'a, 'b> {
     /// Creates a new element parser.
     #[inline]
     #[must_use]
     pub fn new(
         parser: &'b mut Parser<'a>,
         cursor: LineCursor,
-        spaces: SP,
+        spaces: SpaceConfig,
         carried_token: Option<Token<'a>>,
+        alignment: HorizontalAlignment,
     ) -> Self {
         let first_token = carried_token
             .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t));
@@ -82,17 +78,13 @@ where
             first_token,
             spaces,
             cursor,
-            alignment: PhantomData,
+            alignment,
             empty: true,
         }
     }
 }
 
-impl<'a, SP, A> LineElementParser<'a, '_, SP, A>
-where
-    SP: SpaceConfig,
-    A: HorizontalTextAlignment,
-{
+impl<'a> LineElementParser<'a, '_> {
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
         let mut width = None;
         let mut lookahead = self.parser.clone();
@@ -196,7 +188,7 @@ where
         handler: &mut E,
         space_width: i32,
     ) -> Result<Option<Token<'a>>, E::Error> {
-        if self.empty && A::IGNORE_LEADING_SPACES {
+        if self.empty && self.alignment.ignores_leading_spaces() {
             return Ok(None);
         }
 
@@ -382,8 +374,7 @@ mod test {
 
     use super::*;
     use crate::{
-        alignment::LeftAligned,
-        rendering::{cursor::Cursor, space_config::UniformSpaceConfig},
+        rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
         utils::{str_width, test::size_for},
     };
@@ -465,7 +456,7 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let config = UniformSpaceConfig::new(&style);
+        let config = SpaceConfig::new_from_renderer(&style);
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, max_chars, 1)),
             style.line_height(),
@@ -475,8 +466,13 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut line1: LineElementParser<'_, '_, _, LeftAligned> =
-            LineElementParser::new(parser, cursor, config, carried.clone());
+        let mut line1 = LineElementParser::new(
+            parser,
+            cursor,
+            config,
+            carried.clone(),
+            HorizontalAlignment::Left,
+        );
 
         *carried = line1.process(&mut handler).unwrap();
 
@@ -492,7 +488,7 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let config = UniformSpaceConfig::new(&style);
+        let config = SpaceConfig::new_from_renderer(&style);
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1) - Size::new(1, 0)),
             style.line_height(),
@@ -502,8 +498,8 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut line1: LineElementParser<'_, '_, _, LeftAligned> =
-            LineElementParser::new(&mut parser, cursor, config, None);
+        let mut line1 =
+            LineElementParser::new(&mut parser, cursor, config, None, HorizontalAlignment::Left);
 
         line1.process(&mut handler).unwrap();
 

@@ -2,36 +2,10 @@
 use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
 use crate::{
-    alignment::{HorizontalTextAlignment, VerticalTextAlignment},
+    alignment::{HorizontalAlignment, VerticalAlignment},
     rendering::cursor::Cursor,
     TextBox,
 };
-
-/// Align text to the bottom of the TextBox.
-#[derive(Copy, Clone, Debug)]
-pub struct BottomAligned;
-
-impl VerticalTextAlignment for BottomAligned {
-    #[inline]
-    fn apply_vertical_alignment<'a, S, A>(
-        cursor: &mut Cursor,
-        styled_text_box: &'a TextBox<'a, S, A, Self>,
-    ) where
-        S: TextRenderer,
-        A: HorizontalTextAlignment,
-    {
-        let text_height = styled_text_box.style.measure_text_height(
-            &styled_text_box.character_style,
-            styled_text_box.text,
-            cursor.line_width(),
-        ) as i32;
-
-        let box_height = styled_text_box.bounding_box().size.height as i32;
-        let offset = box_height - text_height;
-
-        cursor.y += offset
-    }
-}
 
 #[cfg(test)]
 mod test {
