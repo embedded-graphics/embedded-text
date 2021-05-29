@@ -7,8 +7,8 @@ use crate::{
     alignment::HorizontalAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
-    SaturatingCast,
 };
+use az::{SaturatingAs, SaturatingCast};
 
 #[cfg(feature = "ansi")]
 use super::ansi::{try_parse_sgr, Sgr};
@@ -154,21 +154,23 @@ impl<'a> LineElementParser<'a, '_> {
             let width = match lookahead.next() {
                 Some(Token::Word(w)) => {
                     exit = true;
-                    handler.measure(w) as i32
+                    handler.measure(w).saturating_as()
                 }
                 Some(Token::Break(Some(w))) => {
                     exit = true;
-                    handler.measure(w) as i32
+                    handler.measure(w).saturating_as()
                 }
 
-                Some(Token::Whitespace(n)) => spaces.consume(n) as i32,
-                Some(Token::Tab) => cursor.next_tab_width() as i32,
+                Some(Token::Whitespace(n)) => spaces.consume(n).saturating_as(),
+                Some(Token::Tab) => cursor.next_tab_width().saturating_as(),
 
                 #[cfg(feature = "ansi")]
-                Some(Token::EscapeSequence(AnsiSequence::CursorForward(by))) => by as i32,
+                Some(Token::EscapeSequence(AnsiSequence::CursorForward(by))) => by.saturating_as(),
 
                 #[cfg(feature = "ansi")]
-                Some(Token::EscapeSequence(AnsiSequence::CursorBackward(by))) => -(by as i32),
+                Some(Token::EscapeSequence(AnsiSequence::CursorBackward(by))) => {
+                    -by.saturating_as::<i32>()
+                }
 
                 #[cfg(feature = "ansi")]
                 Some(Token::EscapeSequence(_)) => continue,
@@ -194,8 +196,10 @@ impl<'a> LineElementParser<'a, '_> {
         }
 
         match self.move_cursor(space_width.saturating_cast()) {
-            Ok(moved) if self.empty => handler.whitespace(moved as u32)?,
-            Ok(moved) if self.next_word_fits(handler) => handler.whitespace(moved as u32)?,
+            Ok(moved) if self.empty => handler.whitespace(moved.saturating_as())?,
+            Ok(moved) if self.next_word_fits(handler) => {
+                handler.whitespace(moved.saturating_as())?
+            }
 
             Ok(moved) | Err(moved) => {
                 handler.move_cursor(moved)?;
@@ -234,7 +238,7 @@ impl<'a> LineElementParser<'a, '_> {
                                 // If a Break contains a character, display it if the next
                                 // Word token does not fit the line.
                                 let width = handler.measure(c);
-                                if self.move_cursor(width as i32).is_ok() {
+                                if self.move_cursor(width.saturating_as()).is_ok() {
                                     handler.printed_characters(c, width)?;
                                     Token::Break(None)
                                 } else {
@@ -253,7 +257,7 @@ impl<'a> LineElementParser<'a, '_> {
 
                 Token::Word(w) => {
                     let width = handler.measure(w);
-                    let (word, remainder) = if self.move_cursor(width as i32).is_ok() {
+                    let (word, remainder) = if self.move_cursor(width.saturating_as()).is_ok() {
                         // We can move the cursor here since `process_word()`
                         // doesn't depend on it.
                         (w, None)
@@ -298,10 +302,10 @@ impl<'a> LineElementParser<'a, '_> {
                             // [Some text|    ]
                             // Cursor forward 2 characters
                             // [Some text  |  ]
-                            let delta = (n * handler.measure(" ")) as i32;
+                            let delta = (n * handler.measure(" ")).saturating_as();
                             match self.move_cursor(delta) {
                                 Ok(delta) | Err(delta) => {
-                                    handler.whitespace(delta as u32)?;
+                                    handler.whitespace(delta.saturating_as())?;
                                 }
                             }
                         }
@@ -310,11 +314,11 @@ impl<'a> LineElementParser<'a, '_> {
                             // The above poses an issue with variable-width fonts.
                             // If cursor movement ignores the variable width, the cursor
                             // will be placed in positions other than glyph boundaries.
-                            let delta = -((n * handler.measure(" ")) as i32);
+                            let delta = -(n * handler.measure(" ")).saturating_as::<i32>();
                             match self.move_cursor(delta) {
                                 Ok(delta) | Err(delta) => {
                                     handler.move_cursor(delta)?;
-                                    handler.whitespace(delta.abs() as u32)?;
+                                    handler.whitespace(delta.abs().saturating_as())?;
                                     handler.move_cursor(delta)?;
                                 }
                             }

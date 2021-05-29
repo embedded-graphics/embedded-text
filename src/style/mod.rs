@@ -151,6 +151,7 @@ use crate::{
     },
     utils::str_width,
 };
+use az::SaturatingAs;
 use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
 
 pub use self::{
@@ -288,10 +289,10 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     }
 
     fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
-        //self.max_width = self.current_width;
-        self.pos = (self.pos as i32 + by)
+        self.pos = (self.pos.saturating_as::<i32>() + by)
             .max(0)
-            .min(self.max_line_width as i32) as u32;
+            .min(self.max_line_width.saturating_as()) as u32;
+
         Ok(())
     }
 }

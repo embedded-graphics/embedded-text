@@ -1,7 +1,7 @@
 //! Cursor to track rendering position.
 use embedded_graphics::{geometry::Point, primitives::Rectangle, text::LineHeight};
 
-use crate::SaturatingCast;
+use az::{SaturatingAs, SaturatingCast};
 
 /// Tracks position within a line.
 #[derive(Debug, Clone)]
@@ -24,7 +24,7 @@ impl LineCursor {
     }
 
     pub fn pos(&self) -> Point {
-        self.start + Point::new(self.position as i32, 0)
+        self.start + Point::new(self.position.saturating_as(), 0)
     }
 
     /// Returns the distance to the next tab position.
@@ -70,7 +70,7 @@ impl LineCursor {
                 self.position -= abs;
                 Ok(by)
             } else {
-                Err(-(self.position as i32))
+                Err(-self.position.saturating_as::<i32>())
             }
         } else {
             let space = self.space().saturating_cast();
@@ -113,10 +113,8 @@ impl Cursor {
     ) -> Self {
         Self {
             y: bounds.top_left.y,
-            line_height: base_line_height.min(i32::MAX as u32) as i32,
-            line_spacing: line_height
-                .to_absolute(base_line_height)
-                .min(i32::MAX as u32) as i32,
+            line_height: base_line_height.saturating_as(),
+            line_spacing: line_height.to_absolute(base_line_height).saturating_as(),
             bounds,
             tab_width,
         }

@@ -6,6 +6,7 @@ use crate::{
     utils::str_width,
     TextBox,
 };
+use az::SaturatingAs;
 use embedded_graphics::{prelude::Dimensions, text::renderer::TextRenderer};
 
 #[cfg(test)]
@@ -119,13 +120,20 @@ impl VerticalAlignment {
     ) where
         S: TextRenderer,
     {
-        let text_height = styled_text_box.style.measure_text_height(
-            &styled_text_box.character_style,
-            styled_text_box.text,
-            cursor.line_width(),
-        ) as i32;
+        let text_height = styled_text_box
+            .style
+            .measure_text_height(
+                &styled_text_box.character_style,
+                styled_text_box.text,
+                cursor.line_width(),
+            )
+            .saturating_as::<i32>();
 
-        let box_height = styled_text_box.bounding_box().size.height as i32;
+        let box_height = styled_text_box
+            .bounding_box()
+            .size
+            .height
+            .saturating_as::<i32>();
 
         match self {
             VerticalAlignment::Top => {

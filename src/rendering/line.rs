@@ -7,6 +7,7 @@ use crate::{
     style::TextBoxStyle,
     utils::str_width,
 };
+use az::SaturatingAs;
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
@@ -182,7 +183,7 @@ where
             let (left, space_config) = style.alignment.place_line(line_str, &character_style, lm);
 
             let mut cursor = self.cursor.clone();
-            cursor.move_cursor(left as i32).ok();
+            cursor.move_cursor(left.saturating_as()).ok();
 
             let pos = cursor.pos();
             let mut elements = LineElementParser::new(
