@@ -7,6 +7,7 @@ pub(crate) mod line_iter;
 pub(crate) mod space_config;
 
 use crate::{
+    middleware::{Middleware, ProcessingState},
     parser::Parser,
     rendering::{
         cursor::Cursor,
@@ -25,10 +26,11 @@ use embedded_graphics::{
 };
 use line_iter::LineEndType;
 
-impl<'a, F> Drawable for TextBox<'a, F>
+impl<'a, F, M> Drawable for TextBox<'a, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
+    M: Middleware<'a>,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = &'a str;
@@ -54,13 +56,16 @@ where
             character_style: self.character_style.clone(),
             parser: Parser::parse(self.text),
             end_type: LineEndType::EndOfText,
+            middleware: self.middleware.clone(),
         };
 
         cursor.y += self.vertical_offset;
 
+        state.middleware.set_state(ProcessingState::Render);
         let mut anything_drawn = false;
         while !state.is_finished() {
             let line_cursor = cursor.line();
+
             let display_range = self
                 .style
                 .height_mode
@@ -94,6 +99,8 @@ where
                 if state.end_type == LineEndType::NewLine {
                     cursor.y += self.style.paragraph_spacing.saturating_as::<i32>();
                 }
+
+                state.middleware.new_line();
             }
         }
 

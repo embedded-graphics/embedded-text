@@ -5,6 +5,7 @@
 //! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
 use crate::{
     alignment::HorizontalAlignment,
+    middleware::{Middleware, MiddlewareWrapper},
     parser::{Parser, Token, SPEC_CHAR_NBSP},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
@@ -20,7 +21,7 @@ use as_slice::AsSlice;
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
 #[must_use]
-pub struct LineElementParser<'a, 'b> {
+pub(crate) struct LineElementParser<'a, 'b, M> {
     lookahead: Parser<'a>,
 
     /// Position information.
@@ -32,6 +33,7 @@ pub struct LineElementParser<'a, 'b> {
     spaces: SpaceConfig,
     alignment: HorizontalAlignment,
     empty: bool,
+    middleware: &'b mut MiddlewareWrapper<M>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,11 +72,15 @@ pub trait ElementHandler {
     }
 }
 
-impl<'a, 'b> LineElementParser<'a, 'b> {
+impl<'a, 'b, M> LineElementParser<'a, 'b, M>
+where
+    M: Middleware<'a>,
+{
     /// Creates a new element parser.
     #[inline]
     pub fn new(
         parser: &'b mut Parser<'a>,
+        middleware: &'b mut MiddlewareWrapper<M>,
         cursor: LineCursor,
         spaces: SpaceConfig,
         alignment: HorizontalAlignment,
@@ -86,11 +92,15 @@ impl<'a, 'b> LineElementParser<'a, 'b> {
             cursor,
             alignment,
             empty: true,
+            middleware,
         }
     }
 }
 
-impl<'a> LineElementParser<'a, '_> {
+impl<'a, M> LineElementParser<'a, '_, M>
+where
+    M: Middleware<'a>,
+{
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
         let mut width = None;
         let mut lookahead = self.lookahead.clone();
@@ -243,7 +253,8 @@ impl<'a> LineElementParser<'a, '_> {
 
     fn peek_next_token(&mut self) -> Option<Token<'a>> {
         self.consume_token();
-        self.lookahead.next()
+
+        self.middleware.next_token(&mut self.lookahead)
     }
 
     fn consume_token(&mut self) {
@@ -425,6 +436,7 @@ mod test {
 
     use super::*;
     use crate::{
+        middleware::NoMiddleware,
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
         utils::{str_width, test::size_for},
@@ -513,7 +525,9 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut line1 = LineElementParser::new(parser, cursor, config, HorizontalAlignment::Left);
+        let mut mw = MiddlewareWrapper::new(NoMiddleware);
+        let mut line1 =
+            LineElementParser::new(parser, &mut mw, cursor, config, HorizontalAlignment::Left);
 
         line1.process(&mut handler).unwrap();
 
@@ -536,8 +550,14 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut line1 =
-            LineElementParser::new(&mut parser, cursor, config, HorizontalAlignment::Left);
+        let mut mw = MiddlewareWrapper::new(NoMiddleware);
+        let mut line1 = LineElementParser::new(
+            &mut parser,
+            &mut mw,
+            cursor,
+            config,
+            HorizontalAlignment::Left,
+        );
 
         line1.process(&mut handler).unwrap();
 

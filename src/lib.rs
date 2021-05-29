@@ -104,11 +104,12 @@
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
 #![deny(clippy::cargo)]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![warn(clippy::all)]
 #![allow(clippy::needless_doctest_main)]
 
 pub mod alignment;
+pub mod middleware;
 mod parser;
 mod rendering;
 pub mod style;
@@ -117,6 +118,7 @@ mod utils;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
+    middleware::{Middleware, MiddlewareWrapper, NoMiddleware},
     style::TextBoxStyle,
 };
 use embedded_graphics::{
@@ -125,6 +127,7 @@ use embedded_graphics::{
     text::renderer::{CharacterStyle, TextRenderer},
     transform::Transform,
 };
+pub use parser::Token;
 
 /// A text box object.
 ///
@@ -141,7 +144,7 @@ use embedded_graphics::{
 /// [`draw`]: #method.draw
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 #[must_use]
-pub struct TextBox<'a, S> {
+pub struct TextBox<'a, S, M> {
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
 
@@ -156,9 +159,11 @@ pub struct TextBox<'a, S> {
 
     /// Vertical offset applied to the text just before rendering.
     pub vertical_offset: i32,
+
+    middleware: MiddlewareWrapper<M>,
 }
 
-impl<'a, S> TextBox<'a, S>
+impl<'a, S> TextBox<'a, S, NoMiddleware>
 where
     S: TextRenderer + CharacterStyle,
 {
@@ -167,12 +172,7 @@ where
     pub fn new(text: &'a str, bounds: Rectangle, character_style: S) -> Self {
         TextBox::with_textbox_style(text, bounds, character_style, TextBoxStyle::default())
     }
-}
 
-impl<'a, S> TextBox<'a, S>
-where
-    S: TextRenderer + CharacterStyle,
-{
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
     pub fn with_textbox_style(
@@ -187,6 +187,7 @@ where
             character_style,
             style: textbox_style,
             vertical_offset: 0,
+            middleware: MiddlewareWrapper::new(NoMiddleware),
         };
 
         styled.style.height_mode.apply(&mut styled);
@@ -201,7 +202,7 @@ where
         bounds: Rectangle,
         character_style: S,
         alignment: HorizontalAlignment,
-    ) -> TextBox<'a, S> {
+    ) -> Self {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -217,7 +218,7 @@ where
         bounds: Rectangle,
         character_style: S,
         vertical_alignment: VerticalAlignment,
-    ) -> TextBox<'a, S> {
+    ) -> Self {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -232,9 +233,34 @@ where
         self.vertical_offset = offset;
         self
     }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    #[inline]
+    pub fn with_middleware<M>(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        middleware: M,
+    ) -> TextBox<'a, S, M>
+    where
+        M: Middleware<'a>,
+    {
+        let mut styled = TextBox {
+            text,
+            bounds,
+            character_style,
+            style: TextBoxStyle::default(),
+            vertical_offset: 0,
+            middleware: MiddlewareWrapper::new(middleware),
+        };
+
+        styled.style.height_mode.apply(&mut styled);
+
+        styled
+    }
 }
 
-impl<S> Transform for TextBox<'_, S>
+impl<S, M> Transform for TextBox<'_, S, M>
 where
     Self: Clone,
 {
@@ -254,14 +280,14 @@ where
     }
 }
 
-impl<S> Dimensions for TextBox<'_, S> {
+impl<S, M> Dimensions for TextBox<'_, S, M> {
     #[inline]
     fn bounding_box(&self) -> Rectangle {
         self.bounds
     }
 }
 
-impl<S> TextBox<'_, S>
+impl<S, M> TextBox<'_, S, M>
 where
     S: TextRenderer,
 {

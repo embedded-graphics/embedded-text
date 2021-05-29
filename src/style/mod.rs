@@ -143,6 +143,7 @@ use core::convert::Infallible;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
+    middleware::{Middleware, MiddlewareWrapper, NoMiddleware, ProcessingState},
     parser::Parser,
     rendering::{
         cursor::LineCursor,
@@ -311,19 +312,22 @@ impl TextBoxStyle {
     /// processing a token. If a token opens a new line, it will be returned as the carried token.
     /// If the carried token is `None`, the parser has finished processing the text.
     #[inline]
-    pub(crate) fn measure_line<'a, S>(
+    pub(crate) fn measure_line<'a, S, M>(
         &self,
+        middleware: &mut MiddlewareWrapper<M>,
         character_style: &S,
         parser: &mut Parser<'a>,
         max_line_width: u32,
     ) -> LineMeasurement
     where
         S: TextRenderer,
+        M: Middleware<'a>,
     {
         let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
         let mut iter = LineElementParser::new(
             parser,
+            middleware,
             cursor,
             SpaceConfig::new(str_width(character_style, " "), None),
             self.alignment,
@@ -386,6 +390,21 @@ impl TextBoxStyle {
     where
         S: TextRenderer,
     {
+        let middleware = MiddlewareWrapper::new(NoMiddleware);
+        self.measure_text_height_impl(middleware, character_style, text, max_width)
+    }
+
+    pub(crate) fn measure_text_height_impl<'a, S, M>(
+        &self,
+        mut middleware: MiddlewareWrapper<M>,
+        character_style: &S,
+        text: &'a str,
+        max_width: u32,
+    ) -> u32
+    where
+        S: TextRenderer,
+        M: Middleware<'a>,
+    {
         let mut parser = Parser::parse(text);
         let mut closed_paragraphs: u32 = 0;
         let line_height = self.line_height.to_absolute(character_style.line_height());
@@ -393,8 +412,11 @@ impl TextBoxStyle {
         let mut height = last_line_height;
         let mut paragraph_ended = false;
 
+        middleware.set_state(ProcessingState::Measure);
+
         loop {
-            let lm = self.measure_line(character_style, &mut parser, max_width);
+            middleware.new_line();
+            let lm = self.measure_line(&mut middleware, character_style, &mut parser, max_width);
 
             if paragraph_ended {
                 closed_paragraphs += 1;
@@ -417,7 +439,12 @@ impl TextBoxStyle {
 
 #[cfg(test)]
 mod test {
-    use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
+    use crate::{
+        alignment::*,
+        middleware::{MiddlewareWrapper, NoMiddleware},
+        parser::Parser,
+        style::builder::TextBoxStyleBuilder,
+    };
     use embedded_graphics::{
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
@@ -531,7 +558,9 @@ mod test {
 
         let mut text = Parser::parse("123 45 67");
 
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
         let lm = style.measure_line(
+            &mut middleware,
             &character_style,
             &mut text,
             6 * FONT_6X9.character_size.width,
@@ -553,7 +582,9 @@ mod test {
 
         let mut text = Parser::parse("123\x1b[2D");
 
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
         let lm = style.measure_line(
+            &mut middleware,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -564,7 +595,9 @@ mod test {
         // continuation after rewind extends the line.
         let mut text = Parser::parse("123\x1b[2D456");
 
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
         let lm = style.measure_line(
+            &mut middleware,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -585,7 +618,9 @@ mod test {
 
         let mut text = Parser::parse("123\u{A0}45");
 
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
         let lm = style.measure_line(
+            &mut middleware,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -651,7 +686,13 @@ mod test {
             .line_height(LineHeight::Pixels(11))
             .build();
 
-        let lm = style.measure_line(&character_style, &mut Parser::parse("soft\u{AD}hyphen"), 50);
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
+        let lm = style.measure_line(
+            &mut middleware,
+            &character_style,
+            &mut Parser::parse("soft\u{AD}hyphen"),
+            50,
+        );
 
         assert_eq!(lm.width, 30);
     }

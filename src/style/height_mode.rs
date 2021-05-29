@@ -196,7 +196,7 @@ impl HeightMode {
     /// Apply the height mode to the text box.
     ///
     /// *Note:* This function normally does not need to be called manually.
-    pub(crate) fn apply<F>(self, text_box: &mut TextBox<'_, F>)
+    pub(crate) fn apply<F, M>(self, text_box: &mut TextBox<'_, F, M>)
     where
         F: TextRenderer,
     {
