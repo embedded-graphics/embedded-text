@@ -19,8 +19,7 @@ ansi = ["ansi-parser", "as-slice"]
 default = ["ansi"]
 
 [dependencies]
-embedded-graphics = "0.7.0-beta.1"
-embedded-graphics-core = "0.3.1" # TODO: remove after new e-g release
+embedded-graphics = "0.7.0-beta.2"
 ansi-parser = { version = "0.8.0", default-features = false, optional = true }
 as-slice = { version = "0.1.4", optional = true }
 
