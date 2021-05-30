@@ -219,6 +219,9 @@ pub struct TextBoxStyle {
     /// Line height.
     pub line_height: LineHeight,
 
+    /// Paragraph spacing.
+    pub paragraph_spacing: u32,
+
     /// Desired column width for tabs
     pub tab_size: TabSize,
 }
@@ -384,13 +387,20 @@ impl TextBoxStyle {
         let mut carry = None;
         let mut cr_width = None;
         let mut empty_lines = 0;
+        let mut closed_paragraphs: u32 = 0;
         let line_height = self.line_height.to_absolute(character_style.line_height());
         let last_line_height = character_style.line_height();
+        let mut paragraph_ended = false;
 
         loop {
             let lm = self.measure_line(character_style, &mut parser, &mut carry, max_width);
 
-            if matches!(carry, Some(Token::CarriageReturn)) {
+            if paragraph_ended {
+                closed_paragraphs += 1;
+            }
+            paragraph_ended = carry == Some(Token::NewLine);
+
+            if carry == Some(Token::CarriageReturn) {
                 cr_width = cr_width.map_or(Some(lm.width), |width: u32| Some(width.max(lm.width)));
             } else {
                 let line_width = match cr_width.take() {
@@ -409,7 +419,8 @@ impl TextBoxStyle {
 
             if carry.is_none() {
                 return n_lines.saturating_sub(1) * line_height
-                    + (n_lines > 0) as u32 * last_line_height;
+                    + (n_lines > 0) as u32 * last_line_height
+                    + closed_paragraphs * self.paragraph_spacing;
             }
         }
     }

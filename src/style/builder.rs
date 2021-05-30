@@ -32,6 +32,7 @@ impl TextBoxStyleBuilder {
                 vertical_alignment: VerticalAlignment::Top,
                 height_mode: HeightMode::Exact(VerticalOverdraw::FullRowsOnly),
                 line_height: LineHeight::Percent(100),
+                paragraph_spacing: 0,
                 tab_size: TabSize::Spaces(4),
             },
         }
@@ -56,6 +57,26 @@ impl TextBoxStyleBuilder {
     #[must_use]
     pub const fn line_height(mut self, line_height: LineHeight) -> Self {
         self.style.line_height = line_height;
+
+        self
+    }
+
+    /// Sets the paragraph spacing.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use embedded_text::style::TextBoxStyleBuilder;
+    /// # use embedded_graphics::text::LineHeight;
+    /// #
+    /// let style = TextBoxStyleBuilder::new()
+    ///     .paragraph_spacing(0)
+    ///     .build();
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn paragraph_spacing(mut self, paragraph_spacing: u32) -> Self {
+        self.style.paragraph_spacing = paragraph_spacing;
 
         self
     }
@@ -86,6 +107,7 @@ impl TextBoxStyleBuilder {
     #[must_use]
     pub const fn height_mode(mut self, height_mode: HeightMode) -> TextBoxStyleBuilder {
         self.style.height_mode = height_mode;
+
         self
     }
 
