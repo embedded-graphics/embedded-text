@@ -89,6 +89,10 @@ where
 
             if state.carried_token != Some(Token::CarriageReturn) {
                 cursor.new_line();
+
+                if state.carried_token == Some(Token::NewLine) {
+                    cursor.y += self.style.paragraph_spacing as i32;
+                }
             }
         }
 

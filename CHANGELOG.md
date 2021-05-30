@@ -38,6 +38,7 @@ Unreleased
 
 ## Added
 
+ * Added `TextBoxStyle::paragraph_spacing` and `TextBoxStyleBuilder::paragraph_spacing`.
  * Added `From<&TextBoxStyle>` impl for `TextBoxStyleBuilder`
  * `TextBox::{with_alignment, with_vertical_alignment}`
  * `TextBoxStyle::{with_alignment, with_vertical_alignment}`

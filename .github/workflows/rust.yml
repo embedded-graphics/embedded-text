@@ -114,6 +114,8 @@ jobs:
         compare -metric AE ./assets/specials.png ./target/screenshots/specials.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/vertical.png" cargo run --example vertical
         compare -metric AE ./assets/vertical.png ./target/screenshots/vertical.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/paragraph_spacing.png" cargo run --example paragraph_spacing
+        compare -metric AE ./assets/paragraph_spacing.png ./target/screenshots/paragraph_spacing.png result.png
 
   docs:
     runs-on: ubuntu-latest
