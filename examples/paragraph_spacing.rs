@@ -10,6 +10,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
+    alignment::HorizontalAlignment,
     style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
@@ -33,6 +34,7 @@ fn main() {
 
     let textbox_style = TextBoxStyleBuilder::new()
         .height_mode(HeightMode::FitToText)
+        .alignment(HorizontalAlignment::Justified)
         .paragraph_spacing(6)
         .build();
 
@@ -52,6 +54,7 @@ fn main() {
     // Set up the window and show the display's contents.
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
+        .scale(2)
         .build();
     Window::new("TextBox example with paragraph spacing", &output_settings).show_static(&display);
 }
