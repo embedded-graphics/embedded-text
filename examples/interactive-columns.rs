@@ -2,25 +2,21 @@
 //! clicking and dragging on the display.
 //!
 //! Press spacebar to switch between horizontal alignment modes.
+use embedded_graphics::{
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
+    pixelcolor::BinaryColor,
+    prelude::*,
+    primitives::{PrimitiveStyleBuilder, Rectangle, StrokeAlignment},
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-
-use embedded_graphics::{
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
-    pixelcolor::BinaryColor,
-    prelude::*,
-    primitives::{PrimitiveStyle, Rectangle},
-    text::Text,
-};
-use embedded_text::{alignment::HorizontalAlignment, style::TextBoxStyleBuilder, TextBox};
-use sdl2::keyboard::Keycode;
-use std::{thread, time::Duration};
+use embedded_text::TextBox;
+use std::{convert::Infallible, thread, time::Duration};
 
 enum ProcessedEvent {
     Nothing,
     Quit,
-    Next,
     Resize(Point),
 }
 
@@ -50,9 +46,6 @@ impl ProcessedEvent {
                         ProcessedEvent::Nothing
                     }
                 }
-                SimulatorEvent::KeyDown { keycode, .. } if keycode == Keycode::Space => {
-                    ProcessedEvent::Next
-                }
                 SimulatorEvent::Quit => ProcessedEvent::Quit,
                 _ => ProcessedEvent::Nothing,
             }
@@ -60,27 +53,27 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop(window: &mut Window, bounds: &mut Rectangle, alignment: HorizontalAlignment) -> bool {
-    let text = "Hello, World!\n\
-    Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
-    Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
-    an unknown printer took a galley of type and scrambled it to make a type specimen book.\n\
-    super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious";
+fn main() -> Result<(), Infallible> {
+    // Set up the window.
+    let output_settings = OutputSettingsBuilder::new()
+        .theme(BinaryColorTheme::OledBlue)
+        .scale(2)
+        .build();
+    let mut window = Window::new("Interactive TextBox demonstration", &output_settings);
 
-    loop {
+    let text = "Hello, World!\n\
+        Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
+        Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
+        an unknown printer took a galley of type and scrambled it to make a type specimen book.\n\
+        super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious";
+
+    let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+
+    let mut bounds = Rectangle::new(Point::new(1, 1), Size::new(128, 200));
+
+    'demo: loop {
         // Create a simulated display.
         let mut display = SimulatorDisplay::new(Size::new(255, 255));
-
-        // Specify the styling options:
-        // * Use the 6x8 MonoFont from embedded-graphics.
-        // * Use the horizontal alignmnet mode that was given to the `demo_loop()` function.
-        // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-        let character_style = MonoTextStyleBuilder::new()
-            .font(&FONT_6X9)
-            .text_color(BinaryColor::On)
-            .build();
-
-        let textbox_style = TextBoxStyleBuilder::new().alignment(alignment).build();
 
         // Create bounding boxes
         let size = Size::new(bounds.size.width / 2 - 1, bounds.size.height);
@@ -94,28 +87,19 @@ fn demo_loop(window: &mut Window, bounds: &mut Rectangle, alignment: HorizontalA
         );
 
         // Create and draw the text boxes.
-        let text_box1 = TextBox::with_textbox_style(text, bounds1, character_style, textbox_style);
-        let remaining_text = text_box1.draw(&mut display).unwrap();
-
-        let text_box2 =
-            TextBox::with_textbox_style(remaining_text, bounds2, character_style, textbox_style);
-        text_box2.draw(&mut display).unwrap();
+        let remaining_text = TextBox::new(text, bounds1, character_style).draw(&mut display)?;
+        TextBox::new(remaining_text, bounds2, character_style).draw(&mut display)?;
 
         // Draw the bounding box of the text box.
         bounds
-            .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-            .draw(&mut display)
-            .unwrap();
-
-        // Display the name of the horizontal alignment mode above the text box.
-        let horizontal_alignment_text = format!("Alignment: {:?}", alignment);
-        Text::new(
-            &horizontal_alignment_text,
-            Point::new(0, 6),
-            character_style,
-        )
-        .draw(&mut display)
-        .unwrap();
+            .into_styled(
+                PrimitiveStyleBuilder::new()
+                    .stroke_alignment(StrokeAlignment::Outside)
+                    .stroke_color(BinaryColor::On)
+                    .stroke_width(1)
+                    .build(),
+            )
+            .draw(&mut display)?;
 
         // Update the window.
         window.update(&display);
@@ -125,14 +109,12 @@ fn demo_loop(window: &mut Window, bounds: &mut Rectangle, alignment: HorizontalA
             match ProcessedEvent::new(event) {
                 ProcessedEvent::Resize(bottom_right) => {
                     // Make sure we don't move the text box
-                    let new_bottom_right = Point::new(
-                        bottom_right.x.max(bounds.top_left.x),
-                        bottom_right.y.max(bounds.top_left.y),
+                    bounds = Rectangle::with_corners(
+                        bounds.top_left,
+                        bottom_right.component_max(bounds.top_left),
                     );
-                    *bounds = Rectangle::with_corners(bounds.top_left, new_bottom_right);
                 }
-                ProcessedEvent::Quit => return false,
-                ProcessedEvent::Next => return true,
+                ProcessedEvent::Quit => break 'demo,
                 ProcessedEvent::Nothing => {}
             }
         }
@@ -140,30 +122,6 @@ fn demo_loop(window: &mut Window, bounds: &mut Rectangle, alignment: HorizontalA
         // Wait for a little while.
         thread::sleep(Duration::from_millis(10));
     }
-}
 
-fn main() {
-    // Set up the window.
-    let output_settings = OutputSettingsBuilder::new()
-        .theme(BinaryColorTheme::OledBlue)
-        .build();
-    let mut window = Window::new("TextBox demonstration", &output_settings);
-
-    // Specify the bounding box. Leave 8px of space above.
-    let mut bounds = Rectangle::new(Point::new(0, 8), Size::new(128, 200));
-
-    'running: loop {
-        if !demo_loop(&mut window, &mut bounds, HorizontalAlignment::Justified) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, HorizontalAlignment::Left) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, HorizontalAlignment::Center) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, HorizontalAlignment::Right) {
-            break 'running;
-        }
-    }
+    Ok(())
 }
