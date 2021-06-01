@@ -1,9 +1,10 @@
-//! Example: interactive horizontal and vertical text alignment.
+//! Example: interactive demonstration.
 //!
 //! This example draws text into a bounding box that can be modified by
 //! clicking and dragging on the display.
 //!
 //! Press H or V to switch between different horizontal alignment modes.
+//! Press M to cycle through different height modes.
 
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyle},
@@ -17,7 +18,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    style::TextBoxStyleBuilder,
+    style::{HeightMode, TextBoxStyle, VerticalOverdraw},
     TextBox,
 };
 use sdl2::keyboard::Keycode;
@@ -28,6 +29,7 @@ enum ProcessedEvent {
     Quit,
     NextHorizontal,
     NextVertical,
+    NextMode,
     Resize(Point),
 }
 
@@ -63,6 +65,9 @@ impl ProcessedEvent {
                 SimulatorEvent::KeyDown { keycode, .. } if keycode == Keycode::V => {
                     ProcessedEvent::NextVertical
                 }
+                SimulatorEvent::KeyDown { keycode, .. } if keycode == Keycode::M => {
+                    ProcessedEvent::NextMode
+                }
                 SimulatorEvent::Quit => ProcessedEvent::Quit,
                 _ => ProcessedEvent::Nothing,
             }
@@ -78,32 +83,30 @@ fn main() -> Result<(), Infallible> {
         .build();
     let mut window = Window::new("Interactive TextBox demonstration", &output_settings);
 
-    let text = "Hello, World!\n\
-    Press H to change horizontal alignment.\n\
-    Press V to change vertical alignment.\n\n\
+    let text = "Press H to change horizontal alignment.\n\
+    Press V to change vertical alignment.\n\
+    Press M to change height mode.\n\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
     Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
     an unknown printer took a galley of type and scrambled it to make a type specimen book.\n\
     super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious";
 
     let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
-    let mut textbox_style = TextBoxStyleBuilder::new()
-        .alignment(HorizontalAlignment::Left)
-        .vertical_alignment(VerticalAlignment::Top)
-        .build();
+    let mut textbox_style = TextBoxStyle::default();
 
-    let mut bounds = Rectangle::new(Point::new(1, 24), Size::new(128, 200));
+    let mut bounds = Rectangle::new(Point::new(1, 34), Size::new(128, 200));
 
     'demo: loop {
         // Create a simulated display.
         let mut display = SimulatorDisplay::new(Size::new(255, 255));
 
         // Create the text box and apply styling options.
-        TextBox::with_textbox_style(text, bounds, character_style, textbox_style)
-            .draw(&mut display)?;
+        let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
+        text_box.draw(&mut display)?;
 
         // Draw the bounding box of the text box.
-        bounds
+        text_box
+            .bounds
             .into_styled(
                 PrimitiveStyleBuilder::new()
                     .stroke_alignment(StrokeAlignment::Outside)
@@ -116,8 +119,10 @@ fn main() -> Result<(), Infallible> {
         // Display the name of the current alignment modes above the text box.
         Text::new(
             &format!(
-                "Horizontal: {:?}\nVertical: {:?}",
-                textbox_style.alignment, textbox_style.vertical_alignment
+                "Horizontal: {:?}\nVertical: {:?}\nHeight mode: {:?}",
+                textbox_style.alignment,
+                textbox_style.vertical_alignment,
+                textbox_style.height_mode
             ),
             Point::new(0, 8),
             character_style,
@@ -151,6 +156,27 @@ fn main() -> Result<(), Infallible> {
                         VerticalAlignment::Middle => VerticalAlignment::Bottom,
                         VerticalAlignment::Bottom => VerticalAlignment::Scrolling,
                         VerticalAlignment::Scrolling => VerticalAlignment::Top,
+                    }
+                }
+                ProcessedEvent::NextMode => {
+                    textbox_style.height_mode = match textbox_style.height_mode {
+                        HeightMode::Exact(VerticalOverdraw::FullRowsOnly) => {
+                            HeightMode::Exact(VerticalOverdraw::Visible)
+                        }
+                        HeightMode::Exact(VerticalOverdraw::Visible) => {
+                            HeightMode::Exact(VerticalOverdraw::Hidden)
+                        }
+                        HeightMode::Exact(VerticalOverdraw::Hidden) => {
+                            HeightMode::ShrinkToText(VerticalOverdraw::FullRowsOnly)
+                        }
+                        HeightMode::ShrinkToText(VerticalOverdraw::FullRowsOnly) => {
+                            HeightMode::ShrinkToText(VerticalOverdraw::Visible)
+                        }
+                        HeightMode::ShrinkToText(VerticalOverdraw::Visible) => {
+                            HeightMode::ShrinkToText(VerticalOverdraw::Hidden)
+                        }
+                        HeightMode::ShrinkToText(VerticalOverdraw::Hidden) => HeightMode::FitToText,
+                        HeightMode::FitToText => HeightMode::Exact(VerticalOverdraw::FullRowsOnly),
                     }
                 }
                 ProcessedEvent::Quit => break 'demo,
