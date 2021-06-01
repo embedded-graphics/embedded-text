@@ -1,26 +1,33 @@
+//! Example: interactive horizontal and vertical text alignment.
+//!
 //! This example draws text into a bounding box that can be modified by
 //! clicking and dragging on the display.
 //!
-//! Press spacebar to switch between horizontal alignment modes.
+//! Press H or V to switch between different horizontal alignment modes.
+
+use embedded_graphics::{
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
+    pixelcolor::BinaryColor,
+    prelude::*,
+    primitives::{PrimitiveStyleBuilder, Rectangle, StrokeAlignment},
+    text::Text,
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-
-use embedded_graphics::{
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
-    pixelcolor::BinaryColor,
-    prelude::*,
-    primitives::{PrimitiveStyle, Rectangle},
-    text::Text,
+use embedded_text::{
+    alignment::{HorizontalAlignment, VerticalAlignment},
+    style::TextBoxStyleBuilder,
+    TextBox,
 };
-use embedded_text::{alignment::HorizontalAlignment, style::TextBoxStyleBuilder, TextBox};
 use sdl2::keyboard::Keycode;
-use std::{thread, time::Duration};
+use std::{convert::Infallible, thread, time::Duration};
 
 enum ProcessedEvent {
     Nothing,
     Quit,
-    Next,
+    NextHorizontal,
+    NextVertical,
     Resize(Point),
 }
 
@@ -50,8 +57,11 @@ impl ProcessedEvent {
                         ProcessedEvent::Nothing
                     }
                 }
-                SimulatorEvent::KeyDown { keycode, .. } if keycode == Keycode::Space => {
-                    ProcessedEvent::Next
+                SimulatorEvent::KeyDown { keycode, .. } if keycode == Keycode::H => {
+                    ProcessedEvent::NextHorizontal
+                }
+                SimulatorEvent::KeyDown { keycode, .. } if keycode == Keycode::V => {
+                    ProcessedEvent::NextVertical
                 }
                 SimulatorEvent::Quit => ProcessedEvent::Quit,
                 _ => ProcessedEvent::Nothing,
@@ -60,50 +70,59 @@ impl ProcessedEvent {
     }
 }
 
-fn demo_loop(window: &mut Window, bounds: &mut Rectangle, alignment: HorizontalAlignment) -> bool {
+fn main() -> Result<(), Infallible> {
+    // Set up the window.
+    let output_settings = OutputSettingsBuilder::new()
+        .theme(BinaryColorTheme::OledBlue)
+        .scale(2)
+        .build();
+    let mut window = Window::new("Interactive TextBox demonstration", &output_settings);
+
     let text = "Hello, World!\n\
+    Press H to change horizontal alignment.\n\
+    Press V to change vertical alignment.\n\n\
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
     Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
     an unknown printer took a galley of type and scrambled it to make a type specimen book.\n\
     super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious";
 
-    loop {
+    let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+    let mut textbox_style = TextBoxStyleBuilder::new()
+        .alignment(HorizontalAlignment::Left)
+        .vertical_alignment(VerticalAlignment::Top)
+        .build();
+
+    let mut bounds = Rectangle::new(Point::new(1, 24), Size::new(128, 200));
+
+    'demo: loop {
         // Create a simulated display.
         let mut display = SimulatorDisplay::new(Size::new(255, 255));
 
-        // Specify the styling options:
-        // * Use the 6x8 MonoFont from embedded-graphics.
-        // * Use the horizontal alignmnet mode that was given to the `demo_loop()` function.
-        // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-        let character_style = MonoTextStyleBuilder::new()
-            .font(&FONT_6X9)
-            .text_color(BinaryColor::On)
-            .build();
-
-        let textbox_style = TextBoxStyleBuilder::new().alignment(alignment).build();
-
         // Create the text box and apply styling options.
-        let text_box = TextBox::with_textbox_style(text, *bounds, character_style, textbox_style);
-
-        // Draw the text box.
-        text_box.draw(&mut display).unwrap();
+        TextBox::with_textbox_style(text, bounds, character_style, textbox_style)
+            .draw(&mut display)?;
 
         // Draw the bounding box of the text box.
-        text_box
-            .bounds
-            .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-            .draw(&mut display)
-            .unwrap();
+        bounds
+            .into_styled(
+                PrimitiveStyleBuilder::new()
+                    .stroke_alignment(StrokeAlignment::Outside)
+                    .stroke_color(BinaryColor::On)
+                    .stroke_width(1)
+                    .build(),
+            )
+            .draw(&mut display)?;
 
-        // Display the name of the horizontal alignment mode above the text box.
-        let horizontal_alignment_text = format!("Alignment: {:?}", alignment);
+        // Display the name of the current alignment modes above the text box.
         Text::new(
-            &horizontal_alignment_text,
-            Point::new(0, 6),
+            &format!(
+                "Horizontal: {:?}\nVertical: {:?}",
+                textbox_style.alignment, textbox_style.vertical_alignment
+            ),
+            Point::new(0, 8),
             character_style,
         )
-        .draw(&mut display)
-        .unwrap();
+        .draw(&mut display)?;
 
         // Update the window.
         window.update(&display);
@@ -113,14 +132,28 @@ fn demo_loop(window: &mut Window, bounds: &mut Rectangle, alignment: HorizontalA
             match ProcessedEvent::new(event) {
                 ProcessedEvent::Resize(bottom_right) => {
                     // Make sure we don't move the text box
-                    let new_bottom_right = Point::new(
-                        bottom_right.x.max(bounds.top_left.x),
-                        bottom_right.y.max(bounds.top_left.y),
+                    bounds = Rectangle::with_corners(
+                        bounds.top_left,
+                        bottom_right.component_max(bounds.top_left),
                     );
-                    *bounds = Rectangle::with_corners(bounds.top_left, new_bottom_right);
                 }
-                ProcessedEvent::Quit => return false,
-                ProcessedEvent::Next => return true,
+                ProcessedEvent::NextHorizontal => {
+                    textbox_style.alignment = match textbox_style.alignment {
+                        HorizontalAlignment::Left => HorizontalAlignment::Center,
+                        HorizontalAlignment::Center => HorizontalAlignment::Right,
+                        HorizontalAlignment::Right => HorizontalAlignment::Justified,
+                        HorizontalAlignment::Justified => HorizontalAlignment::Left,
+                    }
+                }
+                ProcessedEvent::NextVertical => {
+                    textbox_style.vertical_alignment = match textbox_style.vertical_alignment {
+                        VerticalAlignment::Top => VerticalAlignment::Middle,
+                        VerticalAlignment::Middle => VerticalAlignment::Bottom,
+                        VerticalAlignment::Bottom => VerticalAlignment::Scrolling,
+                        VerticalAlignment::Scrolling => VerticalAlignment::Top,
+                    }
+                }
+                ProcessedEvent::Quit => break 'demo,
                 ProcessedEvent::Nothing => {}
             }
         }
@@ -128,30 +161,6 @@ fn demo_loop(window: &mut Window, bounds: &mut Rectangle, alignment: HorizontalA
         // Wait for a little while.
         thread::sleep(Duration::from_millis(10));
     }
-}
 
-fn main() {
-    // Set up the window.
-    let output_settings = OutputSettingsBuilder::new()
-        .theme(BinaryColorTheme::OledBlue)
-        .build();
-    let mut window = Window::new("TextBox demonstration", &output_settings);
-
-    // Specify the bounding box. Leave 8px of space above.
-    let mut bounds = Rectangle::new(Point::new(0, 8), Size::new(128, 200));
-
-    'running: loop {
-        if !demo_loop(&mut window, &mut bounds, HorizontalAlignment::Justified) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, HorizontalAlignment::Left) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, HorizontalAlignment::Center) {
-            break 'running;
-        }
-        if !demo_loop(&mut window, &mut bounds, HorizontalAlignment::Right) {
-            break 'running;
-        }
-    }
+    Ok(())
 }
