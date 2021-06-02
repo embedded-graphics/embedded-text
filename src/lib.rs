@@ -31,7 +31,7 @@
 //!
 //! ![embedded-text example](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/paragraph_spacing.png)
 //!
-//! ![embedded-text example with colored text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/colored_text.png)
+//! ![embedded-text example with colored text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/styles-ansi.png)
 //!
 //! ```rust,no_run
 //! use embedded_graphics::{

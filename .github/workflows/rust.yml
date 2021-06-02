@@ -102,14 +102,14 @@ jobs:
         compare -metric AE ./assets/alignment-horizontal.png ./target/screenshots/alignment-horizontal.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/alignment-vertical.png" cargo run --example alignment-vertical
         compare -metric AE ./assets/alignment-vertical.png ./target/screenshots/alignment-vertical.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/colored_text.png" cargo run --example colored_text
-        compare -metric AE ./assets/colored_text.png ./target/screenshots/colored_text.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/extra_styles.png" cargo run --example extra_styles
-        compare -metric AE ./assets/extra_styles.png ./target/screenshots/extra_styles.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/specials.png" cargo run --example specials
         compare -metric AE ./assets/specials.png ./target/screenshots/specials.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/paragraph_spacing.png" cargo run --example paragraph_spacing
         compare -metric AE ./assets/paragraph_spacing.png ./target/screenshots/paragraph_spacing.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/styles-ansi.png" cargo run --example styles-ansi
+        compare -metric AE ./assets/styles-ansi.png ./target/screenshots/styles-ansi.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/styles-static.png" cargo run --example styles-static
+        compare -metric AE ./assets/styles-static.png ./target/screenshots/styles-static.png result.png
 
   docs:
     runs-on: ubuntu-latest

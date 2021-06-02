@@ -1,5 +1,7 @@
 //! This example demonstrates additional text decoration options (underlined and strike-through text).
 
+use std::convert::Infallible;
+
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
@@ -16,7 +18,7 @@ use embedded_text::{
     TextBox,
 };
 
-fn main() {
+fn main() -> Result<(), Infallible> {
     let text = "Lorem Ipsum is simply dummy text of the printing and typesetting industry.";
 
     // Specify the common styling options:
@@ -63,12 +65,14 @@ fn main() {
     ));
 
     // Draw the text boxes.
-    text_box.draw(&mut display).unwrap();
-    text_box2.draw(&mut display).unwrap();
+    text_box.draw(&mut display)?;
+    text_box2.draw(&mut display)?;
 
     // Set up the window and show the display's contents.
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
     Window::new("Hello TextBox", &output_settings).show_static(&display);
+
+    Ok(())
 }
