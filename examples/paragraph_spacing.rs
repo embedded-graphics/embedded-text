@@ -1,7 +1,7 @@
 //! This example demonstrates paragraph spacing.
 
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::Rectangle,
@@ -23,15 +23,11 @@ fn main() {
     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 
     // Specify the styling options:
-    // * Use the 6x8 MonoFont from embedded-graphics.
-    // * Draw the text horizontally left aligned (default option, not specified here).
+    // * Use the 6x10 MonoFont from embedded-graphics.
+    // * Draw the text fully justified.
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let character_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X10)
-        .text_color(BinaryColor::On)
-        .build();
-
+    let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
     let textbox_style = TextBoxStyleBuilder::new()
         .height_mode(HeightMode::FitToText)
         .alignment(HorizontalAlignment::Justified)
