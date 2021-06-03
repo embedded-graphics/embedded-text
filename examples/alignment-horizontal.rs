@@ -1,4 +1,4 @@
-//! Example: horizontal text alignment.
+//! # Example: horizontal text alignment.
 //!
 //! This example demonstrates drawing a piece of text using the available horizontal alignment options.
 //! The example uses different, but equivalent ways to specify the alignment options.

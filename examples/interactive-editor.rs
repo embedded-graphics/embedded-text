@@ -1,4 +1,4 @@
-//! Example: editor
+//! # Example: editor
 //!
 //! This example demonstrates a simple text "editor" that lets you type and delete characters.
 //!

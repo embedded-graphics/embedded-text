@@ -1,3 +1,5 @@
+//! # Example: paragraph spacing
+//!
 //! This example demonstrates paragraph spacing.
 
 use embedded_graphics::{

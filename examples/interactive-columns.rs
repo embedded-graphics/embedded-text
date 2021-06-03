@@ -1,7 +1,10 @@
+//! # Example: multiple resizable columns.
+//!
 //! This example draws text into a bounding box that can be modified by
 //! clicking and dragging on the display.
 //!
 //! Press spacebar to switch between horizontal alignment modes.
+
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::BinaryColor,

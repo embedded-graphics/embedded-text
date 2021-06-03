@@ -1,4 +1,4 @@
-//! #Example: static styles
+//! # Example: static styles
 //!
 //! This example demonstrates additional text decoration options (underlined and strike-through
 //! text, text background).

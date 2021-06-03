@@ -1,4 +1,4 @@
-//! Example: vertical text alignment.
+//! # Example: vertical text alignment.
 //!
 //! This example demonstrates drawing a piece of text using the conventional vertical alignment options.
 //! The example uses different, but equivalent ways to specify the alignment options.

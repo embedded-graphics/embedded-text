@@ -1,4 +1,4 @@
-//! Example: interactive demonstration.
+//! # Example: interactive demonstration.
 //!
 //! This example draws text into a bounding box that can be modified by
 //! clicking and dragging on the display.
