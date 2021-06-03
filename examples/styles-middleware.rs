@@ -1,24 +1,25 @@
+//! # Example: styling using middleware.
+//!
 //! This example demonstrates middleware that affects styling.
-
-use std::{thread, time::Duration};
 
 use ansi_parser::AnsiSequence;
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::Rectangle,
 };
 use embedded_graphics_simulator::{
-    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
+    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
     alignment::HorizontalAlignment,
     middleware::{Middleware, ProcessingState},
-    style::TextBoxStyleBuilder,
+    style::TextBoxStyle,
     TextBox, Token,
 };
 use heapless::Vec;
+use std::convert::Infallible;
 
 #[derive(Clone)]
 struct Underliner<'a> {
@@ -82,56 +83,34 @@ impl<'a> Middleware<'a> for Underliner<'a> {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Infallible> {
     let text = "Hello, World!\n\
     Lorem Ipsum is _simply_ dummy text of the printing and typesetting industry. \
     Lorem Ipsum has been the industry's _standard_ dummy text ever since the 1500s, when \
     an unknown printer _took a galley of type and scrambled it_ to make a type specimen book.";
 
-    // Set up the window.
+    // Create a simulated display.
+    let mut display = SimulatorDisplay::new(Size::new(128, 140));
+
+    let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+    let textbox_style = TextBoxStyle::with_alignment(HorizontalAlignment::Justified);
+
+    // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
+    // measure and adjust the height of the text box in `into_styled()`.
+    let bounds = Rectangle::new(Point::zero(), display.size());
+
+    // Create and draw the text boxes.
+    // TODO: setter methods
+    let mut tb = TextBox::with_middleware(text, bounds, character_style, Underliner::new());
+    tb.style = textbox_style;
+
+    tb.draw(&mut display)?;
+
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
+        .scale(2)
         .build();
-    let mut window = Window::new("TextBox demonstration", &output_settings);
+    Window::new("TextBox middleware demonstration", &output_settings).show_static(&display);
 
-    let mut chars: u32 = 1;
-    loop {
-        // Create a simulated display.
-        let mut display = SimulatorDisplay::new(Size::new(128, 140));
-
-        let character_style = MonoTextStyleBuilder::new()
-            .font(&FONT_6X10)
-            .text_color(BinaryColor::On)
-            .build();
-
-        let textbox_style = TextBoxStyleBuilder::new()
-            .alignment(HorizontalAlignment::Justified)
-            .build();
-
-        chars = chars.saturating_add(1);
-
-        // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
-        // measure and adjust the height of the text box in `into_styled()`.
-        let bounds = Rectangle::new(Point::zero(), display.size());
-
-        // Create and draw the text boxes.
-        // TODO: setter methods
-        let mut tb = TextBox::with_middleware(text, bounds, character_style, Underliner::new());
-        tb.style = textbox_style;
-
-        tb.draw(&mut display).unwrap();
-
-        // Update the window.
-        window.update(&display);
-
-        // Handle key and mouse events.
-        for event in window.events() {
-            if event == SimulatorEvent::Quit {
-                return;
-            }
-        }
-
-        // Wait for a little while.
-        thread::sleep(Duration::from_millis(100));
-    }
+    Ok(())
 }

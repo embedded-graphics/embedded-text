@@ -1,9 +1,13 @@
-//! This example demonstrates middleware.
+//! # Example: middleware
+//!
+//! This example demonstrates a simple middleware that simulates typing input.
+//! The middleware itself limits the number of characters printed. The number of printed characters
+//! is incremented in each frame.
 
 use std::{thread, time::Duration};
 
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::Rectangle,
@@ -14,7 +18,7 @@ use embedded_graphics_simulator::{
 use embedded_text::{
     alignment::{HorizontalAlignment, VerticalAlignment},
     middleware::{Middleware, ProcessingState},
-    style::TextBoxStyleBuilder,
+    style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     TextBox, Token,
 };
 
@@ -131,14 +135,11 @@ fn main() {
         // Create a simulated display.
         let mut display = SimulatorDisplay::new(Size::new(128, 64));
 
-        let character_style = MonoTextStyleBuilder::new()
-            .font(&FONT_6X10)
-            .text_color(BinaryColor::On)
-            .build();
-
+        let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
         let textbox_style = TextBoxStyleBuilder::new()
             .alignment(HorizontalAlignment::Justified)
             .vertical_alignment(VerticalAlignment::Scrolling)
+            .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
             .build();
 
         chars = chars.saturating_add(1);
@@ -166,6 +167,6 @@ fn main() {
         }
 
         // Wait for a little while.
-        thread::sleep(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(50));
     }
 }

@@ -112,6 +112,8 @@ jobs:
         compare -metric AE ./assets/special-characters-tabs.png ./target/screenshots/special-characters-tabs.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/styles-ansi.png" cargo run --example styles-ansi
         compare -metric AE ./assets/styles-ansi.png ./target/screenshots/styles-ansi.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/styles-middleware.png" cargo run --example styles-middleware
+        compare -metric AE ./assets/styles-middleware.png ./target/screenshots/styles-middleware.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/styles-static.png" cargo run --example styles-static
         compare -metric AE ./assets/styles-static.png ./target/screenshots/styles-static.png result.png
 
