@@ -207,6 +207,7 @@ impl TabSize {
 /// [`from_text_style`]: #method.from_text_style
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 #[non_exhaustive]
+#[must_use]
 pub struct TextBoxStyle {
     /// Horizontal text alignment.
     pub alignment: HorizontalAlignment,
@@ -252,6 +253,7 @@ impl Default for TextBoxStyle {
 
 /// Information about a line.
 #[derive(Debug)]
+#[must_use]
 pub struct LineMeasurement {
     /// Maximum line width in pixels.
     pub max_line_width: u32,
@@ -306,7 +308,6 @@ impl TextBoxStyle {
     /// processing a token. If a token opens a new line, it will be returned as the carried token.
     /// If the carried token is `None`, the parser has finished processing the text.
     #[inline]
-    #[must_use]
     pub(crate) fn measure_line<'a, S>(
         &self,
         character_style: &S,

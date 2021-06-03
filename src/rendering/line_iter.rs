@@ -19,6 +19,7 @@ use as_slice::AsSlice;
 
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
+#[must_use]
 pub struct LineElementParser<'a, 'b> {
     /// Position information.
     cursor: LineCursor,
@@ -63,7 +64,6 @@ pub trait ElementHandler {
 impl<'a, 'b> LineElementParser<'a, 'b> {
     /// Creates a new element parser.
     #[inline]
-    #[must_use]
     pub fn new(
         parser: &'b mut Parser<'a>,
         cursor: LineCursor,

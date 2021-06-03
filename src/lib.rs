@@ -140,6 +140,7 @@ use embedded_graphics::{
 /// [module-level documentation]: index.html
 /// [`draw`]: #method.draw
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[must_use]
 pub struct TextBox<'a, S> {
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
@@ -163,7 +164,6 @@ where
 {
     /// Creates a new `TextBox` instance with a given bounding `Rectangle`.
     #[inline]
-    #[must_use]
     pub fn new(text: &'a str, bounds: Rectangle, character_style: S) -> Self {
         TextBox::with_textbox_style(text, bounds, character_style, TextBoxStyle::default())
     }
@@ -175,7 +175,6 @@ where
 {
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
-    #[must_use]
     pub fn with_textbox_style(
         text: &'a str,
         bounds: Rectangle,
@@ -197,7 +196,6 @@ where
 
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
-    #[must_use]
     pub fn with_alignment(
         text: &'a str,
         bounds: Rectangle,
@@ -214,7 +212,6 @@ where
 
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
-    #[must_use]
     pub fn with_vertical_alignment(
         text: &'a str,
         bounds: Rectangle,
@@ -242,7 +239,6 @@ where
     Self: Clone,
 {
     #[inline]
-    #[must_use]
     fn translate(&self, by: Point) -> Self {
         Self {
             bounds: self.bounds.translate(by),
@@ -260,7 +256,6 @@ where
 
 impl<S> Dimensions for TextBox<'_, S> {
     #[inline]
-    #[must_use]
     fn bounding_box(&self) -> Rectangle {
         self.bounds
     }

@@ -106,6 +106,7 @@ impl Cursor {
         }
     }
 
+    #[must_use]
     pub fn line(&self) -> LineCursor {
         LineCursor {
             start: Point::new(self.bounds.top_left.x, self.y),
@@ -129,14 +130,12 @@ impl Cursor {
 
     /// Returns the width of the text box.
     #[inline]
-    #[must_use]
     pub fn line_width(&self) -> u32 {
         self.bounds.size.width
     }
 
     /// Returns the height of a line.
     #[inline]
-    #[must_use]
     pub fn line_height(&self) -> i32 {
         self.line_height
     }
