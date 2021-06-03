@@ -45,6 +45,7 @@ Unreleased
 
 ## Added
 
+ * Added middleware support. Middleware can be used to modify `TextBox` behaviour.
  * Added `TextBox::vertical_offset` and `TextBox::set_vertical_offset`.
  * Added `TextBoxStyle::paragraph_spacing` and `TextBoxStyleBuilder::paragraph_spacing`.
  * Added `From<&TextBoxStyle>` impl for `TextBoxStyleBuilder`
