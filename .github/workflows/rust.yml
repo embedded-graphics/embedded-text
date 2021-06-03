@@ -102,10 +102,12 @@ jobs:
         compare -metric AE ./assets/alignment-horizontal.png ./target/screenshots/alignment-horizontal.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/alignment-vertical.png" cargo run --example alignment-vertical
         compare -metric AE ./assets/alignment-vertical.png ./target/screenshots/alignment-vertical.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/specials.png" cargo run --example specials
-        compare -metric AE ./assets/specials.png ./target/screenshots/specials.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/paragraph_spacing.png" cargo run --example paragraph_spacing
         compare -metric AE ./assets/paragraph_spacing.png ./target/screenshots/paragraph_spacing.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/special-characters.png" cargo run --example special-characters
+        compare -metric AE ./assets/special-characters.png ./target/screenshots/special-characters.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/special-characters-tabs.png" cargo run --example special-characters-tabs
+        compare -metric AE ./assets/special-characters-tabs.png ./target/screenshots/special-characters-tabs.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/styles-ansi.png" cargo run --example styles-ansi
         compare -metric AE ./assets/styles-ansi.png ./target/screenshots/styles-ansi.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/styles-static.png" cargo run --example styles-static
