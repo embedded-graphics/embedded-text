@@ -39,7 +39,7 @@ impl HorizontalAlignment {
     }
 
     /// Calculate offset from the left side and whitespace information.
-    pub fn place_line(
+    pub(crate) fn place_line(
         self,
         line: &str,
         renderer: &impl TextRenderer,
@@ -113,10 +113,10 @@ pub enum VerticalAlignment {
 
 impl VerticalAlignment {
     /// Set the cursor's initial vertical position
-    pub fn apply_vertical_alignment<'a, 'b, S>(
+    pub(crate) fn apply_vertical_alignment<'a, S>(
         self,
         cursor: &mut Cursor,
-        styled_text_box: &'b TextBox<'a, S>,
+        styled_text_box: &TextBox<'a, S>,
     ) where
         S: TextRenderer,
     {

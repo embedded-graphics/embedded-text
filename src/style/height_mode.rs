@@ -196,7 +196,7 @@ impl HeightMode {
     /// Apply the height mode to the text box.
     ///
     /// *Note:* This function normally does not need to be called manually.
-    pub fn apply<F>(self, text_box: &mut TextBox<'_, F>)
+    pub(crate) fn apply<F>(self, text_box: &mut TextBox<'_, F>)
     where
         F: TextRenderer,
     {
@@ -216,7 +216,7 @@ impl HeightMode {
     /// If a line does not fully fit in the bounding box, some `HeightMode` options allow drawing
     /// partial lines. For a partial line, this function calculates, which rows of each character
     /// should be displayed.
-    pub fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
+    pub(crate) fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
         let overdraw = match self {
             HeightMode::Exact(overdraw) | HeightMode::ShrinkToText(overdraw) => overdraw,
             HeightMode::FitToText => VerticalOverdraw::Visible,
