@@ -54,6 +54,8 @@ where
             carried_token: None,
         };
 
+        cursor.y += self.vertical_offset;
+
         let mut anything_drawn = false;
         while !state.is_finished() {
             let line_cursor = cursor.line();
@@ -111,7 +113,10 @@ pub mod test {
     };
 
     use crate::{
-        alignment::HorizontalAlignment, style::TextBoxStyleBuilder, utils::test::size_for, TextBox,
+        alignment::HorizontalAlignment,
+        style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
+        utils::test::size_for,
+        TextBox,
     };
 
     pub fn assert_rendered(
@@ -178,5 +183,76 @@ pub mod test {
                 "......                        ",
             ],
         );
+    }
+
+    #[test]
+    fn vertical_offset() {
+        let mut display = MockDisplay::new();
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(&FONT_6X9)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let mut tb = TextBox::new(
+            "hello",
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 3)),
+            character_style,
+        );
+
+        tb.vertical_offset = 6;
+
+        tb.draw(&mut display).unwrap();
+
+        display.assert_pattern(&[
+            "                              ",
+            "                              ",
+            "                              ",
+            "                              ",
+            "                              ",
+            "                              ",
+            "..............................",
+            ".#...........##....##.........",
+            ".#............#.....#.........",
+            ".###....##....#.....#.....##..",
+            ".#..#..#.##...#.....#....#..#.",
+            ".#..#..##.....#.....#....#..#.",
+            ".#..#...###..###...###....##..",
+            "..............................",
+            "..............................",
+        ]);
+    }
+
+    #[test]
+    fn vertical_offset_negative() {
+        let mut display = MockDisplay::new();
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(&FONT_6X9)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let mut tb = TextBox::with_textbox_style(
+            "hello",
+            Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 3)),
+            character_style,
+            TextBoxStyleBuilder::new()
+                .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
+                .build(),
+        );
+
+        tb.vertical_offset = -4;
+
+        tb.draw(&mut display).unwrap();
+
+        display.assert_pattern(&[
+            ".#..#..#.##...#.....#....#..#.",
+            ".#..#..##.....#.....#....#..#.",
+            ".#..#...###..###...###....##..",
+            "..............................",
+            "..............................",
+        ]);
     }
 }

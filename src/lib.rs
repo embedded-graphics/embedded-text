@@ -152,6 +152,9 @@ pub struct TextBox<'a, S> {
 
     /// The style of the [`TextBox`].
     pub style: TextBoxStyle,
+
+    /// Vertical offset applied to the text just before rendering.
+    pub vertical_offset: i32,
 }
 
 impl<'a, S> TextBox<'a, S>
@@ -184,6 +187,7 @@ where
             bounds,
             character_style,
             style: textbox_style,
+            vertical_offset: 0,
         };
 
         styled.style.height_mode.apply(&mut styled);
