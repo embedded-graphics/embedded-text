@@ -195,15 +195,14 @@ pub mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut tb = TextBox::new(
+        TextBox::new(
             "hello",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 3)),
             character_style,
-        );
-
-        tb.vertical_offset = 6;
-
-        tb.draw(&mut display).unwrap();
+        )
+        .set_vertical_offset(6)
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             "                              ",
@@ -234,18 +233,17 @@ pub mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let mut tb = TextBox::with_textbox_style(
+        TextBox::with_textbox_style(
             "hello",
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 5, 3)),
             character_style,
             TextBoxStyleBuilder::new()
                 .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
                 .build(),
-        );
-
-        tb.vertical_offset = -4;
-
-        tb.draw(&mut display).unwrap();
+        )
+        .set_vertical_offset(-4)
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             ".#..#..#.##...#.....#....#..#.",

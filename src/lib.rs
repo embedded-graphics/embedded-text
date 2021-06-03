@@ -228,6 +228,13 @@ where
             TextBoxStyle::with_vertical_alignment(vertical_alignment),
         )
     }
+
+    /// Sets the vertical text offset.
+    #[inline]
+    pub fn set_vertical_offset(&mut self, offset: i32) -> &mut Self {
+        self.vertical_offset = offset;
+        self
+    }
 }
 
 impl<S> Transform for TextBox<'_, S>
