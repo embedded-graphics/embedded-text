@@ -380,7 +380,7 @@ mod test {
     };
     use embedded_graphics::{
         geometry::{Point, Size},
-        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoTextStyle},
         pixelcolor::BinaryColor,
         primitives::Rectangle,
         text::{renderer::TextRenderer, LineHeight},
@@ -451,10 +451,7 @@ mod test {
         max_chars: u32,
         elements: &[RenderElement],
     ) {
-        let style = MonoTextStyleBuilder::new()
-            .font(&FONT_6X9)
-            .text_color(BinaryColor::On)
-            .build();
+        let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
 
         let config = SpaceConfig::new_from_renderer(&style);
         let cursor = Cursor::new(
@@ -483,10 +480,7 @@ mod test {
     fn insufficient_width_no_looping() {
         let mut parser = Parser::parse("foobar");
 
-        let style = MonoTextStyleBuilder::new()
-            .font(&FONT_6X9)
-            .text_color(BinaryColor::On)
-            .build();
+        let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
 
         let config = SpaceConfig::new_from_renderer(&style);
         let cursor = Cursor::new(

@@ -90,7 +90,7 @@ pub enum HeightMode {
     ///
     /// ```rust
     /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    ///     mono_font::{ascii::FONT_6X9, MonoTextStyle},
     ///     pixelcolor::BinaryColor,
     ///     prelude::*,
     ///     primitives::Rectangle,
@@ -101,10 +101,7 @@ pub enum HeightMode {
     /// };
     ///
     /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-    /// let character_style = MonoTextStyleBuilder::new()
-    ///     .font(&FONT_6X9)
-    ///     .text_color(BinaryColor::On)
-    ///     .build();
+    /// let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
     ///
     /// let style = TextBoxStyleBuilder::new().height_mode(HeightMode::FitToText).build();
     ///
@@ -131,7 +128,7 @@ pub enum HeightMode {
     ///
     /// ```rust
     /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    ///     mono_font::{ascii::FONT_6X9, MonoTextStyle},
     ///     pixelcolor::BinaryColor,
     ///     prelude::*,
     ///     primitives::Rectangle,
@@ -142,10 +139,7 @@ pub enum HeightMode {
     /// };
     ///
     /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-    /// let character_style = MonoTextStyleBuilder::new()
-    ///     .font(&FONT_6X9)
-    ///     .text_color(BinaryColor::On)
-    ///     .build();
+    /// let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
     ///
     /// let style = TextBoxStyleBuilder::new()
     ///     .height_mode(HeightMode::ShrinkToText(VerticalOverdraw::FullRowsOnly))
@@ -167,7 +161,7 @@ pub enum HeightMode {
     ///
     /// ```rust
     /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    ///     mono_font::{ascii::FONT_6X9, MonoTextStyle},
     ///     pixelcolor::BinaryColor,
     ///     prelude::*,
     ///     primitives::Rectangle,
@@ -178,10 +172,7 @@ pub enum HeightMode {
     /// };
     ///
     /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-    /// let character_style = MonoTextStyleBuilder::new()
-    ///     .font(&FONT_6X9)
-    ///     .text_color(BinaryColor::On)
-    ///     .build();
+    /// let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
     ///
     /// let style = TextBoxStyleBuilder::new()
     ///     .height_mode(HeightMode::ShrinkToText(VerticalOverdraw::FullRowsOnly))

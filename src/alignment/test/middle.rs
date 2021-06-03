@@ -8,9 +8,7 @@ use embedded_graphics::{
     Drawable,
 };
 
-use crate::{
-    alignment::VerticalAlignment, style::TextBoxStyleBuilder, utils::test::size_for, TextBox,
-};
+use crate::{alignment::VerticalAlignment, style::TextBoxStyle, utils::test::size_for, TextBox};
 
 fn assert_rendered(text: &str, size: Size, pattern: &[&str]) {
     let mut display = MockDisplay::new();
@@ -21,9 +19,7 @@ fn assert_rendered(text: &str, size: Size, pattern: &[&str]) {
         .background_color(BinaryColor::Off)
         .build();
 
-    let style = TextBoxStyleBuilder::new()
-        .vertical_alignment(VerticalAlignment::Middle)
-        .build();
+    let style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Middle);
 
     TextBox::with_textbox_style(
         text,

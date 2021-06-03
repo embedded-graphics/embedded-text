@@ -6,7 +6,7 @@ use embedded_graphics::{
     primitives::Rectangle,
 };
 
-use crate::{alignment::VerticalAlignment, style::TextBoxStyleBuilder, TextBox};
+use crate::{alignment::VerticalAlignment, style::TextBoxStyle, TextBox};
 
 #[test]
 fn test_top_alignment() {
@@ -18,9 +18,7 @@ fn test_top_alignment() {
         .background_color(BinaryColor::Off)
         .build();
 
-    let style = TextBoxStyleBuilder::new()
-        .vertical_alignment(VerticalAlignment::Top)
-        .build();
+    let style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Top);
 
     TextBox::with_textbox_style(
         "word",
