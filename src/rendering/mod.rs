@@ -14,6 +14,7 @@ use crate::{
     },
     TextBox,
 };
+use az::SaturatingAs;
 use embedded_graphics::{
     draw_target::{DrawTarget, DrawTargetExt},
     pixelcolor::Rgb888,
@@ -63,7 +64,10 @@ where
                 .style
                 .height_mode
                 .calculate_displayed_row_range(&cursor);
-            let display_size = Size::new(cursor.line_width(), display_range.clone().count() as u32);
+            let display_size = Size::new(
+                cursor.line_width(),
+                display_range.clone().count().saturating_as(),
+            );
 
             if display_range.start == display_range.end {
                 if anything_drawn {
@@ -93,7 +97,7 @@ where
                 cursor.new_line();
 
                 if state.carried_token == Some(Token::NewLine) {
-                    cursor.y += self.style.paragraph_spacing as i32;
+                    cursor.y += self.style.paragraph_spacing.saturating_as::<i32>();
                 }
             }
         }
