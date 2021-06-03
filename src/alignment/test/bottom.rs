@@ -20,7 +20,7 @@ mod test {
 
     use crate::{
         alignment::BottomAligned,
-        style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
+        style::{HeightMode, TextBoxStyle, TextBoxStyleBuilder, VerticalOverdraw},
         utils::test::size_for,
         TextBox,
     };
@@ -34,9 +34,7 @@ mod test {
             .background_color(BinaryColor::Off)
             .build();
 
-        let style = TextBoxStyleBuilder::new()
-            .vertical_alignment(BottomAligned)
-            .build();
+        let style = TextBoxStyle::with_vertical_alignment(BottomAligned);
 
         TextBox::with_textbox_style(
             text,

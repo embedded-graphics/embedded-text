@@ -1,14 +1,14 @@
 use embedded_graphics::{
     geometry::Point,
     mock_display::MockDisplay,
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X9, MonoTextStyle},
     pixelcolor::BinaryColor,
     primitives::Rectangle,
     Drawable,
 };
 
 use crate::{
-    alignment::HorizontalAlignment, rendering::test::assert_rendered, style::TextBoxStyleBuilder,
+    alignment::HorizontalAlignment, rendering::test::assert_rendered, style::TextBoxStyle,
     utils::test::size_for, TextBox,
 };
 
@@ -37,14 +37,8 @@ fn simple_render_cr() {
     let mut display = MockDisplay::new();
     display.set_allow_overdraw(true);
 
-    let character_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
-        .text_color(BinaryColor::On)
-        .build();
-
-    let style = TextBoxStyleBuilder::new()
-        .alignment(HorizontalAlignment::Center)
-        .build();
+    let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+    let style = TextBoxStyle::with_alignment(HorizontalAlignment::Center);
 
     TextBox::with_textbox_style(
         "O\rX",

@@ -140,15 +140,14 @@ impl Cursor {
         self.bounds.top_left
     }
 
-    /// Returns the dis
-    /// Returns the width of the textbox
+    /// Returns the width of the text box.
     #[inline]
     #[must_use]
     pub fn line_width(&self) -> u32 {
         self.bounds.size.width
     }
 
-    /// Returns the height of a line
+    /// Returns the height of a line.
     #[inline]
     #[must_use]
     pub fn line_height(&self) -> i32 {

@@ -1,16 +1,20 @@
+//! # Example: Styling with ANSI sequences
+//!
 //! This example demonstrates text styling using in-line ANSI escape sequences.
+//!
+//! Note: you need to enable the `ansi` feature to use the ANSI sequence support.
 
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::Rgb888,
     prelude::*,
-    primitives::Rectangle,
     text::LineHeight,
 };
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::{style::TextBoxStyleBuilder, TextBox};
+use std::convert::Infallible;
 
-fn main() {
+fn main() -> Result<(), Infallible> {
     let text = format!(
         "{comment}/// Comment\n\
         {base_text}#[{attribute}derive{base_text}(Debug)]\n\
@@ -35,33 +39,24 @@ fn main() {
         strikethrough_off = "\x1b[29m",
     );
 
-    // Specify the styling options:
-    // * Use the 6x8 MonoFont from embedded-graphics.
-    // * Draw the text horizontally left aligned (default option, not specified here).
-    // * Draw the text with black, which will be overridden by in-line styling.
-    // * Use 2px line spacing because we'll draw underlines.
-    let character_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X10)
-        .text_color(Rgb888::BLACK)
-        .build();
-
+    let character_style = MonoTextStyle::new(&FONT_6X10, Rgb888::BLACK);
     let textbox_style = TextBoxStyleBuilder::new()
         .line_height(LineHeight::Percent(125))
         .build();
 
-    // Specify the bounding box.
-    let bounds = Rectangle::new(Point::zero(), Size::new(241, 97));
+    let mut display = SimulatorDisplay::new(Size::new(241, 97));
 
-    // Create the text box and apply styling options.
-    let text_box = TextBox::with_textbox_style(&text, bounds, character_style, textbox_style);
-
-    // Create a simulated display with the dimensions of the text box.
-    let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
-
-    // Draw the text box.
-    text_box.draw(&mut display).unwrap();
+    TextBox::with_textbox_style(
+        &text,
+        display.bounding_box(),
+        character_style,
+        textbox_style,
+    )
+    .draw(&mut display)?;
 
     // Set up the window and show the display's contents.
     let output_settings = OutputSettingsBuilder::new().scale(3).build();
     Window::new("In-line styling example", &output_settings).show_static(&display);
+
+    Ok(())
 }

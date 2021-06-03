@@ -1,50 +1,53 @@
-//! This example demonstrates support for the horizontal tab `\t` character.
+//! # Example: special characters
+//!
+//! This example demonstrates support for carriage return, non-breaking space and zero-width space
+//! characters to modify text layout behaviour.
 
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::Rectangle,
-    text::LineHeight,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    style::{HeightMode, TabSize, TextBoxStyleBuilder},
+    alignment::HorizontalAlignment,
+    style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
 
 fn main() {
-    // A simple example table
-    let text = &format!(
-        "{underlined}Column A\t|Column B\t|Column C\t{underlined_off}\n\
-        Foo\t|Bar\t|Baz\n\
-        1\t|2\t|3",
-        underlined = "\x1b[4m",
-        underlined_off = "\x1b[24m",
-    );
+    // Example text sprinkled with special characters. Note that the first "supports" word will not
+    // be displayed because it will be overdrawn by the carriage return.
+    let text = "Hello, World!\n\
+    embedded-text supports\rcarriage return.\n\
+    Non-breaking spaces\u{A0}are also supported.\n\
+    Also\u{200B}supports\u{200B}Zero\u{200B}Width\u{200B}Spaces \
+    as well as so\u{AD}ft hy\u{AD}phens";
 
     // Specify the styling options:
-    // * Use the 6x8 MonoFont from embedded-graphics.
-    // * Draw the text horizontally left aligned (default option, not specified here).
+    // * Use the 6x10 MonoFont from embedded-graphics.
+    // * Draw the text fully justified.
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    // * 10 character wide tabs
+    // * Draw the text with `BinaryColor::Off` background color, which will be rendered as dark
+    //   blue. This is used to overwrite parts of the text in this example.
     let character_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
+        .font(&FONT_6X10)
         .text_color(BinaryColor::On)
+        .background_color(BinaryColor::Off)
         .build();
 
     let textbox_style = TextBoxStyleBuilder::new()
+        .alignment(HorizontalAlignment::Justified)
         .height_mode(HeightMode::FitToText)
-        .tab_size(TabSize::Spaces(10))
-        .line_height(LineHeight::Pixels(11))
         .build();
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
     // measure and adjust the height of the text box in `into_styled()`.
-    let bounds = Rectangle::new(Point::zero(), Size::new(180, 0));
+    let bounds = Rectangle::new(Point::zero(), Size::new(129, 0));
 
     // Create the text box and apply styling options.
     let text_box = TextBox::with_textbox_style(text, bounds, character_style, textbox_style);
@@ -58,6 +61,7 @@ fn main() {
     // Set up the window and show the display's contents.
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
+        .scale(2)
         .build();
-    Window::new("Left aligned TextBox example", &output_settings).show_static(&display);
+    Window::new("Special characters demonstration", &output_settings).show_static(&display);
 }

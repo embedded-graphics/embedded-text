@@ -1,20 +1,20 @@
+//! # Example: editor
+//!
 //! This example demonstrates a simple text "editor" that lets you type and delete characters.
 //!
 //! The demo uses the "Scrolling" vertical layout which is especially useful for
 //! editor type applications.
+use embedded_graphics::{
+    mono_font::{iso_8859_2::FONT_6X10, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::*,
+};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-
-use embedded_graphics::{
-    mono_font::{iso_8859_2::FONT_6X9, MonoTextStyleBuilder},
-    pixelcolor::BinaryColor,
-    prelude::*,
-    primitives::Rectangle,
-};
-use embedded_text::{alignment::VerticalAlignment, style::TextBoxStyleBuilder, TextBox};
+use embedded_text::{alignment::VerticalAlignment, style::TextBoxStyle, TextBox};
 use sdl2::keyboard::{Keycode, Mod};
-use std::{collections::HashMap, thread, time::Duration};
+use std::{collections::HashMap, convert::Infallible, thread, time::Duration};
 
 trait Selector {
     /// Select inserted characters based on key modifiers.
@@ -38,7 +38,7 @@ impl Selector for (&str, &str, &str, &str) {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Infallible> {
     // Special characters are mapped as they appear on Hungarian layouts. Sorry 😅
     let inputs: HashMap<_, _> = [
         // (Keycode, (NO, SHIFT, CAPS, ALT_GR))
@@ -89,46 +89,37 @@ fn main() {
     .cloned()
     .collect();
 
-    // Specify the bounding box.
-    let bounds = Rectangle::new(Point::zero(), Size::new(128, 64));
-
-    // Specify the styling options:
-    // * Use the 6x8 MonoFont from embedded-graphics.
-    // * Draw the text horizontally left aligned (default option, not specified here).
-    // * Use `Scrolling` vertical layout - this will make sure the cursor is always in view.
-    // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let character_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
-        .text_color(BinaryColor::Off)
-        .background_color(BinaryColor::On)
-        .build();
-
-    let textbox_style = TextBoxStyleBuilder::new()
-        .vertical_alignment(VerticalAlignment::Scrolling)
-        .build();
-
     // Set up the window.
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
+        .scale(2)
         .build();
-    let mut window = Window::new("TextBox input demonstration", &output_settings);
+    let mut window = Window::new("Interactive TextBox input demonstration", &output_settings);
 
     // Text buffer. The contents of this string will be modified while typing.
     let mut text = String::from("Hello, world!");
 
-    'running: loop {
-        // Display an underscore for the "cursor"
-        let text_and_cursor = format!("{}\u{200b}_", text);
+    let character_style = MonoTextStyleBuilder::new()
+        .font(&FONT_6X10)
+        .text_color(BinaryColor::Off)
+        .background_color(BinaryColor::On)
+        .build();
 
-        // Create the text box and apply styling options.
-        let text_box =
-            TextBox::with_textbox_style(&text_and_cursor, bounds, character_style, textbox_style);
+    let textbox_style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Scrolling);
 
+    'demo: loop {
         // Create a simulated display with the dimensions of the text box.
-        let mut display = SimulatorDisplay::new(text_box.bounding_box().size);
+        let mut display = SimulatorDisplay::new(Size::new(128, 64));
 
-        // Draw the text box.
-        text_box.draw(&mut display).unwrap();
+        // Display an underscore for the "cursor"
+        // Create the text box and apply styling options.
+        TextBox::with_textbox_style(
+            &format!("{}\u{200b}_", text),
+            display.bounding_box(),
+            character_style,
+            textbox_style,
+        )
+        .draw(&mut display)?;
 
         // Update the window.
         window.update(&display);
@@ -136,12 +127,9 @@ fn main() {
         // Handle key events.
         for event in window.events() {
             match event {
-                SimulatorEvent::Quit => break 'running,
-
                 SimulatorEvent::KeyDown {
                     keycode, keymod, ..
                 } => match keycode {
-                    Keycode::Escape => break 'running,
                     Keycode::Backspace => {
                         text.pop();
                     }
@@ -152,6 +140,7 @@ fn main() {
                     }
                 },
 
+                SimulatorEvent::Quit => break 'demo,
                 _ => {}
             }
         }
@@ -159,4 +148,6 @@ fn main() {
         // Wait for a little while.
         thread::sleep(Duration::from_millis(10));
     }
+
+    Ok(())
 }

@@ -8,7 +8,7 @@ use embedded_graphics::{
 
 use crate::{
     alignment::VerticalAlignment,
-    style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
+    style::{HeightMode, TextBoxStyle, TextBoxStyleBuilder, VerticalOverdraw},
     utils::test::size_for,
     TextBox,
 };
@@ -22,9 +22,7 @@ fn assert_rendered(text: &str, size: Size, pattern: &[&str]) {
         .background_color(BinaryColor::Off)
         .build();
 
-    let style = TextBoxStyleBuilder::new()
-        .vertical_alignment(VerticalAlignment::Scrolling)
-        .build();
+    let style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Scrolling);
 
     TextBox::with_textbox_style(
         text,

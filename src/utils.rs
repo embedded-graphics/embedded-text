@@ -23,7 +23,7 @@ pub fn str_width(renderer: &impl TextRenderer, s: &str) -> u32 {
 #[cfg(test)]
 pub mod test {
     use embedded_graphics::{
-        mono_font::{ascii::FONT_6X9, MonoFont, MonoTextStyleBuilder},
+        mono_font::{ascii::FONT_6X9, MonoFont, MonoTextStyle},
         pixelcolor::BinaryColor,
         prelude::Size,
     };
@@ -36,10 +36,7 @@ pub mod test {
 
     #[test]
     fn width_of_nbsp_is_single_space() {
-        let renderer = MonoTextStyleBuilder::new()
-            .font(&FONT_6X9)
-            .text_color(BinaryColor::On)
-            .build();
+        let renderer = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
         assert_eq!(str_width(&renderer, " "), str_width(&renderer, "\u{a0}"));
     }
 }

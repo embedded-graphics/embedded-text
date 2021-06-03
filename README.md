@@ -31,13 +31,13 @@ This crate provides a configurable `TextBox` to render multiline text inside a b
 The examples are based on [the embedded-graphics simulator]. The simulator is built on top of
 `SDL2`. See the [simulator README] for more information.
 
-![embedded-text example with center aligned text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/center.png)
+![embedded-text example](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/paragraph_spacing.png)
 
-![embedded-text example with colored text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/colored_text.png)
+![embedded-text example with colored text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/styles-ansi.png)
 
 ```rust
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::Rectangle,
@@ -46,26 +46,29 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
+    alignment::HorizontalAlignment,
     style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
+
 fn main() {
     let text = "Hello, World!\n\
-    Lorem Ipsum is simply dummy text of the printing and typesetting industry. \
+    A paragraph is a number of lines that end with a manual newline. Paragraph spacing is the \
+    number of pixels between two paragraphs.\n\
     Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when \
     an unknown printer took a galley of type and scrambled it to make a type specimen book.";
 
     // Specify the styling options:
-    // * Use the 6x9 monospace Font from embedded-graphics.
-    // * Draw the text horizontally left aligned (default option, not specified here).
+    // * Use the 6x10 MonoFont from embedded-graphics.
+    // * Draw the text fully justified.
     // * Use `FitToText` height mode to stretch the text box to the exact height of the text.
     // * Draw the text with `BinaryColor::On`, which will be displayed as light blue.
-    let character_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
-        .text_color(BinaryColor::On)
+    let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+    let textbox_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::FitToText)
+        .alignment(HorizontalAlignment::Justified)
+        .paragraph_spacing(6)
         .build();
-
-    let textbox_style = TextBoxStyleBuilder::new().height_mode(HeightMode::FitToText).build();
 
     // Specify the bounding box. Note the 0px height. The `FitToText` height mode will
     // measure and adjust the height of the text box in `into_styled()`.
@@ -83,9 +86,9 @@ fn main() {
     // Set up the window and show the display's contents.
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
+        .scale(2)
         .build();
-
-    Window::new("Left aligned TextBox example", &output_settings).show_static(&display);
+    Window::new("TextBox example with paragraph spacing", &output_settings).show_static(&display);
 }
 ```
 
@@ -110,4 +113,4 @@ To install SDL2 on Windows, see https://github.com/Rust-SDL2/rust-sdl2#windows-m
 
 ## Attribution
 
-The example text is copied from https://www.lipsum.com
+The last paragraph of the example text is copied from https://www.lipsum.com
