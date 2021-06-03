@@ -59,7 +59,6 @@ where
     <F as CharacterStyle>::Color: From<Rgb888>,
 {
     /// Creates a new line renderer.
-    #[inline]
     pub fn new(cursor: LineCursor, state: LineRenderState<'a, F>) -> Self {
         Self { cursor, state }
     }

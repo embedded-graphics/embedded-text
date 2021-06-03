@@ -28,41 +28,27 @@ impl LineCursor {
     }
 
     /// Returns the distance to the next tab position.
-    #[inline]
     pub fn next_tab_width(&self) -> u32 {
         let next_tab_pos = (self.position / self.tab_width + 1) * self.tab_width;
         next_tab_pos - self.position
     }
 
-    /// Returns the width of the textbox
-    #[inline]
-    #[must_use]
+    /// Returns the width of the text box.
     pub fn line_width(&self) -> u32 {
         self.width
     }
 
-    /// Moves the cursor back to the start of the line.
-    #[inline]
-    pub fn carriage_return(&mut self) {
-        self.position = 0;
-    }
-
     /// Returns whether the current line has enough space to also include an object of given width.
-    #[inline]
-    #[must_use]
     pub fn fits_in_line(&self, width: u32) -> bool {
         width <= self.space()
     }
 
     /// Returns the amount of empty space in the line.
-    #[inline]
-    #[must_use]
     pub fn space(&self) -> u32 {
         self.width - self.position
     }
 
     /// Moves the cursor by a given amount.
-    #[inline]
     pub fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
         if by < 0 {
             let abs = by.abs() as u32;
@@ -120,6 +106,7 @@ impl Cursor {
         }
     }
 
+    #[must_use]
     pub fn line(&self) -> LineCursor {
         LineCursor {
             start: Point::new(self.bounds.top_left.x, self.y),
@@ -143,14 +130,12 @@ impl Cursor {
 
     /// Returns the width of the text box.
     #[inline]
-    #[must_use]
     pub fn line_width(&self) -> u32 {
         self.bounds.size.width
     }
 
     /// Returns the height of a line.
     #[inline]
-    #[must_use]
     pub fn line_height(&self) -> i32 {
         self.line_height
     }

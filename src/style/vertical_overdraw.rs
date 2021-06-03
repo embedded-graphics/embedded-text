@@ -15,7 +15,7 @@ pub enum VerticalOverdraw {
 
 impl VerticalOverdraw {
     /// Calculate the range of rows of the current line that can be drawn.
-    pub fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
+    pub(crate) fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
         match self {
             VerticalOverdraw::FullRowsOnly => {
                 if cursor.in_display_area() {

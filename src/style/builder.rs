@@ -10,6 +10,7 @@ use crate::{
 ///
 /// [`TextBoxStyle`]: struct.TextBoxStyle.html
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[must_use]
 pub struct TextBoxStyleBuilder {
     style: TextBoxStyle,
 }
@@ -24,7 +25,6 @@ impl Default for TextBoxStyleBuilder {
 impl TextBoxStyleBuilder {
     /// Creates a new text box style builder object.
     #[inline]
-    #[must_use]
     pub const fn new() -> Self {
         Self {
             style: TextBoxStyle {
@@ -54,7 +54,6 @@ impl TextBoxStyleBuilder {
     ///     .build();
     /// ```
     #[inline]
-    #[must_use]
     pub const fn line_height(mut self, line_height: LineHeight) -> Self {
         self.style.line_height = line_height;
 
@@ -74,7 +73,6 @@ impl TextBoxStyleBuilder {
     ///     .build();
     /// ```
     #[inline]
-    #[must_use]
     pub const fn paragraph_spacing(mut self, paragraph_spacing: u32) -> Self {
         self.style.paragraph_spacing = paragraph_spacing;
 
@@ -83,7 +81,6 @@ impl TextBoxStyleBuilder {
 
     /// Sets the horizontal text alignment.
     #[inline]
-    #[must_use]
     pub const fn alignment(mut self, alignment: HorizontalAlignment) -> TextBoxStyleBuilder {
         self.style.alignment = alignment;
 
@@ -92,7 +89,6 @@ impl TextBoxStyleBuilder {
 
     /// Sets the vertical text alignment.
     #[inline]
-    #[must_use]
     pub const fn vertical_alignment(
         mut self,
         vertical_alignment: VerticalAlignment,
@@ -104,7 +100,6 @@ impl TextBoxStyleBuilder {
 
     /// Sets the height mode.
     #[inline]
-    #[must_use]
     pub const fn height_mode(mut self, height_mode: HeightMode) -> TextBoxStyleBuilder {
         self.style.height_mode = height_mode;
 
@@ -113,7 +108,6 @@ impl TextBoxStyleBuilder {
 
     /// Sets the tab size.
     #[inline]
-    #[must_use]
     pub const fn tab_size(mut self, tab_size: TabSize) -> Self {
         self.style.tab_size = tab_size;
 
@@ -124,7 +118,6 @@ impl TextBoxStyleBuilder {
     ///
     /// [`TextBoxStyle`]: struct.TextBoxStyle.html
     #[inline]
-    #[must_use]
     pub const fn build(self) -> TextBoxStyle {
         self.style
     }
