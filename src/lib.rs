@@ -134,7 +134,7 @@ pub use parser::Token;
 /// The `TextBox` struct represents a piece of text that can be drawn on a display inside the given
 /// bounding box.
 ///
-/// Use the [`draw`] method to draw the textbox on a display.
+/// Use the [`draw`] method to draw the text box on a display.
 ///
 /// See the [module-level documentation] for more information.
 ///
@@ -234,29 +234,23 @@ where
         self
     }
 
-    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    /// Adds a new middleware to the `TextBox`.
     #[inline]
-    pub fn with_middleware<M>(
-        text: &'a str,
-        bounds: Rectangle,
-        character_style: S,
-        middleware: M,
-    ) -> TextBox<'a, S, M>
+    pub fn add_middleware<M>(self, middleware: M) -> TextBox<'a, S, M>
     where
         M: Middleware<'a>,
     {
-        let mut styled = TextBox {
-            text,
-            bounds,
-            character_style,
-            style: TextBoxStyle::default(),
-            vertical_offset: 0,
+        let mut textbox = TextBox {
+            text: self.text,
+            bounds: self.bounds,
+            character_style: self.character_style,
+            style: self.style,
+            vertical_offset: self.vertical_offset,
             middleware: MiddlewareWrapper::new(middleware),
         };
+        textbox.style.height_mode.apply(&mut textbox);
 
-        styled.style.height_mode.apply(&mut styled);
-
-        styled
+        textbox
     }
 }
 

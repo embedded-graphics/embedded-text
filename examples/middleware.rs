@@ -150,11 +150,10 @@ fn main() {
 
         // Create and draw the text boxes.
         // TODO: setter methods
-        let mut tb =
-            TextBox::with_middleware(text, bounds, character_style, CharacterLimiter::new(chars));
-        tb.style = textbox_style;
-
-        tb.draw(&mut display).unwrap();
+        TextBox::with_textbox_style(text, bounds, character_style, textbox_style)
+            .add_middleware(CharacterLimiter::new(chars))
+            .draw(&mut display)
+            .unwrap();
 
         // Update the window.
         window.update(&display);

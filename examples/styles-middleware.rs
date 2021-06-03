@@ -100,11 +100,9 @@ fn main() -> Result<(), Infallible> {
     let bounds = Rectangle::new(Point::zero(), display.size());
 
     // Create and draw the text boxes.
-    // TODO: setter methods
-    let mut tb = TextBox::with_middleware(text, bounds, character_style, Underliner::new());
-    tb.style = textbox_style;
-
-    tb.draw(&mut display)?;
+    TextBox::with_textbox_style(text, bounds, character_style, textbox_style)
+        .add_middleware(Underliner::new())
+        .draw(&mut display)?;
 
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
