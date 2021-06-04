@@ -1,6 +1,6 @@
 [package]
 name = "embedded-text"
-version = "0.4.0"
+version = "0.5.0-beta.1"
 license = "MIT"
 description = "TextBox for embedded-graphics"
 repository = "https://github.com/embedded-graphics/embedded-text"
@@ -25,6 +25,6 @@ ansi-parser = { version = "0.8.0", default-features = false, optional = true }
 as-slice = { version = "0.1.4", optional = true }
 
 [dev-dependencies]
-embedded-graphics-simulator = "0.3.0-alpha.2"
+embedded-graphics-simulator = "0.3.0-beta.2"
 sdl2 = "0.32.2"
 heapless = "0.5.6"
