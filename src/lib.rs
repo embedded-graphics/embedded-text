@@ -145,7 +145,7 @@ pub use parser::Token;
 /// [`draw`]: #method.draw
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 #[must_use]
-pub struct TextBox<'a, S, M> {
+pub struct TextBox<'a, S, M = NoMiddleware> {
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
 
