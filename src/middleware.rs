@@ -1,5 +1,7 @@
 //! Middleware allow changing TextBox behaviour.
 
+use embedded_graphics::{draw_target::DrawTarget, prelude::PixelColor, primitives::Rectangle};
+
 use crate::parser::Token;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -27,6 +29,34 @@ pub trait Middleware<'a>: Clone {
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
         next_token.next()
+    }
+
+    #[inline]
+    fn post_render_text<C, D>(
+        &mut self,
+        _draw_target: &mut D,
+        _text: &str,
+        _bounds: Rectangle,
+    ) -> Result<(), D::Error>
+    where
+        C: PixelColor,
+        D: DrawTarget<Color = C>,
+    {
+        Ok(())
+    }
+
+    #[inline]
+    fn post_render_whitespace<C, D>(
+        &mut self,
+        _draw_target: &mut D,
+        _width: u32,
+        _bounds: Rectangle,
+    ) -> Result<(), D::Error>
+    where
+        C: PixelColor,
+        D: DrawTarget<Color = C>,
+    {
+        Ok(())
     }
 }
 
