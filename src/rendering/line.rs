@@ -16,6 +16,7 @@ use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
     pixelcolor::Rgb888,
+    primitives::Rectangle,
     text::{
         renderer::{CharacterStyle, TextRenderer},
         Baseline,
@@ -73,17 +74,19 @@ where
     }
 }
 
-struct RenderElementHandler<'a, F, D> {
+struct RenderElementHandler<'a, F, D, M> {
     style: &'a mut F,
     display: &'a mut D,
     pos: Point,
+    middleware: &'a MiddlewareWrapper<M>,
 }
 
-impl<'a, F, D> ElementHandler for RenderElementHandler<'a, F, D>
+impl<'a, 'b, F, D, M> ElementHandler for RenderElementHandler<'a, F, D, M>
 where
     F: CharacterStyle + TextRenderer,
     <F as CharacterStyle>::Color: From<Rgb888>,
     D: DrawTarget<Color = <F as TextRenderer>::Color>,
+    M: Middleware<'b>,
 {
     type Error = D::Error;
 
@@ -92,16 +95,38 @@ where
     }
 
     fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
+        let top_left = self.pos;
         self.pos = self
             .style
             .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
+
+        let bottom_right = self.pos + Point::new(0, self.style.line_height().saturating_as());
+        let bounds = Rectangle::with_corners(top_left, bottom_right);
+
+        self.middleware
+            .middleware
+            .borrow_mut()
+            .post_render_whitespace(self.display, self.style, width, bounds)?;
+
         Ok(())
     }
 
     fn printed_characters(&mut self, st: &str, _: u32) -> Result<(), Self::Error> {
+        let top_left = self.pos;
         self.pos = self
             .style
             .draw_string(st, self.pos, Baseline::Top, self.display)?;
+
+        let bottom_right = self.pos + Point::new(0, self.style.line_height().saturating_as());
+        let bounds = Rectangle::with_corners(top_left, bottom_right);
+
+        self.middleware.middleware.borrow_mut().post_render_text(
+            self.display,
+            self.style,
+            st,
+            bounds,
+        )?;
+
         Ok(())
     }
 
@@ -200,7 +225,7 @@ where
             let pos = cursor.pos();
             let mut elements = LineElementParser::new(
                 &mut parser,
-                &mut middleware,
+                &middleware,
                 cursor,
                 space_config,
                 style.alignment,
@@ -210,6 +235,7 @@ where
                 style: &mut character_style,
                 display,
                 pos,
+                middleware: &middleware,
             })?
         };
 

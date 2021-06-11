@@ -1,6 +1,12 @@
 //! Middleware allow changing TextBox behaviour.
 
-use embedded_graphics::{draw_target::DrawTarget, prelude::PixelColor, primitives::Rectangle};
+use core::{
+    cell::{Cell, RefCell},
+    hash::{Hash, Hasher},
+};
+use embedded_graphics::{
+    draw_target::DrawTarget, primitives::Rectangle, text::renderer::TextRenderer,
+};
 
 use crate::parser::Token;
 
@@ -32,29 +38,31 @@ pub trait Middleware<'a>: Clone {
     }
 
     #[inline]
-    fn post_render_text<C, D>(
+    fn post_render_text<T, D>(
         &mut self,
         _draw_target: &mut D,
+        _character_style: &T,
         _text: &str,
         _bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
-        C: PixelColor,
-        D: DrawTarget<Color = C>,
+        T: TextRenderer,
+        D: DrawTarget<Color = T::Color>,
     {
         Ok(())
     }
 
     #[inline]
-    fn post_render_whitespace<C, D>(
+    fn post_render_whitespace<T, D>(
         &mut self,
         _draw_target: &mut D,
+        _character_style: &T,
         _width: u32,
         _bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
-        C: PixelColor,
-        D: DrawTarget<Color = C>,
+        T: TextRenderer,
+        D: DrawTarget<Color = T::Color>,
     {
         Ok(())
     }
@@ -64,10 +72,16 @@ pub trait Middleware<'a>: Clone {
 pub struct NoMiddleware;
 impl<'a> Middleware<'a> for NoMiddleware {}
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct MiddlewareWrapper<M> {
-    pub middleware: M,
-    state: ProcessingState,
+    pub middleware: RefCell<M>,
+    state: Cell<ProcessingState>,
+}
+
+impl<M> Hash for MiddlewareWrapper<M> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.state.get().hash(state)
+    }
 }
 
 impl<'a, M> MiddlewareWrapper<M>
@@ -76,26 +90,32 @@ where
 {
     pub fn new(middleware: M) -> Self {
         Self {
-            middleware,
-            state: ProcessingState::Measure,
+            middleware: RefCell::new(middleware),
+            state: Cell::new(ProcessingState::Measure),
         }
     }
 
-    pub fn new_line(&mut self) {
-        self.middleware.new_line();
+    pub fn new_line(&self) {
+        self.middleware.borrow_mut().new_line();
     }
 
-    pub fn set_state(&mut self, state: ProcessingState) {
-        self.state = state;
+    pub fn set_state(&self, state: ProcessingState) {
+        self.state.set(state);
     }
 
     pub fn next_token(
-        &mut self,
+        &self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
-        match self.state {
-            ProcessingState::Measure => self.middleware.next_token_to_measure(next_token),
-            ProcessingState::Render => self.middleware.next_token_to_render(next_token),
+        match self.state.get() {
+            ProcessingState::Measure => self
+                .middleware
+                .borrow_mut()
+                .next_token_to_measure(next_token),
+            ProcessingState::Render => self
+                .middleware
+                .borrow_mut()
+                .next_token_to_render(next_token),
         }
     }
 }

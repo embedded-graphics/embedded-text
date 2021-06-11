@@ -82,7 +82,7 @@ impl<'a> Middleware<'a> for CharacterLimiter {
             Some(Token::Word(word)) => {
                 self.measured += word.chars().count() as u32;
             }
-            Some(Token::Break(Some(_))) => {
+            Some(Token::Break(_, _)) => {
                 self.measured += 1;
             }
             _ => {}
@@ -109,7 +109,7 @@ impl<'a> Middleware<'a> for CharacterLimiter {
 
                 Some(Token::Word(word.first_n_chars(chars)))
             }
-            Some(Token::Break(Some(_))) => {
+            Some(Token::Break(_, _)) => {
                 self.rendered += 1;
                 token
             }

@@ -33,7 +33,7 @@ pub(crate) struct LineElementParser<'a, 'b, M> {
     spaces: SpaceConfig,
     alignment: HorizontalAlignment,
     empty: bool,
-    middleware: &'b mut MiddlewareWrapper<M>,
+    middleware: &'b MiddlewareWrapper<M>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,7 +80,7 @@ where
     #[inline]
     pub fn new(
         parser: &'b mut Parser<'a>,
-        middleware: &'b mut MiddlewareWrapper<M>,
+        middleware: &'b MiddlewareWrapper<M>,
         cursor: LineCursor,
         spaces: SpaceConfig,
         alignment: HorizontalAlignment,
@@ -167,13 +167,9 @@ where
         let mut exit = false;
         while !exit {
             let width = match lookahead.next() {
-                Some(Token::Word(w)) => {
+                Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
                     exit = true;
                     handler.measure(w).saturating_as()
-                }
-                Some(Token::Break(c, _original)) => {
-                    exit = true;
-                    handler.measure(c).saturating_as()
                 }
 
                 Some(Token::Whitespace(n, _)) => spaces.consume(n).saturating_as(),
