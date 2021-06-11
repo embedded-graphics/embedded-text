@@ -13,10 +13,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    alignment::HorizontalAlignment,
-    middleware::{Middleware, ProcessingState},
-    style::TextBoxStyle,
-    TextBox, Token,
+    alignment::HorizontalAlignment, middleware::Middleware, style::TextBoxStyle, TextBox, Token,
 };
 use heapless::Vec;
 use std::convert::Infallible;
@@ -34,41 +31,18 @@ impl<'a> Underliner<'a> {
             current_token: None,
         }
     }
-}
 
-impl<'a> Middleware<'a> for Underliner<'a> {
-    fn next_token(
+    fn process_token(
         &mut self,
-        state: ProcessingState,
-        next_token: &mut impl Iterator<Item = Token<'a>>,
+        token: Option<Token<'a>>,
+        substitute_underline: impl FnOnce(&mut Self) -> Option<Token<'a>>,
     ) -> Option<Token<'a>> {
-        let token = if let Some(token) = self.current_token.take() {
-            Some(token)
-        } else {
-            next_token.next()
-        };
-
         match token {
             Some(Token::Word(w)) => {
                 if let Some(pos) = w.find('_') {
                     if pos == 0 {
                         self.current_token = Some(Token::Word(&w[1..]));
-
-                        if state == ProcessingState::Render {
-                            if self.underlined {
-                                self.underlined = false;
-                                Some(Token::EscapeSequence(AnsiSequence::SetGraphicsMode(
-                                    Vec::from_slice(&[24]).unwrap(),
-                                )))
-                            } else {
-                                self.underlined = true;
-                                Some(Token::EscapeSequence(AnsiSequence::SetGraphicsMode(
-                                    Vec::from_slice(&[4]).unwrap(),
-                                )))
-                            }
-                        } else {
-                            Some(Token::Word(""))
-                        }
+                        substitute_underline(self)
                     } else {
                         let prefix = &w[0..pos];
                         self.current_token = Some(Token::Word(&w[pos..]));
@@ -80,6 +54,41 @@ impl<'a> Middleware<'a> for Underliner<'a> {
             }
             token => token,
         }
+    }
+}
+
+impl<'a> Middleware<'a> for Underliner<'a> {
+    fn next_token_to_measure(
+        &mut self,
+        next_token: &mut impl Iterator<Item = Token<'a>>,
+    ) -> Option<Token<'a>> {
+        let token = if let Some(token) = self.current_token.take() {
+            Some(token)
+        } else {
+            next_token.next()
+        };
+
+        self.process_token(token, |_| Some(Token::Word("")))
+    }
+
+    fn next_token_to_render(
+        &mut self,
+        next_token: &mut impl Iterator<Item = Token<'a>>,
+    ) -> Option<Token<'a>> {
+        let token = if let Some(token) = self.current_token.take() {
+            Some(token)
+        } else {
+            next_token.next()
+        };
+
+        self.process_token(token, |this| {
+            this.underlined = !this.underlined;
+            let style_byte = if this.underlined { 4 } else { 24 };
+
+            Some(Token::EscapeSequence(AnsiSequence::SetGraphicsMode(
+                Vec::from_slice(&[style_byte]).unwrap(),
+            )))
+        })
     }
 }
 

@@ -17,7 +17,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    middleware::{Middleware, ProcessingState},
+    middleware::Middleware,
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     TextBox, Token,
 };
@@ -68,52 +68,52 @@ impl<'a> Middleware<'a> for CharacterLimiter {
         }
     }
 
-    fn next_token(
+    fn next_token_to_measure(
         &mut self,
-        state: ProcessingState,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
         let token = next_token.next();
 
-        match state {
-            ProcessingState::Measure => {
-                if self.last_line_processed {
-                    return None;
-                }
+        if self.last_line_processed {
+            return None;
+        }
 
-                match token {
-                    Some(Token::Word(word)) => {
-                        self.measured += word.chars().count() as u32;
-                    }
-                    Some(Token::Break(Some(_))) => {
-                        self.measured += 1;
-                    }
-                    _ => {}
-                };
+        match token {
+            Some(Token::Word(word)) => {
+                self.measured += word.chars().count() as u32;
+            }
+            Some(Token::Break(Some(_))) => {
+                self.measured += 1;
+            }
+            _ => {}
+        };
 
+        token
+    }
+
+    fn next_token_to_render(
+        &mut self,
+        next_token: &mut impl Iterator<Item = Token<'a>>,
+    ) -> Option<Token<'a>> {
+        let token = next_token.next();
+
+        let chars_left = self.characters.saturating_sub(self.rendered);
+        if chars_left == 0 {
+            return None;
+        }
+
+        match token {
+            Some(Token::Word(word)) => {
+                let chars = chars_left.min(word.chars().count() as u32);
+                self.rendered += chars;
+
+                Some(Token::Word(word.first_n_chars(chars)))
+            }
+            Some(Token::Break(Some(_))) => {
+                self.rendered += 1;
                 token
             }
-
-            ProcessingState::Render => {
-                let chars_left = self.characters.saturating_sub(self.rendered);
-                if chars_left == 0 {
-                    return None;
-                }
-
-                match token {
-                    Some(Token::Word(word)) => {
-                        let chars = chars_left.min(word.chars().count() as u32);
-                        self.rendered += chars;
-
-                        Some(Token::Word(word.first_n_chars(chars)))
-                    }
-                    Some(Token::Break(Some(_))) => {
-                        self.rendered += 1;
-                        token
-                    }
-                    token => token,
-                }
-            }
+            token => token,
         }
     }
 }

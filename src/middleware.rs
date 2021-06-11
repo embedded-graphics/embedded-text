@@ -3,9 +3,8 @@
 use crate::parser::Token;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub enum ProcessingState {
+pub(crate) enum ProcessingState {
     Measure,
-
     Render,
 }
 
@@ -15,9 +14,16 @@ pub trait Middleware<'a>: Clone {
     fn new_line(&mut self) {}
 
     #[inline]
-    fn next_token(
+    fn next_token_to_measure(
         &mut self,
-        _state: ProcessingState,
+        next_token: &mut impl Iterator<Item = Token<'a>>,
+    ) -> Option<Token<'a>> {
+        next_token.next()
+    }
+
+    #[inline]
+    fn next_token_to_render(
+        &mut self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
         next_token.next()
@@ -57,6 +63,9 @@ where
         &mut self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
-        self.middleware.next_token(self.state, next_token)
+        match self.state {
+            ProcessingState::Measure => self.middleware.next_token_to_measure(next_token),
+            ProcessingState::Render => self.middleware.next_token_to_render(next_token),
+        }
     }
 }
