@@ -7,13 +7,13 @@ pub(crate) mod line_iter;
 pub(crate) mod space_config;
 
 use crate::{
-    middleware::{Middleware, ProcessingState},
+    middleware::ProcessingState,
     parser::Parser,
     rendering::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
-    TextBox,
+    Middleware, TextBox,
 };
 use az::SaturatingAs;
 use embedded_graphics::{

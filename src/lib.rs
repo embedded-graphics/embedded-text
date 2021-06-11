@@ -93,6 +93,7 @@
 //! ## Cargo features
 //!
 //! * `ansi`: enables ANSI sequence support. This feature is enabled by default.
+//! * `middleware`: enables *experimental* middleware support.
 //!
 //! [embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
 //! [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
@@ -235,6 +236,7 @@ where
     }
 
     /// Adds a new middleware to the `TextBox`.
+    #[cfg(feature = "middleware")]
     #[inline]
     pub fn add_middleware<M>(self, middleware: M) -> TextBox<'a, S, M>
     where

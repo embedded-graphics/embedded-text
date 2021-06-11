@@ -16,7 +16,16 @@ exclude = [
 
 [features]
 ansi = ["ansi-parser", "as-slice"]
+middleware = []
 default = ["ansi"]
+
+[[example]]
+name = "middleware"
+required-features = ["middleware"]
+
+[[example]]
+name = "styles-middleware"
+required-features = ["middleware"]
 
 [dependencies]
 az = "1.1"
