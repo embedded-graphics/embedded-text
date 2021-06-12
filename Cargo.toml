@@ -20,6 +20,10 @@ middleware = []
 default = ["ansi"]
 
 [[example]]
+name = "interactive-editor"
+required-features = ["middleware"]
+
+[[example]]
 name = "middleware"
 required-features = ["middleware"]
 

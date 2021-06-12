@@ -38,6 +38,44 @@ impl Selector for (&str, &str, &str, &str) {
     }
 }
 
+struct EditorInput {
+    pub text: String,
+    cursor_offset: usize,
+}
+
+impl EditorInput {
+    pub fn new(text: &str) -> Self {
+        Self {
+            cursor_offset: text.len(),
+            text: text.to_owned(),
+        }
+    }
+
+    pub fn insert(&mut self, s: &str) {
+        self.text.insert_str(self.cursor_offset, s);
+        self.cursor_offset += s.len();
+    }
+
+    pub fn delete_one(&mut self) {
+        if self.cursor_offset > 0 {
+            self.cursor_offset -= 1;
+            self.text.remove(self.cursor_offset);
+        }
+    }
+
+    pub fn cursor_left(&mut self) {
+        if self.cursor_offset > 0 {
+            self.cursor_offset -= 1;
+        }
+    }
+
+    pub fn cursor_right(&mut self) {
+        if self.cursor_offset < self.text.len() {
+            self.cursor_offset += 1;
+        }
+    }
+}
+
 fn main() -> Result<(), Infallible> {
     // Special characters are mapped as they appear on Hungarian layouts. Sorry 😅
     let inputs: HashMap<_, _> = [
@@ -96,9 +134,6 @@ fn main() -> Result<(), Infallible> {
         .build();
     let mut window = Window::new("Interactive TextBox input demonstration", &output_settings);
 
-    // Text buffer. The contents of this string will be modified while typing.
-    let mut text = String::from("Hello, world!");
-
     let character_style = MonoTextStyleBuilder::new()
         .font(&FONT_6X10)
         .text_color(BinaryColor::Off)
@@ -106,6 +141,7 @@ fn main() -> Result<(), Infallible> {
         .build();
 
     let textbox_style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Scrolling);
+    let mut input = EditorInput::new("Hello, World!");
 
     'demo: loop {
         // Create a simulated display with the dimensions of the text box.
@@ -114,7 +150,7 @@ fn main() -> Result<(), Infallible> {
         // Display an underscore for the "cursor"
         // Create the text box and apply styling options.
         TextBox::with_textbox_style(
-            &format!("{}\u{200b}_", text),
+            &input.text,
             display.bounding_box(),
             character_style,
             textbox_style,
@@ -131,11 +167,17 @@ fn main() -> Result<(), Infallible> {
                     keycode, keymod, ..
                 } => match keycode {
                     Keycode::Backspace => {
-                        text.pop();
+                        input.delete_one();
+                    }
+                    Keycode::Left => {
+                        input.cursor_left();
+                    }
+                    Keycode::Right => {
+                        input.cursor_right();
                     }
                     _ => {
                         if let Some(k) = inputs.get(&keycode) {
-                            text += k.select_modified(keymod);
+                            input.insert(k.select_modified(keymod));
                         }
                     }
                 },
