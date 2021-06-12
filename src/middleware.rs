@@ -58,6 +58,7 @@ pub trait Middleware<'a>: Clone {
         _draw_target: &mut D,
         _character_style: &T,
         _width: u32,
+        _space_count: u32,
         _bounds: Rectangle,
     ) -> Result<(), D::Error>
     where

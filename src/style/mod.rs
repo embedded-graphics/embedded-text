@@ -283,7 +283,7 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, _count: u32, width: u32) -> Result<(), Self::Error> {
         self.pos += width;
         Ok(())
     }

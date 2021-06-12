@@ -8,11 +8,15 @@ use embedded_graphics::{
     mono_font::{iso_8859_2::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
+    primitives::Rectangle,
+    text::renderer::TextRenderer,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-use embedded_text::{alignment::VerticalAlignment, style::TextBoxStyle, TextBox};
+use embedded_text::{
+    alignment::VerticalAlignment, middleware::Middleware, style::TextBoxStyle, TextBox,
+};
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, convert::Infallible, thread, time::Duration};
 
@@ -73,6 +77,37 @@ impl EditorInput {
         if self.cursor_offset < self.text.len() {
             self.cursor_offset += 1;
         }
+    }
+}
+
+impl<'a> Middleware<'a> for EditorInput {
+    fn post_render_text<T, D>(
+        &mut self,
+        _draw_target: &mut D,
+        _character_style: &T,
+        _text: &str,
+        _bounds: Rectangle,
+    ) -> Result<(), D::Error>
+    where
+        T: TextRenderer,
+        D: DrawTarget<Color = T::Color>,
+    {
+        Ok(())
+    }
+
+    fn post_render_whitespace<T, D>(
+        &mut self,
+        _draw_target: &mut D,
+        _character_style: &T,
+        _width: u32,
+        _count: u32,
+        _bounds: Rectangle,
+    ) -> Result<(), D::Error>
+    where
+        T: TextRenderer,
+        D: DrawTarget<Color = T::Color>,
+    {
+        Ok(())
     }
 }
 
@@ -155,6 +190,7 @@ fn main() -> Result<(), Infallible> {
             character_style,
             textbox_style,
         )
+        .add_middleware(&input)
         .draw(&mut display)?;
 
         // Update the window.

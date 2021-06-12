@@ -94,7 +94,7 @@ where
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, space_count:u32, width: u32) -> Result<(), Self::Error> {
         let top_left = self.pos;
         self.pos = self
             .style
@@ -106,7 +106,7 @@ where
         self.middleware
             .middleware
             .borrow_mut()
-            .post_render_whitespace(self.display, self.style, width, bounds)?;
+            .post_render_whitespace(self.display, self.style, width, space_count, bounds)?;
 
         Ok(())
     }
