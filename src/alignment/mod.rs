@@ -30,15 +30,6 @@ pub enum HorizontalAlignment {
 }
 
 impl HorizontalAlignment {
-    pub(crate) fn ignores_leading_spaces(self) -> bool {
-        match self {
-            HorizontalAlignment::Left => false,
-            HorizontalAlignment::Center => true,
-            HorizontalAlignment::Right => true,
-            HorizontalAlignment::Justified => true,
-        }
-    }
-
     /// Calculate offset from the left side and whitespace information.
     pub(crate) fn place_line(
         self,
@@ -120,7 +111,7 @@ impl VerticalAlignment {
         styled_text_box: &TextBox<'a, S, M>,
     ) where
         S: TextRenderer,
-        M: Middleware<'a>,
+        M: Middleware<'a, S::Color>,
     {
         let text_height = styled_text_box
             .style

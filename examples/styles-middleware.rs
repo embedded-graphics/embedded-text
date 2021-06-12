@@ -57,7 +57,10 @@ impl<'a> Underliner<'a> {
     }
 }
 
-impl<'a> Middleware<'a> for Underliner<'a> {
+impl<'a, C> Middleware<'a, C> for Underliner<'a>
+where
+    C: PixelColor,
+{
     fn next_token_to_measure(
         &mut self,
         next_token: &mut impl Iterator<Item = Token<'a>>,

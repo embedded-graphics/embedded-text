@@ -29,33 +29,32 @@ use super::ansi::Sgr;
 use super::{line_iter::ElementHandler, space_config::SpaceConfig};
 
 /// Render a single line of styled text.
-#[derive(Debug)]
 pub(crate) struct StyledLineRenderer<'a, S, M>
 where
-    S: Clone,
-    M: Middleware<'a>,
+    S: TextRenderer + Clone,
+    M: Middleware<'a, <S as TextRenderer>::Color>,
 {
     cursor: LineCursor,
     state: LineRenderState<'a, S, M>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct LineRenderState<'a, S, M>
 where
-    S: Clone,
-    M: Middleware<'a>,
+    S: TextRenderer + Clone,
+    M: Middleware<'a, S::Color>,
 {
     pub parser: Parser<'a>,
     pub character_style: S,
     pub style: TextBoxStyle,
     pub end_type: LineEndType,
-    pub middleware: MiddlewareWrapper<M>,
+    pub middleware: MiddlewareWrapper<M, S::Color>,
 }
 
 impl<'a, S, M> LineRenderState<'a, S, M>
 where
-    S: Clone,
-    M: Middleware<'a>,
+    S: TextRenderer + Clone,
+    M: Middleware<'a, S::Color>,
 {
     pub fn is_finished(&self) -> bool {
         self.parser.is_empty()
@@ -66,7 +65,7 @@ impl<'a, F, M> StyledLineRenderer<'a, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
-    M: Middleware<'a>,
+    M: Middleware<'a, <F as TextRenderer>::Color>,
 {
     /// Creates a new line renderer.
     pub fn new(cursor: LineCursor, state: LineRenderState<'a, F, M>) -> Self {
@@ -74,11 +73,15 @@ where
     }
 }
 
-struct RenderElementHandler<'a, F, D, M> {
+struct RenderElementHandler<'a, F, D, M>
+where
+    F: TextRenderer,
+    D: DrawTarget<Color = F::Color>,
+{
     style: &'a mut F,
     display: &'a mut D,
     pos: Point,
-    middleware: &'a MiddlewareWrapper<M>,
+    middleware: &'a MiddlewareWrapper<M, F::Color>,
 }
 
 impl<'a, 'b, F, D, M> ElementHandler for RenderElementHandler<'a, F, D, M>
@@ -86,7 +89,7 @@ where
     F: CharacterStyle + TextRenderer,
     <F as CharacterStyle>::Color: From<Rgb888>,
     D: DrawTarget<Color = <F as TextRenderer>::Color>,
-    M: Middleware<'b>,
+    M: Middleware<'b, <F as TextRenderer>::Color>,
 {
     type Error = D::Error;
 
@@ -94,7 +97,7 @@ where
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, space_count:u32, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, space_count: u32, width: u32) -> Result<(), Self::Error> {
         let top_left = self.pos;
         self.pos = self
             .style
@@ -169,7 +172,7 @@ impl<'a, F, M> Drawable for StyledLineRenderer<'a, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
-    M: Middleware<'a>,
+    M: Middleware<'a, <F as TextRenderer>::Color> + Middleware<'a, <F as CharacterStyle>::Color>,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = LineRenderState<'a, F, M>;
@@ -331,7 +334,7 @@ mod test {
             TabSize::Spaces(4).into_pixels(&character_style),
         );
 
-        let middleware = MiddlewareWrapper::new(NoMiddleware);
+        let middleware = MiddlewareWrapper::new(NoMiddleware::new());
 
         let state = LineRenderState {
             parser,
@@ -507,7 +510,7 @@ mod ansi_parser_tests {
             TabSize::Spaces(4).into_pixels(&character_style),
         );
 
-        let middleware = MiddlewareWrapper::new(NoMiddleware);
+        let middleware = MiddlewareWrapper::new(NoMiddleware::new());
         let state = LineRenderState {
             parser,
             character_style,

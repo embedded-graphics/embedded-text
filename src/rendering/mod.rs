@@ -30,7 +30,7 @@ impl<'a, F, M> Drawable for TextBox<'a, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
-    M: Middleware<'a>,
+    M: Middleware<'a, <F as TextRenderer>::Color> + Middleware<'a, <F as CharacterStyle>::Color>,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = &'a str;
@@ -62,8 +62,9 @@ where
         cursor.y += self.vertical_offset;
 
         state.middleware.set_state(ProcessingState::Render);
+
         let mut anything_drawn = false;
-        while !state.is_finished() {
+        loop {
             let line_cursor = cursor.line();
 
             let display_range = self
@@ -91,6 +92,12 @@ where
                 line_cursor.pos() + Point::new(0, display_range.start),
                 display_size,
             ));
+            state.middleware.middleware.borrow_mut().post_line_start(
+                &mut display,
+                &self.character_style,
+                line_cursor.pos(),
+            )?;
+
             state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
 
             if state.end_type != LineEndType::CarriageReturn {
@@ -101,6 +108,10 @@ where
                 }
 
                 state.middleware.new_line();
+            }
+
+            if state.is_finished() {
+                break;
             }
         }
 

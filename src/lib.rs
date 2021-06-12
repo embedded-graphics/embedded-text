@@ -145,7 +145,10 @@ pub use parser::Token;
 /// [`draw`]: #method.draw
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 #[must_use]
-pub struct TextBox<'a, S, M = NoMiddleware> {
+pub struct TextBox<'a, S, M = NoMiddleware<<S as TextRenderer>::Color>>
+where
+    S: TextRenderer,
+{
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
 
@@ -161,10 +164,10 @@ pub struct TextBox<'a, S, M = NoMiddleware> {
     /// Vertical offset applied to the text just before rendering.
     pub vertical_offset: i32,
 
-    middleware: MiddlewareWrapper<M>,
+    middleware: MiddlewareWrapper<M, S::Color>,
 }
 
-impl<'a, S> TextBox<'a, S, NoMiddleware>
+impl<'a, S> TextBox<'a, S, NoMiddleware<<S as TextRenderer>::Color>>
 where
     S: TextRenderer + CharacterStyle,
 {
@@ -188,7 +191,7 @@ where
             character_style,
             style: textbox_style,
             vertical_offset: 0,
-            middleware: MiddlewareWrapper::new(NoMiddleware),
+            middleware: MiddlewareWrapper::new(NoMiddleware::new()),
         };
 
         styled.style.height_mode.apply(&mut styled);
@@ -240,7 +243,7 @@ where
     #[inline]
     pub fn add_middleware<M>(self, middleware: M) -> TextBox<'a, S, M>
     where
-        M: Middleware<'a>,
+        M: Middleware<'a, <S as TextRenderer>::Color>,
     {
         let mut textbox = TextBox {
             text: self.text,
@@ -256,9 +259,10 @@ where
     }
 }
 
-impl<S, M> Transform for TextBox<'_, S, M>
+impl<'a, S, M> Transform for TextBox<'a, S, M>
 where
-    Self: Clone,
+    S: TextRenderer + Clone,
+    M: Middleware<'a, S::Color>,
 {
     #[inline]
     fn translate(&self, by: Point) -> Self {
@@ -276,16 +280,21 @@ where
     }
 }
 
-impl<S, M> Dimensions for TextBox<'_, S, M> {
+impl<'a, S, M> Dimensions for TextBox<'a, S, M>
+where
+    S: TextRenderer,
+    M: Middleware<'a, S::Color>,
+{
     #[inline]
     fn bounding_box(&self) -> Rectangle {
         self.bounds
     }
 }
 
-impl<S, M> TextBox<'_, S, M>
+impl<'a, S, M> TextBox<'a, S, M>
 where
     S: TextRenderer,
+    M: Middleware<'a, S::Color>,
 {
     /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]

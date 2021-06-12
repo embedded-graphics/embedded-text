@@ -61,7 +61,10 @@ impl CharacterLimiter {
     }
 }
 
-impl<'a> Middleware<'a> for CharacterLimiter {
+impl<'a, C> Middleware<'a, C> for CharacterLimiter
+where
+    C: PixelColor,
+{
     fn new_line(&mut self) {
         if self.measured > self.characters {
             self.last_line_processed = true;

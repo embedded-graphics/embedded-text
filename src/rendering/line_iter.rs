@@ -10,6 +10,7 @@ use crate::{
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
 use az::{SaturatingAs, SaturatingCast};
+use embedded_graphics::prelude::PixelColor;
 
 #[cfg(feature = "ansi")]
 use super::ansi::{try_parse_sgr, Sgr};
@@ -21,7 +22,7 @@ use as_slice::AsSlice;
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
 #[must_use]
-pub(crate) struct LineElementParser<'a, 'b, M> {
+pub(crate) struct LineElementParser<'a, 'b, M, C> {
     lookahead: Parser<'a>,
 
     /// Position information.
@@ -33,7 +34,7 @@ pub(crate) struct LineElementParser<'a, 'b, M> {
     spaces: SpaceConfig,
     alignment: HorizontalAlignment,
     empty: bool,
-    middleware: &'b MiddlewareWrapper<M>,
+    middleware: &'b MiddlewareWrapper<M, C>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,15 +73,16 @@ pub trait ElementHandler {
     }
 }
 
-impl<'a, 'b, M> LineElementParser<'a, 'b, M>
+impl<'a, 'b, M, C> LineElementParser<'a, 'b, M, C>
 where
-    M: Middleware<'a>,
+    C: PixelColor,
+    M: Middleware<'a, C>,
 {
     /// Creates a new element parser.
     #[inline]
     pub fn new(
         parser: &'b mut Parser<'a>,
-        middleware: &'b MiddlewareWrapper<M>,
+        middleware: &'b MiddlewareWrapper<M, C>,
         cursor: LineCursor,
         spaces: SpaceConfig,
         alignment: HorizontalAlignment,
@@ -95,12 +97,7 @@ where
             middleware,
         }
     }
-}
 
-impl<'a, M> LineElementParser<'a, '_, M>
-where
-    M: Middleware<'a>,
-{
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
         let mut width = None;
         let mut lookahead = self.lookahead.clone();
@@ -197,6 +194,21 @@ where
         true
     }
 
+    fn render_trailing_spaces(&self) -> bool {
+        // TODO: make this configurable
+        false
+    }
+
+    fn render_leading_spaces(&self) -> bool {
+        // TODO: make this configurable
+        match self.alignment {
+            HorizontalAlignment::Left => true,
+            HorizontalAlignment::Center => false,
+            HorizontalAlignment::Right => false,
+            HorizontalAlignment::Justified => false,
+        }
+    }
+
     fn draw_whitespace<E: ElementHandler>(
         &mut self,
         handler: &mut E,
@@ -204,10 +216,12 @@ where
         space_count: u32,
         space_width: u32,
     ) -> Result<(), E::Error> {
-        if self.empty && self.alignment.ignores_leading_spaces() {
+        if self.empty && !self.render_leading_spaces() {
             return Ok(());
         }
-        let draw_whitespace = self.empty || self.next_word_fits(handler);
+        let draw_whitespace = (self.empty && self.render_leading_spaces())
+            || self.render_trailing_spaces()
+            || self.next_word_fits(handler);
         match self.move_cursor(space_width.saturating_cast()) {
             Ok(moved) if draw_whitespace => {
                 handler.whitespace(space_count, moved.saturating_as())?;
@@ -218,7 +232,11 @@ where
             }
 
             Err(moved) => {
-                handler.move_cursor(moved)?;
+                let single = space_width / space_count;
+                let consumed = moved as u32 / single;
+                if consumed > 0 {
+                    handler.whitespace(consumed, consumed * single)?;
+                }
                 self.consume_str(string);
             }
         }
@@ -230,11 +248,13 @@ where
         handler: &mut E,
         space_width: u32,
     ) -> Result<(), E::Error> {
-        if self.empty && self.alignment.ignores_leading_spaces() {
+        if self.empty && !self.render_leading_spaces() {
             return Ok(());
         }
 
-        let draw_whitespace = self.empty || self.next_word_fits(handler);
+        let draw_whitespace = (self.empty && self.render_leading_spaces())
+            || self.render_trailing_spaces()
+            || self.next_word_fits(handler);
 
         match self.move_cursor(space_width.saturating_cast()) {
             Ok(moved) if draw_whitespace => handler.whitespace(1, moved.saturating_as())?,
@@ -520,7 +540,7 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut mw = MiddlewareWrapper::new(NoMiddleware);
+        let mut mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
         let mut line1 =
             LineElementParser::new(parser, &mut mw, cursor, config, HorizontalAlignment::Left);
 
@@ -545,7 +565,7 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut mw = MiddlewareWrapper::new(NoMiddleware);
+        let mut mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
         let mut line1 = LineElementParser::new(
             &mut parser,
             &mut mw,
@@ -626,7 +646,6 @@ mod test {
                 RenderElement::string("d", 6),
                 RenderElement::Space(6),
                 RenderElement::string("e", 6),
-                RenderElement::MoveCursor(0),
             ],
         );
         assert_line_elements(&mut parser, 5, &[RenderElement::string("f", 6)]);

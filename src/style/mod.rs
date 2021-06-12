@@ -314,14 +314,14 @@ impl TextBoxStyle {
     #[inline]
     pub(crate) fn measure_line<'a, S, M>(
         &self,
-        middleware: &mut MiddlewareWrapper<M>,
+        middleware: &mut MiddlewareWrapper<M, S::Color>,
         character_style: &S,
         parser: &mut Parser<'a>,
         max_line_width: u32,
     ) -> LineMeasurement
     where
         S: TextRenderer,
-        M: Middleware<'a>,
+        M: Middleware<'a, S::Color>,
     {
         let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
@@ -390,20 +390,20 @@ impl TextBoxStyle {
     where
         S: TextRenderer,
     {
-        let middleware = MiddlewareWrapper::new(NoMiddleware);
+        let middleware = MiddlewareWrapper::new(NoMiddleware::new());
         self.measure_text_height_impl(middleware, character_style, text, max_width)
     }
 
     pub(crate) fn measure_text_height_impl<'a, S, M>(
         &self,
-        mut middleware: MiddlewareWrapper<M>,
+        mut middleware: MiddlewareWrapper<M, S::Color>,
         character_style: &S,
         text: &'a str,
         max_width: u32,
     ) -> u32
     where
         S: TextRenderer,
-        M: Middleware<'a>,
+        M: Middleware<'a, S::Color>,
     {
         let mut parser = Parser::parse(text);
         let mut closed_paragraphs: u32 = 0;
@@ -558,7 +558,7 @@ mod test {
 
         let mut text = Parser::parse("123 45 67");
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
         let lm = style.measure_line(
             &mut middleware,
             &character_style,
@@ -582,7 +582,7 @@ mod test {
 
         let mut text = Parser::parse("123\x1b[2D");
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
         let lm = style.measure_line(
             &mut middleware,
             &character_style,
@@ -595,7 +595,7 @@ mod test {
         // continuation after rewind extends the line.
         let mut text = Parser::parse("123\x1b[2D456");
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
         let lm = style.measure_line(
             &mut middleware,
             &character_style,
@@ -618,7 +618,7 @@ mod test {
 
         let mut text = Parser::parse("123\u{A0}45");
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
         let lm = style.measure_line(
             &mut middleware,
             &character_style,
@@ -686,7 +686,7 @@ mod test {
             .line_height(LineHeight::Pixels(11))
             .build();
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware);
+        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
         let lm = style.measure_line(
             &mut middleware,
             &character_style,

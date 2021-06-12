@@ -1,6 +1,11 @@
 Unreleased
 ==========
 
+## Added:
+
+ * [#114](https://github.com/embedded-graphics/embedded-text/pull/114) Option to control rendering leading and trailing whitespace.
+ * [#114](https://github.com/embedded-graphics/embedded-text/pull/114) Added experimental middleware support via the `middleware` Cargo feature. Middleware can be used to modify `TextBox` behaviour.
+
 ## Changed:
 
  * **breaking** [#125](https://github.com/embedded-graphics/embedded-text/pull/125) Chaneged how text height is measured.
@@ -45,7 +50,6 @@ Unreleased
 
 ## Added
 
- * Added experimental middleware support via the `middleware` Cargo feature. Middleware can be used to modify `TextBox` behaviour.
  * Added `TextBox::vertical_offset` and `TextBox::set_vertical_offset`.
  * Added `TextBoxStyle::paragraph_spacing` and `TextBoxStyleBuilder::paragraph_spacing`.
  * Added `From<&TextBoxStyle>` impl for `TextBoxStyleBuilder`

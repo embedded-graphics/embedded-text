@@ -5,11 +5,12 @@
 //! The demo uses the "Scrolling" vertical layout which is especially useful for
 //! editor type applications.
 use embedded_graphics::{
+    geometry::AnchorPoint,
     mono_font::{iso_8859_2::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::Rectangle,
-    text::renderer::TextRenderer,
+    primitives::{Line, PrimitiveStyle, Rectangle},
+    text::{renderer::TextRenderer, Baseline},
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
@@ -19,6 +20,24 @@ use embedded_text::{
 };
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, convert::Infallible, thread, time::Duration};
+
+trait StrExt {
+    fn first_n_chars<'a>(&'a self, n: usize) -> &'a str;
+}
+
+impl StrExt for str {
+    fn first_n_chars<'a>(&'a self, n: usize) -> &'a str {
+        if let Some((i, (idx, _))) = self.char_indices().enumerate().take(n + 1).last() {
+            if i < n as usize {
+                self
+            } else {
+                &self[0..idx]
+            }
+        } else {
+            self
+        }
+    }
+}
 
 trait Selector {
     /// Select inserted characters based on key modifiers.
@@ -60,9 +79,15 @@ impl EditorInput {
         self.cursor_offset += s.len();
     }
 
-    pub fn delete_one(&mut self) {
+    pub fn delete_before(&mut self) {
         if self.cursor_offset > 0 {
             self.cursor_offset -= 1;
+            self.text.remove(self.cursor_offset);
+        }
+    }
+
+    pub fn delete_after(&mut self) {
+        if self.cursor_offset > 0 && self.cursor_offset < self.text.chars().count() {
             self.text.remove(self.cursor_offset);
         }
     }
@@ -78,35 +103,119 @@ impl EditorInput {
             self.cursor_offset += 1;
         }
     }
+
+    pub fn cursor_middleware<C: PixelColor>(&self, color: C) -> EditorMiddleware<C> {
+        EditorMiddleware {
+            current_offset: 0,
+            cursor_offset: self.cursor_offset,
+            color,
+            cursor_drawn: false,
+        }
+    }
 }
 
-impl<'a> Middleware<'a> for EditorInput {
-    fn post_render_text<T, D>(
-        &mut self,
-        _draw_target: &mut D,
-        _character_style: &T,
-        _text: &str,
-        _bounds: Rectangle,
+#[derive(Clone, Copy)]
+struct EditorMiddleware<C> {
+    current_offset: usize,
+    cursor_offset: usize,
+    color: C,
+    cursor_drawn: bool,
+}
+
+impl<C: PixelColor> EditorMiddleware<C> {
+    fn draw_cursor<D>(
+        &self,
+        draw_target: &mut D,
+        bounds: Rectangle,
+        pos: Point,
     ) -> Result<(), D::Error>
     where
-        T: TextRenderer,
+        D: DrawTarget<Color = C>,
+    {
+        let style = PrimitiveStyle::with_stroke(self.color, 1);
+        Line::new(
+            pos + Point::new(0, 1),
+            pos + Point::new(0, bounds.size.height as i32 - 1),
+        )
+        .into_styled(style)
+        .draw(draw_target)
+    }
+}
+
+impl<'a, C: PixelColor> Middleware<'a, C> for EditorMiddleware<C> {
+    fn post_render_text<T, D>(
+        &mut self,
+        draw_target: &mut D,
+        character_style: &T,
+        text: &str,
+        bounds: Rectangle,
+    ) -> Result<(), D::Error>
+    where
+        T: TextRenderer<Color = C>,
         D: DrawTarget<Color = T::Color>,
     {
+        let len = text.chars().count();
+        if self.cursor_offset >= self.current_offset
+            && self.cursor_offset <= self.current_offset + len
+            && !self.cursor_drawn
+        {
+            let chars_before = self.cursor_offset - self.current_offset;
+            let str_before = text.first_n_chars(chars_before);
+            let metrics =
+                character_style.measure_string(str_before, bounds.top_left, Baseline::Top);
+            let pos = metrics.bounding_box.anchor_point(AnchorPoint::TopRight);
+            self.draw_cursor(draw_target, bounds, pos)?;
+            self.cursor_drawn = true;
+        }
+        self.current_offset += len;
         Ok(())
     }
 
     fn post_render_whitespace<T, D>(
         &mut self,
-        _draw_target: &mut D,
+        draw_target: &mut D,
         _character_style: &T,
-        _width: u32,
-        _count: u32,
-        _bounds: Rectangle,
+        width: u32,
+        count: u32,
+        bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
-        T: TextRenderer,
+        T: TextRenderer<Color = C>,
         D: DrawTarget<Color = T::Color>,
     {
+        let count = count as usize;
+
+        if self.cursor_offset >= self.current_offset
+            && self.cursor_offset <= self.current_offset + count
+            && !self.cursor_drawn
+        {
+            let chars_before = self.cursor_offset - self.current_offset;
+
+            let pos =
+                bounds.top_left + Point::new(((width as usize / count) * chars_before) as i32, 0);
+            self.draw_cursor(draw_target, bounds, pos)?;
+            self.cursor_drawn = true;
+        }
+        self.current_offset += count;
+        Ok(())
+    }
+
+    fn post_line_start<T, D>(
+        &mut self,
+        draw_target: &mut D,
+        character_style: &T,
+        pos: Point,
+    ) -> Result<(), D::Error>
+    where
+        T: TextRenderer<Color = C>,
+        D: DrawTarget<Color = C>,
+    {
+        if self.cursor_offset == self.current_offset && !self.cursor_drawn {
+            let rect = Rectangle::new(Point::zero(), Size::new(0, character_style.line_height()));
+            self.draw_cursor(draw_target, rect, pos)?;
+            self.cursor_drawn = true;
+        }
+
         Ok(())
     }
 }
@@ -171,8 +280,7 @@ fn main() -> Result<(), Infallible> {
 
     let character_style = MonoTextStyleBuilder::new()
         .font(&FONT_6X10)
-        .text_color(BinaryColor::Off)
-        .background_color(BinaryColor::On)
+        .text_color(BinaryColor::On)
         .build();
 
     let textbox_style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Scrolling);
@@ -190,7 +298,7 @@ fn main() -> Result<(), Infallible> {
             character_style,
             textbox_style,
         )
-        .add_middleware(&input)
+        .add_middleware(input.cursor_middleware(BinaryColor::On))
         .draw(&mut display)?;
 
         // Update the window.
@@ -202,15 +310,13 @@ fn main() -> Result<(), Infallible> {
                 SimulatorEvent::KeyDown {
                     keycode, keymod, ..
                 } => match keycode {
-                    Keycode::Backspace => {
-                        input.delete_one();
-                    }
-                    Keycode::Left => {
-                        input.cursor_left();
-                    }
-                    Keycode::Right => {
-                        input.cursor_right();
-                    }
+                    Keycode::Backspace => input.delete_before(),
+
+                    Keycode::Delete => input.delete_after(),
+                    Keycode::Left => input.cursor_left(),
+
+                    Keycode::Right => input.cursor_right(),
+
                     _ => {
                         if let Some(k) = inputs.get(&keycode) {
                             input.insert(k.select_modified(keymod));

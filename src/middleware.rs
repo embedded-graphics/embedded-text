@@ -3,9 +3,13 @@
 use core::{
     cell::{Cell, RefCell},
     hash::{Hash, Hasher},
+    marker::PhantomData,
 };
 use embedded_graphics::{
-    draw_target::DrawTarget, primitives::Rectangle, text::renderer::TextRenderer,
+    draw_target::DrawTarget,
+    prelude::{PixelColor, Point},
+    primitives::Rectangle,
+    text::renderer::TextRenderer,
 };
 
 use crate::parser::Token;
@@ -16,7 +20,10 @@ pub(crate) enum ProcessingState {
     Render,
 }
 
-pub trait Middleware<'a>: Clone {
+pub trait Middleware<'a, C>: Clone
+where
+    C: PixelColor,
+{
     /// Called when a new line is started.
     #[inline]
     fn new_line(&mut self) {}
@@ -46,8 +53,22 @@ pub trait Middleware<'a>: Clone {
         _bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
-        T: TextRenderer,
-        D: DrawTarget<Color = T::Color>,
+        T: TextRenderer<Color = C>,
+        D: DrawTarget<Color = C>,
+    {
+        Ok(())
+    }
+
+    #[inline]
+    fn post_line_start<T, D>(
+        &mut self,
+        _draw_target: &mut D,
+        _character_style: &T,
+        _pos: Point,
+    ) -> Result<(), D::Error>
+    where
+        T: TextRenderer<Color = C>,
+        D: DrawTarget<Color = C>,
     {
         Ok(())
     }
@@ -62,35 +83,45 @@ pub trait Middleware<'a>: Clone {
         _bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
-        T: TextRenderer,
-        D: DrawTarget<Color = T::Color>,
+        T: TextRenderer<Color = C>,
+        D: DrawTarget<Color = C>,
     {
         Ok(())
     }
 }
 
 #[derive(Clone, Copy)]
-pub struct NoMiddleware;
-impl<'a> Middleware<'a> for NoMiddleware {}
+pub struct NoMiddleware<C>(PhantomData<C>);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct MiddlewareWrapper<M> {
-    pub middleware: RefCell<M>,
-    state: Cell<ProcessingState>,
+impl<C> NoMiddleware<C> {
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
 }
 
-impl<M> Hash for MiddlewareWrapper<M> {
+impl<'a, C> Middleware<'a, C> for NoMiddleware<C> where C: PixelColor {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct MiddlewareWrapper<M, C> {
+    pub middleware: RefCell<M>,
+    state: Cell<ProcessingState>,
+    _marker: PhantomData<C>,
+}
+
+impl<M, C> Hash for MiddlewareWrapper<M, C> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.state.get().hash(state)
     }
 }
 
-impl<'a, M> MiddlewareWrapper<M>
+impl<'a, M, C> MiddlewareWrapper<M, C>
 where
-    M: Middleware<'a>,
+    C: PixelColor,
+    M: Middleware<'a, C>,
 {
     pub fn new(middleware: M) -> Self {
         Self {
+            _marker: PhantomData,
             middleware: RefCell::new(middleware),
             state: Cell::new(ProcessingState::Measure),
         }
