@@ -7,7 +7,7 @@ pub(crate) mod line_iter;
 pub(crate) mod space_config;
 
 use crate::{
-    parser::{Parser, Token},
+    parser::Parser,
     rendering::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
@@ -23,6 +23,7 @@ use embedded_graphics::{
     text::renderer::{CharacterStyle, TextRenderer},
     Drawable,
 };
+use line_iter::LineEndType;
 
 impl<'a, F> Drawable for TextBox<'a, F>
 where
@@ -52,7 +53,7 @@ where
             style: self.style,
             character_style: self.character_style.clone(),
             parser: Parser::parse(self.text),
-            carried_token: None,
+            end_type: LineEndType::EndOfText,
         };
 
         cursor.y += self.vertical_offset;
@@ -71,14 +72,8 @@ where
 
             if display_range.start == display_range.end {
                 if anything_drawn {
-                    let carried_bytes = if let Some(Token::Word(word)) = state.carried_token {
-                        word.len()
-                    } else {
-                        0
-                    };
-
                     let remaining_bytes = state.parser.as_str().len();
-                    let consumed_bytes = self.text.len() - remaining_bytes - carried_bytes;
+                    let consumed_bytes = self.text.len() - remaining_bytes;
                     return Ok(self.text.get(consumed_bytes..).unwrap());
                 }
             } else {
@@ -93,10 +88,10 @@ where
             ));
             state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
 
-            if state.carried_token != Some(Token::CarriageReturn) {
+            if state.end_type != LineEndType::CarriageReturn {
                 cursor.new_line();
 
-                if state.carried_token == Some(Token::NewLine) {
+                if state.end_type == LineEndType::NewLine {
                     cursor.y += self.style.paragraph_spacing.saturating_as::<i32>();
                 }
             }

@@ -143,10 +143,10 @@ use core::convert::Infallible;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    parser::{Parser, Token},
+    parser::Parser,
     rendering::{
         cursor::LineCursor,
-        line_iter::{ElementHandler, LineElementParser},
+        line_iter::{ElementHandler, LineElementParser, LineEndType},
         space_config::SpaceConfig,
     },
     utils::str_width,
@@ -263,6 +263,9 @@ pub struct LineMeasurement {
 
     /// Whether this line is the last line of a paragraph.
     pub last_line: bool,
+
+    /// Whether this line ended with a \r.
+    pub line_end_type: LineEndType,
 }
 
 struct MeasureLineElementHandler<'a, S> {
@@ -312,7 +315,6 @@ impl TextBoxStyle {
         &self,
         character_style: &S,
         parser: &mut Parser<'a>,
-        carried_token: &mut Option<Token<'a>>,
         max_line_width: u32,
     ) -> LineMeasurement
     where
@@ -324,7 +326,6 @@ impl TextBoxStyle {
             parser,
             cursor,
             SpaceConfig::new(str_width(character_style, " "), None),
-            carried_token.clone(),
             self.alignment,
         );
 
@@ -334,12 +335,13 @@ impl TextBoxStyle {
             pos: 0,
             max_line_width,
         };
-        *carried_token = iter.process(&mut handler).unwrap();
+        let last_token = iter.process(&mut handler).unwrap();
 
         LineMeasurement {
             max_line_width,
             width: handler.right,
-            last_line: carried_token.is_none() || *carried_token == Some(Token::NewLine),
+            last_line: last_token == LineEndType::NewLine || parser.is_empty(),
+            line_end_type: last_token,
         }
     }
 
@@ -384,29 +386,30 @@ impl TextBoxStyle {
     where
         S: TextRenderer,
     {
-        let mut n_lines = 0_u32;
         let mut parser = Parser::parse(text);
-        let mut carry = None;
         let mut closed_paragraphs: u32 = 0;
         let line_height = self.line_height.to_absolute(character_style.line_height());
         let last_line_height = character_style.line_height();
+        let mut height = last_line_height;
         let mut paragraph_ended = false;
 
         loop {
-            let _ = self.measure_line(character_style, &mut parser, &mut carry, max_width);
+            let lm = self.measure_line(character_style, &mut parser, max_width);
 
             if paragraph_ended {
                 closed_paragraphs += 1;
             }
-            paragraph_ended = carry == Some(Token::NewLine);
-            if carry != Some(Token::CarriageReturn) {
-                n_lines += 1;
+            paragraph_ended = lm.last_line;
+            match lm.line_end_type {
+                LineEndType::CarriageReturn => {}
+                LineEndType::EndOfText => {}
+                LineEndType::LineBreak | LineEndType::NewLine => {
+                    height += line_height;
+                }
             }
 
-            if parser.is_empty() && (carry.is_none() || carry == Some(Token::Break(None))) {
-                return n_lines.saturating_sub(1) * line_height
-                    + last_line_height
-                    + closed_paragraphs * self.paragraph_spacing;
+            if parser.is_empty() {
+                return height + closed_paragraphs * self.paragraph_spacing;
             }
         }
     }
@@ -531,7 +534,6 @@ mod test {
         let lm = style.measure_line(
             &character_style,
             &mut text,
-            &mut None,
             6 * FONT_6X9.character_size.width,
         );
         assert_eq!(lm.width, 6 * FONT_6X9.character_size.width);
@@ -554,7 +556,6 @@ mod test {
         let lm = style.measure_line(
             &character_style,
             &mut text,
-            &mut None,
             5 * FONT_6X9.character_size.width,
         );
         assert_eq!(lm.width, 3 * FONT_6X9.character_size.width);
@@ -566,7 +567,6 @@ mod test {
         let lm = style.measure_line(
             &character_style,
             &mut text,
-            &mut None,
             5 * FONT_6X9.character_size.width,
         );
         assert_eq!(lm.width, 4 * FONT_6X9.character_size.width);
@@ -588,7 +588,6 @@ mod test {
         let lm = style.measure_line(
             &character_style,
             &mut text,
-            &mut None,
             5 * FONT_6X9.character_size.width,
         );
         assert_eq!(lm.width, 5 * FONT_6X9.character_size.width);
@@ -652,12 +651,7 @@ mod test {
             .line_height(LineHeight::Pixels(11))
             .build();
 
-        let lm = style.measure_line(
-            &character_style,
-            &mut Parser::parse("soft\u{AD}hyphen"),
-            &mut None,
-            50,
-        );
+        let lm = style.measure_line(&character_style, &mut Parser::parse("soft\u{AD}hyphen"), 50);
 
         assert_eq!(lm.width, 30);
     }

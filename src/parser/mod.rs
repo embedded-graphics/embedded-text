@@ -39,7 +39,7 @@ pub enum Token<'a> {
     Word(&'a str),
 
     /// A possible wrapping point
-    Break(Option<&'static str>),
+    Break(Option<&'a str>),
 
     /// An ANSI escape sequence
     #[cfg(feature = "ansi")]
@@ -92,6 +92,11 @@ impl<'a> Parser<'a> {
 
     pub fn as_str(&self) -> &str {
         self.inner.as_str()
+    }
+
+    pub unsafe fn consume(&mut self, bytes: usize) {
+        // SAFETY: caller needs to make sure we end up on character boundary
+        self.inner = self.inner.as_str().get_unchecked(bytes..).chars();
     }
 }
 
