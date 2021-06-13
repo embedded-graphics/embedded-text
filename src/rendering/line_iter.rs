@@ -21,16 +21,25 @@ use as_slice::AsSlice;
 #[derive(Debug)]
 #[must_use]
 pub struct LineElementParser<'a, 'b> {
+    lookahead: Parser<'a>,
+
     /// Position information.
     cursor: LineCursor,
 
     /// The text to draw.
     parser: &'b mut Parser<'a>,
 
-    first_token: Option<Token<'a>>,
     spaces: SpaceConfig,
     alignment: HorizontalAlignment,
     empty: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LineEndType {
+    NewLine,
+    CarriageReturn,
+    EndOfText,
+    LineBreak,
 }
 
 pub trait ElementHandler {
@@ -68,15 +77,11 @@ impl<'a, 'b> LineElementParser<'a, 'b> {
         parser: &'b mut Parser<'a>,
         cursor: LineCursor,
         spaces: SpaceConfig,
-        carried_token: Option<Token<'a>>,
         alignment: HorizontalAlignment,
     ) -> Self {
-        let first_token = carried_token
-            .filter(|t| ![Token::NewLine, Token::CarriageReturn, Token::Break(None)].contains(t));
-
         Self {
+            lookahead: parser.clone(),
             parser,
-            first_token,
             spaces,
             cursor,
             alignment,
@@ -88,7 +93,7 @@ impl<'a, 'b> LineElementParser<'a, 'b> {
 impl<'a> LineElementParser<'a, '_> {
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
         let mut width = None;
-        let mut lookahead = self.parser.clone();
+        let mut lookahead = self.lookahead.clone();
 
         'lookahead: loop {
             match lookahead.next() {
@@ -189,66 +194,101 @@ impl<'a> LineElementParser<'a, '_> {
     fn draw_whitespace<E: ElementHandler>(
         &mut self,
         handler: &mut E,
+        space_count: u32,
         space_width: u32,
-    ) -> Result<Option<Token<'a>>, E::Error> {
+    ) -> Result<(), E::Error> {
         if self.empty && self.alignment.ignores_leading_spaces() {
-            return Ok(None);
+            return Ok(());
+        }
+        let draw_whitespace = self.empty || self.next_word_fits(handler);
+        match self.move_cursor(space_width.saturating_cast()) {
+            Ok(moved) if draw_whitespace => {
+                handler.whitespace(moved.saturating_as())?;
+            }
+
+            Ok(moved) => {
+                handler.move_cursor(moved.saturating_as())?;
+            }
+
+            Err(moved) => {
+                handler.move_cursor(moved)?;
+                self.consume_bytes(space_count as usize); // TODO: This fails on ZWSP
+            }
+        }
+        Ok(())
+    }
+
+    fn draw_tab<E: ElementHandler>(
+        &mut self,
+        handler: &mut E,
+        space_width: u32,
+    ) -> Result<(), E::Error> {
+        if self.empty && self.alignment.ignores_leading_spaces() {
+            return Ok(());
         }
 
+        let draw_whitespace = self.empty || self.next_word_fits(handler);
+
         match self.move_cursor(space_width.saturating_cast()) {
-            Ok(moved) if self.empty => handler.whitespace(moved.saturating_as())?,
-            Ok(moved) if self.next_word_fits(handler) => {
-                handler.whitespace(moved.saturating_as())?
+            Ok(moved) | Err(moved) if draw_whitespace => {
+                handler.whitespace(moved.saturating_as())?;
             }
 
             Ok(moved) | Err(moved) => {
-                handler.move_cursor(moved)?;
-                return Ok(Some(Token::Break(None)));
+                handler.move_cursor(moved.saturating_as())?;
             }
         }
-        Ok(None)
+        Ok(())
+    }
+
+    fn peek_next_token(&mut self) -> Option<Token<'a>> {
+        self.consume_token();
+        self.lookahead.next()
+    }
+
+    fn consume_token(&mut self) {
+        *self.parser = self.lookahead.clone();
+    }
+
+    fn consume_bytes(&mut self, bytes: usize) {
+        unsafe {
+            // TODO: take &str, it'll be safe
+            self.parser.consume(bytes);
+            self.lookahead = self.parser.clone();
+        }
     }
 
     #[inline]
-    pub fn process<E: ElementHandler>(
-        &mut self,
-        handler: &mut E,
-    ) -> Result<Option<Token<'a>>, E::Error> {
-        while let Some(token) = self.first_token.take().or_else(|| self.parser.next()) {
+    pub fn process<E: ElementHandler>(&mut self, handler: &mut E) -> Result<LineEndType, E::Error> {
+        while let Some(token) = self.peek_next_token() {
             match token {
                 Token::Whitespace(n) => {
                     let space_width = self.spaces.consume(n);
-                    if let Some(token) = self.draw_whitespace(handler, space_width)? {
-                        return Ok(Some(token));
-                    }
+                    self.draw_whitespace(handler, n, space_width)?;
                 }
 
                 Token::Tab => {
                     let space_width = self.cursor.next_tab_width();
-                    if let Some(token) = self.draw_whitespace(handler, space_width)? {
-                        return Ok(Some(token));
-                    }
+                    self.draw_tab(handler, space_width)?;
                 }
 
                 Token::Break(c) => {
                     if let Some(word_width) = self.next_word_width(handler) {
-                        if !self.cursor.fits_in_line(word_width) {
+                        if !self.cursor.fits_in_line(word_width) || self.empty {
                             // this line is done, decide how to end
-                            let token = if let Some(c) = c {
+                            if let Some(c) = c {
                                 // If a Break contains a character, display it if the next
                                 // Word token does not fit the line.
                                 let width = handler.measure(c);
                                 if self.move_cursor(width.saturating_as()).is_ok() {
                                     handler.printed_characters(c, width)?;
-                                    Token::Break(None)
-                                } else {
-                                    Token::Word(c)
+                                    self.consume_token();
                                 }
-                            } else {
-                                Token::Break(None)
-                            };
+                            }
 
-                            return Ok(Some(token));
+                            if !self.empty {
+                                return Ok(LineEndType::LineBreak);
+                            }
                         }
                     } else {
                         // Next token is not a Word, consume Break and continue
@@ -268,20 +308,22 @@ impl<'a> LineElementParser<'a, '_> {
                             ("", _) => {
                                 // Weird case where width doesn't permit drawing anything.
                                 // End here to prevent infinite looping.
-                                return Ok(None);
+                                self.consume_token();
+                                return Ok(LineEndType::LineBreak);
                             }
-                            (word, remainder) => (word, remainder),
+                            other => other,
                         }
                     } else {
                         // word wrapping - push this word to the next line
-                        return Ok(Some(token));
+                        return Ok(LineEndType::LineBreak);
                     };
 
                     self.empty = false;
                     self.process_word(handler, word)?;
 
-                    if let Some(remainder) = remainder {
-                        return Ok(Some(Token::Word(remainder)));
+                    if remainder.is_some() {
+                        self.consume_bytes(word.len());
+                        return Ok(LineEndType::LineBreak);
                     }
                 }
 
@@ -330,14 +372,20 @@ impl<'a> LineElementParser<'a, '_> {
                     }
                 }
 
-                Token::NewLine | Token::CarriageReturn => {
-                    // we're done
-                    return Ok(Some(token));
+                Token::CarriageReturn => {
+                    self.consume_token();
+                    return Ok(LineEndType::CarriageReturn);
+                }
+
+                Token::NewLine => {
+                    self.consume_token();
+                    return Ok(LineEndType::NewLine);
                 }
             }
         }
 
-        Ok(None)
+        self.consume_token();
+        Ok(LineEndType::EndOfText)
     }
 
     fn process_word<E: ElementHandler>(
@@ -452,7 +500,6 @@ mod test {
 
     pub(super) fn assert_line_elements<'a>(
         parser: &mut Parser<'a>,
-        carried: &mut Option<Token<'a>>,
         max_chars: u32,
         elements: &[RenderElement],
     ) {
@@ -468,15 +515,9 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut line1 = LineElementParser::new(
-            parser,
-            cursor,
-            config,
-            carried.clone(),
-            HorizontalAlignment::Left,
-        );
+        let mut line1 = LineElementParser::new(parser, cursor, config, HorizontalAlignment::Left);
 
-        *carried = line1.process(&mut handler).unwrap();
+        line1.process(&mut handler).unwrap();
 
         assert_eq!(handler.elements, elements);
     }
@@ -498,7 +539,7 @@ mod test {
 
         let mut handler = TestElementHandler::new(style);
         let mut line1 =
-            LineElementParser::new(&mut parser, cursor, config, None, HorizontalAlignment::Left);
+            LineElementParser::new(&mut parser, cursor, config, HorizontalAlignment::Left);
 
         line1.process(&mut handler).unwrap();
 
@@ -508,11 +549,9 @@ mod test {
     #[test]
     fn soft_hyphen_no_wrapping() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
-        let mut carried = None;
 
         assert_line_elements(
             &mut parser,
-            &mut carried,
             6,
             &[
                 RenderElement::string("sam", 18),
@@ -524,33 +563,24 @@ mod test {
     #[test]
     fn soft_hyphen() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
-        let mut carried = None;
 
         assert_line_elements(
             &mut parser,
-            &mut carried,
             5,
             &[
                 RenderElement::string("sam", 18),
                 RenderElement::string("-", 6),
             ],
         );
-        assert_line_elements(
-            &mut parser,
-            &mut carried,
-            5,
-            &[RenderElement::string("ple", 18)],
-        );
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("ple", 18)]);
     }
 
     #[test]
     fn nbsp_issue() {
         let mut parser = Parser::parse("a b c\u{a0}d e f");
-        let mut carried = None;
 
         assert_line_elements(
             &mut parser,
-            &mut carried,
             5,
             &[
                 RenderElement::string("a", 6),
@@ -561,7 +591,6 @@ mod test {
         );
         assert_line_elements(
             &mut parser,
-            &mut carried,
             5,
             &[
                 RenderElement::string("c", 6),
@@ -572,29 +601,17 @@ mod test {
                 RenderElement::MoveCursor(0),
             ],
         );
-        assert_line_elements(
-            &mut parser,
-            &mut carried,
-            5,
-            &[RenderElement::string("f", 6)],
-        );
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("f", 6)]);
     }
 
     #[test]
     fn soft_hyphen_issue_42() {
         let mut parser =
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
-        let mut carried = None;
 
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("super", 30)]);
         assert_line_elements(
             &mut parser,
-            &mut carried,
-            5,
-            &[RenderElement::string("super", 30)],
-        );
-        assert_line_elements(
-            &mut parser,
-            &mut carried,
             5,
             &[
                 RenderElement::string("-", 6),
@@ -609,7 +626,6 @@ mod test {
 
         assert_line_elements(
             &mut parser,
-            &mut None,
             50,
             &[
                 RenderElement::string("glued", 30),
@@ -622,11 +638,9 @@ mod test {
     #[test]
     fn tabs() {
         let mut parser = Parser::parse("a\tword\nand\t\tanother\t");
-        let mut carried = None;
 
         assert_line_elements(
             &mut parser,
-            &mut carried,
             16,
             &[
                 RenderElement::string("a", 6),
@@ -636,7 +650,6 @@ mod test {
         );
         assert_line_elements(
             &mut parser,
-            &mut carried,
             16,
             &[
                 RenderElement::string("and", 18),
@@ -652,12 +665,7 @@ mod test {
     fn cursor_limit() {
         let mut parser = Parser::parse("Some sample text");
 
-        assert_line_elements(
-            &mut parser,
-            &mut None,
-            2,
-            &[RenderElement::string("So", 12)],
-        );
+        assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)]);
     }
 }
 
@@ -676,7 +684,6 @@ mod ansi_parser_tests {
 
         assert_line_elements(
             &mut parser,
-            &mut None,
             100,
             &[
                 RenderElement::string("Lorem", 30),
@@ -691,10 +698,8 @@ mod ansi_parser_tests {
     fn ansi_code_does_not_break_word() {
         let mut parser = Parser::parse("Lorem foo\x1b[92mbarum");
 
-        let mut carried = None;
         assert_line_elements(
             &mut parser,
-            &mut carried,
             8,
             &[
                 RenderElement::string("Lorem", 30),
@@ -704,7 +709,6 @@ mod ansi_parser_tests {
 
         assert_line_elements(
             &mut parser,
-            &mut carried,
             8,
             &[
                 RenderElement::string("foo", 18),

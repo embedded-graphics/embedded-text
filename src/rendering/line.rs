@@ -2,8 +2,11 @@
 use core::convert::Infallible;
 
 use crate::{
-    parser::{Parser, Token},
-    rendering::{cursor::LineCursor, line_iter::LineElementParser},
+    parser::Parser,
+    rendering::{
+        cursor::LineCursor,
+        line_iter::{LineElementParser, LineEndType},
+    },
     style::TextBoxStyle,
     utils::str_width,
 };
@@ -41,7 +44,7 @@ where
     pub parser: Parser<'a>,
     pub character_style: S,
     pub style: TextBoxStyle,
-    pub carried_token: Option<Token<'a>>,
+    pub end_type: LineEndType,
 }
 
 impl<S> LineRenderState<'_, S>
@@ -50,7 +53,6 @@ where
 {
     pub fn is_finished(&self) -> bool {
         self.parser.is_empty()
-            && (self.carried_token.is_none() || self.carried_token == Some(Token::Break(None)))
     }
 }
 
@@ -149,16 +151,15 @@ where
             mut parser,
             mut character_style,
             style,
-            carried_token,
+            ..
         } = self.state.clone();
 
-        let carried = if display.bounding_box().size.height == 0 {
+        let end_type = if display.bounding_box().size.height == 0 {
             // We're outside of the view - no need for a separate measure pass.
             let mut elements = LineElementParser::new(
                 &mut parser,
                 self.cursor.clone(),
                 SpaceConfig::new_from_renderer(&character_style),
-                carried_token,
                 style.alignment,
             );
 
@@ -173,7 +174,6 @@ where
             let lm = style.measure_line(
                 &character_style,
                 &mut cloned_parser,
-                &mut carried_token.clone(),
                 self.cursor.line_width(),
             );
 
@@ -186,13 +186,8 @@ where
             cursor.move_cursor(left.saturating_as()).ok();
 
             let pos = cursor.pos();
-            let mut elements = LineElementParser::new(
-                &mut parser,
-                cursor,
-                space_config,
-                carried_token,
-                style.alignment,
-            );
+            let mut elements =
+                LineElementParser::new(&mut parser, cursor, space_config, style.alignment);
 
             elements.process(&mut RenderElementHandler {
                 style: &mut character_style,
@@ -205,7 +200,7 @@ where
             parser,
             character_style,
             style,
-            carried_token: carried,
+            end_type,
         })
     }
 }
@@ -260,6 +255,7 @@ mod test {
         rendering::{
             cursor::LineCursor,
             line::{LineRenderState, StyledLineRenderer},
+            line_iter::LineEndType,
         },
         style::{TabSize, TextBoxStyle, TextBoxStyleBuilder},
         utils::test::size_for,
@@ -294,7 +290,7 @@ mod test {
             parser,
             character_style,
             style,
-            carried_token: None,
+            end_type: LineEndType::EndOfText,
         };
 
         let renderer = StyledLineRenderer::new(cursor, state);
@@ -430,6 +426,7 @@ mod ansi_parser_tests {
         rendering::{
             cursor::LineCursor,
             line::{LineRenderState, StyledLineRenderer},
+            line_iter::LineEndType,
         },
         style::{TabSize, TextBoxStyleBuilder},
         utils::test::size_for,
@@ -464,7 +461,7 @@ mod ansi_parser_tests {
             parser,
             character_style,
             style,
-            carried_token: None,
+            end_type: LineEndType::EndOfText,
         };
         StyledLineRenderer::new(cursor, state)
             .draw(&mut display)
