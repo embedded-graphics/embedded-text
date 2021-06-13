@@ -49,7 +49,8 @@ where
     S: Clone,
 {
     pub fn is_finished(&self) -> bool {
-        self.carried_token.is_none() && self.parser.is_empty()
+        self.parser.is_empty()
+            && (self.carried_token.is_none() || self.carried_token == Some(Token::Break(None)))
     }
 }
 

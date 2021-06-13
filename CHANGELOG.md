@@ -1,3 +1,10 @@
+Unreleased
+==========
+
+## Changed:
+
+ * **breaking** [#125](https://github.com/embedded-graphics/embedded-text/pull/125) Chaneged how text height is measured.
+
 0.5.0-beta.1 (2021-06-04)
 ==========================
 
