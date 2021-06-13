@@ -387,41 +387,25 @@ impl TextBoxStyle {
         let mut n_lines = 0_u32;
         let mut parser = Parser::parse(text);
         let mut carry = None;
-        let mut cr_width = None;
-        let mut empty_lines = 0;
         let mut closed_paragraphs: u32 = 0;
         let line_height = self.line_height.to_absolute(character_style.line_height());
         let last_line_height = character_style.line_height();
         let mut paragraph_ended = false;
 
         loop {
-            let lm = self.measure_line(character_style, &mut parser, &mut carry, max_width);
+            let _ = self.measure_line(character_style, &mut parser, &mut carry, max_width);
 
             if paragraph_ended {
                 closed_paragraphs += 1;
             }
             paragraph_ended = carry == Some(Token::NewLine);
-
-            if carry == Some(Token::CarriageReturn) {
-                cr_width = cr_width.map_or(Some(lm.width), |width: u32| Some(width.max(lm.width)));
-            } else {
-                let line_width = match cr_width.take() {
-                    Some(width) => width.max(lm.width),
-                    None => lm.width,
-                };
-
-                if line_width > 0 || carry == Some(Token::NewLine) {
-                    // `empty_lines` counts lines that only contain whitespace or cursor movement
-                    n_lines += empty_lines + 1;
-                    empty_lines = 0;
-                } else {
-                    empty_lines += 1;
-                }
+            if carry != Some(Token::CarriageReturn) {
+                n_lines += 1;
             }
 
-            if carry.is_none() {
+            if parser.is_empty() && (carry.is_none() || carry == Some(Token::Break(None))) {
                 return n_lines.saturating_sub(1) * line_height
-                    + (n_lines > 0) as u32 * last_line_height
+                    + last_line_height
                     + closed_paragraphs * self.paragraph_spacing;
             }
         }
@@ -453,18 +437,17 @@ mod test {
     fn test_measure_height() {
         let data = [
             // (text; max width in characters; number of expected lines)
-            ("", 0, 0),
-            (" ", 0, 0),
-            (" ", 5, 0),
-            (" ", 6, 0),
-            ("\r", 6, 0),
-            ("\n", 6, 1),
-            ("\n ", 6, 1),
-            ("word", 4 * 6, 1), // exact fit into 1 line
+            ("", 0, 1),
+            (" ", 6, 1),
+            ("\r", 6, 1),
+            ("\n", 6, 2),
+            ("\n ", 6, 2),
+            ("word", 4 * 6, 1),   // exact fit into 1 line
+            ("word\n", 4 * 6, 2), // newline
             ("word", 4 * 6 - 1, 2),
             ("word", 2 * 6, 2),      // exact fit into 2 lines
             ("word word", 4 * 6, 2), // exact fit into 2 lines
-            ("word\n", 2 * 6, 2),
+            ("word\n", 2 * 6, 3),
             ("word\nnext", 50, 2),
             ("word\n\nnext", 50, 3),
             ("word\n  \nnext", 50, 3),
@@ -504,11 +487,10 @@ mod test {
     #[test]
     fn test_measure_height_ignored_spaces() {
         let data = [
-            ("", 0, 0),
-            (" ", 0, 0),
-            (" ", 6, 0),
-            ("\n ", 6, 1),
-            ("word\n", 2 * 6, 2),
+            ("", 0, 1),
+            (" ", 0, 1),
+            (" ", 6, 1),
+            ("\n ", 6, 2),
             ("word\n  \nnext", 50, 3),
             ("    Word      ", 36, 1),
         ];
