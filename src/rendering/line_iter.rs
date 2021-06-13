@@ -103,7 +103,7 @@ impl<'a> LineElementParser<'a, '_> {
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                 }
 
-                Some(Token::Break(Some(c))) => {
+                Some(Token::Break(c)) => {
                     let w = handler.measure(c);
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                     break 'lookahead;
@@ -161,12 +161,12 @@ impl<'a> LineElementParser<'a, '_> {
                     exit = true;
                     handler.measure(w).saturating_as()
                 }
-                Some(Token::Break(Some(w))) => {
+                Some(Token::Break(w)) => {
                     exit = true;
                     handler.measure(w).saturating_as()
                 }
 
-                Some(Token::Whitespace(n)) => spaces.consume(n).saturating_as(),
+                Some(Token::Whitespace(n, _)) => spaces.consume(n).saturating_as(),
                 Some(Token::Tab) => cursor.next_tab_width().saturating_as(),
 
                 #[cfg(feature = "ansi")]
@@ -194,7 +194,7 @@ impl<'a> LineElementParser<'a, '_> {
     fn draw_whitespace<E: ElementHandler>(
         &mut self,
         handler: &mut E,
-        space_count: u32,
+        string: &'a str,
         space_width: u32,
     ) -> Result<(), E::Error> {
         if self.empty && self.alignment.ignores_leading_spaces() {
@@ -212,7 +212,7 @@ impl<'a> LineElementParser<'a, '_> {
 
             Err(moved) => {
                 handler.move_cursor(moved)?;
-                self.consume_bytes(space_count as usize); // TODO: This fails on ZWSP
+                self.consume_str(string);
             }
         }
         Ok(())
@@ -250,10 +250,10 @@ impl<'a> LineElementParser<'a, '_> {
         *self.parser = self.lookahead.clone();
     }
 
-    fn consume_bytes(&mut self, bytes: usize) {
+    fn consume_str(&mut self, string: &'a str) {
         unsafe {
-            // TODO: take &str, it'll be safe
-            self.parser.consume(bytes);
+            // Safety: consuming a number of bytes is safe as long as we are working with strings.
+            self.parser.consume(string.len());
             self.lookahead = self.parser.clone();
         }
     }
@@ -262,9 +262,9 @@ impl<'a> LineElementParser<'a, '_> {
     pub fn process<E: ElementHandler>(&mut self, handler: &mut E) -> Result<LineEndType, E::Error> {
         while let Some(token) = self.peek_next_token() {
             match token {
-                Token::Whitespace(n) => {
+                Token::Whitespace(n, seq) => {
                     let space_width = self.spaces.consume(n);
-                    self.draw_whitespace(handler, n, space_width)?;
+                    self.draw_whitespace(handler, seq, space_width)?;
                 }
 
                 Token::Tab => {
@@ -276,14 +276,12 @@ impl<'a> LineElementParser<'a, '_> {
                     if let Some(word_width) = self.next_word_width(handler) {
                         if !self.cursor.fits_in_line(word_width) || self.empty {
                             // this line is done, decide how to end
-                            if let Some(c) = c {
-                                // If a Break contains a character, display it if the next
-                                // Word token does not fit the line.
-                                let width = handler.measure(c);
-                                if self.move_cursor(width.saturating_as()).is_ok() {
-                                    handler.printed_characters(c, width)?;
-                                    self.consume_token();
-                                }
+
+                            // If the next Word token does not fit the line, display break character
+                            let width = handler.measure(c);
+                            if self.move_cursor(width.saturating_as()).is_ok() {
+                                handler.printed_characters(c, width)?;
+                                self.consume_token();
                             }
 
                             if !self.empty {
@@ -322,7 +320,7 @@ impl<'a> LineElementParser<'a, '_> {
                     self.process_word(handler, word)?;
 
                     if remainder.is_some() {
-                        self.consume_bytes(word.len());
+                        self.consume_str(word);
                         return Ok(LineEndType::LineBreak);
                     }
                 }
@@ -573,6 +571,21 @@ mod test {
             ],
         );
         assert_line_elements(&mut parser, 5, &[RenderElement::string("ple", 18)]);
+    }
+
+    #[test]
+    fn soft_hyphen_wrapped() {
+        let mut parser = Parser::parse("sam\u{00AD}mm");
+
+        assert_line_elements(&mut parser, 3, &[RenderElement::string("sam", 18)]);
+        assert_line_elements(
+            &mut parser,
+            3,
+            &[
+                RenderElement::string("-", 6),
+                RenderElement::string("mm", 12),
+            ],
+        );
     }
 
     #[test]

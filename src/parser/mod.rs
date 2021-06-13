@@ -33,13 +33,13 @@ pub enum Token<'a> {
     Tab,
 
     /// A number of whitespace characters.
-    Whitespace(u32),
+    Whitespace(u32, &'a str),
 
     /// A word (a sequence of non-whitespace characters).
     Word(&'a str),
 
     /// A possible wrapping point
-    Break(Option<&'a str>),
+    Break(&'a str),
 
     /// An ANSI escape sequence
     #[cfg(feature = "ansi")]
@@ -139,8 +139,12 @@ impl<'a> Iterator for Parser<'a> {
                     '\n' => Some(Token::NewLine),
                     '\r' => Some(Token::CarriageReturn),
                     '\t' => Some(Token::Tab),
-                    SPEC_CHAR_ZWSP => Some(Token::Break(None)),
-                    SPEC_CHAR_SHY => Some(Token::Break(Some("-"))),
+                    SPEC_CHAR_ZWSP => Some(Token::Whitespace(0, unsafe {
+                        // SAFETY: we only work with character boundaries and
+                        // offset is <= length
+                        string.get_unchecked(0..c.len_utf8())
+                    })),
+                    SPEC_CHAR_SHY => Some(Token::Break("-")), // translate SHY to a printable character
                     #[cfg(feature = "ansi")]
                     SPEC_CHAR_ESCAPE => ansi_parser::parse_escape(string).map_or(
                         Some(Token::EscapeSequence(AnsiSequence::Escape)),
@@ -171,12 +175,16 @@ impl<'a> Iterator for Parser<'a> {
                                     // offset is <= length
                                     string.get_unchecked(offset..).chars()
                                 };
-                                return Some(Token::Whitespace(len));
+                                return Some(Token::Whitespace(len, unsafe {
+                                    // SAFETY: we only work with character boundaries and
+                                    // offset is <= length
+                                    string.get_unchecked(0..offset)
+                                }));
                             }
                         }
 
                         // consumed all the text
-                        Some(Token::Whitespace(len))
+                        Some(Token::Whitespace(len, string))
                     }
                 }
             }
@@ -203,21 +211,21 @@ mod test {
             "Lorem ipsum \r dolor sit am\u{00AD}et,\tconse😅ctetur adipiscing\nelit",
             vec![
                 Token::Word("Lorem"),
-                Token::Whitespace(1),
+                Token::Whitespace(1, " "),
                 Token::Word("ipsum"),
-                Token::Whitespace(1),
+                Token::Whitespace(1, " "),
                 Token::CarriageReturn,
-                Token::Whitespace(1),
+                Token::Whitespace(1, " "),
                 Token::Word("dolor"),
-                Token::Whitespace(1),
+                Token::Whitespace(1, " "),
                 Token::Word("sit"),
-                Token::Whitespace(1),
+                Token::Whitespace(1, " "),
                 Token::Word("am"),
-                Token::Break(Some("-")),
+                Token::Break("-"),
                 Token::Word("et,"),
                 Token::Tab,
                 Token::Word("conse😅ctetur"),
-                Token::Whitespace(1),
+                Token::Whitespace(1, " "),
                 Token::Word("adipiscing"),
                 Token::NewLine,
                 Token::Word("elit"),
@@ -231,10 +239,15 @@ mod test {
 
         assert_tokens(
             "two\u{200B}words",
-            vec![Token::Word("two"), Token::Break(None), Token::Word("words")],
+            vec![
+                Token::Word("two"),
+                Token::Whitespace(0, "\u{200B}"),
+                Token::Word("words"),
+            ],
         );
 
-        assert_tokens("  \u{200B} ", vec![Token::Whitespace(3)]);
+        // ZWSP is not counted
+        assert_tokens("  \u{200B} ", vec![Token::Whitespace(3, "  \u{200B} ")]);
     }
 
     #[test]
@@ -248,7 +261,7 @@ mod test {
         assert_tokens("test\u{A0}word", vec![Token::Word("test\u{A0}word")]);
         assert_tokens(
             " \u{A0}word",
-            vec![Token::Whitespace(1), Token::Word("\u{A0}word")],
+            vec![Token::Whitespace(1, " "), Token::Word("\u{A0}word")],
         );
     }
 
@@ -256,11 +269,7 @@ mod test {
     fn parse_shy_issue_42() {
         assert_tokens(
             "foo\u{AD}bar",
-            vec![
-                Token::Word("foo"),
-                Token::Break(Some("-")),
-                Token::Word("bar"),
-            ],
+            vec![Token::Word("foo"), Token::Break("-"), Token::Word("bar")],
         );
     }
 }
