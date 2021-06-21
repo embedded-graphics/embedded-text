@@ -9,7 +9,7 @@
 //! assert_eq!(
 //!     vec![
 //!         Token::Word("Hello,"),
-//!         Token::Whitespace(1),
+//!         Token::Whitespace(1, " "),
 //!         Token::Word("world!"),
 //!         Token::NewLine
 //!     ],
