@@ -39,7 +39,7 @@ pub enum Token<'a> {
     Word(&'a str),
 
     /// A possible wrapping point
-    Break(&'a str),
+    Break(&'a str, &'a str),
 
     /// An ANSI escape sequence
     #[cfg(feature = "ansi")]
@@ -144,7 +144,14 @@ impl<'a> Iterator for Parser<'a> {
                         // offset is <= length
                         string.get_unchecked(0..c.len_utf8())
                     })),
-                    SPEC_CHAR_SHY => Some(Token::Break("-")), // translate SHY to a printable character
+                    SPEC_CHAR_SHY => Some(Token::Break(
+                        "-", // translate SHY to a printable character
+                        unsafe {
+                            // SAFETY: we only work with character boundaries and
+                            // offset is <= length
+                            string.get_unchecked(0..c.len_utf8())
+                        },
+                    )),
                     #[cfg(feature = "ansi")]
                     SPEC_CHAR_ESCAPE => ansi_parser::parse_escape(string).map_or(
                         Some(Token::EscapeSequence(AnsiSequence::Escape)),
@@ -221,7 +228,7 @@ mod test {
                 Token::Word("sit"),
                 Token::Whitespace(1, " "),
                 Token::Word("am"),
-                Token::Break("-"),
+                Token::Break("-", "\u{ad}"),
                 Token::Word("et,"),
                 Token::Tab,
                 Token::Word("conse😅ctetur"),
@@ -269,7 +276,11 @@ mod test {
     fn parse_shy_issue_42() {
         assert_tokens(
             "foo\u{AD}bar",
-            vec![Token::Word("foo"), Token::Break("-"), Token::Word("bar")],
+            vec![
+                Token::Word("foo"),
+                Token::Break("-", "\u{ad}"),
+                Token::Word("bar"),
+            ],
         );
     }
 }

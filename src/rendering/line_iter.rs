@@ -103,7 +103,7 @@ impl<'a> LineElementParser<'a, '_> {
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                 }
 
-                Some(Token::Break(c)) => {
+                Some(Token::Break(c, _original)) => {
                     let w = handler.measure(c);
                     width = width.map_or(Some(w), |acc| Some(acc + w));
                     break 'lookahead;
@@ -161,9 +161,9 @@ impl<'a> LineElementParser<'a, '_> {
                     exit = true;
                     handler.measure(w).saturating_as()
                 }
-                Some(Token::Break(w)) => {
+                Some(Token::Break(c, _original)) => {
                     exit = true;
-                    handler.measure(w).saturating_as()
+                    handler.measure(c).saturating_as()
                 }
 
                 Some(Token::Whitespace(n, _)) => spaces.consume(n).saturating_as(),
@@ -272,7 +272,7 @@ impl<'a> LineElementParser<'a, '_> {
                     self.draw_tab(handler, space_width)?;
                 }
 
-                Token::Break(c) => {
+                Token::Break(c, _original) => {
                     if let Some(word_width) = self.next_word_width(handler) {
                         if !self.cursor.fits_in_line(word_width) || self.empty {
                             // this line is done, decide how to end
