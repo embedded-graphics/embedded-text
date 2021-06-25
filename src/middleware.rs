@@ -45,7 +45,7 @@ where
     }
 
     #[inline]
-    fn post_render_text<T, D>(
+    fn post_render<T, D>(
         &mut self,
         _draw_target: &mut D,
         _character_style: &T,
@@ -65,22 +65,6 @@ where
         _draw_target: &mut D,
         _character_style: &T,
         _pos: Point,
-    ) -> Result<(), D::Error>
-    where
-        T: TextRenderer<Color = C>,
-        D: DrawTarget<Color = C>,
-    {
-        Ok(())
-    }
-
-    #[inline]
-    fn post_render_whitespace<T, D>(
-        &mut self,
-        _draw_target: &mut D,
-        _character_style: &T,
-        _width: u32,
-        _space_count: u32,
-        _bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
         T: TextRenderer<Color = C>,

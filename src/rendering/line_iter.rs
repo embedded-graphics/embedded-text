@@ -52,7 +52,7 @@ pub trait ElementHandler {
     fn measure(&self, st: &str) -> u32;
 
     /// A whitespace block with the given width.
-    fn whitespace(&mut self, _space_count: u32, _width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, _st: &str, _space_count: u32, _width: u32) -> Result<(), Self::Error> {
         Ok(())
     }
 
@@ -224,7 +224,7 @@ where
             || self.next_word_fits(handler);
         match self.move_cursor(space_width.saturating_cast()) {
             Ok(moved) if draw_whitespace => {
-                handler.whitespace(space_count, moved.saturating_as())?;
+                handler.whitespace(string, space_count, moved.saturating_as())?;
             }
 
             Ok(moved) => {
@@ -235,7 +235,8 @@ where
                 let single = space_width / space_count;
                 let consumed = moved as u32 / single;
                 if consumed > 0 {
-                    handler.whitespace(consumed, consumed * single)?;
+                    // TODO: only pass relevant substring
+                    handler.whitespace(string, consumed, consumed * single)?;
                 }
                 self.consume_str(string);
             }
@@ -257,7 +258,7 @@ where
             || self.next_word_fits(handler);
 
         match self.move_cursor(space_width.saturating_cast()) {
-            Ok(moved) if draw_whitespace => handler.whitespace(1, moved.saturating_as())?,
+            Ok(moved) if draw_whitespace => handler.whitespace("\t", 1, moved.saturating_as())?,
 
             Ok(moved) | Err(moved) => {
                 handler.move_cursor(moved.saturating_as())?;
@@ -371,7 +372,7 @@ where
                             let delta = (n * handler.measure(" ")).saturating_as();
                             match self.move_cursor(delta) {
                                 Ok(delta) | Err(delta) => {
-                                    handler.whitespace(0, delta.saturating_as())?;
+                                    handler.whitespace("", 0, delta.saturating_as())?;
                                 }
                             }
                         }
@@ -384,7 +385,7 @@ where
                             match self.move_cursor(delta) {
                                 Ok(delta) | Err(delta) => {
                                     handler.move_cursor(delta)?;
-                                    handler.whitespace(0, delta.abs().saturating_as())?;
+                                    handler.whitespace("", 0, delta.abs().saturating_as())?;
                                     handler.move_cursor(delta)?;
                                 }
                             }
@@ -428,7 +429,7 @@ where
                     handler.printed_characters(word, handler.measure(word))?;
                 }
 
-                handler.whitespace(1, self.spaces.consume(1))?;
+                handler.whitespace("\u{a0}", 1, self.spaces.consume(1))?;
 
                 // If we have anything after the space...
                 if let Some(word) = w.get(space_pos + SPEC_CHAR_NBSP.len_utf8()..) {
@@ -500,7 +501,12 @@ mod test {
             str_width(&self.style, st)
         }
 
-        fn whitespace(&mut self, _count: u32, width: u32) -> Result<(), Self::Error> {
+        fn whitespace(
+            &mut self,
+            _string: &str,
+            _count: u32,
+            width: u32,
+        ) -> Result<(), Self::Error> {
             self.elements.push(RenderElement::Space(width));
             Ok(())
         }

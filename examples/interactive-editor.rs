@@ -143,7 +143,7 @@ impl<C: PixelColor> EditorMiddleware<C> {
 }
 
 impl<'a, C: PixelColor> Middleware<'a, C> for EditorMiddleware<C> {
-    fn post_render_text<T, D>(
+    fn post_render<T, D>(
         &mut self,
         draw_target: &mut D,
         character_style: &T,
@@ -168,35 +168,6 @@ impl<'a, C: PixelColor> Middleware<'a, C> for EditorMiddleware<C> {
             self.cursor_drawn = true;
         }
         self.current_offset += len;
-        Ok(())
-    }
-
-    fn post_render_whitespace<T, D>(
-        &mut self,
-        draw_target: &mut D,
-        _character_style: &T,
-        width: u32,
-        count: u32,
-        bounds: Rectangle,
-    ) -> Result<(), D::Error>
-    where
-        T: TextRenderer<Color = C>,
-        D: DrawTarget<Color = T::Color>,
-    {
-        let count = count as usize;
-
-        if self.cursor_offset >= self.current_offset
-            && self.cursor_offset <= self.current_offset + count
-            && !self.cursor_drawn
-        {
-            let chars_before = self.cursor_offset - self.current_offset;
-
-            let pos =
-                bounds.top_left + Point::new(((width as usize / count) * chars_before) as i32, 0);
-            self.draw_cursor(draw_target, bounds, pos)?;
-            self.cursor_drawn = true;
-        }
-        self.current_offset += count;
         Ok(())
     }
 

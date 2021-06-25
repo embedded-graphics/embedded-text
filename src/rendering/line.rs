@@ -97,7 +97,7 @@ where
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, space_count: u32, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, st: &str, _space_count: u32, width: u32) -> Result<(), Self::Error> {
         let top_left = self.pos;
         self.pos = self
             .style
@@ -106,10 +106,12 @@ where
         let bottom_right = self.pos + Point::new(0, self.style.line_height().saturating_as());
         let bounds = Rectangle::with_corners(top_left, bottom_right);
 
-        self.middleware
-            .middleware
-            .borrow_mut()
-            .post_render_whitespace(self.display, self.style, width, space_count, bounds)?;
+        self.middleware.middleware.borrow_mut().post_render(
+            self.display,
+            self.style,
+            st,
+            bounds,
+        )?;
 
         Ok(())
     }
@@ -123,7 +125,7 @@ where
         let bottom_right = self.pos + Point::new(0, self.style.line_height().saturating_as());
         let bounds = Rectangle::with_corners(top_left, bottom_right);
 
-        self.middleware.middleware.borrow_mut().post_render_text(
+        self.middleware.middleware.borrow_mut().post_render(
             self.display,
             self.style,
             st,
