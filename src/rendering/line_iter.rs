@@ -399,11 +399,13 @@ where
 
                 Token::CarriageReturn => {
                     self.consume_token();
+                    handler.whitespace("\r", 1, 0)?;
                     return Ok(LineEndType::CarriageReturn);
                 }
 
                 Token::NewLine => {
                     self.consume_token();
+                    handler.whitespace("\n", 1, 0)?;
                     return Ok(LineEndType::NewLine);
                 }
             }
