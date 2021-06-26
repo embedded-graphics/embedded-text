@@ -189,14 +189,14 @@ where
             mut parser,
             mut character_style,
             style,
-            mut middleware,
+            middleware,
             ..
         } = self.state.clone();
 
         let mut cloned_parser = parser.clone();
         middleware.set_state(ProcessingState::Measure);
         let lm = style.measure_line(
-            &mut middleware,
+            &middleware,
             &character_style,
             &mut cloned_parser,
             self.cursor.line_width(),
@@ -208,7 +208,7 @@ where
             // We're outside of the view. Use simpler render element handler and space config.
             let mut elements = LineElementParser::new(
                 &mut parser,
-                &mut middleware,
+                &middleware,
                 self.cursor.clone(),
                 SpaceConfig::new_from_renderer(&character_style),
                 style.alignment,
