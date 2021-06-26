@@ -127,24 +127,19 @@ where
         &self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
+        let mut mw = self.middleware.borrow_mut();
         match self.state.get() {
             ProcessingState::Measure => {
                 let mut peeked = self.measurement_token.borrow_mut();
                 if peeked.is_none() {
-                    *peeked = self
-                        .middleware
-                        .borrow_mut()
-                        .next_token_to_measure(next_token);
+                    *peeked = mw.next_token_to_measure(next_token);
                 }
                 peeked.clone()
             }
             ProcessingState::Render => {
                 let mut peeked = self.render_token.borrow_mut();
                 if peeked.is_none() {
-                    *peeked = self
-                        .middleware
-                        .borrow_mut()
-                        .next_token_to_render(next_token);
+                    *peeked = mw.next_token_to_render(next_token);
                 }
                 peeked.clone()
             }
@@ -154,5 +149,16 @@ where
     pub fn consume_peeked_token(&self) {
         self.measurement_token.borrow_mut().take();
         self.render_token.borrow_mut().take();
+    }
+
+    pub fn replace_peeked_token(&self, token: Token<'a>) {
+        match self.state.get() {
+            ProcessingState::Measure => {
+                self.measurement_token.borrow_mut().replace(token);
+            }
+            ProcessingState::Render => {
+                self.render_token.borrow_mut().replace(token);
+            }
+        }
     }
 }

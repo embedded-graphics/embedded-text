@@ -93,11 +93,6 @@ impl<'a> Parser<'a> {
     pub fn as_str(&self) -> &str {
         self.inner.as_str()
     }
-
-    pub unsafe fn consume(&mut self, bytes: usize) {
-        // SAFETY: caller needs to make sure we end up on character boundary
-        self.inner = self.inner.as_str().get_unchecked(bytes..).chars();
-    }
 }
 
 impl<'a> Iterator for Parser<'a> {
@@ -205,6 +200,7 @@ impl<'a> Iterator for Parser<'a> {
 mod test {
     use super::{Parser, Token};
 
+    #[track_caller]
     pub fn assert_tokens(text: &str, tokens: std::vec::Vec<Token>) {
         assert_eq!(
             Parser::parse(text).collect::<std::vec::Vec<Token>>(),

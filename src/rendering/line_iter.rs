@@ -23,8 +23,6 @@ use as_slice::AsSlice;
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct LineElementParser<'a, 'b, M, C> {
-    lookahead: Parser<'a>,
-
     /// Position information.
     pub cursor: LineCursor,
 
@@ -88,7 +86,6 @@ where
         alignment: HorizontalAlignment,
     ) -> Self {
         Self {
-            lookahead: parser.clone(),
             parser,
             spaces,
             cursor,
@@ -100,10 +97,16 @@ where
 
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
         let mut width = None;
-        let mut lookahead = self.lookahead.clone();
+
+        // This looks extremely inefficient.
+        let lookahead = self.middleware.clone();
+        let mut lookahead_parser = self.parser.clone();
+
+        // We don't want to count the current token.
+        lookahead.consume_peeked_token();
 
         'lookahead: loop {
-            match lookahead.next() {
+            match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) => {
                     let w = handler.measure(w);
 
@@ -121,6 +124,7 @@ where
 
                 _ => break 'lookahead,
             }
+            lookahead.consume_peeked_token();
         }
 
         width
@@ -238,7 +242,14 @@ where
                     // TODO: only pass relevant substring
                     handler.whitespace(string, consumed, consumed * single)?;
                 }
-                self.consume_str(string);
+                let (pos, _) = string
+                    .char_indices()
+                    .skip(consumed as usize)
+                    .next()
+                    .unwrap();
+                self.replace_peeked_token(Token::Whitespace(space_count - consumed, unsafe {
+                    string.get_unchecked(pos..)
+                }));
             }
         }
         Ok(())
@@ -270,20 +281,15 @@ where
     fn peek_next_token(&mut self) -> Option<Token<'a>> {
         self.consume_token();
 
-        self.middleware.peek_token(&mut self.lookahead)
+        self.middleware.peek_token(&mut self.parser)
     }
 
     fn consume_token(&mut self) {
-        *self.parser = self.lookahead.clone();
         self.middleware.consume_peeked_token();
     }
 
-    fn consume_str(&mut self, string: &'a str) {
-        unsafe {
-            // Safety: consuming a number of bytes is safe as long as we are working with strings.
-            self.parser.consume(string.len());
-            self.lookahead = self.parser.clone();
-        }
+    fn replace_peeked_token(&mut self, token: Token<'a>) {
+        self.middleware.replace_peeked_token(token);
     }
 
     #[inline]
@@ -309,10 +315,10 @@ where
                             let width = handler.measure(c);
                             if self.move_cursor(width.saturating_as()).is_ok() {
                                 handler.printed_characters(c, width)?;
-                                self.consume_token();
                             }
 
                             if !self.empty {
+                                self.consume_token();
                                 return Ok(LineEndType::LineBreak);
                             }
                         }
@@ -347,8 +353,8 @@ where
                     self.empty = false;
                     self.process_word(handler, word)?;
 
-                    if remainder.is_some() {
-                        self.consume_str(word);
+                    if let Some(remainder) = remainder {
+                        self.replace_peeked_token(Token::Word(remainder));
                         return Ok(LineEndType::LineBreak);
                     }
                 }
@@ -532,6 +538,7 @@ mod test {
         }
     }
 
+    #[track_caller]
     pub(super) fn assert_line_elements<'a>(
         parser: &mut Parser<'a>,
         max_chars: u32,
@@ -702,6 +709,7 @@ mod test {
                 RenderElement::string("a", 6),
                 RenderElement::Space(6 * 3),
                 RenderElement::string("word", 24),
+                RenderElement::Space(0), // the newline
             ],
         );
         assert_line_elements(

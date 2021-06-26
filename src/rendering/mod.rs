@@ -148,6 +148,7 @@ pub mod test {
         TextBox,
     };
 
+    #[track_caller]
     pub fn assert_rendered(
         alignment: HorizontalAlignment,
         text: &str,
