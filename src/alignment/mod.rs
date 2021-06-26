@@ -1,7 +1,6 @@
 //! Text alignment options.
 use crate::{
     middleware::Middleware,
-    parser::SPEC_CHAR_NBSP,
     rendering::{cursor::Cursor, space_config::SpaceConfig},
     style::LineMeasurement,
     utils::str_width,
@@ -33,7 +32,6 @@ impl HorizontalAlignment {
     /// Calculate offset from the left side and whitespace information.
     pub(crate) fn place_line(
         self,
-        line: &str,
         renderer: &impl TextRenderer,
         measurement: LineMeasurement,
     ) -> (u32, SpaceConfig) {
@@ -49,20 +47,7 @@ impl HorizontalAlignment {
             ),
             HorizontalAlignment::Justified => {
                 let space_width = str_width(renderer, " ");
-                let space_chars = [' ', SPEC_CHAR_NBSP];
-
-                let mut space_count = 0;
-                let mut partial_space_count = 0;
-
-                for c in line.chars().skip_while(|c| space_chars.contains(c)) {
-                    if space_chars.contains(&c) {
-                        partial_space_count += 1;
-                    } else {
-                        space_count += partial_space_count;
-                        partial_space_count = 0;
-                    }
-                }
-
+                let space_count = measurement.space_count;
                 let space_info = if !measurement.last_line && space_count != 0 {
                     let space =
                         measurement.max_line_width - measurement.width + space_count * space_width;

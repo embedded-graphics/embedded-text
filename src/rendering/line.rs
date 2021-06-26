@@ -211,11 +211,7 @@ where
 
             (end_type, elements.cursor.pos())
         } else {
-            // We have to resort to trickery to figure out the string that is rendered as the line.
-            let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
-            let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
-
-            let (left, space_config) = style.alignment.place_line(line_str, &character_style, lm);
+            let (left, space_config) = style.alignment.place_line(&character_style, lm);
 
             let mut cursor = self.cursor.clone();
             cursor.move_cursor(left.saturating_as()).ok();

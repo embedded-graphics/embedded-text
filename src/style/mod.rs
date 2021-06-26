@@ -144,7 +144,7 @@ use core::convert::Infallible;
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
     middleware::{Middleware, MiddlewareWrapper, NoMiddleware, ProcessingState},
-    parser::Parser,
+    parser::{Parser, SPEC_CHAR_NBSP},
     rendering::{
         cursor::LineCursor,
         line_iter::{ElementHandler, LineElementParser, LineEndType},
@@ -267,6 +267,8 @@ pub struct LineMeasurement {
 
     /// Whether this line ended with a \r.
     pub line_end_type: LineEndType,
+
+    pub space_count: u32,
 }
 
 struct MeasureLineElementHandler<'a, S> {
@@ -274,6 +276,8 @@ struct MeasureLineElementHandler<'a, S> {
     right: u32,
     max_line_width: u32,
     pos: u32,
+    space_count: u32,
+    partial_space_count: u32,
 }
 
 impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
@@ -283,14 +287,22 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, _st: &str, _count: u32, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, st: &str, _count: u32, width: u32) -> Result<(), Self::Error> {
         self.pos += width;
+
+        self.partial_space_count += st
+            .chars()
+            .filter(|c| [' ', SPEC_CHAR_NBSP].contains(c))
+            .count()
+            .saturating_as::<u32>();
+
         Ok(())
     }
 
     fn printed_characters(&mut self, _: &str, width: u32) -> Result<(), Self::Error> {
         self.right = self.right.max(self.pos + width);
         self.pos += width;
+        self.space_count = self.partial_space_count;
         Ok(())
     }
 
@@ -338,12 +350,15 @@ impl TextBoxStyle {
             right: 0,
             pos: 0,
             max_line_width,
+            space_count: 0,
+            partial_space_count: 0,
         };
         let last_token = iter.process(&mut handler).unwrap();
 
         LineMeasurement {
             max_line_width,
             width: handler.right,
+            space_count: handler.space_count,
             last_line: matches!(last_token, LineEndType::NewLine | LineEndType::EndOfText),
             line_end_type: last_token,
         }
