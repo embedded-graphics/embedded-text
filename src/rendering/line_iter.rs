@@ -312,10 +312,10 @@ where
                             let width = handler.measure(c);
                             if self.move_cursor(width.saturating_as()).is_ok() {
                                 handler.printed_characters(c, width)?;
+                                self.consume_token();
                             }
 
                             if !self.empty {
-                                self.consume_token();
                                 return Ok(LineEndType::LineBreak);
                             }
                         }
