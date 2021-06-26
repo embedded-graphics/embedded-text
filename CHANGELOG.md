@@ -8,6 +8,7 @@ Unreleased
 
 ## Changed:
 
+ * **breaking** [#125] Raised MSRV to `1.46.0`
  * **breaking** [#125] Chaneged how text height is measured.
  
 ## Removed:

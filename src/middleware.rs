@@ -74,7 +74,7 @@ where
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct NoMiddleware<C>(PhantomData<C>);
 
 impl<C> NoMiddleware<C> {

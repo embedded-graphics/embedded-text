@@ -105,7 +105,7 @@ impl<'a> Iterator for Parser<'a> {
         if let Some(c) = self.inner.next() {
             if is_word_char(c) {
                 // find the longest consecutive slice of text for a Word token
-                while let Some(c) = self.inner.next() {
+                for c in &mut self.inner {
                     if !is_word_char(c) {
                         // pointer arithmetic to get the offset of `c` relative to `string`
                         let offset = {
@@ -159,7 +159,7 @@ impl<'a> Iterator for Parser<'a> {
                     // count consecutive whitespace
                     _ => {
                         let mut len = 1;
-                        while let Some(c) = self.inner.next() {
+                        for c in &mut self.inner {
                             if is_space_char(c) {
                                 if c != SPEC_CHAR_ZWSP {
                                     len += 1;
