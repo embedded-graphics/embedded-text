@@ -108,14 +108,12 @@ where
         'lookahead: loop {
             match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) => {
-                    let w = handler.measure(w);
-
-                    width = width.map_or(Some(w), |acc| Some(acc + w));
+                    *width.get_or_insert(0) += handler.measure(w);
                 }
 
-                Some(Token::Break(c, _original)) => {
-                    let w = handler.measure(c);
-                    width = width.map_or(Some(w), |acc| Some(acc + w));
+                Some(Token::Break(w, _original)) => {
+                    *width.get_or_insert(0) += handler.measure(w);
+
                     break 'lookahead;
                 }
 
@@ -219,9 +217,9 @@ where
         string: &'a str,
         space_count: u32,
         space_width: u32,
-    ) -> Result<(), E::Error> {
+    ) -> Result<bool, E::Error> {
         if self.empty && !self.render_leading_spaces() {
-            return Ok(());
+            return Ok(false);
         }
         let draw_whitespace = (self.empty && self.render_leading_spaces())
             || self.render_trailing_spaces()
@@ -239,20 +237,18 @@ where
                 let single = space_width / space_count;
                 let consumed = moved as u32 / single;
                 if consumed > 0 {
-                    // TODO: only pass relevant substring
-                    handler.whitespace(string, consumed, consumed * single)?;
+                    let (pos, _) = string.char_indices().nth(consumed as usize).unwrap();
+                    let (consumed_str, remainder_str) = string.split_at(pos);
+                    handler.whitespace(consumed_str, consumed, consumed * single)?;
+                    self.replace_peeked_token(Token::Whitespace(
+                        space_count - consumed,
+                        remainder_str,
+                    ));
+                    return Ok(true);
                 }
-                let (pos, _) = string
-                    .char_indices()
-                    .skip(consumed as usize)
-                    .next()
-                    .unwrap();
-                self.replace_peeked_token(Token::Whitespace(space_count - consumed, unsafe {
-                    string.get_unchecked(pos..)
-                }));
             }
         }
-        Ok(())
+        Ok(false)
     }
 
     fn draw_tab<E: ElementHandler>(
@@ -296,7 +292,10 @@ where
             match token {
                 Token::Whitespace(n, seq) => {
                     let space_width = self.spaces.consume(n);
-                    self.draw_whitespace(handler, seq, n, space_width)?;
+                    if self.draw_whitespace(handler, seq, n, space_width)? {
+                        // Token was replaced, skip consuming it.
+                        continue;
+                    }
                 }
 
                 Token::Tab => {
@@ -403,14 +402,14 @@ where
                 }
 
                 Token::CarriageReturn => {
-                    self.consume_token();
                     handler.whitespace("\r", 1, 0)?;
+                    self.consume_token();
                     return Ok(LineEndType::CarriageReturn);
                 }
 
                 Token::NewLine => {
-                    self.consume_token();
                     handler.whitespace("\n", 1, 0)?;
+                    self.consume_token();
                     return Ok(LineEndType::NewLine);
                 }
             }

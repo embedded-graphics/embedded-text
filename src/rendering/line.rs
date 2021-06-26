@@ -203,8 +203,7 @@ where
         );
         middleware.set_state(ProcessingState::Render);
 
-        let end_pos;
-        let end_type = if display.bounding_box().size.height == 0 {
+        let (end_type, end_pos) = if display.bounding_box().size.height == 0 {
             // We're outside of the view. Use simpler render element handler and space config.
             let mut elements = LineElementParser::new(
                 &mut parser,
@@ -220,9 +219,7 @@ where
                 })
                 .unwrap();
 
-            end_pos = elements.cursor.pos();
-
-            end_type
+            (end_type, elements.cursor.pos())
         } else {
             // We have to resort to trickery to figure out the string that is rendered as the line.
             let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
@@ -249,9 +246,7 @@ where
                 middleware: &middleware,
             })?;
 
-            end_pos = elements.cursor.pos();
-
-            end_type
+            (end_type, elements.cursor.pos())
         };
 
         let next_state = LineRenderState {

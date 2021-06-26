@@ -1,7 +1,7 @@
 //! Middleware allow changing TextBox behaviour.
 
 use core::{
-    cell::{Cell, RefCell},
+    cell::{Cell, RefCell, RefMut},
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
@@ -78,6 +78,7 @@ where
 pub struct NoMiddleware<C>(PhantomData<C>);
 
 impl<C> NoMiddleware<C> {
+    #[inline]
     pub fn new() -> Self {
         Self(PhantomData)
     }
@@ -123,27 +124,30 @@ where
         self.state.set(state);
     }
 
+    fn current_token_ref(&self) -> RefMut<Option<Token<'a>>> {
+        match self.state.get() {
+            ProcessingState::Measure => self.measurement_token.borrow_mut(),
+            ProcessingState::Render => self.render_token.borrow_mut(),
+        }
+    }
+
+    fn next_token(&self, next_token: &mut impl Iterator<Item = Token<'a>>) -> Option<Token<'a>> {
+        let mut mw = self.middleware.borrow_mut();
+        match self.state.get() {
+            ProcessingState::Measure => mw.next_token_to_measure(next_token),
+            ProcessingState::Render => mw.next_token_to_render(next_token),
+        }
+    }
+
     pub fn peek_token(
         &self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
-        let mut mw = self.middleware.borrow_mut();
-        match self.state.get() {
-            ProcessingState::Measure => {
-                let mut peeked = self.measurement_token.borrow_mut();
-                if peeked.is_none() {
-                    *peeked = mw.next_token_to_measure(next_token);
-                }
-                peeked.clone()
-            }
-            ProcessingState::Render => {
-                let mut peeked = self.render_token.borrow_mut();
-                if peeked.is_none() {
-                    *peeked = mw.next_token_to_render(next_token);
-                }
-                peeked.clone()
-            }
+        let mut peeked = self.current_token_ref();
+        if peeked.is_none() {
+            *peeked = self.next_token(next_token);
         }
+        peeked.clone()
     }
 
     pub fn consume_peeked_token(&self) {
@@ -152,13 +156,6 @@ where
     }
 
     pub fn replace_peeked_token(&self, token: Token<'a>) {
-        match self.state.get() {
-            ProcessingState::Measure => {
-                self.measurement_token.borrow_mut().replace(token);
-            }
-            ProcessingState::Render => {
-                self.render_token.borrow_mut().replace(token);
-            }
-        }
+        self.current_token_ref().replace(token);
     }
 }
