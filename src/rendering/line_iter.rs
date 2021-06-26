@@ -461,7 +461,7 @@ mod test {
 
     use super::*;
     use crate::{
-        middleware::NoMiddleware,
+        middleware::{Middleware, MiddlewareWrapper, NoMiddleware},
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
         utils::{str_width, test::size_for},
@@ -539,11 +539,15 @@ mod test {
     }
 
     #[track_caller]
-    pub(super) fn assert_line_elements<'a>(
+    pub(super) fn assert_line_elements<'a, M, C>(
         parser: &mut Parser<'a>,
         max_chars: u32,
         elements: &[RenderElement],
-    ) {
+        middleware: &MiddlewareWrapper<'a, M, C>,
+    ) where
+        M: Middleware<'a, C>,
+        C: PixelColor,
+    {
         let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
 
         let config = SpaceConfig::new_from_renderer(&style);
@@ -556,9 +560,13 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
-        let mut line1 =
-            LineElementParser::new(parser, &mut mw, cursor, config, HorizontalAlignment::Left);
+        let mut line1 = LineElementParser::new(
+            parser,
+            middleware,
+            cursor,
+            config,
+            HorizontalAlignment::Left,
+        );
 
         line1.process(&mut handler).unwrap();
 
@@ -598,6 +606,7 @@ mod test {
     #[test]
     fn soft_hyphen_no_wrapping() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -606,12 +615,14 @@ mod test {
                 RenderElement::string("sam", 18),
                 RenderElement::string("ple", 18),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn soft_hyphen() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -620,15 +631,17 @@ mod test {
                 RenderElement::string("sam", 18),
                 RenderElement::string("-", 6),
             ],
+            &mw,
         );
-        assert_line_elements(&mut parser, 5, &[RenderElement::string("ple", 18)]);
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("ple", 18)], &mw);
     }
 
     #[test]
     fn soft_hyphen_wrapped() {
         let mut parser = Parser::parse("sam\u{00AD}mm");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
 
-        assert_line_elements(&mut parser, 3, &[RenderElement::string("sam", 18)]);
+        assert_line_elements(&mut parser, 3, &[RenderElement::string("sam", 18)], &mw);
         assert_line_elements(
             &mut parser,
             3,
@@ -636,12 +649,14 @@ mod test {
                 RenderElement::string("-", 6),
                 RenderElement::string("mm", 12),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn nbsp_issue() {
         let mut parser = Parser::parse("a b c\u{a0}d e f");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -652,6 +667,7 @@ mod test {
                 RenderElement::string("b", 6),
                 RenderElement::MoveCursor(6),
             ],
+            &mw,
         );
         assert_line_elements(
             &mut parser,
@@ -663,16 +679,18 @@ mod test {
                 RenderElement::Space(6),
                 RenderElement::string("e", 6),
             ],
+            &mw,
         );
-        assert_line_elements(&mut parser, 5, &[RenderElement::string("f", 6)]);
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("f", 6)], &mw);
     }
 
     #[test]
     fn soft_hyphen_issue_42() {
         let mut parser =
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
 
-        assert_line_elements(&mut parser, 5, &[RenderElement::string("super", 30)]);
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("super", 30)], &mw);
         assert_line_elements(
             &mut parser,
             5,
@@ -680,12 +698,14 @@ mod test {
                 RenderElement::string("-", 6),
                 RenderElement::string("cali", 24),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn nbsp_is_rendered_as_space() {
         let mut parser = Parser::parse("glued\u{a0}words");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -695,12 +715,14 @@ mod test {
                 RenderElement::Space(6),
                 RenderElement::string("words", 30),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn tabs() {
         let mut parser = Parser::parse("a\tword\nand\t\tanother\t");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -711,6 +733,7 @@ mod test {
                 RenderElement::string("word", 24),
                 RenderElement::Space(0), // the newline
             ],
+            &mw,
         );
         assert_line_elements(
             &mut parser,
@@ -722,14 +745,16 @@ mod test {
                 RenderElement::string("another", 42),
                 RenderElement::MoveCursor(6),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn cursor_limit() {
         let mut parser = Parser::parse("Some sample text");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
 
-        assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)]);
+        assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)], &mw);
     }
 }
 
@@ -739,12 +764,14 @@ mod ansi_parser_tests {
         test::{assert_line_elements, RenderElement},
         *,
     };
+    use crate::middleware::{MiddlewareWrapper, NoMiddleware};
 
     use embedded_graphics::pixelcolor::Rgb888;
 
     #[test]
     fn colors() {
         let mut parser = Parser::parse("Lorem \x1b[92mIpsum");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
@@ -755,12 +782,14 @@ mod ansi_parser_tests {
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
                 RenderElement::string("Ipsum", 30),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn ansi_code_does_not_break_word() {
         let mut parser = Parser::parse("Lorem foo\x1b[92mbarum");
+        let mw = MiddlewareWrapper::new(NoMiddleware::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
@@ -769,6 +798,7 @@ mod ansi_parser_tests {
                 RenderElement::string("Lorem", 30),
                 RenderElement::MoveCursor(6),
             ],
+            &mw,
         );
 
         assert_line_elements(
@@ -779,6 +809,7 @@ mod ansi_parser_tests {
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
                 RenderElement::string("barum", 30),
             ],
+            &mw,
         );
     }
 }
