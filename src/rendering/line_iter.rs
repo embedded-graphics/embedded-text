@@ -26,7 +26,7 @@ pub(crate) struct LineElementParser<'a, 'b, M, C> {
     lookahead: Parser<'a>,
 
     /// Position information.
-    cursor: LineCursor,
+    pub cursor: LineCursor,
 
     /// The text to draw.
     parser: &'b mut Parser<'a>,

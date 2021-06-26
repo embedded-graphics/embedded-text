@@ -16,6 +16,7 @@ use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
     pixelcolor::Rgb888,
+    prelude::Size,
     primitives::Rectangle,
     text::{
         renderer::{CharacterStyle, TextRenderer},
@@ -103,8 +104,8 @@ where
             .style
             .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
 
-        let bottom_right = self.pos + Point::new(0, self.style.line_height().saturating_as());
-        let bounds = Rectangle::with_corners(top_left, bottom_right);
+        let size = Size::new(width, self.style.line_height().saturating_as());
+        let bounds = Rectangle::new(top_left, size);
 
         self.middleware.middleware.borrow_mut().post_render(
             self.display,
@@ -116,14 +117,14 @@ where
         Ok(())
     }
 
-    fn printed_characters(&mut self, st: &str, _: u32) -> Result<(), Self::Error> {
+    fn printed_characters(&mut self, st: &str, width: u32) -> Result<(), Self::Error> {
         let top_left = self.pos;
         self.pos = self
             .style
             .draw_string(st, self.pos, Baseline::Top, self.display)?;
 
-        let bottom_right = self.pos + Point::new(0, self.style.line_height().saturating_as());
-        let bounds = Rectangle::with_corners(top_left, bottom_right);
+        let size = Size::new(width, self.style.line_height().saturating_as());
+        let bounds = Rectangle::new(top_left, size);
 
         self.middleware.middleware.borrow_mut().post_render(
             self.display,
@@ -202,6 +203,7 @@ where
         );
         middleware.set_state(ProcessingState::Render);
 
+        let end_pos;
         let end_type = if display.bounding_box().size.height == 0 {
             // We're outside of the view. Use simpler render element handler and space config.
             let mut elements = LineElementParser::new(
@@ -212,11 +214,15 @@ where
                 style.alignment,
             );
 
-            elements
+            let end_type = elements
                 .process(&mut StyleOnlyRenderElementHandler {
                     style: &mut character_style,
                 })
-                .unwrap()
+                .unwrap();
+
+            end_pos = elements.cursor.pos();
+
+            end_type
         } else {
             // We have to resort to trickery to figure out the string that is rendered as the line.
             let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
@@ -236,21 +242,39 @@ where
                 style.alignment,
             );
 
-            elements.process(&mut RenderElementHandler {
+            let end_type = elements.process(&mut RenderElementHandler {
                 style: &mut character_style,
                 display,
                 pos,
                 middleware: &middleware,
-            })?
+            })?;
+
+            end_pos = elements.cursor.pos();
+
+            end_type
         };
 
-        Ok(LineRenderState {
+        let next_state = LineRenderState {
             parser,
             character_style,
             style,
             end_type,
             middleware,
-        })
+        };
+
+        if next_state.is_finished() {
+            next_state.middleware.middleware.borrow_mut().post_render(
+                display,
+                &next_state.character_style,
+                "",
+                Rectangle::new(
+                    end_pos,
+                    Size::new(0, next_state.character_style.line_height()),
+                ),
+            )?;
+        }
+
+        Ok(next_state)
     }
 }
 

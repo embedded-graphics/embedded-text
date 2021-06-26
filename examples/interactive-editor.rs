@@ -155,38 +155,28 @@ impl<'a, C: PixelColor> Middleware<'a, C> for EditorMiddleware<C> {
         D: DrawTarget<Color = T::Color>,
     {
         let len = text.chars().count();
-        if self.cursor_offset >= self.current_offset
-            && self.cursor_offset <= self.current_offset + len
-            && !self.cursor_drawn
+        let current_offset = self.current_offset;
+        self.current_offset += len;
+
+        if self.cursor_drawn {
+            return Ok(());
+        }
+
+        if (len == 0 && current_offset == self.cursor_offset)
+            || (current_offset..current_offset + len).contains(&self.cursor_offset)
         {
-            let chars_before = self.cursor_offset - self.current_offset;
-            let str_before = text.first_n_chars(chars_before);
-            let metrics =
-                character_style.measure_string(str_before, bounds.top_left, Baseline::Top);
-            let pos = metrics.bounding_box.anchor_point(AnchorPoint::TopRight);
+            let chars_before = self.cursor_offset - current_offset;
+            let pos = if chars_before == 0 {
+                bounds.top_left
+            } else {
+                let str_before = text.first_n_chars(chars_before);
+                let metrics =
+                    character_style.measure_string(str_before, bounds.top_left, Baseline::Top);
+                metrics.bounding_box.anchor_point(AnchorPoint::TopRight)
+            };
             self.draw_cursor(draw_target, bounds, pos)?;
             self.cursor_drawn = true;
         }
-        self.current_offset += len;
-        Ok(())
-    }
-
-    fn post_line_start<T, D>(
-        &mut self,
-        draw_target: &mut D,
-        character_style: &T,
-        pos: Point,
-    ) -> Result<(), D::Error>
-    where
-        T: TextRenderer<Color = C>,
-        D: DrawTarget<Color = C>,
-    {
-        if self.cursor_offset == self.current_offset && !self.cursor_drawn {
-            let rect = Rectangle::new(Point::zero(), Size::new(0, character_style.line_height()));
-            self.draw_cursor(draw_target, rect, pos)?;
-            self.cursor_drawn = true;
-        }
-
         Ok(())
     }
 }
