@@ -103,7 +103,7 @@ where
         let mut lookahead_parser = self.parser.clone();
 
         // We don't want to count the current token.
-        lookahead.consume_peeked_token();
+        lookahead.consume_peeked_token(&mut lookahead_parser);
 
         'lookahead: loop {
             match lookahead.peek_token(&mut lookahead_parser) {
@@ -122,7 +122,7 @@ where
 
                 _ => break 'lookahead,
             }
-            lookahead.consume_peeked_token();
+            lookahead.consume_peeked_token(&mut lookahead_parser);
         }
 
         width
@@ -158,14 +158,22 @@ where
         (w, None)
     }
 
-    fn next_word_fits<E: ElementHandler>(&self, handler: &mut E) -> bool {
-        let mut lookahead = self.parser.clone();
+    fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &mut E) -> bool {
         let mut cursor = self.cursor.clone();
         let mut spaces = self.spaces;
 
         let mut exit = false;
+
+        // This looks extremely inefficient.
+        let lookahead = self.middleware.clone();
+        let mut lookahead_parser = self.parser.clone();
+
+        // We don't want to count the current token.
+        lookahead.consume_peeked_token(&mut lookahead_parser);
+
+        let _ = cursor.move_cursor(space_width);
         while !exit {
-            let width = match lookahead.next() {
+            let width = match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
                     exit = true;
                     handler.measure(w).saturating_as()
@@ -183,11 +191,12 @@ where
                 }
 
                 #[cfg(feature = "ansi")]
-                Some(Token::EscapeSequence(_)) => continue,
+                Some(Token::EscapeSequence(_)) => 0,
 
                 _ => return false,
             };
 
+            lookahead.consume_peeked_token(&mut lookahead_parser);
             if cursor.move_cursor(width).is_err() {
                 return false;
             }
@@ -217,13 +226,13 @@ where
         string: &'a str,
         space_count: u32,
         space_width: u32,
-    ) -> Result<bool, E::Error> {
+    ) -> Result<(), E::Error> {
         if self.empty && !self.render_leading_spaces() {
-            return Ok(false);
+            return Ok(());
         }
         let draw_whitespace = (self.empty && self.render_leading_spaces())
             || self.render_trailing_spaces()
-            || self.next_word_fits(handler);
+            || self.next_word_fits(space_width.saturating_as(), handler);
         match self.move_cursor(space_width.saturating_cast()) {
             Ok(moved) if draw_whitespace => {
                 handler.whitespace(string, space_count, moved.saturating_as())?;
@@ -238,17 +247,18 @@ where
                 let consumed = moved as u32 / single;
                 if consumed > 0 {
                     let (pos, _) = string.char_indices().nth(consumed as usize).unwrap();
-                    let (consumed_str, remainder_str) = string.split_at(pos);
+                    let (consumed_str, _) = string.split_at(pos);
                     handler.whitespace(consumed_str, consumed, consumed * single)?;
-                    self.replace_peeked_token(Token::Whitespace(
-                        space_count - consumed,
-                        remainder_str,
-                    ));
-                    return Ok(true);
+
+                    self.replace_peeked_token(
+                        consumed as usize,
+                        Token::Whitespace(consumed, consumed_str),
+                    );
+                    return Ok(());
                 }
             }
         }
-        Ok(false)
+        Ok(())
     }
 
     fn draw_tab<E: ElementHandler>(
@@ -262,7 +272,7 @@ where
 
         let draw_whitespace = (self.empty && self.render_leading_spaces())
             || self.render_trailing_spaces()
-            || self.next_word_fits(handler);
+            || self.next_word_fits(space_width.saturating_as(), handler);
 
         match self.move_cursor(space_width.saturating_cast()) {
             Ok(moved) if draw_whitespace => handler.whitespace("\t", 1, moved.saturating_as())?,
@@ -279,11 +289,11 @@ where
     }
 
     fn consume_token(&mut self) {
-        self.middleware.consume_peeked_token();
+        self.middleware.consume_peeked_token(&mut self.parser);
     }
 
-    fn replace_peeked_token(&mut self, token: Token<'a>) {
-        self.middleware.replace_peeked_token(token);
+    fn replace_peeked_token(&mut self, len: usize, token: Token<'a>) {
+        self.middleware.replace_peeked_token(len, token);
     }
 
     #[inline]
@@ -292,10 +302,7 @@ where
             match token {
                 Token::Whitespace(n, seq) => {
                     let space_width = self.spaces.consume(n);
-                    if self.draw_whitespace(handler, seq, n, space_width)? {
-                        // Token was replaced, skip consuming it.
-                        continue;
-                    }
+                    self.draw_whitespace(handler, seq, n, space_width)?;
                 }
 
                 Token::Tab => {
@@ -350,8 +357,10 @@ where
                     self.empty = false;
                     self.process_word(handler, word)?;
 
-                    if let Some(remainder) = remainder {
-                        self.replace_peeked_token(Token::Word(remainder));
+                    if remainder.is_some() {
+                        // Consume what was printed.
+                        self.replace_peeked_token(word.len(), Token::Word(word));
+                        self.consume_token();
                         return Ok(LineEndType::LineBreak);
                     }
                 }

@@ -66,7 +66,7 @@ where
     C: PixelColor,
 {
     fn new_line(&mut self) {
-        if self.measured > self.characters {
+        if self.measured >= self.characters {
             self.last_line_processed = true;
         }
     }
@@ -75,13 +75,15 @@ where
         &mut self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
-        let token = next_token.next();
-
         if self.last_line_processed {
             return None;
         }
 
+        let token = next_token.next();
         match token {
+            Some(Token::Whitespace(_, _)) => {
+                // Don't count whitespaces - results in better effect.
+            }
             Some(Token::Word(word)) => {
                 self.measured += word.chars().count() as u32;
             }
@@ -98,14 +100,17 @@ where
         &mut self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
-        let token = next_token.next();
-
         let chars_left = self.characters.saturating_sub(self.rendered);
         if chars_left == 0 {
             return None;
         }
 
+        let token = next_token.next();
         match token {
+            Some(Token::Whitespace(_, _)) => {
+                // Don't count whitespaces - results in better effect.
+                token
+            }
             Some(Token::Word(word)) => {
                 let chars = chars_left.min(word.chars().count() as u32);
                 self.rendered += chars;
@@ -130,6 +135,7 @@ fn main() {
     // Set up the window.
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
+        .scale(2)
         .build();
     let mut window = Window::new("TextBox demonstration", &output_settings);
 
@@ -152,7 +158,6 @@ fn main() {
         let bounds = Rectangle::new(Point::zero(), Size::new(128, 64));
 
         // Create and draw the text boxes.
-        // TODO: setter methods
         TextBox::with_textbox_style(text, bounds, character_style, textbox_style)
             .add_middleware(CharacterLimiter::new(chars))
             .draw(&mut display)

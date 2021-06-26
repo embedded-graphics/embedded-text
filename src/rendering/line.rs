@@ -52,16 +52,6 @@ where
     pub middleware: MiddlewareWrapper<'a, M, S::Color>,
 }
 
-impl<'a, S, M> LineRenderState<'a, S, M>
-where
-    S: TextRenderer + Clone,
-    M: Middleware<'a, S::Color>,
-{
-    pub fn is_finished(&self) -> bool {
-        self.parser.is_empty()
-    }
-}
-
 impl<'a, F, M> StyledLineRenderer<'a, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
@@ -257,7 +247,7 @@ where
             middleware,
         };
 
-        if next_state.is_finished() {
+        if next_state.end_type == LineEndType::EndOfText {
             next_state.middleware.middleware.borrow_mut().post_render(
                 display,
                 &next_state.character_style,

@@ -112,18 +112,18 @@ where
 
             state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
 
-            if state.end_type != LineEndType::CarriageReturn {
-                cursor.new_line();
+            match state.end_type {
+                LineEndType::EndOfText => break,
+                LineEndType::CarriageReturn => {}
+                _ => {
+                    cursor.new_line();
 
-                if state.end_type == LineEndType::NewLine {
-                    cursor.y += self.style.paragraph_spacing.saturating_as::<i32>();
+                    if state.end_type == LineEndType::NewLine {
+                        cursor.y += self.style.paragraph_spacing.saturating_as::<i32>();
+                    }
+
+                    state.middleware.new_line();
                 }
-
-                state.middleware.new_line();
-            }
-
-            if state.is_finished() {
-                break;
             }
         }
 

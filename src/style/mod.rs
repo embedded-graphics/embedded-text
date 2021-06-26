@@ -344,7 +344,7 @@ impl TextBoxStyle {
         LineMeasurement {
             max_line_width,
             width: handler.right,
-            last_line: last_token == LineEndType::NewLine || parser.is_empty(),
+            last_line: matches!(last_token, LineEndType::NewLine | LineEndType::EndOfText),
             line_end_type: last_token,
         }
     }
@@ -424,14 +424,12 @@ impl TextBoxStyle {
             paragraph_ended = lm.last_line;
             match lm.line_end_type {
                 LineEndType::CarriageReturn => {}
-                LineEndType::EndOfText => {}
                 LineEndType::LineBreak | LineEndType::NewLine => {
                     height += line_height;
                 }
-            }
-
-            if parser.is_empty() {
-                return height + closed_paragraphs * self.paragraph_spacing;
+                LineEndType::EndOfText => {
+                    return height + closed_paragraphs * self.paragraph_spacing;
+                }
             }
         }
     }

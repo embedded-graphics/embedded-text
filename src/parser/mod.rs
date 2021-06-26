@@ -83,11 +83,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Returns true if there are no tokens to process.
-    #[inline]
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.inner.as_str().is_empty()
+    pub unsafe fn consume(&mut self, bytes: usize) {
+        // SAFETY: caller needs to make sure we end up on character boundary
+        self.inner = self.inner.as_str().get_unchecked(bytes..).chars();
     }
 
     pub fn as_str(&self) -> &str {

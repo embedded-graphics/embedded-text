@@ -12,7 +12,7 @@ use embedded_graphics::{
     text::renderer::TextRenderer,
 };
 
-use crate::parser::Token;
+use crate::parser::{Parser, Token};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub(crate) enum ProcessingState {
@@ -90,8 +90,8 @@ impl<'a, C> Middleware<'a, C> for NoMiddleware<C> where C: PixelColor {}
 pub(crate) struct MiddlewareWrapper<'a, M, C> {
     pub middleware: RefCell<M>,
     state: Cell<ProcessingState>,
-    measurement_token: RefCell<Option<Token<'a>>>,
-    render_token: RefCell<Option<Token<'a>>>,
+    measurement_token: RefCell<(usize, Option<Token<'a>>)>,
+    render_token: RefCell<(usize, Option<Token<'a>>)>,
     _marker: PhantomData<C>,
 }
 
@@ -111,8 +111,8 @@ where
             _marker: PhantomData,
             middleware: RefCell::new(middleware),
             state: Cell::new(ProcessingState::Measure),
-            measurement_token: RefCell::new(None),
-            render_token: RefCell::new(None),
+            measurement_token: RefCell::new((0, None)),
+            render_token: RefCell::new((0, None)),
         }
     }
 
@@ -124,14 +124,14 @@ where
         self.state.set(state);
     }
 
-    fn current_token_ref(&self) -> RefMut<Option<Token<'a>>> {
+    fn current_token_ref(&self) -> RefMut<(usize, Option<Token<'a>>)> {
         match self.state.get() {
             ProcessingState::Measure => self.measurement_token.borrow_mut(),
             ProcessingState::Render => self.render_token.borrow_mut(),
         }
     }
 
-    fn next_token(&self, next_token: &mut impl Iterator<Item = Token<'a>>) -> Option<Token<'a>> {
+    fn next_token(&self, next_token: &mut Parser<'a>) -> Option<Token<'a>> {
         let mut mw = self.middleware.borrow_mut();
         match self.state.get() {
             ProcessingState::Measure => mw.next_token_to_measure(next_token),
@@ -139,22 +139,28 @@ where
         }
     }
 
-    pub fn peek_token(
-        &self,
-        next_token: &mut impl Iterator<Item = Token<'a>>,
-    ) -> Option<Token<'a>> {
+    pub fn peek_token(&self, source: &mut Parser<'a>) -> Option<Token<'a>> {
         let mut peeked = self.current_token_ref();
-        if peeked.is_none() {
-            *peeked = self.next_token(next_token);
+        if peeked.1.is_none() {
+            let mut cloned = source.clone();
+            peeked.1 = self.next_token(&mut cloned);
+            peeked.0 = source.as_str().len() - cloned.as_str().len();
         }
-        peeked.clone()
+        peeked.1.clone()
     }
 
-    pub fn consume_peeked_token(&self) {
-        self.current_token_ref().take();
+    pub fn consume_peeked_token(&self, source: &mut Parser<'a>) {
+        let mut peeked = self.current_token_ref();
+        unsafe {
+            source.consume(peeked.0);
+        }
+        peeked.0 = 0;
+        peeked.1.take();
     }
 
-    pub fn replace_peeked_token(&self, token: Token<'a>) {
-        self.current_token_ref().replace(token);
+    pub fn replace_peeked_token(&self, len: usize, token: Token<'a>) {
+        let mut peeked = self.current_token_ref();
+        peeked.0 = len;
+        peeked.1.replace(token);
     }
 }
