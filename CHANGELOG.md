@@ -3,12 +3,19 @@ Unreleased
 
 ## Added:
 
- * [#114](https://github.com/embedded-graphics/embedded-text/pull/114) Option to control rendering leading and trailing whitespace.
- * [#114](https://github.com/embedded-graphics/embedded-text/pull/114) Added experimental middleware support via the `middleware` Cargo feature. Middleware can be used to modify `TextBox` behaviour.
+ * [#114] Option to control rendering leading and trailing whitespace.
+ * [#114] Added experimental middleware support via the `middleware` Cargo feature. Middleware can be used to modify `TextBox` behaviour.
 
 ## Changed:
 
- * **breaking** [#125](https://github.com/embedded-graphics/embedded-text/pull/125) Chaneged how text height is measured.
+ * **breaking** [#125] Chaneged how text height is measured.
+ 
+## Removed:
+
+* [#114] `TextBox` no longer implements `PartialEq` and `Eq`
+
+[#114]: https://github.com/embedded-graphics/embedded-text/pull/114
+[#125]: https://github.com/embedded-graphics/embedded-text/pull/125
 
 0.5.0-beta.1 (2021-06-04)
 ==========================

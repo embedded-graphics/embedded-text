@@ -49,7 +49,7 @@ where
     pub character_style: S,
     pub style: TextBoxStyle,
     pub end_type: LineEndType,
-    pub middleware: MiddlewareWrapper<M, S::Color>,
+    pub middleware: MiddlewareWrapper<'a, M, S::Color>,
 }
 
 impl<'a, S, M> LineRenderState<'a, S, M>
@@ -74,18 +74,18 @@ where
     }
 }
 
-struct RenderElementHandler<'a, F, D, M>
+struct RenderElementHandler<'a, 'b, F, D, M>
 where
     F: TextRenderer,
     D: DrawTarget<Color = F::Color>,
 {
-    style: &'a mut F,
-    display: &'a mut D,
+    style: &'b mut F,
+    display: &'b mut D,
     pos: Point,
-    middleware: &'a MiddlewareWrapper<M, F::Color>,
+    middleware: &'b MiddlewareWrapper<'a, M, F::Color>,
 }
 
-impl<'a, 'b, F, D, M> ElementHandler for RenderElementHandler<'a, F, D, M>
+impl<'a, 'b, 'c, F, D, M> ElementHandler for RenderElementHandler<'a, 'c, F, D, M>
 where
     F: CharacterStyle + TextRenderer,
     <F as CharacterStyle>::Color: From<Rgb888>,

@@ -85,20 +85,22 @@ impl<C> NoMiddleware<C> {
 
 impl<'a, C> Middleware<'a, C> for NoMiddleware<C> where C: PixelColor {}
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct MiddlewareWrapper<M, C> {
+#[derive(Clone, Debug)]
+pub(crate) struct MiddlewareWrapper<'a, M, C> {
     pub middleware: RefCell<M>,
     state: Cell<ProcessingState>,
+    measurement_token: RefCell<Option<Token<'a>>>,
+    render_token: RefCell<Option<Token<'a>>>,
     _marker: PhantomData<C>,
 }
 
-impl<M, C> Hash for MiddlewareWrapper<M, C> {
+impl<'a, M, C> Hash for MiddlewareWrapper<'a, M, C> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.state.get().hash(state)
     }
 }
 
-impl<'a, M, C> MiddlewareWrapper<M, C>
+impl<'a, M, C> MiddlewareWrapper<'a, M, C>
 where
     C: PixelColor,
     M: Middleware<'a, C>,
@@ -108,6 +110,8 @@ where
             _marker: PhantomData,
             middleware: RefCell::new(middleware),
             state: Cell::new(ProcessingState::Measure),
+            measurement_token: RefCell::new(None),
+            render_token: RefCell::new(None),
         }
     }
 
@@ -119,19 +123,36 @@ where
         self.state.set(state);
     }
 
-    pub fn next_token(
+    pub fn peek_token(
         &self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
         match self.state.get() {
-            ProcessingState::Measure => self
-                .middleware
-                .borrow_mut()
-                .next_token_to_measure(next_token),
-            ProcessingState::Render => self
-                .middleware
-                .borrow_mut()
-                .next_token_to_render(next_token),
+            ProcessingState::Measure => {
+                let mut peeked = self.measurement_token.borrow_mut();
+                if peeked.is_none() {
+                    *peeked = self
+                        .middleware
+                        .borrow_mut()
+                        .next_token_to_measure(next_token);
+                }
+                peeked.clone()
+            }
+            ProcessingState::Render => {
+                let mut peeked = self.render_token.borrow_mut();
+                if peeked.is_none() {
+                    *peeked = self
+                        .middleware
+                        .borrow_mut()
+                        .next_token_to_render(next_token);
+                }
+                peeked.clone()
+            }
         }
+    }
+
+    pub fn consume_peeked_token(&self) {
+        self.measurement_token.borrow_mut().take();
+        self.render_token.borrow_mut().take();
     }
 }

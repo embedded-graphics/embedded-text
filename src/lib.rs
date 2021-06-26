@@ -143,7 +143,7 @@ pub use parser::Token;
 /// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
 /// [module-level documentation]: index.html
 /// [`draw`]: #method.draw
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Hash)]
 #[must_use]
 pub struct TextBox<'a, S, M = NoMiddleware<<S as TextRenderer>::Color>>
 where
@@ -164,7 +164,7 @@ where
     /// Vertical offset applied to the text just before rendering.
     pub vertical_offset: i32,
 
-    middleware: MiddlewareWrapper<M, S::Color>,
+    middleware: MiddlewareWrapper<'a, M, S::Color>,
 }
 
 impl<'a, S> TextBox<'a, S, NoMiddleware<<S as TextRenderer>::Color>>

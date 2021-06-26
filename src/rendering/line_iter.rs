@@ -34,7 +34,7 @@ pub(crate) struct LineElementParser<'a, 'b, M, C> {
     spaces: SpaceConfig,
     alignment: HorizontalAlignment,
     empty: bool,
-    middleware: &'b MiddlewareWrapper<M, C>,
+    middleware: &'b MiddlewareWrapper<'a, M, C>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,7 +82,7 @@ where
     #[inline]
     pub fn new(
         parser: &'b mut Parser<'a>,
-        middleware: &'b MiddlewareWrapper<M, C>,
+        middleware: &'b MiddlewareWrapper<'a, M, C>,
         cursor: LineCursor,
         spaces: SpaceConfig,
         alignment: HorizontalAlignment,
@@ -270,11 +270,12 @@ where
     fn peek_next_token(&mut self) -> Option<Token<'a>> {
         self.consume_token();
 
-        self.middleware.next_token(&mut self.lookahead)
+        self.middleware.peek_token(&mut self.lookahead)
     }
 
     fn consume_token(&mut self) {
         *self.parser = self.lookahead.clone();
+        self.middleware.consume_peeked_token();
     }
 
     fn consume_str(&mut self, string: &'a str) {

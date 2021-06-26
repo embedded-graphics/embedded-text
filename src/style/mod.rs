@@ -314,7 +314,7 @@ impl TextBoxStyle {
     #[inline]
     pub(crate) fn measure_line<'a, S, M>(
         &self,
-        middleware: &mut MiddlewareWrapper<M, S::Color>,
+        middleware: &mut MiddlewareWrapper<'a, M, S::Color>,
         character_style: &S,
         parser: &mut Parser<'a>,
         max_line_width: u32,
@@ -396,7 +396,7 @@ impl TextBoxStyle {
 
     pub(crate) fn measure_text_height_impl<'a, S, M>(
         &self,
-        mut middleware: MiddlewareWrapper<M, S::Color>,
+        mut middleware: MiddlewareWrapper<'a, M, S::Color>,
         character_style: &S,
         text: &'a str,
         max_width: u32,
