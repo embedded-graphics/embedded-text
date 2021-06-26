@@ -151,8 +151,7 @@ where
     }
 
     pub fn consume_peeked_token(&self) {
-        self.measurement_token.borrow_mut().take();
-        self.render_token.borrow_mut().take();
+        self.current_token_ref().take();
     }
 
     pub fn replace_peeked_token(&self, token: Token<'a>) {
