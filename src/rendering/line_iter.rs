@@ -279,8 +279,6 @@ where
     }
 
     fn peek_next_token(&mut self) -> Option<Token<'a>> {
-        self.consume_token();
-
         self.middleware.peek_token(&mut self.parser)
     }
 
@@ -416,9 +414,9 @@ where
                     return Ok(LineEndType::NewLine);
                 }
             }
+            self.consume_token();
         }
 
-        self.consume_token();
         Ok(LineEndType::EndOfText)
     }
 
