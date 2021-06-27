@@ -456,7 +456,7 @@ mod test {
         alignment::*,
         middleware::{MiddlewareWrapper, NoMiddleware},
         parser::Parser,
-        style::builder::TextBoxStyleBuilder,
+        style::{builder::TextBoxStyleBuilder, TextBoxStyle},
     };
     use embedded_graphics::{
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
@@ -510,7 +510,7 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().build();
+        let style = TextBoxStyle::default();
 
         for (i, (text, width, expected_n_lines)) in data.iter().enumerate() {
             let height = style.measure_text_height(&character_style, text, *width);

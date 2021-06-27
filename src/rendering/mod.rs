@@ -66,6 +66,7 @@ where
 
         let mut anything_drawn = false;
         loop {
+            state.middleware.new_line();
             let line_cursor = cursor.line();
 
             let display_range = self
@@ -122,8 +123,6 @@ where
                     if state.end_type == LineEndType::NewLine {
                         cursor.y += self.style.paragraph_spacing.saturating_as::<i32>();
                     }
-
-                    state.middleware.new_line();
                 }
             }
         }
