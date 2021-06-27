@@ -30,17 +30,17 @@ use super::ansi::Sgr;
 use super::{line_iter::ElementHandler, space_config::SpaceConfig};
 
 /// Render a single line of styled text.
-pub(crate) struct StyledLineRenderer<'a, S, M>
+pub(crate) struct StyledLineRenderer<'a, 'b, S, M>
 where
     S: TextRenderer + Clone,
     M: Middleware<'a, <S as TextRenderer>::Color>,
 {
     cursor: LineCursor,
-    state: LineRenderState<'a, S, M>,
+    state: LineRenderState<'a, 'b, S, M>,
 }
 
 #[derive(Clone)]
-pub(crate) struct LineRenderState<'a, S, M>
+pub(crate) struct LineRenderState<'a, 'b, S, M>
 where
     S: TextRenderer + Clone,
     M: Middleware<'a, S::Color>,
@@ -49,17 +49,17 @@ where
     pub character_style: S,
     pub style: TextBoxStyle,
     pub end_type: LineEndType,
-    pub middleware: MiddlewareWrapper<'a, M, S::Color>,
+    pub middleware: &'b MiddlewareWrapper<'a, M, S::Color>,
 }
 
-impl<'a, F, M> StyledLineRenderer<'a, F, M>
+impl<'a, 'b, F, M> StyledLineRenderer<'a, 'b, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
     M: Middleware<'a, <F as TextRenderer>::Color>,
 {
     /// Creates a new line renderer.
-    pub fn new(cursor: LineCursor, state: LineRenderState<'a, F, M>) -> Self {
+    pub fn new(cursor: LineCursor, state: LineRenderState<'a, 'b, F, M>) -> Self {
         Self { cursor, state }
     }
 }
@@ -161,14 +161,14 @@ where
     }
 }
 
-impl<'a, F, M> Drawable for StyledLineRenderer<'a, F, M>
+impl<'a, 'b, F, M> Drawable for StyledLineRenderer<'a, 'b, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
     M: Middleware<'a, <F as TextRenderer>::Color> + Middleware<'a, <F as CharacterStyle>::Color>,
 {
     type Color = <F as CharacterStyle>::Color;
-    type Output = LineRenderState<'a, F, M>;
+    type Output = LineRenderState<'a, 'b, F, M>;
 
     #[inline]
     fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
@@ -348,7 +348,7 @@ mod test {
             character_style,
             style,
             end_type: LineEndType::EndOfText,
-            middleware,
+            middleware: &middleware,
         };
 
         let renderer = StyledLineRenderer::new(cursor, state);
@@ -523,7 +523,7 @@ mod ansi_parser_tests {
             character_style,
             style,
             end_type: LineEndType::EndOfText,
-            middleware,
+            middleware: &middleware,
         };
         StyledLineRenderer::new(cursor, state)
             .draw(&mut display)

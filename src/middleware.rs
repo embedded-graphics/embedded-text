@@ -12,7 +12,11 @@ use embedded_graphics::{
     text::renderer::TextRenderer,
 };
 
-use crate::parser::{Parser, Token};
+use crate::{
+    parser::{Parser, Token},
+    rendering::cursor::Cursor,
+    TextBox,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub(crate) enum ProcessingState {
@@ -71,6 +75,14 @@ where
         D: DrawTarget<Color = C>,
     {
         Ok(())
+    }
+
+    #[inline]
+    fn on_start_render<S: TextRenderer>(
+        &mut self,
+        _text_box: &TextBox<'a, S, Self>,
+        _cursor: &mut Cursor,
+    ) {
     }
 }
 
@@ -162,5 +174,14 @@ where
         let mut peeked = self.current_token_ref();
         peeked.0 = len;
         peeked.1.replace(token);
+    }
+
+    pub fn start_render<S: TextRenderer>(&self, text_box: &TextBox<'a, S, M>, cursor: &mut Cursor) {
+        *self.measurement_token.borrow_mut() = (0, None);
+        *self.render_token.borrow_mut() = (0, None);
+
+        self.middleware
+            .borrow_mut()
+            .on_start_render(text_box, cursor);
     }
 }

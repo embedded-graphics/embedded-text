@@ -51,15 +51,16 @@ where
             .vertical_alignment
             .apply_vertical_alignment(&mut cursor, self);
 
+        cursor.y += self.vertical_offset;
+        self.middleware.start_render(&self, &mut cursor);
+
         let mut state = LineRenderState {
             style: self.style,
             character_style: self.character_style.clone(),
             parser: Parser::parse(self.text),
             end_type: LineEndType::EndOfText,
-            middleware: self.middleware.clone(),
+            middleware: &self.middleware,
         };
-
-        cursor.y += self.vertical_offset;
 
         state.middleware.set_state(ProcessingState::Render);
 
