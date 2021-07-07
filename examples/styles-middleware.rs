@@ -61,20 +61,7 @@ impl<'a, C> Middleware<'a, C> for Underliner<'a>
 where
     C: PixelColor,
 {
-    fn next_token_to_measure(
-        &mut self,
-        next_token: &mut impl Iterator<Item = Token<'a>>,
-    ) -> Option<Token<'a>> {
-        let token = if let Some(token) = self.current_token.take() {
-            Some(token)
-        } else {
-            next_token.next()
-        };
-
-        self.process_token(token, |_| Some(Token::Word("")))
-    }
-
-    fn next_token_to_render(
+    fn next_token(
         &mut self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {

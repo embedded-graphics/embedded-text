@@ -45,9 +45,7 @@ struct CharacterLimiter {
     characters: u32,
     measured: u32,
     rendered: u32,
-    // We measure everything in the current line to avoid jumping.
-    // This flag tells us if we have seen the last line and we can stop measuring.
-    last_line_processed: bool,
+    last_line: bool,
 }
 
 impl CharacterLimiter {
@@ -56,26 +54,27 @@ impl CharacterLimiter {
             characters,
             measured: 0,
             rendered: 0,
-            last_line_processed: false,
+            last_line: false,
         }
     }
 }
 
+// This implementation does not work with Justified text. Justified text needs to be able to measure
+// lines of text, but line delimiting does not work nice with lookahead tokens.
+// Middleware already returned the next token before we knew it belonged to the next line.
 impl<'a, C> Middleware<'a, C> for CharacterLimiter
 where
     C: PixelColor,
 {
     fn new_line(&mut self) {
-        if self.measured >= self.characters {
-            self.last_line_processed = true;
-        }
+        self.last_line = self.measured > self.characters;
     }
 
-    fn next_token_to_measure(
+    fn next_token(
         &mut self,
         next_token: &mut impl Iterator<Item = Token<'a>>,
     ) -> Option<Token<'a>> {
-        if self.last_line_processed {
+        if self.last_line {
             return None;
         }
 
@@ -83,45 +82,41 @@ where
         match token {
             Some(Token::Whitespace(_, _)) => {
                 // Don't count whitespaces - results in better effect.
+                token
             }
             Some(Token::Word(word)) => {
                 self.measured += word.chars().count() as u32;
+
+                Some(Token::Word(word))
             }
             Some(Token::Break(_, _)) => {
                 self.measured += 1;
-            }
-            _ => {}
-        };
-
-        token
-    }
-
-    fn next_token_to_render(
-        &mut self,
-        next_token: &mut impl Iterator<Item = Token<'a>>,
-    ) -> Option<Token<'a>> {
-        let chars_left = self.characters.saturating_sub(self.rendered);
-        if chars_left == 0 {
-            return None;
-        }
-
-        let token = next_token.next();
-        match token {
-            Some(Token::Whitespace(_, _)) => {
-                // Don't count whitespaces - results in better effect.
-                token
-            }
-            Some(Token::Word(word)) => {
-                let chars = chars_left.min(word.chars().count() as u32);
-                self.rendered += chars;
-
-                Some(Token::Word(word.first_n_chars(chars)))
-            }
-            Some(Token::Break(_, _)) => {
-                self.rendered += 1;
                 token
             }
             token => token,
+        }
+    }
+
+    fn render_token(&mut self, token: Token<'a>) -> Option<Token<'a>> {
+        if self.measured <= self.characters {
+            self.rendered = self.measured;
+            return Some(token);
+        }
+
+        let to_render = self.characters.saturating_sub(self.rendered);
+        if to_render == 0 {
+            return None;
+        }
+        self.rendered = self.measured;
+
+        match token {
+            Token::Whitespace(n, s) => {
+                let to_render = n.min(to_render);
+                Some(Token::Whitespace(to_render, s.first_n_chars(to_render)))
+            }
+            Token::Word(s) => Some(Token::Word(s.first_n_chars(to_render))),
+            Token::Break(repl, orig) => Some(Token::Break(repl.first_n_chars(to_render), orig)),
+            _ => Some(token),
         }
     }
 }
@@ -174,6 +169,6 @@ fn main() {
         }
 
         // Wait for a little while.
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(25));
     }
 }

@@ -429,6 +429,8 @@ impl TextBoxStyle {
 
         middleware.set_state(ProcessingState::Measure);
 
+        let mut prev_end = LineEndType::EndOfText;
+
         loop {
             middleware.new_line();
             let lm = self.measure_line(&middleware, character_style, &mut parser, max_width);
@@ -437,15 +439,24 @@ impl TextBoxStyle {
                 closed_paragraphs += 1;
             }
             paragraph_ended = lm.last_line;
+
+            if prev_end == LineEndType::LineBreak {
+                if lm.width != 0 {
+                    height += line_height;
+                }
+            }
+
             match lm.line_end_type {
                 LineEndType::CarriageReturn => {}
-                LineEndType::LineBreak | LineEndType::NewLine => {
+                LineEndType::LineBreak => {}
+                LineEndType::NewLine => {
                     height += line_height;
                 }
                 LineEndType::EndOfText => {
                     return height + closed_paragraphs * self.paragraph_spacing;
                 }
             }
+            prev_end = lm.line_end_type;
         }
     }
 }

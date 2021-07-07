@@ -52,7 +52,7 @@ where
             .apply_vertical_alignment(&mut cursor, self);
 
         cursor.y += self.vertical_offset;
-        self.middleware.start_render(&self, &mut cursor);
+        self.middleware.start_render(self, &mut cursor);
 
         let mut state = LineRenderState {
             style: self.style,
@@ -91,7 +91,7 @@ where
                     let remaining_bytes = state.parser.as_str().len();
                     let consumed_bytes = self.text.len() - remaining_bytes;
 
-                    state.middleware.middleware.borrow_mut().post_render(
+                    state.middleware.post_render(
                         &mut display,
                         &self.character_style,
                         "",
@@ -106,11 +106,9 @@ where
                 anything_drawn = true;
             }
 
-            state.middleware.middleware.borrow_mut().post_line_start(
-                &mut display,
-                &self.character_style,
-                line_start,
-            )?;
+            state
+                .middleware
+                .post_line_start(&mut display, &self.character_style, line_start)?;
 
             state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
 

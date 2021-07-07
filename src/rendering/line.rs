@@ -80,7 +80,7 @@ where
     F: CharacterStyle + TextRenderer,
     <F as CharacterStyle>::Color: From<Rgb888>,
     D: DrawTarget<Color = <F as TextRenderer>::Color>,
-    M: Middleware<'b, <F as TextRenderer>::Color>,
+    M: Middleware<'a, <F as TextRenderer>::Color>,
 {
     type Error = D::Error;
 
@@ -97,12 +97,8 @@ where
         let size = Size::new(width, self.style.line_height().saturating_as());
         let bounds = Rectangle::new(top_left, size);
 
-        self.middleware.middleware.borrow_mut().post_render(
-            self.display,
-            self.style,
-            st,
-            bounds,
-        )?;
+        self.middleware
+            .post_render(self.display, self.style, st, bounds)?;
 
         Ok(())
     }
@@ -116,12 +112,8 @@ where
         let size = Size::new(width, self.style.line_height().saturating_as());
         let bounds = Rectangle::new(top_left, size);
 
-        self.middleware.middleware.borrow_mut().post_render(
-            self.display,
-            self.style,
-            st,
-            bounds,
-        )?;
+        self.middleware
+            .post_render(self.display, self.style, st, bounds)?;
 
         Ok(())
     }
@@ -184,20 +176,20 @@ where
         } = self.state.clone();
 
         let mut cloned_parser = parser.clone();
-        middleware.set_state(ProcessingState::Measure);
+        let measure_middleware = middleware.clone();
+        measure_middleware.set_state(ProcessingState::Measure);
         let lm = style.measure_line(
-            &middleware,
+            &measure_middleware,
             &character_style,
             &mut cloned_parser,
             self.cursor.line_width(),
         );
-        middleware.set_state(ProcessingState::Render);
 
         let (end_type, end_pos) = if display.bounding_box().size.height == 0 {
             // We're outside of the view. Use simpler render element handler and space config.
             let mut elements = LineElementParser::new(
                 &mut parser,
-                &middleware,
+                middleware,
                 self.cursor.clone(),
                 SpaceConfig::new_from_renderer(&character_style),
                 style.alignment,
@@ -219,7 +211,7 @@ where
             let pos = cursor.pos();
             let mut elements = LineElementParser::new(
                 &mut parser,
-                &middleware,
+                middleware,
                 cursor,
                 space_config,
                 style.alignment,
@@ -229,7 +221,7 @@ where
                 style: &mut character_style,
                 display,
                 pos,
-                middleware: &middleware,
+                middleware,
             })?;
 
             (end_type, elements.cursor.pos())
@@ -244,7 +236,7 @@ where
         };
 
         if next_state.end_type == LineEndType::EndOfText {
-            next_state.middleware.middleware.borrow_mut().post_render(
+            next_state.middleware.post_render(
                 display,
                 &next_state.character_style,
                 "",

@@ -87,7 +87,7 @@ impl EditorInput {
     }
 
     pub fn delete_after(&mut self) {
-        if self.cursor_offset > 0 && self.cursor_offset < self.text.chars().count() {
+        if self.cursor_offset < self.text.chars().count() {
             self.text.remove(self.cursor_offset);
         }
     }
@@ -172,7 +172,8 @@ impl<'a, C: PixelColor> Middleware<'a, C> for EditorMiddleware<C> {
                 let str_before = text.first_n_chars(chars_before);
                 let metrics =
                     character_style.measure_string(str_before, bounds.top_left, Baseline::Top);
-                metrics.bounding_box.anchor_point(AnchorPoint::TopRight)
+                // we want the start of the next character, not the end of the last, hence the +
+                metrics.bounding_box.anchor_point(AnchorPoint::TopRight) + Point::new(1, 0)
             };
             self.draw_cursor(draw_target, bounds, pos)?;
             self.cursor_drawn = true;

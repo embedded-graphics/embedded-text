@@ -318,7 +318,11 @@ where
                             // If the next Word token does not fit the line, display break character
                             let width = handler.measure(c);
                             if self.move_cursor(width.saturating_as()).is_ok() {
-                                handler.printed_characters(c, width)?;
+                                if let Some(Token::Break(c, _)) =
+                                    self.middleware.render_token(token)
+                                {
+                                    handler.printed_characters(c, width)?;
+                                }
                                 self.consume_token();
                             }
 
@@ -355,7 +359,11 @@ where
                     };
 
                     self.empty = false;
-                    self.process_word(handler, word)?;
+
+                    if let Some(Token::Word(word)) = self.middleware.render_token(Token::Word(word))
+                    {
+                        self.process_word(handler, word)?;
+                    }
 
                     if remainder.is_some() {
                         // Consume what was printed.
