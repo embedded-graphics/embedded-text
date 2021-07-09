@@ -105,7 +105,7 @@
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
 #![deny(clippy::cargo)]
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 #![warn(clippy::all)]
 #![allow(clippy::needless_doctest_main)]
 

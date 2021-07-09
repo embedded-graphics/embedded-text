@@ -3,7 +3,6 @@ Unreleased
 
 ## Added:
 
- * [#114] Option to control rendering leading and trailing whitespace.
  * [#114] Added experimental middleware support via the `middleware` Cargo feature. Middleware can be used to modify `TextBox` behaviour.
 
 ## Changed:

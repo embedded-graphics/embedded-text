@@ -255,7 +255,7 @@ impl Default for TextBoxStyle {
 /// Information about a line.
 #[derive(Debug)]
 #[must_use]
-pub struct LineMeasurement {
+pub(crate) struct LineMeasurement {
     /// Maximum line width in pixels.
     pub max_line_width: u32,
 
@@ -268,6 +268,7 @@ pub struct LineMeasurement {
     /// Whether this line ended with a \r.
     pub line_end_type: LineEndType,
 
+    /// Number of spaces in the current line.
     pub space_count: u32,
 }
 

@@ -6,9 +6,7 @@ use core::{
     marker::PhantomData,
 };
 use embedded_graphics::{
-    draw_target::DrawTarget,
-    prelude::{PixelColor, Point},
-    primitives::Rectangle,
+    draw_target::DrawTarget, prelude::PixelColor, primitives::Rectangle,
     text::renderer::TextRenderer,
 };
 
@@ -24,6 +22,14 @@ pub(crate) enum ProcessingState {
     Render,
 }
 
+/// Middleware
+///
+/// Middleware allows modifying and extending TextBox's internals.
+///
+/// *Important*:
+/// This is an experimental, unstable feature. It can be, and probably will be modified without
+/// any prior notice.
+/// Using middleware requires enabling the `middleware` crate feature.
 pub trait Middleware<'a, C>: Clone
 where
     C: PixelColor,
@@ -32,6 +38,7 @@ where
     #[inline]
     fn new_line(&mut self) {}
 
+    /// Generate the next text token.
     #[inline]
     fn next_token(
         &mut self,
@@ -40,11 +47,16 @@ where
         next_token.next()
     }
 
+    /// Modify the current token immediately before it is rendered.
+    ///
+    /// This function must return the same token type as the input, otherwise the returned token
+    /// is ignored.
     #[inline]
     fn render_token(&mut self, token: Token<'a>) -> Option<Token<'a>> {
         Some(token)
     }
 
+    /// Called after a piece of text is rendered.
     #[inline]
     fn post_render<T, D>(
         &mut self,
@@ -60,20 +72,7 @@ where
         Ok(())
     }
 
-    #[inline]
-    fn post_line_start<T, D>(
-        &mut self,
-        _draw_target: &mut D,
-        _character_style: &T,
-        _pos: Point,
-    ) -> Result<(), D::Error>
-    where
-        T: TextRenderer<Color = C>,
-        D: DrawTarget<Color = C>,
-    {
-        Ok(())
-    }
-
+    /// Called before TextBox rendering is started.
     #[inline]
     fn on_start_render<S: TextRenderer>(
         &mut self,
@@ -83,12 +82,12 @@ where
     }
 }
 
+/// Placeholder type when no middleware is used.
 #[derive(Clone, Copy, Default)]
 pub struct NoMiddleware<C>(PhantomData<C>);
 
 impl<C> NoMiddleware<C> {
-    #[inline]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self(PhantomData)
     }
 }
@@ -186,7 +185,11 @@ where
         this.lookahead = this.middleware.clone();
     }
 
-    pub fn start_render<S: TextRenderer>(&self, text_box: &TextBox<'a, S, M>, cursor: &mut Cursor) {
+    pub fn on_start_render<S: TextRenderer>(
+        &self,
+        text_box: &TextBox<'a, S, M>,
+        cursor: &mut Cursor,
+    ) {
         let mut this = self.inner.borrow_mut();
         this.peeked_token = (0, None);
 
@@ -208,21 +211,5 @@ where
             .borrow_mut()
             .lookahead
             .post_render(draw_target, character_style, text, bounds)
-    }
-
-    pub fn post_line_start<T, D>(
-        &self,
-        draw_target: &mut D,
-        character_style: &T,
-        pos: Point,
-    ) -> Result<(), D::Error>
-    where
-        T: TextRenderer<Color = C>,
-        D: DrawTarget<Color = C>,
-    {
-        self.inner
-            .borrow_mut()
-            .lookahead
-            .post_line_start(draw_target, character_style, pos)
     }
 }

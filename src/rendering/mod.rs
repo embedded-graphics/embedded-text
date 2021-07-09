@@ -52,7 +52,7 @@ where
             .apply_vertical_alignment(&mut cursor, self);
 
         cursor.y += self.vertical_offset;
-        self.middleware.start_render(self, &mut cursor);
+        self.middleware.on_start_render(self, &mut cursor);
 
         let mut state = LineRenderState {
             style: self.style,
@@ -105,10 +105,6 @@ where
             } else {
                 anything_drawn = true;
             }
-
-            state
-                .middleware
-                .post_line_start(&mut display, &self.character_style, line_start)?;
 
             state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
 
