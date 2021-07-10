@@ -72,13 +72,13 @@ where
 
     fn next_token(
         &mut self,
-        next_token: &mut impl Iterator<Item = Token<'a>>,
+        mut next_token: impl FnMut() -> Option<Token<'a>>,
     ) -> Option<Token<'a>> {
         if self.last_line {
             return None;
         }
 
-        let token = next_token.next();
+        let token = next_token();
         match token {
             Some(Token::Whitespace(_, _)) => {
                 // Don't count whitespaces - results in better effect.

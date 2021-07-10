@@ -63,12 +63,12 @@ where
 {
     fn next_token(
         &mut self,
-        next_token: &mut impl Iterator<Item = Token<'a>>,
+        mut next_token: impl FnMut() -> Option<Token<'a>>,
     ) -> Option<Token<'a>> {
         let token = if let Some(token) = self.current_token.take() {
             Some(token)
         } else {
-            next_token.next()
+            next_token()
         };
 
         self.process_token(token, |this| {

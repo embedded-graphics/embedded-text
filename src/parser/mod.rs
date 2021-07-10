@@ -50,7 +50,7 @@ pub enum Token<'a> {
 ///
 /// [`Token`]: enum.Token.html
 #[derive(Clone, Debug)]
-pub struct Parser<'a> {
+pub(crate) struct Parser<'a> {
     inner: Chars<'a>,
 }
 

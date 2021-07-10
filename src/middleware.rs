@@ -42,9 +42,9 @@ where
     #[inline]
     fn next_token(
         &mut self,
-        next_token: &mut impl Iterator<Item = Token<'a>>,
+        mut next_token: impl FnMut() -> Option<Token<'a>>,
     ) -> Option<Token<'a>> {
-        next_token.next()
+        next_token()
     }
 
     /// Modify the current token immediately before it is rendered.
@@ -158,7 +158,7 @@ where
 
         if this.peeked_token.1.is_none() {
             let mut cloned = source.clone();
-            this.peeked_token.1 = this.lookahead.next_token(&mut cloned);
+            this.peeked_token.1 = this.lookahead.next_token(|| cloned.next());
             this.peeked_token.0 = source.as_str().len() - cloned.as_str().len();
         }
         this.peeked_token.1.clone()
