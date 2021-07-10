@@ -109,9 +109,10 @@ where
 
     fn printed_characters(&mut self, st: &str, width: u32) -> Result<(), Self::Error> {
         let top_left = self.pos;
-        self.pos = self
-            .style
+        self.style
             .draw_string(st, self.pos, Baseline::Top, self.display)?;
+
+        self.pos += Point::new(width.saturating_as(), 0);
 
         let size = Size::new(width, self.style.line_height().saturating_as());
         let bounds = Rectangle::new(top_left, size);
