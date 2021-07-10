@@ -228,18 +228,17 @@ where
         space_width: u32,
     ) -> Result<(), E::Error> {
         if self.empty && !self.render_leading_spaces() {
+            handler.whitespace(string, 0, 0)?;
             return Ok(());
         }
         let draw_whitespace = (self.empty && self.render_leading_spaces())
             || self.render_trailing_spaces()
             || self.next_word_fits(space_width.saturating_as(), handler);
-        match self.move_cursor(space_width.saturating_cast()) {
-            Ok(moved) if draw_whitespace => {
-                handler.whitespace(string, space_count, moved.saturating_as())?;
-            }
 
+        match self.move_cursor(space_width.saturating_cast()) {
             Ok(moved) => {
-                handler.move_cursor(moved.saturating_as())?;
+                let spaces = if draw_whitespace { space_count } else { 0 };
+                handler.whitespace(string, spaces, moved.saturating_as())?;
             }
 
             Err(moved) => {
@@ -393,7 +392,7 @@ where
                             let delta = (n * handler.measure(" ")).saturating_as();
                             match self.move_cursor(delta) {
                                 Ok(delta) | Err(delta) => {
-                                    handler.whitespace("", 0, delta.saturating_as())?;
+                                    handler.whitespace("", 1, delta.saturating_as())?;
                                 }
                             }
                         }
@@ -406,7 +405,7 @@ where
                             match self.move_cursor(delta) {
                                 Ok(delta) | Err(delta) => {
                                     handler.move_cursor(delta)?;
-                                    handler.whitespace("", 0, delta.abs().saturating_as())?;
+                                    handler.whitespace("", 1, delta.abs().saturating_as())?;
                                     handler.move_cursor(delta)?;
                                 }
                             }
@@ -419,13 +418,13 @@ where
                 }
 
                 Token::CarriageReturn => {
-                    handler.whitespace("\r", 1, 0)?;
+                    handler.whitespace("\r", 0, 0)?;
                     self.consume_token();
                     return Ok(LineEndType::CarriageReturn);
                 }
 
                 Token::NewLine => {
-                    handler.whitespace("\n", 1, 0)?;
+                    handler.whitespace("\n", 0, 0)?;
                     self.consume_token();
                     return Ok(LineEndType::NewLine);
                 }
@@ -490,7 +489,7 @@ mod test {
 
     #[derive(PartialEq, Eq, Debug)]
     pub(super) enum RenderElement {
-        Space(u32),
+        Space(u32, bool),
         String(String, u32),
         MoveCursor(i32),
         #[cfg(feature = "ansi")]
@@ -524,13 +523,9 @@ mod test {
             str_width(&self.style, st)
         }
 
-        fn whitespace(
-            &mut self,
-            _string: &str,
-            _count: u32,
-            width: u32,
-        ) -> Result<(), Self::Error> {
-            self.elements.push(RenderElement::Space(width));
+        fn whitespace(&mut self, _string: &str, count: u32, width: u32) -> Result<(), Self::Error> {
+            self.elements
+                .push(RenderElement::Space(width, (count > 0) as bool));
             Ok(())
         }
 
@@ -677,9 +672,9 @@ mod test {
             5,
             &[
                 RenderElement::string("a", 6),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::string("b", 6),
-                RenderElement::MoveCursor(6),
+                RenderElement::Space(6, false),
             ],
             &mw,
         );
@@ -688,9 +683,9 @@ mod test {
             5,
             &[
                 RenderElement::string("c", 6),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::string("d", 6),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::string("e", 6),
             ],
             &mw,
@@ -726,7 +721,7 @@ mod test {
             50,
             &[
                 RenderElement::string("glued", 30),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::string("words", 30),
             ],
             &mw,
@@ -743,9 +738,9 @@ mod test {
             16,
             &[
                 RenderElement::string("a", 6),
-                RenderElement::Space(6 * 3),
+                RenderElement::Space(6 * 3, true),
                 RenderElement::string("word", 24),
-                RenderElement::Space(0), // the newline
+                RenderElement::Space(0, false), // the newline
             ],
             &mw,
         );
@@ -754,8 +749,8 @@ mod test {
             16,
             &[
                 RenderElement::string("and", 18),
-                RenderElement::Space(6),
-                RenderElement::Space(6 * 4),
+                RenderElement::Space(6, true),
+                RenderElement::Space(6 * 4, true),
                 RenderElement::string("another", 42),
                 RenderElement::MoveCursor(6),
             ],
@@ -792,7 +787,7 @@ mod ansi_parser_tests {
             100,
             &[
                 RenderElement::string("Lorem", 30),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
                 RenderElement::string("Ipsum", 30),
             ],
@@ -810,7 +805,7 @@ mod ansi_parser_tests {
             8,
             &[
                 RenderElement::string("Lorem", 30),
-                RenderElement::MoveCursor(6),
+                RenderElement::Space(6, false),
             ],
             &mw,
         );
