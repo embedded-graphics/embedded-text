@@ -7,7 +7,7 @@
 //! [`TextBox`]: ../../struct.TextBox.html
 use crate::{plugin::Plugin, rendering::cursor::Cursor, style::VerticalOverdraw, TextBox};
 use core::ops::Range;
-use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
+use embedded_graphics::{geometry::Dimensions, pixelcolor::Rgb888, text::renderer::TextRenderer};
 
 /// Specifies how the [`TextBox`]'s height should be adjusted.
 ///
@@ -200,6 +200,7 @@ impl HeightMode {
     where
         F: TextRenderer,
         M: Plugin<'a, F::Color>,
+        F::Color: From<Rgb888>,
     {
         match self {
             HeightMode::Exact(_) => {}

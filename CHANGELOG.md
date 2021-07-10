@@ -3,6 +3,7 @@ Unreleased
 
 ## Added:
 
+ * [#130] `ChangeTextStyle` token
  * [#114] Added experimental plugin support via the `plugin` Cargo feature. Plugin can be used to modify `TextBox` behaviour.
 
 ## Changed:
@@ -16,6 +17,7 @@ Unreleased
 
 [#114]: https://github.com/embedded-graphics/embedded-text/pull/114
 [#125]: https://github.com/embedded-graphics/embedded-text/pull/125
+[#130]: https://github.com/embedded-graphics/embedded-text/pull/130
 
 0.5.0-beta.1 (2021-06-04)
 ==========================

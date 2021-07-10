@@ -18,11 +18,37 @@
 //! ```
 #[cfg(feature = "ansi")]
 use ansi_parser::AnsiSequence;
-use core::str::Chars;
+use core::{marker::PhantomData, str::Chars};
+use embedded_graphics::{prelude::PixelColor, text::DecorationColor};
+
+/// Change text style.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum ChangeTextStyle<C>
+where
+    C: PixelColor,
+{
+    /// Reset text style. Disables decoration, removes background color and sets a default text color.
+    Reset,
+
+    /// Change text color. `None` means transparent.
+    TextColor(Option<C>),
+
+    /// Change background color. `None` means transparent.
+    BackgroundColor(Option<C>),
+
+    /// Change color of underlining.
+    Underline(DecorationColor<C>),
+
+    /// Change color of strikethrough decoration.
+    Strikethrough(DecorationColor<C>),
+}
 
 /// A text token
 #[derive(Debug, PartialEq, Clone)]
-pub enum Token<'a> {
+pub enum Token<'a, C>
+where
+    C: PixelColor,
+{
     /// A newline character.
     NewLine,
 
@@ -41,6 +67,9 @@ pub enum Token<'a> {
     /// A possible wrapping point
     Break(&'a str, &'a str),
 
+    /// Change of text style.
+    ChangeTextStyle(ChangeTextStyle<C>),
+
     /// An ANSI escape sequence
     #[cfg(feature = "ansi")]
     EscapeSequence(AnsiSequence),
@@ -50,8 +79,12 @@ pub enum Token<'a> {
 ///
 /// [`Token`]: enum.Token.html
 #[derive(Clone, Debug)]
-pub(crate) struct Parser<'a> {
+pub(crate) struct Parser<'a, C>
+where
+    C: PixelColor,
+{
     inner: Chars<'a>,
+    _marker: PhantomData<C>,
 }
 
 pub(crate) const SPEC_CHAR_NBSP: char = '\u{a0}';
@@ -72,7 +105,10 @@ fn is_space_char(c: char) -> bool {
     c.is_whitespace() && !['\n', '\r', '\t', SPEC_CHAR_NBSP].contains(&c) || c == SPEC_CHAR_ZWSP
 }
 
-impl<'a> Parser<'a> {
+impl<'a, C> Parser<'a, C>
+where
+    C: PixelColor,
+{
     /// Create a new parser object to process the given piece of text.
     #[inline]
     #[must_use]
@@ -80,6 +116,7 @@ impl<'a> Parser<'a> {
     pub fn parse(text: &'a str) -> Self {
         Self {
             inner: text.chars(),
+            _marker: PhantomData,
         }
     }
 
@@ -93,8 +130,11 @@ impl<'a> Parser<'a> {
     }
 }
 
-impl<'a> Iterator for Parser<'a> {
-    type Item = Token<'a>;
+impl<'a, C> Iterator for Parser<'a, C>
+where
+    C: PixelColor,
+{
+    type Item = Token<'a, C>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -196,12 +236,14 @@ impl<'a> Iterator for Parser<'a> {
 
 #[cfg(test)]
 mod test {
+    use embedded_graphics::pixelcolor::BinaryColor;
+
     use super::{Parser, Token};
 
     #[track_caller]
-    pub fn assert_tokens(text: &str, tokens: std::vec::Vec<Token>) {
+    pub fn assert_tokens(text: &str, tokens: std::vec::Vec<Token<BinaryColor>>) {
         assert_eq!(
-            Parser::parse(text).collect::<std::vec::Vec<Token>>(),
+            Parser::parse(text).collect::<std::vec::Vec<Token<BinaryColor>>>(),
             tokens
         )
     }

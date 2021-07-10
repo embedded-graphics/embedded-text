@@ -124,11 +124,12 @@ use crate::{
 };
 use embedded_graphics::{
     geometry::{Dimensions, Point},
+    pixelcolor::Rgb888,
     primitives::Rectangle,
     text::renderer::{CharacterStyle, TextRenderer},
     transform::Transform,
 };
-pub use parser::Token;
+pub use parser::{ChangeTextStyle, Token};
 
 /// A text box object.
 ///
@@ -169,6 +170,7 @@ where
 
 impl<'a, S> TextBox<'a, S, NoPlugin<<S as TextRenderer>::Color>>
 where
+    <S as TextRenderer>::Color: From<Rgb888>,
     S: TextRenderer + CharacterStyle,
 {
     /// Creates a new `TextBox` instance with a given bounding `Rectangle`.
@@ -295,6 +297,7 @@ impl<'a, S, M> TextBox<'a, S, M>
 where
     S: TextRenderer,
     M: Plugin<'a, S::Color>,
+    S::Color: From<Rgb888>,
 {
     /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]
