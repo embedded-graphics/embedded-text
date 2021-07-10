@@ -5,7 +5,7 @@
 //! shrink the text box. Height modes help us achieve this.
 //!
 //! [`TextBox`]: ../../struct.TextBox.html
-use crate::{middleware::Middleware, rendering::cursor::Cursor, style::VerticalOverdraw, TextBox};
+use crate::{plugin::Plugin, rendering::cursor::Cursor, style::VerticalOverdraw, TextBox};
 use core::ops::Range;
 use embedded_graphics::{geometry::Dimensions, text::renderer::TextRenderer};
 
@@ -199,7 +199,7 @@ impl HeightMode {
     pub(crate) fn apply<'a, F, M>(self, text_box: &mut TextBox<'a, F, M>)
     where
         F: TextRenderer,
-        M: Middleware<'a, F::Color>,
+        M: Plugin<'a, F::Color>,
     {
         match self {
             HeightMode::Exact(_) => {}

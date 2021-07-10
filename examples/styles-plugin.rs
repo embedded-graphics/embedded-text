@@ -1,6 +1,6 @@
-//! # Example: styling using middleware.
+//! # Example: styling using plugin.
 //!
-//! This example demonstrates middleware that affects styling.
+//! This example demonstrates plugin that affects styling.
 
 use ansi_parser::AnsiSequence;
 use embedded_graphics::{
@@ -13,7 +13,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    alignment::HorizontalAlignment, middleware::Middleware, style::TextBoxStyle, TextBox, Token,
+    alignment::HorizontalAlignment, plugin::Plugin, style::TextBoxStyle, TextBox, Token,
 };
 use heapless::Vec;
 use std::convert::Infallible;
@@ -57,7 +57,7 @@ impl<'a> Underliner<'a> {
     }
 }
 
-impl<'a, C> Middleware<'a, C> for Underliner<'a>
+impl<'a, C> Plugin<'a, C> for Underliner<'a>
 where
     C: PixelColor,
 {
@@ -100,14 +100,14 @@ fn main() -> Result<(), Infallible> {
 
     // Create and draw the text boxes.
     TextBox::with_textbox_style(text, bounds, character_style, textbox_style)
-        .add_middleware(Underliner::new())
+        .add_plugin(Underliner::new())
         .draw(&mut display)?;
 
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .scale(2)
         .build();
-    Window::new("TextBox middleware demonstration", &output_settings).show_static(&display);
+    Window::new("TextBox plugin demonstration", &output_settings).show_static(&display);
 
     Ok(())
 }

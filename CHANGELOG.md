@@ -3,7 +3,7 @@ Unreleased
 
 ## Added:
 
- * [#114] Added experimental middleware support via the `middleware` Cargo feature. Middleware can be used to modify `TextBox` behaviour.
+ * [#114] Added experimental plugin support via the `plugin` Cargo feature. Plugin can be used to modify `TextBox` behaviour.
 
 ## Changed:
 

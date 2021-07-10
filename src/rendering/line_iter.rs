@@ -5,8 +5,8 @@
 //! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
 use crate::{
     alignment::HorizontalAlignment,
-    middleware::{Middleware, MiddlewareWrapper},
     parser::{Parser, Token, SPEC_CHAR_NBSP},
+    plugin::{Plugin, PluginWrapper},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
 use az::{SaturatingAs, SaturatingCast};
@@ -32,7 +32,7 @@ pub(crate) struct LineElementParser<'a, 'b, M, C> {
     spaces: SpaceConfig,
     alignment: HorizontalAlignment,
     empty: bool,
-    middleware: &'b MiddlewareWrapper<'a, M, C>,
+    plugin: &'b PluginWrapper<'a, M, C>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,13 +74,13 @@ pub trait ElementHandler {
 impl<'a, 'b, M, C> LineElementParser<'a, 'b, M, C>
 where
     C: PixelColor,
-    M: Middleware<'a, C>,
+    M: Plugin<'a, C>,
 {
     /// Creates a new element parser.
     #[inline]
     pub fn new(
         parser: &'b mut Parser<'a>,
-        middleware: &'b MiddlewareWrapper<'a, M, C>,
+        plugin: &'b PluginWrapper<'a, M, C>,
         cursor: LineCursor,
         spaces: SpaceConfig,
         alignment: HorizontalAlignment,
@@ -91,7 +91,7 @@ where
             cursor,
             alignment,
             empty: true,
-            middleware,
+            plugin,
         }
     }
 
@@ -99,7 +99,7 @@ where
         let mut width = None;
 
         // This looks extremely inefficient.
-        let lookahead = self.middleware.clone();
+        let lookahead = self.plugin.clone();
         let mut lookahead_parser = self.parser.clone();
 
         // We don't want to count the current token.
@@ -165,7 +165,7 @@ where
         let mut exit = false;
 
         // This looks extremely inefficient.
-        let lookahead = self.middleware.clone();
+        let lookahead = self.plugin.clone();
         let mut lookahead_parser = self.parser.clone();
 
         // We don't want to count the current token.
@@ -284,15 +284,15 @@ where
     }
 
     fn peek_next_token(&mut self) -> Option<Token<'a>> {
-        self.middleware.peek_token(&mut self.parser)
+        self.plugin.peek_token(&mut self.parser)
     }
 
     fn consume_token(&mut self) {
-        self.middleware.consume_peeked_token(&mut self.parser);
+        self.plugin.consume_peeked_token(&mut self.parser);
     }
 
     fn replace_peeked_token(&mut self, len: usize, token: Token<'a>) {
-        self.middleware.replace_peeked_token(len, token);
+        self.plugin.replace_peeked_token(len, token);
     }
 
     #[inline]
@@ -317,9 +317,7 @@ where
                             // If the next Word token does not fit the line, display break character
                             let width = handler.measure(c);
                             if self.move_cursor(width.saturating_as()).is_ok() {
-                                if let Some(Token::Break(c, _)) =
-                                    self.middleware.render_token(token)
-                                {
+                                if let Some(Token::Break(c, _)) = self.plugin.render_token(token) {
                                     handler.printed_characters(c, width)?;
                                 }
                                 self.consume_token();
@@ -359,8 +357,7 @@ where
 
                     self.empty = false;
 
-                    if let Some(Token::Word(word)) = self.middleware.render_token(Token::Word(word))
-                    {
+                    if let Some(Token::Word(word)) = self.plugin.render_token(Token::Word(word)) {
                         self.process_word(handler, word)?;
                     }
 
@@ -474,7 +471,7 @@ mod test {
 
     use super::*;
     use crate::{
-        middleware::{Middleware, MiddlewareWrapper, NoMiddleware},
+        plugin::{NoPlugin, Plugin, PluginWrapper},
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
         utils::{str_width, test::size_for},
@@ -552,9 +549,9 @@ mod test {
         parser: &mut Parser<'a>,
         max_chars: u32,
         elements: &[RenderElement],
-        middleware: &MiddlewareWrapper<'a, M, C>,
+        plugin: &PluginWrapper<'a, M, C>,
     ) where
-        M: Middleware<'a, C>,
+        M: Plugin<'a, C>,
         C: PixelColor,
     {
         let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
@@ -569,13 +566,8 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut line1 = LineElementParser::new(
-            parser,
-            middleware,
-            cursor,
-            config,
-            HorizontalAlignment::Left,
-        );
+        let mut line1 =
+            LineElementParser::new(parser, plugin, cursor, config, HorizontalAlignment::Left);
 
         line1.process(&mut handler).unwrap();
 
@@ -598,7 +590,7 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mut mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
         let mut line1 = LineElementParser::new(
             &mut parser,
             &mut mw,
@@ -615,7 +607,7 @@ mod test {
     #[test]
     fn soft_hyphen_no_wrapping() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -631,7 +623,7 @@ mod test {
     #[test]
     fn soft_hyphen() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -648,7 +640,7 @@ mod test {
     #[test]
     fn soft_hyphen_wrapped() {
         let mut parser = Parser::parse("sam\u{00AD}mm");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(&mut parser, 3, &[RenderElement::string("sam", 18)], &mw);
         assert_line_elements(
@@ -665,7 +657,7 @@ mod test {
     #[test]
     fn nbsp_issue() {
         let mut parser = Parser::parse("a b c\u{a0}d e f");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -697,7 +689,7 @@ mod test {
     fn soft_hyphen_issue_42() {
         let mut parser =
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(&mut parser, 5, &[RenderElement::string("super", 30)], &mw);
         assert_line_elements(
@@ -714,7 +706,7 @@ mod test {
     #[test]
     fn nbsp_is_rendered_as_space() {
         let mut parser = Parser::parse("glued\u{a0}words");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -731,7 +723,7 @@ mod test {
     #[test]
     fn tabs() {
         let mut parser = Parser::parse("a\tword\nand\t\tanother\t");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -761,7 +753,7 @@ mod test {
     #[test]
     fn cursor_limit() {
         let mut parser = Parser::parse("Some sample text");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)], &mw);
     }
@@ -773,14 +765,14 @@ mod ansi_parser_tests {
         test::{assert_line_elements, RenderElement},
         *,
     };
-    use crate::middleware::{MiddlewareWrapper, NoMiddleware};
+    use crate::plugin::{NoPlugin, PluginWrapper};
 
     use embedded_graphics::pixelcolor::Rgb888;
 
     #[test]
     fn colors() {
         let mut parser = Parser::parse("Lorem \x1b[92mIpsum");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<Rgb888>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
@@ -798,7 +790,7 @@ mod ansi_parser_tests {
     #[test]
     fn ansi_code_does_not_break_word() {
         let mut parser = Parser::parse("Lorem foo\x1b[92mbarum");
-        let mw = MiddlewareWrapper::new(NoMiddleware::<Rgb888>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,

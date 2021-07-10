@@ -143,8 +143,8 @@ use core::convert::Infallible;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    middleware::{Middleware, MiddlewareWrapper, NoMiddleware, ProcessingState},
     parser::{Parser, SPEC_CHAR_NBSP},
+    plugin::{NoPlugin, Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
         line_iter::{ElementHandler, LineElementParser, LineEndType},
@@ -327,20 +327,20 @@ impl TextBoxStyle {
     #[inline]
     pub(crate) fn measure_line<'a, S, M>(
         &self,
-        middleware: &MiddlewareWrapper<'a, M, S::Color>,
+        plugin: &PluginWrapper<'a, M, S::Color>,
         character_style: &S,
         parser: &mut Parser<'a>,
         max_line_width: u32,
     ) -> LineMeasurement
     where
         S: TextRenderer,
-        M: Middleware<'a, S::Color>,
+        M: Plugin<'a, S::Color>,
     {
         let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
         let mut iter = LineElementParser::new(
             parser,
-            middleware,
+            plugin,
             cursor,
             SpaceConfig::new(str_width(character_style, " "), None),
             self.alignment,
@@ -406,20 +406,20 @@ impl TextBoxStyle {
     where
         S: TextRenderer,
     {
-        let middleware = MiddlewareWrapper::new(NoMiddleware::new());
-        self.measure_text_height_impl(middleware, character_style, text, max_width)
+        let plugin = PluginWrapper::new(NoPlugin::new());
+        self.measure_text_height_impl(plugin, character_style, text, max_width)
     }
 
     pub(crate) fn measure_text_height_impl<'a, S, M>(
         &self,
-        middleware: MiddlewareWrapper<'a, M, S::Color>,
+        plugin: PluginWrapper<'a, M, S::Color>,
         character_style: &S,
         text: &'a str,
         max_width: u32,
     ) -> u32
     where
         S: TextRenderer,
-        M: Middleware<'a, S::Color>,
+        M: Plugin<'a, S::Color>,
     {
         let mut parser = Parser::parse(text);
         let mut closed_paragraphs: u32 = 0;
@@ -428,13 +428,13 @@ impl TextBoxStyle {
         let mut height = last_line_height;
         let mut paragraph_ended = false;
 
-        middleware.set_state(ProcessingState::Measure);
+        plugin.set_state(ProcessingState::Measure);
 
         let mut prev_end = LineEndType::EndOfText;
 
         loop {
-            middleware.new_line();
-            let lm = self.measure_line(&middleware, character_style, &mut parser, max_width);
+            plugin.new_line();
+            let lm = self.measure_line(&plugin, character_style, &mut parser, max_width);
 
             if paragraph_ended {
                 closed_paragraphs += 1;
@@ -466,8 +466,8 @@ impl TextBoxStyle {
 mod test {
     use crate::{
         alignment::*,
-        middleware::{MiddlewareWrapper, NoMiddleware},
         parser::Parser,
+        plugin::{NoPlugin, PluginWrapper},
         style::{builder::TextBoxStyleBuilder, TextBoxStyle},
     };
     use embedded_graphics::{
@@ -583,9 +583,9 @@ mod test {
 
         let mut text = Parser::parse("123 45 67");
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
-            &mut middleware,
+            &mut plugin,
             &character_style,
             &mut text,
             6 * FONT_6X9.character_size.width,
@@ -607,9 +607,9 @@ mod test {
 
         let mut text = Parser::parse("123\x1b[2D");
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
-            &mut middleware,
+            &mut plugin,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -620,9 +620,9 @@ mod test {
         // continuation after rewind extends the line.
         let mut text = Parser::parse("123\x1b[2D456");
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
-            &mut middleware,
+            &mut plugin,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -643,9 +643,9 @@ mod test {
 
         let mut text = Parser::parse("123\u{A0}45");
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
-            &mut middleware,
+            &mut plugin,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -711,9 +711,9 @@ mod test {
             .line_height(LineHeight::Pixels(11))
             .build();
 
-        let mut middleware = MiddlewareWrapper::new(NoMiddleware::new());
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
-            &mut middleware,
+            &mut plugin,
             &character_style,
             &mut Parser::parse("soft\u{AD}hyphen"),
             50,

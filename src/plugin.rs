@@ -1,4 +1,4 @@
-//! Middleware allow changing TextBox behaviour.
+//! Plugin allow changing TextBox behaviour.
 
 use core::{
     cell::RefCell,
@@ -22,15 +22,15 @@ pub(crate) enum ProcessingState {
     Render,
 }
 
-/// Middleware
+/// Plugin trait.
 ///
-/// Middleware allows modifying and extending TextBox's internals.
+/// Plugins allow modifying and extending TextBox's internals.
 ///
 /// *Important*:
 /// This is an experimental, unstable feature. It can be, and probably will be modified without
 /// any prior notice.
-/// Using middleware requires enabling the `middleware` crate feature.
-pub trait Middleware<'a, C>: Clone
+/// Using plugins require enabling the `plugin` crate feature.
+pub trait Plugin<'a, C>: Clone
 where
     C: PixelColor,
 {
@@ -82,49 +82,49 @@ where
     }
 }
 
-/// Placeholder type when no middleware is used.
+/// Placeholder type when no plugin is used.
 #[derive(Clone, Copy, Default)]
-pub struct NoMiddleware<C>(PhantomData<C>);
+pub struct NoPlugin<C>(PhantomData<C>);
 
-impl<C> NoMiddleware<C> {
+impl<C> NoPlugin<C> {
     pub(crate) fn new() -> Self {
         Self(PhantomData)
     }
 }
 
-impl<'a, C> Middleware<'a, C> for NoMiddleware<C> where C: PixelColor {}
+impl<'a, C> Plugin<'a, C> for NoPlugin<C> where C: PixelColor {}
 
 #[derive(Clone, Debug)]
-pub(crate) struct MiddlewareInner<'a, M> {
+pub(crate) struct PluginInner<'a, M> {
     lookahead: M,
-    middleware: M,
+    plugin: M,
     state: ProcessingState,
     peeked_token: (usize, Option<Token<'a>>),
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct MiddlewareWrapper<'a, M, C> {
-    inner: RefCell<MiddlewareInner<'a, M>>,
+pub(crate) struct PluginWrapper<'a, M, C> {
+    inner: RefCell<PluginInner<'a, M>>,
     _marker: PhantomData<C>,
 }
 
-impl<'a, M, C> Hash for MiddlewareWrapper<'a, M, C> {
+impl<'a, M, C> Hash for PluginWrapper<'a, M, C> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.inner.borrow().state.hash(state)
     }
 }
 
-impl<'a, M, C> MiddlewareWrapper<'a, M, C>
+impl<'a, M, C> PluginWrapper<'a, M, C>
 where
     C: PixelColor,
-    M: Middleware<'a, C>,
+    M: Plugin<'a, C>,
 {
-    pub fn new(middleware: M) -> Self {
+    pub fn new(plugin: M) -> Self {
         Self {
             _marker: PhantomData,
-            inner: RefCell::new(MiddlewareInner {
-                lookahead: middleware.clone(),
-                middleware,
+            inner: RefCell::new(PluginInner {
+                lookahead: plugin.clone(),
+                plugin,
                 state: ProcessingState::Measure,
                 peeked_token: (0, None),
             }),
@@ -135,9 +135,9 @@ where
         let mut this = self.inner.borrow_mut();
         this.peeked_token.0 = 0;
         this.peeked_token.1 = None;
-        this.middleware.new_line();
+        this.plugin.new_line();
 
-        this.lookahead = this.middleware.clone();
+        this.lookahead = this.plugin.clone();
     }
 
     pub fn set_state(&self, state: ProcessingState) {
@@ -173,7 +173,7 @@ where
         this.peeked_token.0 = 0;
         this.peeked_token.1 = None;
 
-        this.middleware = this.lookahead.clone();
+        this.plugin = this.lookahead.clone();
     }
 
     pub fn replace_peeked_token(&self, len: usize, token: Token<'a>) {
@@ -182,7 +182,7 @@ where
         this.peeked_token.0 = len;
         this.peeked_token.1.replace(token);
 
-        this.lookahead = this.middleware.clone();
+        this.lookahead = this.plugin.clone();
     }
 
     pub fn on_start_render<S: TextRenderer>(
@@ -193,7 +193,7 @@ where
         let mut this = self.inner.borrow_mut();
         this.peeked_token = (0, None);
 
-        this.middleware.on_start_render(text_box, cursor);
+        this.plugin.on_start_render(text_box, cursor);
     }
 
     pub fn post_render<T, D>(

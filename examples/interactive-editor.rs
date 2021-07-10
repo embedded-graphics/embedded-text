@@ -15,9 +15,7 @@ use embedded_graphics::{
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-use embedded_text::{
-    alignment::VerticalAlignment, middleware::Middleware, style::TextBoxStyle, TextBox,
-};
+use embedded_text::{alignment::VerticalAlignment, plugin::Plugin, style::TextBoxStyle, TextBox};
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, convert::Infallible, thread, time::Duration};
 
@@ -104,8 +102,8 @@ impl EditorInput {
         }
     }
 
-    pub fn cursor_middleware<C: PixelColor>(&self, color: C) -> EditorMiddleware<C> {
-        EditorMiddleware {
+    pub fn cursor_plugin<C: PixelColor>(&self, color: C) -> EditorPlugin<C> {
+        EditorPlugin {
             current_offset: 0,
             cursor_offset: self.cursor_offset,
             color,
@@ -115,14 +113,14 @@ impl EditorInput {
 }
 
 #[derive(Clone, Copy)]
-struct EditorMiddleware<C> {
+struct EditorPlugin<C> {
     current_offset: usize,
     cursor_offset: usize,
     color: C,
     cursor_drawn: bool,
 }
 
-impl<C: PixelColor> EditorMiddleware<C> {
+impl<C: PixelColor> EditorPlugin<C> {
     fn draw_cursor<D>(
         &self,
         draw_target: &mut D,
@@ -142,7 +140,7 @@ impl<C: PixelColor> EditorMiddleware<C> {
     }
 }
 
-impl<'a, C: PixelColor> Middleware<'a, C> for EditorMiddleware<C> {
+impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<C> {
     fn post_render<T, D>(
         &mut self,
         draw_target: &mut D,
@@ -260,7 +258,7 @@ fn main() -> Result<(), Infallible> {
             character_style,
             textbox_style,
         )
-        .add_middleware(input.cursor_middleware(BinaryColor::On))
+        .add_plugin(input.cursor_plugin(BinaryColor::On))
         .draw(&mut display)?;
 
         // Update the window.

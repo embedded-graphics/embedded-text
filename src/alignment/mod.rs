@@ -1,6 +1,6 @@
 //! Text alignment options.
 use crate::{
-    middleware::Middleware,
+    plugin::Plugin,
     rendering::{cursor::Cursor, space_config::SpaceConfig},
     style::LineMeasurement,
     utils::str_width,
@@ -96,12 +96,12 @@ impl VerticalAlignment {
         styled_text_box: &TextBox<'a, S, M>,
     ) where
         S: TextRenderer,
-        M: Middleware<'a, S::Color>,
+        M: Plugin<'a, S::Color>,
     {
         let text_height = styled_text_box
             .style
             .measure_text_height_impl(
-                styled_text_box.middleware.clone(),
+                styled_text_box.plugin.clone(),
                 &styled_text_box.character_style,
                 styled_text_box.text,
                 cursor.line_width(),

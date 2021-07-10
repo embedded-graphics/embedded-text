@@ -16,20 +16,20 @@ exclude = [
 
 [features]
 ansi = ["ansi-parser", "as-slice"]
-middleware = []
+plugin = []
 default = ["ansi"]
 
 [[example]]
 name = "interactive-editor"
-required-features = ["middleware"]
+required-features = ["plugin"]
 
 [[example]]
-name = "middleware"
-required-features = ["middleware"]
+name = "plugin"
+required-features = ["plugin"]
 
 [[example]]
-name = "styles-middleware"
-required-features = ["middleware"]
+name = "styles-plugin"
+required-features = ["plugin"]
 
 [dependencies]
 az = "1.1"

@@ -1,7 +1,7 @@
-//! # Example: middleware
+//! # Example: plugin
 //!
-//! This example demonstrates a simple middleware that simulates typing input.
-//! The middleware itself limits the number of characters printed. The number of printed characters
+//! This example demonstrates a simple plugin that simulates typing input.
+//! The plugin itself limits the number of characters printed. The number of printed characters
 //! is incremented in each frame.
 
 use std::{thread, time::Duration};
@@ -17,7 +17,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    middleware::Middleware,
+    plugin::Plugin,
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     TextBox, Token,
 };
@@ -61,8 +61,8 @@ impl CharacterLimiter {
 
 // This implementation does not work with Justified text. Justified text needs to be able to measure
 // lines of text, but line delimiting does not work nice with lookahead tokens.
-// Middleware already returned the next token before we knew it belonged to the next line.
-impl<'a, C> Middleware<'a, C> for CharacterLimiter
+// Plugin already returned the next token before we knew it belonged to the next line.
+impl<'a, C> Plugin<'a, C> for CharacterLimiter
 where
     C: PixelColor,
 {
@@ -154,7 +154,7 @@ fn main() {
 
         // Create and draw the text boxes.
         TextBox::with_textbox_style(text, bounds, character_style, textbox_style)
-            .add_middleware(CharacterLimiter::new(chars))
+            .add_plugin(CharacterLimiter::new(chars))
             .draw(&mut display)
             .unwrap();
 

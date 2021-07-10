@@ -7,13 +7,13 @@ pub(crate) mod line_iter;
 pub(crate) mod space_config;
 
 use crate::{
-    middleware::ProcessingState,
     parser::Parser,
+    plugin::ProcessingState,
     rendering::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
-    Middleware, TextBox,
+    Plugin, TextBox,
 };
 use az::SaturatingAs;
 use embedded_graphics::{
@@ -30,7 +30,7 @@ impl<'a, F, M> Drawable for TextBox<'a, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
-    M: Middleware<'a, <F as TextRenderer>::Color> + Middleware<'a, <F as CharacterStyle>::Color>,
+    M: Plugin<'a, <F as TextRenderer>::Color> + Plugin<'a, <F as CharacterStyle>::Color>,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = &'a str;
@@ -52,21 +52,21 @@ where
             .apply_vertical_alignment(&mut cursor, self);
 
         cursor.y += self.vertical_offset;
-        self.middleware.on_start_render(self, &mut cursor);
+        self.plugin.on_start_render(self, &mut cursor);
 
         let mut state = LineRenderState {
             style: self.style,
             character_style: self.character_style.clone(),
             parser: Parser::parse(self.text),
             end_type: LineEndType::EndOfText,
-            middleware: &self.middleware,
+            plugin: &self.plugin,
         };
 
-        state.middleware.set_state(ProcessingState::Render);
+        state.plugin.set_state(ProcessingState::Render);
 
         let mut anything_drawn = false;
         loop {
-            state.middleware.new_line();
+            state.plugin.new_line();
             let line_cursor = cursor.line();
 
             let display_range = self
@@ -91,7 +91,7 @@ where
                     let remaining_bytes = state.parser.as_str().len();
                     let consumed_bytes = self.text.len() - remaining_bytes;
 
-                    state.middleware.post_render(
+                    state.plugin.post_render(
                         &mut display,
                         &self.character_style,
                         "",

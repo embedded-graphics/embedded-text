@@ -93,7 +93,7 @@
 //! ## Cargo features
 //!
 //! * `ansi`: enables ANSI sequence support. This feature is enabled by default.
-//! * `middleware`: enables *experimental* middleware support.
+//! * `plugin`: enables *experimental* plugin support.
 //!
 //! [embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
 //! [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
@@ -110,8 +110,8 @@
 #![allow(clippy::needless_doctest_main)]
 
 pub mod alignment;
-pub mod middleware;
 mod parser;
+pub mod plugin;
 mod rendering;
 pub mod style;
 
@@ -119,7 +119,7 @@ mod utils;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    middleware::{Middleware, MiddlewareWrapper, NoMiddleware},
+    plugin::{NoPlugin, Plugin, PluginWrapper},
     style::TextBoxStyle,
 };
 use embedded_graphics::{
@@ -145,7 +145,7 @@ pub use parser::Token;
 /// [`draw`]: #method.draw
 #[derive(Clone, Debug, Hash)]
 #[must_use]
-pub struct TextBox<'a, S, M = NoMiddleware<<S as TextRenderer>::Color>>
+pub struct TextBox<'a, S, M = NoPlugin<<S as TextRenderer>::Color>>
 where
     S: TextRenderer,
 {
@@ -164,10 +164,10 @@ where
     /// Vertical offset applied to the text just before rendering.
     pub vertical_offset: i32,
 
-    middleware: MiddlewareWrapper<'a, M, S::Color>,
+    plugin: PluginWrapper<'a, M, S::Color>,
 }
 
-impl<'a, S> TextBox<'a, S, NoMiddleware<<S as TextRenderer>::Color>>
+impl<'a, S> TextBox<'a, S, NoPlugin<<S as TextRenderer>::Color>>
 where
     S: TextRenderer + CharacterStyle,
 {
@@ -191,7 +191,7 @@ where
             character_style,
             style: textbox_style,
             vertical_offset: 0,
-            middleware: MiddlewareWrapper::new(NoMiddleware::new()),
+            plugin: PluginWrapper::new(NoPlugin::new()),
         };
 
         styled.style.height_mode.apply(&mut styled);
@@ -238,12 +238,12 @@ where
         self
     }
 
-    /// Adds a new middleware to the `TextBox`.
-    #[cfg(feature = "middleware")]
+    /// Adds a new plugin to the `TextBox`.
+    #[cfg(feature = "plugin")]
     #[inline]
-    pub fn add_middleware<M>(self, middleware: M) -> TextBox<'a, S, M>
+    pub fn add_plugin<M>(self, plugin: M) -> TextBox<'a, S, M>
     where
-        M: Middleware<'a, <S as TextRenderer>::Color>,
+        M: Plugin<'a, <S as TextRenderer>::Color>,
     {
         let mut textbox = TextBox {
             text: self.text,
@@ -251,7 +251,7 @@ where
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
-            middleware: MiddlewareWrapper::new(middleware),
+            plugin: PluginWrapper::new(plugin),
         };
         textbox.style.height_mode.apply(&mut textbox);
 
@@ -262,7 +262,7 @@ where
 impl<'a, S, M> Transform for TextBox<'a, S, M>
 where
     S: TextRenderer + Clone,
-    M: Middleware<'a, S::Color>,
+    M: Plugin<'a, S::Color>,
 {
     #[inline]
     fn translate(&self, by: Point) -> Self {
@@ -283,7 +283,7 @@ where
 impl<'a, S, M> Dimensions for TextBox<'a, S, M>
 where
     S: TextRenderer,
-    M: Middleware<'a, S::Color>,
+    M: Plugin<'a, S::Color>,
 {
     #[inline]
     fn bounding_box(&self) -> Rectangle {
@@ -294,7 +294,7 @@ where
 impl<'a, S, M> TextBox<'a, S, M>
 where
     S: TextRenderer,
-    M: Middleware<'a, S::Color>,
+    M: Plugin<'a, S::Color>,
 {
     /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]
