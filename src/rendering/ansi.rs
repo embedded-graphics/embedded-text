@@ -1,6 +1,8 @@
 //! ANSI escape sequence related types and functions.
 
-use embedded_graphics::pixelcolor::Rgb888;
+use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor, text::DecorationColor};
+
+use crate::parser::ChangeTextStyle;
 
 /// List of supported SGR (Select Graphics Rendition) sequences
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -31,6 +33,22 @@ pub enum Sgr {
 
     /// Reset the background color to transparent
     DefaultBackgroundColor,
+}
+
+impl<C: PixelColor + From<Rgb888>> From<Sgr> for ChangeTextStyle<C> {
+    fn from(sgr: Sgr) -> Self {
+        match sgr {
+            Sgr::Reset => ChangeTextStyle::Reset,
+            Sgr::Underline => ChangeTextStyle::Underline(DecorationColor::TextColor),
+            Sgr::CrossedOut => ChangeTextStyle::Strikethrough(DecorationColor::TextColor),
+            Sgr::UnderlineOff => ChangeTextStyle::Underline(DecorationColor::None),
+            Sgr::NotCrossedOut => ChangeTextStyle::Strikethrough(DecorationColor::None),
+            Sgr::ChangeTextColor(c) => ChangeTextStyle::TextColor(Some(c.into())),
+            Sgr::DefaultTextColor => ChangeTextStyle::TextColor(None),
+            Sgr::ChangeBackgroundColor(c) => ChangeTextStyle::BackgroundColor(Some(c.into())),
+            Sgr::DefaultBackgroundColor => ChangeTextStyle::BackgroundColor(None),
+        }
+    }
 }
 
 fn try_parse_8b_color(v: &[u8]) -> Option<Rgb888> {

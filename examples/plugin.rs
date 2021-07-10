@@ -72,8 +72,8 @@ where
 
     fn next_token(
         &mut self,
-        mut next_token: impl FnMut() -> Option<Token<'a>>,
-    ) -> Option<Token<'a>> {
+        mut next_token: impl FnMut() -> Option<Token<'a, C>>,
+    ) -> Option<Token<'a, C>> {
         if self.last_line {
             return None;
         }
@@ -97,7 +97,7 @@ where
         }
     }
 
-    fn render_token(&mut self, token: Token<'a>) -> Option<Token<'a>> {
+    fn render_token(&mut self, token: Token<'a, C>) -> Option<Token<'a, C>> {
         if self.measured <= self.characters {
             self.rendered = self.measured;
             return Some(token);

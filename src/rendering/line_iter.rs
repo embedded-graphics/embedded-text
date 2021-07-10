@@ -5,15 +5,15 @@
 //! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
 use crate::{
     alignment::HorizontalAlignment,
-    parser::{Parser, Token, SPEC_CHAR_NBSP},
+    parser::{ChangeTextStyle, Parser, Token, SPEC_CHAR_NBSP},
     plugin::{Plugin, PluginWrapper},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
 use az::{SaturatingAs, SaturatingCast};
-use embedded_graphics::prelude::PixelColor;
+use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor};
 
 #[cfg(feature = "ansi")]
-use super::ansi::{try_parse_sgr, Sgr};
+use super::ansi::try_parse_sgr;
 #[cfg(feature = "ansi")]
 use ansi_parser::AnsiSequence;
 #[cfg(feature = "ansi")]
@@ -22,12 +22,15 @@ use as_slice::AsSlice;
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
 #[must_use]
-pub(crate) struct LineElementParser<'a, 'b, M, C> {
+pub(crate) struct LineElementParser<'a, 'b, M, C>
+where
+    C: PixelColor,
+{
     /// Position information.
     pub cursor: LineCursor,
 
     /// The text to draw.
-    parser: &'b mut Parser<'a>,
+    parser: &'b mut Parser<'a, C>,
 
     spaces: SpaceConfig,
     alignment: HorizontalAlignment,
@@ -45,6 +48,7 @@ pub enum LineEndType {
 
 pub trait ElementHandler {
     type Error;
+    type Color: PixelColor;
 
     /// Returns the width of the given string in pixels.
     fn measure(&self, st: &str) -> u32;
@@ -64,22 +68,24 @@ pub trait ElementHandler {
         Ok(())
     }
 
-    /// A Select Graphic Rendition code.
-    #[cfg(feature = "ansi")]
-    fn sgr(&mut self, _sgr: Sgr) -> Result<(), Self::Error> {
+    /// Text style change
+    fn change_text_style(
+        &mut self,
+        _change: ChangeTextStyle<Self::Color>,
+    ) -> Result<(), Self::Error> {
         Ok(())
     }
 }
 
 impl<'a, 'b, M, C> LineElementParser<'a, 'b, M, C>
 where
-    C: PixelColor,
+    C: PixelColor + From<Rgb888>,
     M: Plugin<'a, C>,
 {
     /// Creates a new element parser.
     #[inline]
     pub fn new(
-        parser: &'b mut Parser<'a>,
+        parser: &'b mut Parser<'a, C>,
         plugin: &'b PluginWrapper<'a, M, C>,
         cursor: LineCursor,
         spaces: SpaceConfig,
@@ -283,7 +289,7 @@ where
         Ok(())
     }
 
-    fn peek_next_token(&mut self) -> Option<Token<'a>> {
+    fn peek_next_token(&mut self) -> Option<Token<'a, C>> {
         self.plugin.peek_token(&mut self.parser)
     }
 
@@ -291,12 +297,15 @@ where
         self.plugin.consume_peeked_token(&mut self.parser);
     }
 
-    fn replace_peeked_token(&mut self, len: usize, token: Token<'a>) {
+    fn replace_peeked_token(&mut self, len: usize, token: Token<'a, C>) {
         self.plugin.replace_peeked_token(len, token);
     }
 
     #[inline]
-    pub fn process<E: ElementHandler>(&mut self, handler: &mut E) -> Result<LineEndType, E::Error> {
+    pub fn process<E: ElementHandler<Color = C>>(
+        &mut self,
+        handler: &mut E,
+    ) -> Result<LineEndType, E::Error> {
         while let Some(token) = self.peek_next_token() {
             match token {
                 Token::Whitespace(n, seq) => {
@@ -374,7 +383,7 @@ where
                     match seq {
                         AnsiSequence::SetGraphicsMode(vec) => {
                             if let Some(sgr) = try_parse_sgr(vec.as_slice()) {
-                                handler.sgr(sgr)?;
+                                handler.change_text_style(sgr.into())?;
                             }
                         }
 
@@ -413,6 +422,8 @@ where
                         }
                     }
                 }
+
+                Token::ChangeTextStyle(change) => handler.change_text_style(change)?,
 
                 Token::CarriageReturn => {
                     handler.whitespace("\r", 0, 0)?;
@@ -485,26 +496,31 @@ mod test {
     };
 
     #[derive(PartialEq, Eq, Debug)]
-    pub(super) enum RenderElement {
+    pub(super) enum RenderElement<C: PixelColor> {
         Space(u32, bool),
         String(String, u32),
         MoveCursor(i32),
-        #[cfg(feature = "ansi")]
-        Sgr(Sgr),
+        ChangeTextStyle(ChangeTextStyle<C>),
     }
 
-    impl RenderElement {
+    impl<C: PixelColor> RenderElement<C> {
         pub fn string(st: &str, width: u32) -> Self {
             Self::String(st.to_owned(), width)
         }
     }
 
-    struct TestElementHandler<F> {
-        elements: Vec<RenderElement>,
+    struct TestElementHandler<F>
+    where
+        F: TextRenderer,
+    {
+        elements: Vec<RenderElement<F::Color>>,
         style: F,
     }
 
-    impl<F> TestElementHandler<F> {
+    impl<F> TestElementHandler<F>
+    where
+        F: TextRenderer,
+    {
         fn new(style: F) -> Self {
             Self {
                 elements: vec![],
@@ -515,6 +531,7 @@ mod test {
 
     impl<'el, F: TextRenderer> ElementHandler for TestElementHandler<F> {
         type Error = Infallible;
+        type Color = F::Color;
 
         fn measure(&self, st: &str) -> u32 {
             str_width(&self.style, st)
@@ -538,23 +555,25 @@ mod test {
         }
 
         #[cfg(feature = "ansi")]
-        fn sgr(&mut self, sgr: Sgr) -> Result<(), Self::Error> {
-            self.elements.push(RenderElement::Sgr(sgr));
+        fn change_text_style(
+            &mut self,
+            change: ChangeTextStyle<Self::Color>,
+        ) -> Result<(), Self::Error> {
+            self.elements.push(RenderElement::ChangeTextStyle(change));
             Ok(())
         }
     }
 
     #[track_caller]
-    pub(super) fn assert_line_elements<'a, M, C>(
-        parser: &mut Parser<'a>,
+    pub(super) fn assert_line_elements<'a, M>(
+        parser: &mut Parser<'a, Rgb888>,
         max_chars: u32,
-        elements: &[RenderElement],
-        plugin: &PluginWrapper<'a, M, C>,
+        elements: &[RenderElement<Rgb888>],
+        plugin: &PluginWrapper<'a, M, Rgb888>,
     ) where
-        M: Plugin<'a, C>,
-        C: PixelColor,
+        M: Plugin<'a, Rgb888>,
     {
-        let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+        let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On.into());
 
         let config = SpaceConfig::new_from_renderer(&style);
         let cursor = Cursor::new(
@@ -578,7 +597,7 @@ mod test {
     fn insufficient_width_no_looping() {
         let mut parser = Parser::parse("foobar");
 
-        let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+        let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On.into());
 
         let config = SpaceConfig::new_from_renderer(&style);
         let cursor = Cursor::new(
@@ -590,7 +609,7 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mut mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
         let mut line1 = LineElementParser::new(
             &mut parser,
             &mut mw,
@@ -607,7 +626,7 @@ mod test {
     #[test]
     fn soft_hyphen_no_wrapping() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
-        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
@@ -623,7 +642,7 @@ mod test {
     #[test]
     fn soft_hyphen() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
-        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
@@ -640,7 +659,7 @@ mod test {
     #[test]
     fn soft_hyphen_wrapped() {
         let mut parser = Parser::parse("sam\u{00AD}mm");
-        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(&mut parser, 3, &[RenderElement::string("sam", 18)], &mw);
         assert_line_elements(
@@ -657,7 +676,7 @@ mod test {
     #[test]
     fn nbsp_issue() {
         let mut parser = Parser::parse("a b c\u{a0}d e f");
-        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
@@ -689,7 +708,7 @@ mod test {
     fn soft_hyphen_issue_42() {
         let mut parser =
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
-        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(&mut parser, 5, &[RenderElement::string("super", 30)], &mw);
         assert_line_elements(
@@ -706,7 +725,7 @@ mod test {
     #[test]
     fn nbsp_is_rendered_as_space() {
         let mut parser = Parser::parse("glued\u{a0}words");
-        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
@@ -723,7 +742,7 @@ mod test {
     #[test]
     fn tabs() {
         let mut parser = Parser::parse("a\tword\nand\t\tanother\t");
-        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
@@ -753,7 +772,7 @@ mod test {
     #[test]
     fn cursor_limit() {
         let mut parser = Parser::parse("Some sample text");
-        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)], &mw);
     }
@@ -780,7 +799,9 @@ mod ansi_parser_tests {
             &[
                 RenderElement::string("Lorem", 30),
                 RenderElement::Space(6, true),
-                RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
+                RenderElement::ChangeTextStyle(ChangeTextStyle::TextColor(Some(Rgb888::new(
+                    22, 198, 12,
+                )))),
                 RenderElement::string("Ipsum", 30),
             ],
             &mw,
@@ -807,7 +828,9 @@ mod ansi_parser_tests {
             8,
             &[
                 RenderElement::string("foo", 18),
-                RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
+                RenderElement::ChangeTextStyle(ChangeTextStyle::TextColor(Some(Rgb888::new(
+                    22, 198, 12,
+                )))),
                 RenderElement::string("barum", 30),
             ],
             &mw,

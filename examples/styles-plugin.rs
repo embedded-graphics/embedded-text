@@ -2,29 +2,32 @@
 //!
 //! This example demonstrates plugin that affects styling.
 
-use ansi_parser::AnsiSequence;
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::Rectangle,
+    text::DecorationColor,
 };
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    alignment::HorizontalAlignment, plugin::Plugin, style::TextBoxStyle, TextBox, Token,
+    alignment::HorizontalAlignment, plugin::Plugin, style::TextBoxStyle, ChangeTextStyle, TextBox,
+    Token,
 };
-use heapless::Vec;
 use std::convert::Infallible;
 
 #[derive(Clone)]
-struct Underliner<'a> {
+struct Underliner<'a, C>
+where
+    C: PixelColor,
+{
     underlined: bool,
-    current_token: Option<Token<'a>>,
+    current_token: Option<Token<'a, C>>,
 }
 
-impl<'a> Underliner<'a> {
+impl<'a, C: PixelColor> Underliner<'a, C> {
     fn new() -> Self {
         Self {
             underlined: false,
@@ -34,9 +37,9 @@ impl<'a> Underliner<'a> {
 
     fn process_token(
         &mut self,
-        token: Option<Token<'a>>,
-        substitute_underline: impl FnOnce(&mut Self) -> Option<Token<'a>>,
-    ) -> Option<Token<'a>> {
+        token: Option<Token<'a, C>>,
+        substitute_underline: impl FnOnce(&mut Self) -> Option<Token<'a, C>>,
+    ) -> Option<Token<'a, C>> {
         match token {
             Some(Token::Word(w)) => {
                 if let Some(pos) = w.find('_') {
@@ -57,14 +60,14 @@ impl<'a> Underliner<'a> {
     }
 }
 
-impl<'a, C> Plugin<'a, C> for Underliner<'a>
+impl<'a, C> Plugin<'a, C> for Underliner<'a, C>
 where
     C: PixelColor,
 {
     fn next_token(
         &mut self,
-        mut next_token: impl FnMut() -> Option<Token<'a>>,
-    ) -> Option<Token<'a>> {
+        mut next_token: impl FnMut() -> Option<Token<'a, C>>,
+    ) -> Option<Token<'a, C>> {
         let token = if let Some(token) = self.current_token.take() {
             Some(token)
         } else {
@@ -73,10 +76,13 @@ where
 
         self.process_token(token, |this| {
             this.underlined = !this.underlined;
-            let style_byte = if this.underlined { 4 } else { 24 };
 
-            Some(Token::EscapeSequence(AnsiSequence::SetGraphicsMode(
-                Vec::from_slice(&[style_byte]).unwrap(),
+            Some(Token::ChangeTextStyle(ChangeTextStyle::Underline(
+                if this.underlined {
+                    DecorationColor::TextColor
+                } else {
+                    DecorationColor::None
+                },
             )))
         })
     }

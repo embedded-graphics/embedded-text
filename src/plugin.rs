@@ -42,8 +42,8 @@ where
     #[inline]
     fn next_token(
         &mut self,
-        mut next_token: impl FnMut() -> Option<Token<'a>>,
-    ) -> Option<Token<'a>> {
+        mut next_token: impl FnMut() -> Option<Token<'a, C>>,
+    ) -> Option<Token<'a, C>> {
         next_token()
     }
 
@@ -52,7 +52,7 @@ where
     /// This function must return the same token type as the input, otherwise the returned token
     /// is ignored.
     #[inline]
-    fn render_token(&mut self, token: Token<'a>) -> Option<Token<'a>> {
+    fn render_token(&mut self, token: Token<'a, C>) -> Option<Token<'a, C>> {
         Some(token)
     }
 
@@ -84,9 +84,14 @@ where
 
 /// Placeholder type when no plugin is used.
 #[derive(Clone, Copy, Default)]
-pub struct NoPlugin<C>(PhantomData<C>);
+pub struct NoPlugin<C>(PhantomData<C>)
+where
+    C: PixelColor;
 
-impl<C> NoPlugin<C> {
+impl<C> NoPlugin<C>
+where
+    C: PixelColor,
+{
     pub(crate) fn new() -> Self {
         Self(PhantomData)
     }
@@ -95,20 +100,28 @@ impl<C> NoPlugin<C> {
 impl<'a, C> Plugin<'a, C> for NoPlugin<C> where C: PixelColor {}
 
 #[derive(Clone, Debug)]
-pub(crate) struct PluginInner<'a, M> {
+pub(crate) struct PluginInner<'a, M, C>
+where
+    C: PixelColor,
+{
     lookahead: M,
     plugin: M,
     state: ProcessingState,
-    peeked_token: (usize, Option<Token<'a>>),
+    peeked_token: (usize, Option<Token<'a, C>>),
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct PluginWrapper<'a, M, C> {
-    inner: RefCell<PluginInner<'a, M>>,
-    _marker: PhantomData<C>,
+pub(crate) struct PluginWrapper<'a, M, C>
+where
+    C: PixelColor,
+{
+    inner: RefCell<PluginInner<'a, M, C>>,
 }
 
-impl<'a, M, C> Hash for PluginWrapper<'a, M, C> {
+impl<'a, M, C> Hash for PluginWrapper<'a, M, C>
+where
+    C: PixelColor,
+{
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.inner.borrow().state.hash(state)
     }
@@ -121,7 +134,6 @@ where
 {
     pub fn new(plugin: M) -> Self {
         Self {
-            _marker: PhantomData,
             inner: RefCell::new(PluginInner {
                 lookahead: plugin.clone(),
                 plugin,
@@ -145,7 +157,7 @@ where
     }
 
     #[inline]
-    pub fn render_token(&self, token: Token<'a>) -> Option<Token<'a>> {
+    pub fn render_token(&self, token: Token<'a, C>) -> Option<Token<'a, C>> {
         let mut this = self.inner.borrow_mut();
         match this.state {
             ProcessingState::Measure => Some(token),
@@ -153,7 +165,7 @@ where
         }
     }
 
-    pub fn peek_token(&self, source: &mut Parser<'a>) -> Option<Token<'a>> {
+    pub fn peek_token(&self, source: &mut Parser<'a, C>) -> Option<Token<'a, C>> {
         let mut this = self.inner.borrow_mut();
 
         if this.peeked_token.1.is_none() {
@@ -164,7 +176,7 @@ where
         this.peeked_token.1.clone()
     }
 
-    pub fn consume_peeked_token(&self, source: &mut Parser<'a>) {
+    pub fn consume_peeked_token(&self, source: &mut Parser<'a, C>) {
         let mut this = self.inner.borrow_mut();
 
         unsafe {
@@ -176,7 +188,7 @@ where
         this.plugin = this.lookahead.clone();
     }
 
-    pub fn replace_peeked_token(&self, len: usize, token: Token<'a>) {
+    pub fn replace_peeked_token(&self, len: usize, token: Token<'a, C>) {
         let mut this = self.inner.borrow_mut();
 
         this.peeked_token.0 = len;

@@ -7,7 +7,7 @@ use crate::{
     TextBox,
 };
 use az::SaturatingAs;
-use embedded_graphics::{prelude::Dimensions, text::renderer::TextRenderer};
+use embedded_graphics::{pixelcolor::Rgb888, prelude::Dimensions, text::renderer::TextRenderer};
 
 #[cfg(test)]
 mod test;
@@ -97,6 +97,7 @@ impl VerticalAlignment {
     ) where
         S: TextRenderer,
         M: Plugin<'a, S::Color>,
+        S::Color: From<Rgb888>,
     {
         let text_height = styled_text_box
             .style

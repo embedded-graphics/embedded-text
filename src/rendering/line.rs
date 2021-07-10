@@ -2,7 +2,7 @@
 use core::convert::Infallible;
 
 use crate::{
-    parser::Parser,
+    parser::{ChangeTextStyle, Parser},
     plugin::{Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
@@ -15,19 +15,37 @@ use az::SaturatingAs;
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
-    pixelcolor::Rgb888,
-    prelude::Size,
+    pixelcolor::{BinaryColor, Rgb888},
+    prelude::{PixelColor, Size},
     primitives::Rectangle,
     text::{
         renderer::{CharacterStyle, TextRenderer},
-        Baseline,
+        Baseline, DecorationColor,
     },
     Drawable,
 };
 
-#[cfg(feature = "ansi")]
-use super::ansi::Sgr;
 use super::{line_iter::ElementHandler, space_config::SpaceConfig};
+
+impl<C> ChangeTextStyle<C>
+where
+    C: PixelColor + From<Rgb888>,
+{
+    pub(crate) fn apply<S: CharacterStyle<Color = C>>(self, style: &mut S) {
+        match self {
+            ChangeTextStyle::Reset => {
+                style.set_text_color(Some(Into::<Rgb888>::into(BinaryColor::On).into()));
+                style.set_background_color(None);
+                style.set_underline_color(DecorationColor::None);
+                style.set_strikethrough_color(DecorationColor::None);
+            }
+            ChangeTextStyle::TextColor(color) => style.set_text_color(color),
+            ChangeTextStyle::BackgroundColor(color) => style.set_background_color(color),
+            ChangeTextStyle::Underline(color) => style.set_underline_color(color),
+            ChangeTextStyle::Strikethrough(color) => style.set_strikethrough_color(color),
+        }
+    }
+}
 
 /// Render a single line of styled text.
 pub(crate) struct StyledLineRenderer<'a, 'b, S, M>
@@ -45,7 +63,7 @@ where
     S: TextRenderer + Clone,
     M: Plugin<'a, S::Color>,
 {
-    pub parser: Parser<'a>,
+    pub parser: Parser<'a, S::Color>,
     pub character_style: S,
     pub style: TextBoxStyle,
     pub end_type: LineEndType,
@@ -83,6 +101,7 @@ where
     M: Plugin<'a, <F as TextRenderer>::Color>,
 {
     type Error = D::Error;
+    type Color = <F as CharacterStyle>::Color;
 
     fn measure(&self, st: &str) -> u32 {
         str_width(self.style, st)
@@ -130,8 +149,11 @@ where
     }
 
     #[cfg(feature = "ansi")]
-    fn sgr(&mut self, sgr: Sgr) -> Result<(), Self::Error> {
-        sgr.apply(self.style);
+    fn change_text_style(
+        &mut self,
+        change: ChangeTextStyle<<F as CharacterStyle>::Color>,
+    ) -> Result<(), Self::Error> {
+        change.apply(self.style);
         Ok(())
     }
 }
@@ -146,14 +168,18 @@ where
     <F as CharacterStyle>::Color: From<Rgb888>,
 {
     type Error = Infallible;
+    type Color = <F as CharacterStyle>::Color;
 
     fn measure(&self, st: &str) -> u32 {
         str_width(self.style, st)
     }
 
     #[cfg(feature = "ansi")]
-    fn sgr(&mut self, sgr: Sgr) -> Result<(), Self::Error> {
-        sgr.apply(self.style);
+    fn change_text_style(
+        &mut self,
+        change: ChangeTextStyle<<F as CharacterStyle>::Color>,
+    ) -> Result<(), Self::Error> {
+        change.apply(self.style);
         Ok(())
     }
 }
@@ -248,49 +274,6 @@ where
         }
 
         Ok(next_state)
-    }
-}
-
-#[cfg(feature = "ansi")]
-impl Sgr {
-    fn apply<F>(self, renderer: &mut F)
-    where
-        F: CharacterStyle,
-        <F as CharacterStyle>::Color: From<Rgb888>,
-    {
-        use embedded_graphics::text::DecorationColor;
-        match self {
-            Sgr::Reset => {
-                renderer.set_text_color(None);
-                renderer.set_background_color(None);
-                renderer.set_underline_color(DecorationColor::None);
-                renderer.set_strikethrough_color(DecorationColor::None);
-            }
-            Sgr::ChangeTextColor(color) => {
-                renderer.set_text_color(Some(color.into()));
-            }
-            Sgr::DefaultTextColor => {
-                renderer.set_text_color(None);
-            }
-            Sgr::ChangeBackgroundColor(color) => {
-                renderer.set_background_color(Some(color.into()));
-            }
-            Sgr::DefaultBackgroundColor => {
-                renderer.set_background_color(None);
-            }
-            Sgr::Underline => {
-                renderer.set_underline_color(DecorationColor::TextColor);
-            }
-            Sgr::UnderlineOff => {
-                renderer.set_underline_color(DecorationColor::None);
-            }
-            Sgr::CrossedOut => {
-                renderer.set_strikethrough_color(DecorationColor::TextColor);
-            }
-            Sgr::NotCrossedOut => {
-                renderer.set_strikethrough_color(DecorationColor::None);
-            }
-        }
     }
 }
 
