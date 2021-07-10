@@ -66,7 +66,7 @@ jobs:
             rust: nightly
 
           - name: msrv
-            rust: 1.43.0
+            rust: 1.46.0
 
     steps:
     - uses: actions/checkout@v2
@@ -89,8 +89,8 @@ jobs:
 
     - name: Run tests
       run: |
-        cargo test --verbose
-        cargo test --verbose --no-default-features
+        cargo test --lib --verbose
+        cargo test --lib --verbose --no-default-features
 
     - name: Build examples
       run: cargo build --examples --verbose
@@ -112,6 +112,8 @@ jobs:
         compare -metric AE ./assets/special-characters-tabs.png ./target/screenshots/special-characters-tabs.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/styles-ansi.png" cargo run --example styles-ansi
         compare -metric AE ./assets/styles-ansi.png ./target/screenshots/styles-ansi.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/styles-plugin.png" cargo run --example styles-plugin --features=plugin
+        compare -metric AE ./assets/styles-plugin.png ./target/screenshots/styles-plugin.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/styles-static.png" cargo run --example styles-static
         compare -metric AE ./assets/styles-static.png ./target/screenshots/styles-static.png result.png
 

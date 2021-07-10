@@ -16,7 +16,20 @@ exclude = [
 
 [features]
 ansi = ["ansi-parser", "as-slice"]
+plugin = []
 default = ["ansi"]
+
+[[example]]
+name = "interactive-editor"
+required-features = ["plugin"]
+
+[[example]]
+name = "plugin"
+required-features = ["plugin"]
+
+[[example]]
+name = "styles-plugin"
+required-features = ["plugin"]
 
 [dependencies]
 az = "1.1"

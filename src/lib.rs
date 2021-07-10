@@ -93,6 +93,7 @@
 //! ## Cargo features
 //!
 //! * `ansi`: enables ANSI sequence support. This feature is enabled by default.
+//! * `plugin`: enables *experimental* plugin support.
 //!
 //! [embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
 //! [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
@@ -110,6 +111,7 @@
 
 pub mod alignment;
 mod parser;
+pub mod plugin;
 mod rendering;
 pub mod style;
 
@@ -117,6 +119,7 @@ mod utils;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
+    plugin::{NoPlugin, Plugin, PluginWrapper},
     style::TextBoxStyle,
 };
 use embedded_graphics::{
@@ -125,13 +128,14 @@ use embedded_graphics::{
     text::renderer::{CharacterStyle, TextRenderer},
     transform::Transform,
 };
+pub use parser::Token;
 
 /// A text box object.
 ///
 /// The `TextBox` struct represents a piece of text that can be drawn on a display inside the given
 /// bounding box.
 ///
-/// Use the [`draw`] method to draw the textbox on a display.
+/// Use the [`draw`] method to draw the text box on a display.
 ///
 /// See the [module-level documentation] for more information.
 ///
@@ -139,9 +143,12 @@ use embedded_graphics::{
 /// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
 /// [module-level documentation]: index.html
 /// [`draw`]: #method.draw
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Hash)]
 #[must_use]
-pub struct TextBox<'a, S> {
+pub struct TextBox<'a, S, M = NoPlugin<<S as TextRenderer>::Color>>
+where
+    S: TextRenderer,
+{
     /// The text to be displayed in this `TextBox`
     pub text: &'a str,
 
@@ -156,9 +163,11 @@ pub struct TextBox<'a, S> {
 
     /// Vertical offset applied to the text just before rendering.
     pub vertical_offset: i32,
+
+    plugin: PluginWrapper<'a, M, S::Color>,
 }
 
-impl<'a, S> TextBox<'a, S>
+impl<'a, S> TextBox<'a, S, NoPlugin<<S as TextRenderer>::Color>>
 where
     S: TextRenderer + CharacterStyle,
 {
@@ -167,12 +176,7 @@ where
     pub fn new(text: &'a str, bounds: Rectangle, character_style: S) -> Self {
         TextBox::with_textbox_style(text, bounds, character_style, TextBoxStyle::default())
     }
-}
 
-impl<'a, S> TextBox<'a, S>
-where
-    S: TextRenderer + CharacterStyle,
-{
     /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
     #[inline]
     pub fn with_textbox_style(
@@ -187,6 +191,7 @@ where
             character_style,
             style: textbox_style,
             vertical_offset: 0,
+            plugin: PluginWrapper::new(NoPlugin::new()),
         };
 
         styled.style.height_mode.apply(&mut styled);
@@ -201,7 +206,7 @@ where
         bounds: Rectangle,
         character_style: S,
         alignment: HorizontalAlignment,
-    ) -> TextBox<'a, S> {
+    ) -> Self {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -217,7 +222,7 @@ where
         bounds: Rectangle,
         character_style: S,
         vertical_alignment: VerticalAlignment,
-    ) -> TextBox<'a, S> {
+    ) -> Self {
         TextBox::with_textbox_style(
             text,
             bounds,
@@ -232,11 +237,32 @@ where
         self.vertical_offset = offset;
         self
     }
+
+    /// Adds a new plugin to the `TextBox`.
+    #[cfg(feature = "plugin")]
+    #[inline]
+    pub fn add_plugin<M>(self, plugin: M) -> TextBox<'a, S, M>
+    where
+        M: Plugin<'a, <S as TextRenderer>::Color>,
+    {
+        let mut textbox = TextBox {
+            text: self.text,
+            bounds: self.bounds,
+            character_style: self.character_style,
+            style: self.style,
+            vertical_offset: self.vertical_offset,
+            plugin: PluginWrapper::new(plugin),
+        };
+        textbox.style.height_mode.apply(&mut textbox);
+
+        textbox
+    }
 }
 
-impl<S> Transform for TextBox<'_, S>
+impl<'a, S, M> Transform for TextBox<'a, S, M>
 where
-    Self: Clone,
+    S: TextRenderer + Clone,
+    M: Plugin<'a, S::Color>,
 {
     #[inline]
     fn translate(&self, by: Point) -> Self {
@@ -254,16 +280,21 @@ where
     }
 }
 
-impl<S> Dimensions for TextBox<'_, S> {
+impl<'a, S, M> Dimensions for TextBox<'a, S, M>
+where
+    S: TextRenderer,
+    M: Plugin<'a, S::Color>,
+{
     #[inline]
     fn bounding_box(&self) -> Rectangle {
         self.bounds
     }
 }
 
-impl<S> TextBox<'_, S>
+impl<'a, S, M> TextBox<'a, S, M>
 where
     S: TextRenderer,
+    M: Plugin<'a, S::Color>,
 {
     /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]

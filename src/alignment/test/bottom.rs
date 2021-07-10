@@ -25,6 +25,7 @@ mod test {
         TextBox,
     };
 
+    #[track_caller]
     fn assert_rendered(text: &str, size: Size, pattern: &[&str]) {
         let mut display = MockDisplay::new();
 

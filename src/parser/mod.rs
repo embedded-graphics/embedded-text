@@ -50,7 +50,7 @@ pub enum Token<'a> {
 ///
 /// [`Token`]: enum.Token.html
 #[derive(Clone, Debug)]
-pub struct Parser<'a> {
+pub(crate) struct Parser<'a> {
     inner: Chars<'a>,
 }
 
@@ -83,20 +83,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Returns true if there are no tokens to process.
-    #[inline]
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.inner.as_str().is_empty()
+    pub unsafe fn consume(&mut self, bytes: usize) {
+        // SAFETY: caller needs to make sure we end up on character boundary
+        self.inner = self.inner.as_str().get_unchecked(bytes..).chars();
     }
 
     pub fn as_str(&self) -> &str {
         self.inner.as_str()
-    }
-
-    pub unsafe fn consume(&mut self, bytes: usize) {
-        // SAFETY: caller needs to make sure we end up on character boundary
-        self.inner = self.inner.as_str().get_unchecked(bytes..).chars();
     }
 }
 
@@ -110,7 +103,7 @@ impl<'a> Iterator for Parser<'a> {
         if let Some(c) = self.inner.next() {
             if is_word_char(c) {
                 // find the longest consecutive slice of text for a Word token
-                while let Some(c) = self.inner.next() {
+                for c in &mut self.inner {
                     if !is_word_char(c) {
                         // pointer arithmetic to get the offset of `c` relative to `string`
                         let offset = {
@@ -164,7 +157,7 @@ impl<'a> Iterator for Parser<'a> {
                     // count consecutive whitespace
                     _ => {
                         let mut len = 1;
-                        while let Some(c) = self.inner.next() {
+                        for c in &mut self.inner {
                             if is_space_char(c) {
                                 if c != SPEC_CHAR_ZWSP {
                                     len += 1;
@@ -205,6 +198,7 @@ impl<'a> Iterator for Parser<'a> {
 mod test {
     use super::{Parser, Token};
 
+    #[track_caller]
     pub fn assert_tokens(text: &str, tokens: std::vec::Vec<Token>) {
         assert_eq!(
             Parser::parse(text).collect::<std::vec::Vec<Token>>(),

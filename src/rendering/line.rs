@@ -3,6 +3,7 @@ use core::convert::Infallible;
 
 use crate::{
     parser::Parser,
+    plugin::{Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
         line_iter::{LineElementParser, LineEndType},
@@ -15,6 +16,8 @@ use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
     pixelcolor::Rgb888,
+    prelude::Size,
+    primitives::Rectangle,
     text::{
         renderer::{CharacterStyle, TextRenderer},
         Baseline,
@@ -27,57 +30,57 @@ use super::ansi::Sgr;
 use super::{line_iter::ElementHandler, space_config::SpaceConfig};
 
 /// Render a single line of styled text.
-#[derive(Debug)]
-pub struct StyledLineRenderer<'a, S>
+pub(crate) struct StyledLineRenderer<'a, 'b, S, M>
 where
-    S: Clone,
+    S: TextRenderer + Clone,
+    M: Plugin<'a, <S as TextRenderer>::Color>,
 {
     cursor: LineCursor,
-    state: LineRenderState<'a, S>,
+    state: LineRenderState<'a, 'b, S, M>,
 }
 
-#[derive(Debug, Clone)]
-pub struct LineRenderState<'a, S>
+#[derive(Clone)]
+pub(crate) struct LineRenderState<'a, 'b, S, M>
 where
-    S: Clone,
+    S: TextRenderer + Clone,
+    M: Plugin<'a, S::Color>,
 {
     pub parser: Parser<'a>,
     pub character_style: S,
     pub style: TextBoxStyle,
     pub end_type: LineEndType,
+    pub plugin: &'b PluginWrapper<'a, M, S::Color>,
 }
 
-impl<S> LineRenderState<'_, S>
-where
-    S: Clone,
-{
-    pub fn is_finished(&self) -> bool {
-        self.parser.is_empty()
-    }
-}
-
-impl<'a, F> StyledLineRenderer<'a, F>
+impl<'a, 'b, F, M> StyledLineRenderer<'a, 'b, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
+    M: Plugin<'a, <F as TextRenderer>::Color>,
 {
     /// Creates a new line renderer.
-    pub fn new(cursor: LineCursor, state: LineRenderState<'a, F>) -> Self {
+    pub fn new(cursor: LineCursor, state: LineRenderState<'a, 'b, F, M>) -> Self {
         Self { cursor, state }
     }
 }
 
-struct RenderElementHandler<'a, F, D> {
-    style: &'a mut F,
-    display: &'a mut D,
+struct RenderElementHandler<'a, 'b, F, D, M>
+where
+    F: TextRenderer,
+    D: DrawTarget<Color = F::Color>,
+{
+    style: &'b mut F,
+    display: &'b mut D,
     pos: Point,
+    plugin: &'b PluginWrapper<'a, M, F::Color>,
 }
 
-impl<'a, F, D> ElementHandler for RenderElementHandler<'a, F, D>
+impl<'a, 'b, 'c, F, D, M> ElementHandler for RenderElementHandler<'a, 'c, F, D, M>
 where
     F: CharacterStyle + TextRenderer,
     <F as CharacterStyle>::Color: From<Rgb888>,
     D: DrawTarget<Color = <F as TextRenderer>::Color>,
+    M: Plugin<'a, <F as TextRenderer>::Color>,
 {
     type Error = D::Error;
 
@@ -85,17 +88,37 @@ where
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
-        self.pos = self
-            .style
-            .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
+    fn whitespace(&mut self, st: &str, space_count: u32, width: u32) -> Result<(), Self::Error> {
+        let top_left = self.pos;
+        if space_count > 0 {
+            self.pos = self
+                .style
+                .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
+        } else {
+            self.pos += Point::new(width.saturating_as(), 0);
+        }
+
+        let size = Size::new(width, self.style.line_height().saturating_as());
+        let bounds = Rectangle::new(top_left, size);
+
+        self.plugin
+            .post_render(self.display, self.style, st, bounds)?;
+
         Ok(())
     }
 
-    fn printed_characters(&mut self, st: &str, _: u32) -> Result<(), Self::Error> {
+    fn printed_characters(&mut self, st: &str, width: u32) -> Result<(), Self::Error> {
+        let top_left = self.pos;
         self.pos = self
             .style
             .draw_string(st, self.pos, Baseline::Top, self.display)?;
+
+        let size = Size::new(width, self.style.line_height().saturating_as());
+        let bounds = Rectangle::new(top_left, size);
+
+        self.plugin
+            .post_render(self.display, self.style, st, bounds)?;
+
         Ok(())
     }
 
@@ -134,13 +157,14 @@ where
     }
 }
 
-impl<'a, F> Drawable for StyledLineRenderer<'a, F>
+impl<'a, 'b, F, M> Drawable for StyledLineRenderer<'a, 'b, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
+    M: Plugin<'a, <F as TextRenderer>::Color> + Plugin<'a, <F as CharacterStyle>::Color>,
 {
     type Color = <F as CharacterStyle>::Color;
-    type Output = LineRenderState<'a, F>;
+    type Output = LineRenderState<'a, 'b, F, M>;
 
     #[inline]
     fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
@@ -151,57 +175,78 @@ where
             mut parser,
             mut character_style,
             style,
+            plugin,
             ..
         } = self.state.clone();
 
-        let end_type = if display.bounding_box().size.height == 0 {
-            // We're outside of the view - no need for a separate measure pass.
+        let mut cloned_parser = parser.clone();
+        let measure_plugin = plugin.clone();
+        measure_plugin.set_state(ProcessingState::Measure);
+        let lm = style.measure_line(
+            &measure_plugin,
+            &character_style,
+            &mut cloned_parser,
+            self.cursor.line_width(),
+        );
+
+        let (end_type, end_pos) = if display.bounding_box().size.height == 0 {
+            // We're outside of the view. Use simpler render element handler and space config.
             let mut elements = LineElementParser::new(
                 &mut parser,
+                plugin,
                 self.cursor.clone(),
                 SpaceConfig::new_from_renderer(&character_style),
                 style.alignment,
             );
 
-            elements
+            let end_type = elements
                 .process(&mut StyleOnlyRenderElementHandler {
                     style: &mut character_style,
                 })
-                .unwrap()
+                .unwrap();
+
+            (end_type, elements.cursor.pos())
         } else {
-            // We have to resort to trickery to figure out the string that is rendered as the line.
-            let mut cloned_parser = parser.clone();
-            let lm = style.measure_line(
-                &character_style,
-                &mut cloned_parser,
-                self.cursor.line_width(),
-            );
-
-            let consumed_bytes = parser.as_str().len() - cloned_parser.as_str().len();
-            let line_str = unsafe { parser.as_str().get_unchecked(..consumed_bytes) };
-
-            let (left, space_config) = style.alignment.place_line(line_str, &character_style, lm);
+            let (left, space_config) = style.alignment.place_line(&character_style, lm);
 
             let mut cursor = self.cursor.clone();
             cursor.move_cursor(left.saturating_as()).ok();
 
             let pos = cursor.pos();
             let mut elements =
-                LineElementParser::new(&mut parser, cursor, space_config, style.alignment);
+                LineElementParser::new(&mut parser, plugin, cursor, space_config, style.alignment);
 
-            elements.process(&mut RenderElementHandler {
+            let end_type = elements.process(&mut RenderElementHandler {
                 style: &mut character_style,
                 display,
                 pos,
-            })?
+                plugin,
+            })?;
+
+            (end_type, elements.cursor.pos())
         };
 
-        Ok(LineRenderState {
+        let next_state = LineRenderState {
             parser,
             character_style,
             style,
             end_type,
-        })
+            plugin,
+        };
+
+        if next_state.end_type == LineEndType::EndOfText {
+            next_state.plugin.post_render(
+                display,
+                &next_state.character_style,
+                "",
+                Rectangle::new(
+                    end_pos,
+                    Size::new(0, next_state.character_style.line_height()),
+                ),
+            )?;
+        }
+
+        Ok(next_state)
     }
 }
 
@@ -252,6 +297,7 @@ impl Sgr {
 mod test {
     use crate::{
         parser::Parser,
+        plugin::{NoPlugin, PluginWrapper},
         rendering::{
             cursor::LineCursor,
             line::{LineRenderState, StyledLineRenderer},
@@ -286,11 +332,14 @@ mod test {
             TabSize::Spaces(4).into_pixels(&character_style),
         );
 
+        let plugin = PluginWrapper::new(NoPlugin::new());
+
         let state = LineRenderState {
             parser,
             character_style,
             style,
             end_type: LineEndType::EndOfText,
+            plugin: &plugin,
         };
 
         let renderer = StyledLineRenderer::new(cursor, state);
@@ -423,6 +472,7 @@ mod test {
 mod ansi_parser_tests {
     use crate::{
         parser::Parser,
+        plugin::{NoPlugin, PluginWrapper},
         rendering::{
             cursor::LineCursor,
             line::{LineRenderState, StyledLineRenderer},
@@ -457,11 +507,14 @@ mod ansi_parser_tests {
             size_for(&FONT_6X9, 7, 1).width,
             TabSize::Spaces(4).into_pixels(&character_style),
         );
+
+        let plugin = PluginWrapper::new(NoPlugin::new());
         let state = LineRenderState {
             parser,
             character_style,
             style,
             end_type: LineEndType::EndOfText,
+            plugin: &plugin,
         };
         StyledLineRenderer::new(cursor, state)
             .draw(&mut display)

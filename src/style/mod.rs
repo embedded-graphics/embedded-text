@@ -143,7 +143,8 @@ use core::convert::Infallible;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    parser::Parser,
+    parser::{Parser, SPEC_CHAR_NBSP},
+    plugin::{NoPlugin, Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
         line_iter::{ElementHandler, LineElementParser, LineEndType},
@@ -254,7 +255,7 @@ impl Default for TextBoxStyle {
 /// Information about a line.
 #[derive(Debug)]
 #[must_use]
-pub struct LineMeasurement {
+pub(crate) struct LineMeasurement {
     /// Maximum line width in pixels.
     pub max_line_width: u32,
 
@@ -266,6 +267,9 @@ pub struct LineMeasurement {
 
     /// Whether this line ended with a \r.
     pub line_end_type: LineEndType,
+
+    /// Number of spaces in the current line.
+    pub space_count: u32,
 }
 
 struct MeasureLineElementHandler<'a, S> {
@@ -273,6 +277,8 @@ struct MeasureLineElementHandler<'a, S> {
     right: u32,
     max_line_width: u32,
     pos: u32,
+    space_count: u32,
+    partial_space_count: u32,
 }
 
 impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
@@ -282,14 +288,22 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, st: &str, _count: u32, width: u32) -> Result<(), Self::Error> {
         self.pos += width;
+
+        self.partial_space_count += st
+            .chars()
+            .filter(|c| [' ', SPEC_CHAR_NBSP].contains(c))
+            .count()
+            .saturating_as::<u32>();
+
         Ok(())
     }
 
     fn printed_characters(&mut self, _: &str, width: u32) -> Result<(), Self::Error> {
         self.right = self.right.max(self.pos + width);
         self.pos += width;
+        self.space_count = self.partial_space_count;
         Ok(())
     }
 
@@ -311,19 +325,22 @@ impl TextBoxStyle {
     /// processing a token. If a token opens a new line, it will be returned as the carried token.
     /// If the carried token is `None`, the parser has finished processing the text.
     #[inline]
-    pub(crate) fn measure_line<'a, S>(
+    pub(crate) fn measure_line<'a, S, M>(
         &self,
+        plugin: &PluginWrapper<'a, M, S::Color>,
         character_style: &S,
         parser: &mut Parser<'a>,
         max_line_width: u32,
     ) -> LineMeasurement
     where
         S: TextRenderer,
+        M: Plugin<'a, S::Color>,
     {
         let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
         let mut iter = LineElementParser::new(
             parser,
+            plugin,
             cursor,
             SpaceConfig::new(str_width(character_style, " "), None),
             self.alignment,
@@ -334,13 +351,16 @@ impl TextBoxStyle {
             right: 0,
             pos: 0,
             max_line_width,
+            space_count: 0,
+            partial_space_count: 0,
         };
         let last_token = iter.process(&mut handler).unwrap();
 
         LineMeasurement {
             max_line_width,
             width: handler.right,
-            last_line: last_token == LineEndType::NewLine || parser.is_empty(),
+            space_count: handler.space_count,
+            last_line: matches!(last_token, LineEndType::NewLine | LineEndType::EndOfText),
             line_end_type: last_token,
         }
     }
@@ -386,6 +406,21 @@ impl TextBoxStyle {
     where
         S: TextRenderer,
     {
+        let plugin = PluginWrapper::new(NoPlugin::new());
+        self.measure_text_height_impl(plugin, character_style, text, max_width)
+    }
+
+    pub(crate) fn measure_text_height_impl<'a, S, M>(
+        &self,
+        plugin: PluginWrapper<'a, M, S::Color>,
+        character_style: &S,
+        text: &'a str,
+        max_width: u32,
+    ) -> u32
+    where
+        S: TextRenderer,
+        M: Plugin<'a, S::Color>,
+    {
         let mut parser = Parser::parse(text);
         let mut closed_paragraphs: u32 = 0;
         let line_height = self.line_height.to_absolute(character_style.line_height());
@@ -393,31 +428,48 @@ impl TextBoxStyle {
         let mut height = last_line_height;
         let mut paragraph_ended = false;
 
+        plugin.set_state(ProcessingState::Measure);
+
+        let mut prev_end = LineEndType::EndOfText;
+
         loop {
-            let lm = self.measure_line(character_style, &mut parser, max_width);
+            plugin.new_line();
+            let lm = self.measure_line(&plugin, character_style, &mut parser, max_width);
 
             if paragraph_ended {
                 closed_paragraphs += 1;
             }
             paragraph_ended = lm.last_line;
-            match lm.line_end_type {
-                LineEndType::CarriageReturn => {}
-                LineEndType::EndOfText => {}
-                LineEndType::LineBreak | LineEndType::NewLine => {
+
+            if prev_end == LineEndType::LineBreak {
+                if lm.width != 0 {
                     height += line_height;
                 }
             }
 
-            if parser.is_empty() {
-                return height + closed_paragraphs * self.paragraph_spacing;
+            match lm.line_end_type {
+                LineEndType::CarriageReturn => {}
+                LineEndType::LineBreak => {}
+                LineEndType::NewLine => {
+                    height += line_height;
+                }
+                LineEndType::EndOfText => {
+                    return height + closed_paragraphs * self.paragraph_spacing;
+                }
             }
+            prev_end = lm.line_end_type;
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{alignment::*, parser::Parser, style::builder::TextBoxStyleBuilder};
+    use crate::{
+        alignment::*,
+        parser::Parser,
+        plugin::{NoPlugin, PluginWrapper},
+        style::{builder::TextBoxStyleBuilder, TextBoxStyle},
+    };
     use embedded_graphics::{
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::BinaryColor,
@@ -470,7 +522,7 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyleBuilder::new().build();
+        let style = TextBoxStyle::default();
 
         for (i, (text, width, expected_n_lines)) in data.iter().enumerate() {
             let height = style.measure_text_height(&character_style, text, *width);
@@ -531,7 +583,9 @@ mod test {
 
         let mut text = Parser::parse("123 45 67");
 
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
+            &mut plugin,
             &character_style,
             &mut text,
             6 * FONT_6X9.character_size.width,
@@ -553,7 +607,9 @@ mod test {
 
         let mut text = Parser::parse("123\x1b[2D");
 
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
+            &mut plugin,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -564,7 +620,9 @@ mod test {
         // continuation after rewind extends the line.
         let mut text = Parser::parse("123\x1b[2D456");
 
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
+            &mut plugin,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -585,7 +643,9 @@ mod test {
 
         let mut text = Parser::parse("123\u{A0}45");
 
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
         let lm = style.measure_line(
+            &mut plugin,
             &character_style,
             &mut text,
             5 * FONT_6X9.character_size.width,
@@ -651,7 +711,13 @@ mod test {
             .line_height(LineHeight::Pixels(11))
             .build();
 
-        let lm = style.measure_line(&character_style, &mut Parser::parse("soft\u{AD}hyphen"), 50);
+        let mut plugin = PluginWrapper::new(NoPlugin::new());
+        let lm = style.measure_line(
+            &mut plugin,
+            &character_style,
+            &mut Parser::parse("soft\u{AD}hyphen"),
+            50,
+        );
 
         assert_eq!(lm.width, 30);
     }

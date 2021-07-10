@@ -95,6 +95,7 @@ fn main() {
 ## Cargo features
 
  * `ansi`: enables ANSI sequence support. This feature is enabled by default.
+ * `plugin`: enables *experimental* plugin support.
 
 [embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
 [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
@@ -103,7 +104,7 @@ fn main() {
 ## Development setup
 
 ### Minimum supported Rust version
-The minimum supported Rust version for embedded-text is 1.43.0 or greater. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
+The minimum supported Rust version for embedded-text is 1.46.0 or greater. Ensure you have the latest stable version of Rust installed, preferably through https://rustup.rs.
 
 ### Installation
 

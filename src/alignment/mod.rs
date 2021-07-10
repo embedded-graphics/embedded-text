@@ -1,6 +1,6 @@
 //! Text alignment options.
 use crate::{
-    parser::SPEC_CHAR_NBSP,
+    plugin::Plugin,
     rendering::{cursor::Cursor, space_config::SpaceConfig},
     style::LineMeasurement,
     utils::str_width,
@@ -29,19 +29,9 @@ pub enum HorizontalAlignment {
 }
 
 impl HorizontalAlignment {
-    pub(crate) fn ignores_leading_spaces(self) -> bool {
-        match self {
-            HorizontalAlignment::Left => false,
-            HorizontalAlignment::Center => true,
-            HorizontalAlignment::Right => true,
-            HorizontalAlignment::Justified => true,
-        }
-    }
-
     /// Calculate offset from the left side and whitespace information.
     pub(crate) fn place_line(
         self,
-        line: &str,
         renderer: &impl TextRenderer,
         measurement: LineMeasurement,
     ) -> (u32, SpaceConfig) {
@@ -57,20 +47,7 @@ impl HorizontalAlignment {
             ),
             HorizontalAlignment::Justified => {
                 let space_width = str_width(renderer, " ");
-                let space_chars = [' ', SPEC_CHAR_NBSP];
-
-                let mut space_count = 0;
-                let mut partial_space_count = 0;
-
-                for c in line.chars().skip_while(|c| space_chars.contains(c)) {
-                    if space_chars.contains(&c) {
-                        partial_space_count += 1;
-                    } else {
-                        space_count += partial_space_count;
-                        partial_space_count = 0;
-                    }
-                }
-
+                let space_count = measurement.space_count;
                 let space_info = if !measurement.last_line && space_count != 0 {
                     let space =
                         measurement.max_line_width - measurement.width + space_count * space_width;
@@ -113,16 +90,18 @@ pub enum VerticalAlignment {
 
 impl VerticalAlignment {
     /// Set the cursor's initial vertical position
-    pub(crate) fn apply_vertical_alignment<'a, S>(
+    pub(crate) fn apply_vertical_alignment<'a, S, M>(
         self,
         cursor: &mut Cursor,
-        styled_text_box: &TextBox<'a, S>,
+        styled_text_box: &TextBox<'a, S, M>,
     ) where
         S: TextRenderer,
+        M: Plugin<'a, S::Color>,
     {
         let text_height = styled_text_box
             .style
-            .measure_text_height(
+            .measure_text_height_impl(
+                styled_text_box.plugin.clone(),
                 &styled_text_box.character_style,
                 styled_text_box.text,
                 cursor.line_width(),

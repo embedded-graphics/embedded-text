@@ -8,11 +8,12 @@ pub(crate) mod space_config;
 
 use crate::{
     parser::Parser,
+    plugin::ProcessingState,
     rendering::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
-    TextBox,
+    Plugin, TextBox,
 };
 use az::SaturatingAs;
 use embedded_graphics::{
@@ -25,10 +26,11 @@ use embedded_graphics::{
 };
 use line_iter::LineEndType;
 
-impl<'a, F> Drawable for TextBox<'a, F>
+impl<'a, F, M> Drawable for TextBox<'a, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
+    M: Plugin<'a, <F as TextRenderer>::Color> + Plugin<'a, <F as CharacterStyle>::Color>,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = &'a str;
@@ -49,18 +51,24 @@ where
             .vertical_alignment
             .apply_vertical_alignment(&mut cursor, self);
 
+        cursor.y += self.vertical_offset;
+        self.plugin.on_start_render(self, &mut cursor);
+
         let mut state = LineRenderState {
             style: self.style,
             character_style: self.character_style.clone(),
             parser: Parser::parse(self.text),
             end_type: LineEndType::EndOfText,
+            plugin: &self.plugin,
         };
 
-        cursor.y += self.vertical_offset;
+        state.plugin.set_state(ProcessingState::Render);
 
         let mut anything_drawn = false;
-        while !state.is_finished() {
+        loop {
+            state.plugin.new_line();
             let line_cursor = cursor.line();
+
             let display_range = self
                 .style
                 .height_mode
@@ -70,29 +78,45 @@ where
                 display_range.clone().count().saturating_as(),
             );
 
+            let line_start = line_cursor.pos();
+
+            // FIXME: cropping isn't necessary for whole lines, but make sure not to blow up the
+            // binary size as well.
+            let mut display = display.clipped(&Rectangle::new(
+                line_start + Point::new(0, display_range.start),
+                display_size,
+            ));
             if display_range.start == display_range.end {
                 if anything_drawn {
                     let remaining_bytes = state.parser.as_str().len();
                     let consumed_bytes = self.text.len() - remaining_bytes;
+
+                    state.plugin.post_render(
+                        &mut display,
+                        &self.character_style,
+                        "",
+                        Rectangle::new(
+                            line_start,
+                            Size::new(0, cursor.line_height().saturating_as()),
+                        ),
+                    )?;
                     return Ok(self.text.get(consumed_bytes..).unwrap());
                 }
             } else {
                 anything_drawn = true;
             }
 
-            // FIXME: cropping isn't necessary for whole lines, but make sure not to blow up the
-            // binary size as well.
-            let mut display = display.clipped(&Rectangle::new(
-                line_cursor.pos() + Point::new(0, display_range.start),
-                display_size,
-            ));
             state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
 
-            if state.end_type != LineEndType::CarriageReturn {
-                cursor.new_line();
+            match state.end_type {
+                LineEndType::EndOfText => break,
+                LineEndType::CarriageReturn => {}
+                _ => {
+                    cursor.new_line();
 
-                if state.end_type == LineEndType::NewLine {
-                    cursor.y += self.style.paragraph_spacing.saturating_as::<i32>();
+                    if state.end_type == LineEndType::NewLine {
+                        cursor.y += self.style.paragraph_spacing.saturating_as::<i32>();
+                    }
                 }
             }
         }
@@ -118,6 +142,7 @@ pub mod test {
         TextBox,
     };
 
+    #[track_caller]
     pub fn assert_rendered(
         alignment: HorizontalAlignment,
         text: &str,

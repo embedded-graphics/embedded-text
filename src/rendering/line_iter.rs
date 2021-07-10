@@ -6,9 +6,11 @@
 use crate::{
     alignment::HorizontalAlignment,
     parser::{Parser, Token, SPEC_CHAR_NBSP},
+    plugin::{Plugin, PluginWrapper},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
 use az::{SaturatingAs, SaturatingCast};
+use embedded_graphics::prelude::PixelColor;
 
 #[cfg(feature = "ansi")]
 use super::ansi::{try_parse_sgr, Sgr};
@@ -20,11 +22,9 @@ use as_slice::AsSlice;
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
 #[must_use]
-pub struct LineElementParser<'a, 'b> {
-    lookahead: Parser<'a>,
-
+pub(crate) struct LineElementParser<'a, 'b, M, C> {
     /// Position information.
-    cursor: LineCursor,
+    pub cursor: LineCursor,
 
     /// The text to draw.
     parser: &'b mut Parser<'a>,
@@ -32,6 +32,7 @@ pub struct LineElementParser<'a, 'b> {
     spaces: SpaceConfig,
     alignment: HorizontalAlignment,
     empty: bool,
+    plugin: &'b PluginWrapper<'a, M, C>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,7 +50,7 @@ pub trait ElementHandler {
     fn measure(&self, st: &str) -> u32;
 
     /// A whitespace block with the given width.
-    fn whitespace(&mut self, _width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, _st: &str, _space_count: u32, _width: u32) -> Result<(), Self::Error> {
         Ok(())
     }
 
@@ -70,42 +71,49 @@ pub trait ElementHandler {
     }
 }
 
-impl<'a, 'b> LineElementParser<'a, 'b> {
+impl<'a, 'b, M, C> LineElementParser<'a, 'b, M, C>
+where
+    C: PixelColor,
+    M: Plugin<'a, C>,
+{
     /// Creates a new element parser.
     #[inline]
     pub fn new(
         parser: &'b mut Parser<'a>,
+        plugin: &'b PluginWrapper<'a, M, C>,
         cursor: LineCursor,
         spaces: SpaceConfig,
         alignment: HorizontalAlignment,
     ) -> Self {
         Self {
-            lookahead: parser.clone(),
             parser,
             spaces,
             cursor,
             alignment,
             empty: true,
+            plugin,
         }
     }
-}
 
-impl<'a> LineElementParser<'a, '_> {
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
         let mut width = None;
-        let mut lookahead = self.lookahead.clone();
+
+        // This looks extremely inefficient.
+        let lookahead = self.plugin.clone();
+        let mut lookahead_parser = self.parser.clone();
+
+        // We don't want to count the current token.
+        lookahead.consume_peeked_token(&mut lookahead_parser);
 
         'lookahead: loop {
-            match lookahead.next() {
+            match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) => {
-                    let w = handler.measure(w);
-
-                    width = width.map_or(Some(w), |acc| Some(acc + w));
+                    *width.get_or_insert(0) += handler.measure(w);
                 }
 
-                Some(Token::Break(c, _original)) => {
-                    let w = handler.measure(c);
-                    width = width.map_or(Some(w), |acc| Some(acc + w));
+                Some(Token::Break(w, _original)) => {
+                    *width.get_or_insert(0) += handler.measure(w);
+
                     break 'lookahead;
                 }
 
@@ -114,6 +122,7 @@ impl<'a> LineElementParser<'a, '_> {
 
                 _ => break 'lookahead,
             }
+            lookahead.consume_peeked_token(&mut lookahead_parser);
         }
 
         width
@@ -149,21 +158,25 @@ impl<'a> LineElementParser<'a, '_> {
         (w, None)
     }
 
-    fn next_word_fits<E: ElementHandler>(&self, handler: &mut E) -> bool {
-        let mut lookahead = self.parser.clone();
+    fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &mut E) -> bool {
         let mut cursor = self.cursor.clone();
         let mut spaces = self.spaces;
 
         let mut exit = false;
+
+        // This looks extremely inefficient.
+        let lookahead = self.plugin.clone();
+        let mut lookahead_parser = self.parser.clone();
+
+        // We don't want to count the current token.
+        lookahead.consume_peeked_token(&mut lookahead_parser);
+
+        let _ = cursor.move_cursor(space_width);
         while !exit {
-            let width = match lookahead.next() {
-                Some(Token::Word(w)) => {
+            let width = match lookahead.peek_token(&mut lookahead_parser) {
+                Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
                     exit = true;
                     handler.measure(w).saturating_as()
-                }
-                Some(Token::Break(c, _original)) => {
-                    exit = true;
-                    handler.measure(c).saturating_as()
                 }
 
                 Some(Token::Whitespace(n, _)) => spaces.consume(n).saturating_as(),
@@ -178,11 +191,12 @@ impl<'a> LineElementParser<'a, '_> {
                 }
 
                 #[cfg(feature = "ansi")]
-                Some(Token::EscapeSequence(_)) => continue,
+                Some(Token::EscapeSequence(_)) => 0,
 
                 _ => return false,
             };
 
+            lookahead.consume_peeked_token(&mut lookahead_parser);
             if cursor.move_cursor(width).is_err() {
                 return false;
             }
@@ -191,28 +205,56 @@ impl<'a> LineElementParser<'a, '_> {
         true
     }
 
+    fn render_trailing_spaces(&self) -> bool {
+        // TODO: make this configurable
+        false
+    }
+
+    fn render_leading_spaces(&self) -> bool {
+        // TODO: make this configurable
+        match self.alignment {
+            HorizontalAlignment::Left => true,
+            HorizontalAlignment::Center => false,
+            HorizontalAlignment::Right => false,
+            HorizontalAlignment::Justified => false,
+        }
+    }
+
     fn draw_whitespace<E: ElementHandler>(
         &mut self,
         handler: &mut E,
         string: &'a str,
+        space_count: u32,
         space_width: u32,
     ) -> Result<(), E::Error> {
-        if self.empty && self.alignment.ignores_leading_spaces() {
+        if self.empty && !self.render_leading_spaces() {
+            handler.whitespace(string, 0, 0)?;
             return Ok(());
         }
-        let draw_whitespace = self.empty || self.next_word_fits(handler);
-        match self.move_cursor(space_width.saturating_cast()) {
-            Ok(moved) if draw_whitespace => {
-                handler.whitespace(moved.saturating_as())?;
-            }
+        let draw_whitespace = (self.empty && self.render_leading_spaces())
+            || self.render_trailing_spaces()
+            || self.next_word_fits(space_width.saturating_as(), handler);
 
+        match self.move_cursor(space_width.saturating_cast()) {
             Ok(moved) => {
-                handler.move_cursor(moved.saturating_as())?;
+                let spaces = if draw_whitespace { space_count } else { 0 };
+                handler.whitespace(string, spaces, moved.saturating_as())?;
             }
 
             Err(moved) => {
-                handler.move_cursor(moved)?;
-                self.consume_str(string);
+                let single = space_width / space_count;
+                let consumed = moved as u32 / single;
+                if consumed > 0 {
+                    let (pos, _) = string.char_indices().nth(consumed as usize).unwrap();
+                    let (consumed_str, _) = string.split_at(pos);
+                    handler.whitespace(consumed_str, consumed, consumed * single)?;
+
+                    self.replace_peeked_token(
+                        consumed as usize,
+                        Token::Whitespace(consumed, consumed_str),
+                    );
+                    return Ok(());
+                }
             }
         }
         Ok(())
@@ -223,16 +265,16 @@ impl<'a> LineElementParser<'a, '_> {
         handler: &mut E,
         space_width: u32,
     ) -> Result<(), E::Error> {
-        if self.empty && self.alignment.ignores_leading_spaces() {
+        if self.empty && !self.render_leading_spaces() {
             return Ok(());
         }
 
-        let draw_whitespace = self.empty || self.next_word_fits(handler);
+        let draw_whitespace = (self.empty && self.render_leading_spaces())
+            || self.render_trailing_spaces()
+            || self.next_word_fits(space_width.saturating_as(), handler);
 
         match self.move_cursor(space_width.saturating_cast()) {
-            Ok(moved) | Err(moved) if draw_whitespace => {
-                handler.whitespace(moved.saturating_as())?;
-            }
+            Ok(moved) if draw_whitespace => handler.whitespace("\t", 1, moved.saturating_as())?,
 
             Ok(moved) | Err(moved) => {
                 handler.move_cursor(moved.saturating_as())?;
@@ -242,20 +284,15 @@ impl<'a> LineElementParser<'a, '_> {
     }
 
     fn peek_next_token(&mut self) -> Option<Token<'a>> {
-        self.consume_token();
-        self.lookahead.next()
+        self.plugin.peek_token(&mut self.parser)
     }
 
     fn consume_token(&mut self) {
-        *self.parser = self.lookahead.clone();
+        self.plugin.consume_peeked_token(&mut self.parser);
     }
 
-    fn consume_str(&mut self, string: &'a str) {
-        unsafe {
-            // Safety: consuming a number of bytes is safe as long as we are working with strings.
-            self.parser.consume(string.len());
-            self.lookahead = self.parser.clone();
-        }
+    fn replace_peeked_token(&mut self, len: usize, token: Token<'a>) {
+        self.plugin.replace_peeked_token(len, token);
     }
 
     #[inline]
@@ -264,7 +301,7 @@ impl<'a> LineElementParser<'a, '_> {
             match token {
                 Token::Whitespace(n, seq) => {
                     let space_width = self.spaces.consume(n);
-                    self.draw_whitespace(handler, seq, space_width)?;
+                    self.draw_whitespace(handler, seq, n, space_width)?;
                 }
 
                 Token::Tab => {
@@ -280,7 +317,9 @@ impl<'a> LineElementParser<'a, '_> {
                             // If the next Word token does not fit the line, display break character
                             let width = handler.measure(c);
                             if self.move_cursor(width.saturating_as()).is_ok() {
-                                handler.printed_characters(c, width)?;
+                                if let Some(Token::Break(c, _)) = self.plugin.render_token(token) {
+                                    handler.printed_characters(c, width)?;
+                                }
                                 self.consume_token();
                             }
 
@@ -317,10 +356,15 @@ impl<'a> LineElementParser<'a, '_> {
                     };
 
                     self.empty = false;
-                    self.process_word(handler, word)?;
+
+                    if let Some(Token::Word(word)) = self.plugin.render_token(Token::Word(word)) {
+                        self.process_word(handler, word)?;
+                    }
 
                     if remainder.is_some() {
-                        self.consume_str(word);
+                        // Consume what was printed.
+                        self.replace_peeked_token(word.len(), Token::Word(word));
+                        self.consume_token();
                         return Ok(LineEndType::LineBreak);
                     }
                 }
@@ -345,7 +389,7 @@ impl<'a> LineElementParser<'a, '_> {
                             let delta = (n * handler.measure(" ")).saturating_as();
                             match self.move_cursor(delta) {
                                 Ok(delta) | Err(delta) => {
-                                    handler.whitespace(delta.saturating_as())?;
+                                    handler.whitespace("", 1, delta.saturating_as())?;
                                 }
                             }
                         }
@@ -358,7 +402,7 @@ impl<'a> LineElementParser<'a, '_> {
                             match self.move_cursor(delta) {
                                 Ok(delta) | Err(delta) => {
                                     handler.move_cursor(delta)?;
-                                    handler.whitespace(delta.abs().saturating_as())?;
+                                    handler.whitespace("", 1, delta.abs().saturating_as())?;
                                     handler.move_cursor(delta)?;
                                 }
                             }
@@ -371,18 +415,20 @@ impl<'a> LineElementParser<'a, '_> {
                 }
 
                 Token::CarriageReturn => {
+                    handler.whitespace("\r", 0, 0)?;
                     self.consume_token();
                     return Ok(LineEndType::CarriageReturn);
                 }
 
                 Token::NewLine => {
+                    handler.whitespace("\n", 0, 0)?;
                     self.consume_token();
                     return Ok(LineEndType::NewLine);
                 }
             }
+            self.consume_token();
         }
 
-        self.consume_token();
         Ok(LineEndType::EndOfText)
     }
 
@@ -402,7 +448,7 @@ impl<'a> LineElementParser<'a, '_> {
                     handler.printed_characters(word, handler.measure(word))?;
                 }
 
-                handler.whitespace(self.spaces.consume(1))?;
+                handler.whitespace("\u{a0}", 1, self.spaces.consume(1))?;
 
                 // If we have anything after the space...
                 if let Some(word) = w.get(space_pos + SPEC_CHAR_NBSP.len_utf8()..) {
@@ -425,6 +471,7 @@ mod test {
 
     use super::*;
     use crate::{
+        plugin::{NoPlugin, Plugin, PluginWrapper},
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
         utils::{str_width, test::size_for},
@@ -439,7 +486,7 @@ mod test {
 
     #[derive(PartialEq, Eq, Debug)]
     pub(super) enum RenderElement {
-        Space(u32),
+        Space(u32, bool),
         String(String, u32),
         MoveCursor(i32),
         #[cfg(feature = "ansi")]
@@ -473,8 +520,9 @@ mod test {
             str_width(&self.style, st)
         }
 
-        fn whitespace(&mut self, width: u32) -> Result<(), Self::Error> {
-            self.elements.push(RenderElement::Space(width));
+        fn whitespace(&mut self, _string: &str, count: u32, width: u32) -> Result<(), Self::Error> {
+            self.elements
+                .push(RenderElement::Space(width, (count > 0) as bool));
             Ok(())
         }
 
@@ -496,11 +544,16 @@ mod test {
         }
     }
 
-    pub(super) fn assert_line_elements<'a>(
+    #[track_caller]
+    pub(super) fn assert_line_elements<'a, M, C>(
         parser: &mut Parser<'a>,
         max_chars: u32,
         elements: &[RenderElement],
-    ) {
+        plugin: &PluginWrapper<'a, M, C>,
+    ) where
+        M: Plugin<'a, C>,
+        C: PixelColor,
+    {
         let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
 
         let config = SpaceConfig::new_from_renderer(&style);
@@ -513,7 +566,8 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut line1 = LineElementParser::new(parser, cursor, config, HorizontalAlignment::Left);
+        let mut line1 =
+            LineElementParser::new(parser, plugin, cursor, config, HorizontalAlignment::Left);
 
         line1.process(&mut handler).unwrap();
 
@@ -536,8 +590,14 @@ mod test {
         .line();
 
         let mut handler = TestElementHandler::new(style);
-        let mut line1 =
-            LineElementParser::new(&mut parser, cursor, config, HorizontalAlignment::Left);
+        let mut mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
+        let mut line1 = LineElementParser::new(
+            &mut parser,
+            &mut mw,
+            cursor,
+            config,
+            HorizontalAlignment::Left,
+        );
 
         line1.process(&mut handler).unwrap();
 
@@ -547,6 +607,7 @@ mod test {
     #[test]
     fn soft_hyphen_no_wrapping() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -555,12 +616,14 @@ mod test {
                 RenderElement::string("sam", 18),
                 RenderElement::string("ple", 18),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn soft_hyphen() {
         let mut parser = Parser::parse("sam\u{00AD}ple");
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
@@ -569,15 +632,17 @@ mod test {
                 RenderElement::string("sam", 18),
                 RenderElement::string("-", 6),
             ],
+            &mw,
         );
-        assert_line_elements(&mut parser, 5, &[RenderElement::string("ple", 18)]);
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("ple", 18)], &mw);
     }
 
     #[test]
     fn soft_hyphen_wrapped() {
         let mut parser = Parser::parse("sam\u{00AD}mm");
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
-        assert_line_elements(&mut parser, 3, &[RenderElement::string("sam", 18)]);
+        assert_line_elements(&mut parser, 3, &[RenderElement::string("sam", 18)], &mw);
         assert_line_elements(
             &mut parser,
             3,
@@ -585,44 +650,48 @@ mod test {
                 RenderElement::string("-", 6),
                 RenderElement::string("mm", 12),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn nbsp_issue() {
         let mut parser = Parser::parse("a b c\u{a0}d e f");
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
             5,
             &[
                 RenderElement::string("a", 6),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::string("b", 6),
-                RenderElement::MoveCursor(6),
+                RenderElement::Space(6, false),
             ],
+            &mw,
         );
         assert_line_elements(
             &mut parser,
             5,
             &[
                 RenderElement::string("c", 6),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::string("d", 6),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::string("e", 6),
-                RenderElement::MoveCursor(0),
             ],
+            &mw,
         );
-        assert_line_elements(&mut parser, 5, &[RenderElement::string("f", 6)]);
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("f", 6)], &mw);
     }
 
     #[test]
     fn soft_hyphen_issue_42() {
         let mut parser =
             Parser::parse("super\u{AD}cali\u{AD}fragi\u{AD}listic\u{AD}espeali\u{AD}docious");
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
-        assert_line_elements(&mut parser, 5, &[RenderElement::string("super", 30)]);
+        assert_line_elements(&mut parser, 5, &[RenderElement::string("super", 30)], &mw);
         assert_line_elements(
             &mut parser,
             5,
@@ -630,55 +699,63 @@ mod test {
                 RenderElement::string("-", 6),
                 RenderElement::string("cali", 24),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn nbsp_is_rendered_as_space() {
         let mut parser = Parser::parse("glued\u{a0}words");
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
             50,
             &[
                 RenderElement::string("glued", 30),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::string("words", 30),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn tabs() {
         let mut parser = Parser::parse("a\tword\nand\t\tanother\t");
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
         assert_line_elements(
             &mut parser,
             16,
             &[
                 RenderElement::string("a", 6),
-                RenderElement::Space(6 * 3),
+                RenderElement::Space(6 * 3, true),
                 RenderElement::string("word", 24),
+                RenderElement::Space(0, false), // the newline
             ],
+            &mw,
         );
         assert_line_elements(
             &mut parser,
             16,
             &[
                 RenderElement::string("and", 18),
-                RenderElement::Space(6),
-                RenderElement::Space(6 * 4),
+                RenderElement::Space(6, true),
+                RenderElement::Space(6 * 4, true),
                 RenderElement::string("another", 42),
                 RenderElement::MoveCursor(6),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn cursor_limit() {
         let mut parser = Parser::parse("Some sample text");
+        let mw = PluginWrapper::new(NoPlugin::<BinaryColor>::new());
 
-        assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)]);
+        assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)], &mw);
     }
 }
 
@@ -688,36 +765,41 @@ mod ansi_parser_tests {
         test::{assert_line_elements, RenderElement},
         *,
     };
+    use crate::plugin::{NoPlugin, PluginWrapper};
 
     use embedded_graphics::pixelcolor::Rgb888;
 
     #[test]
     fn colors() {
         let mut parser = Parser::parse("Lorem \x1b[92mIpsum");
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
             100,
             &[
                 RenderElement::string("Lorem", 30),
-                RenderElement::Space(6),
+                RenderElement::Space(6, true),
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
                 RenderElement::string("Ipsum", 30),
             ],
+            &mw,
         );
     }
 
     #[test]
     fn ansi_code_does_not_break_word() {
         let mut parser = Parser::parse("Lorem foo\x1b[92mbarum");
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(
             &mut parser,
             8,
             &[
                 RenderElement::string("Lorem", 30),
-                RenderElement::MoveCursor(6),
+                RenderElement::Space(6, false),
             ],
+            &mw,
         );
 
         assert_line_elements(
@@ -728,6 +810,7 @@ mod ansi_parser_tests {
                 RenderElement::Sgr(Sgr::ChangeTextColor(Rgb888::new(22, 198, 12))),
                 RenderElement::string("barum", 30),
             ],
+            &mw,
         );
     }
 }

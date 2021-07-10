@@ -10,6 +10,7 @@ use embedded_graphics::{
 
 use crate::{alignment::VerticalAlignment, style::TextBoxStyle, utils::test::size_for, TextBox};
 
+#[track_caller]
 fn assert_rendered(text: &str, size: Size, pattern: &[&str]) {
     let mut display = MockDisplay::new();
 
