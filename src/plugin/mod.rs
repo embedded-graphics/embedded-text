@@ -19,80 +19,21 @@ use crate::{
 };
 
 #[cfg(feature = "plugin")]
+pub mod private;
+#[cfg(feature = "plugin")]
+pub use private::Plugin;
+
+#[cfg(not(feature = "plugin"))]
+mod private;
+#[cfg(not(feature = "plugin"))]
+use private::Plugin;
+
 pub mod tail;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub(crate) enum ProcessingState {
     Measure,
     Render,
-}
-
-mod private {
-    use embedded_graphics::prelude::PixelColor;
-
-    pub trait Sealed {}
-
-    impl<C: PixelColor> Sealed for super::NoPlugin<C> {}
-}
-
-/// Plugin trait.
-///
-/// Plugins allow modifying and extending TextBox's internals.
-///
-/// *Important*:
-/// This is an experimental, unstable feature. It can be, and probably will be modified without
-/// any prior notice.
-/// Using plugins require enabling the `plugin` crate feature.
-pub trait Plugin<'a, C>: Clone + private::Sealed
-where
-    C: PixelColor,
-{
-    /// Called when a new line is started.
-    #[inline]
-    fn new_line(&mut self) {}
-
-    /// Generate the next text token.
-    #[inline]
-    fn next_token(
-        &mut self,
-        mut next_token: impl FnMut() -> Option<Token<'a, C>>,
-    ) -> Option<Token<'a, C>> {
-        next_token()
-    }
-
-    /// Modify the current token immediately before it is rendered.
-    ///
-    /// This function must return the same token type as the input, otherwise the returned token
-    /// is ignored.
-    #[inline]
-    fn render_token(&mut self, token: Token<'a, C>) -> Option<Token<'a, C>> {
-        Some(token)
-    }
-
-    /// Called after a piece of text is rendered.
-    #[inline]
-    fn post_render<T, D>(
-        &mut self,
-        _draw_target: &mut D,
-        _character_style: &T,
-        _text: &str,
-        _bounds: Rectangle,
-    ) -> Result<(), D::Error>
-    where
-        T: TextRenderer<Color = C>,
-        D: DrawTarget<Color = C>,
-    {
-        Ok(())
-    }
-
-    /// Called before TextBox rendering is started.
-    #[inline]
-    fn on_start_render<S: CharacterStyle>(
-        &mut self,
-        _cursor: &mut Cursor,
-        _props: TextBoxProperties<'_, S>,
-    ) {
-    }
 }
 
 /// Placeholder type when no plugin is used.
@@ -110,7 +51,19 @@ where
     }
 }
 
-impl<'a, C> Plugin<'a, C> for NoPlugin<C> where C: PixelColor {}
+/// Plugin marker trait.
+///
+/// This trait is an implementation detail. Most likely you don't need to implement this.
+/// If you wish to implement a plugin, see [Plugin].
+// TODO: remove this trait once Plugin is stabilized, then move Plugin here
+pub trait PluginMarker<'a, C: PixelColor>: Plugin<'a, C> {}
+
+impl<'a, C, T> PluginMarker<'a, C> for T
+where
+    T: Plugin<'a, C>,
+    C: PixelColor,
+{
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct PluginInner<'a, M, C>
@@ -143,7 +96,7 @@ where
 impl<'a, M, C> PluginWrapper<'a, M, C>
 where
     C: PixelColor,
-    M: Plugin<'a, C>,
+    M: private::Plugin<'a, C>,
 {
     pub fn new(plugin: M) -> Self {
         Self {

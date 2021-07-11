@@ -3,7 +3,7 @@ use core::convert::Infallible;
 
 use crate::{
     parser::{ChangeTextStyle, Parser},
-    plugin::{Plugin, PluginWrapper, ProcessingState},
+    plugin::{PluginMarker as Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
         line_iter::{LineElementParser, LineEndType},

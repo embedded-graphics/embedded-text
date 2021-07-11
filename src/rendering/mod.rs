@@ -8,13 +8,13 @@ pub(crate) mod space_config;
 
 use crate::{
     parser::Parser,
-    plugin::ProcessingState,
+    plugin::{PluginMarker as Plugin, ProcessingState},
     rendering::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
     style::TextBoxStyle,
-    Plugin, TextBox,
+    TextBox,
 };
 use az::SaturatingAs;
 use embedded_graphics::{

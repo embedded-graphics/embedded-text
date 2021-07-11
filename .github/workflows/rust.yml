@@ -104,7 +104,7 @@ jobs:
         compare -metric AE ./assets/alignment-vertical.png ./target/screenshots/alignment-vertical.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/paragraph_spacing.png" cargo run --example paragraph_spacing
         compare -metric AE ./assets/paragraph_spacing.png ./target/screenshots/paragraph_spacing.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/plugin-tail.png" cargo run --example plugin-tail --features=plugin
+        EG_SIMULATOR_DUMP="./target/screenshots/plugin-tail.png" cargo run --example plugin-tail
         compare -metric AE ./assets/plugin-tail.png ./target/screenshots/plugin-tail.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/special-characters.png" cargo run --example special-characters
         compare -metric AE ./assets/special-characters.png ./target/screenshots/special-characters.png result.png
