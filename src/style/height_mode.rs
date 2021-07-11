@@ -50,7 +50,7 @@ pub enum HeightMode {
 
     /// Sets the height of the [`TextBox`] to exactly fit the text.
     ///
-    /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`Top`] alignment
+    /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`crate::alignment::VerticalAlignment::Top`] alignment
     /// for efficiency.
     ///
     /// # Example: `FitToText` grows the [`TextBox`].
