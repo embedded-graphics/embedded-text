@@ -6,7 +6,7 @@
 use crate::{
     alignment::HorizontalAlignment,
     parser::{ChangeTextStyle, Parser, Token, SPEC_CHAR_NBSP},
-    plugin::{Plugin, PluginWrapper},
+    plugin::{PluginMarker as Plugin, PluginWrapper},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
 };
 use az::{SaturatingAs, SaturatingCast};
@@ -482,7 +482,7 @@ mod test {
 
     use super::*;
     use crate::{
-        plugin::{NoPlugin, Plugin, PluginWrapper},
+        plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
         utils::{str_width, test::size_for},

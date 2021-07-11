@@ -28,10 +28,6 @@ name = "plugin"
 required-features = ["plugin"]
 
 [[example]]
-name = "plugin-tail"
-required-features = ["plugin"]
-
-[[example]]
 name = "styles-plugin"
 required-features = ["plugin"]
 

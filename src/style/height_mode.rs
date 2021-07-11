@@ -5,7 +5,9 @@
 //! shrink the text box. Height modes help us achieve this.
 //!
 //! [`TextBox`]: ../../struct.TextBox.html
-use crate::{plugin::Plugin, rendering::cursor::Cursor, style::VerticalOverdraw, TextBox};
+use crate::{
+    plugin::PluginMarker as Plugin, rendering::cursor::Cursor, style::VerticalOverdraw, TextBox,
+};
 use core::ops::Range;
 use embedded_graphics::{geometry::Dimensions, pixelcolor::Rgb888, text::renderer::TextRenderer};
 
@@ -48,7 +50,7 @@ pub enum HeightMode {
 
     /// Sets the height of the [`TextBox`] to exactly fit the text.
     ///
-    /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`Top`] alignment
+    /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`crate::alignment::VerticalAlignment::Top`] alignment
     /// for efficiency.
     ///
     /// # Example: `FitToText` grows the [`TextBox`].

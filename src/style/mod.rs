@@ -144,7 +144,7 @@ use core::convert::Infallible;
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
     parser::{Parser, SPEC_CHAR_NBSP},
-    plugin::{NoPlugin, Plugin, PluginWrapper, ProcessingState},
+    plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
         line_iter::{ElementHandler, LineElementParser, LineEndType},

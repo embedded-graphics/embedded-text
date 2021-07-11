@@ -92,7 +92,7 @@
 //! ## Cargo features
 //!
 //! * `ansi`: enables ANSI sequence support. This feature is enabled by default.
-//! * `plugin`: enables *experimental* plugin support.
+//! * `plugin` (*experimental*): allows the user to implement plugins.
 //!
 //! [embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
 //! [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
@@ -118,7 +118,7 @@ mod utils;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    plugin::{NoPlugin, Plugin, PluginWrapper},
+    plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
     style::TextBoxStyle,
 };
 use embedded_graphics::{
@@ -241,7 +241,6 @@ where
     }
 
     /// Adds a new plugin to the `TextBox`.
-    #[cfg(feature = "plugin")]
     #[inline]
     pub fn add_plugin<M>(self, plugin: M) -> TextBox<'a, S, M>
     where

@@ -8,13 +8,13 @@ pub(crate) mod space_config;
 
 use crate::{
     parser::Parser,
-    plugin::ProcessingState,
+    plugin::{PluginMarker as Plugin, ProcessingState},
     rendering::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
     style::TextBoxStyle,
-    Plugin, TextBox,
+    TextBox,
 };
 use az::SaturatingAs;
 use embedded_graphics::{
@@ -27,15 +27,20 @@ use embedded_graphics::{
 };
 use line_iter::LineEndType;
 
+/// Text box properties.
 ///
+/// This struct holds information about the text box.
 pub struct TextBoxProperties<'a, S> {
-    ///
+    /// The used text box style.
     pub box_style: &'a TextBoxStyle,
-    ///
+
+    /// The character style.
     pub char_style: &'a S,
-    ///
+
+    /// The height of the text.
     pub text_height: i32,
-    ///
+
+    /// The height of the text box.
     pub box_height: i32,
 }
 
