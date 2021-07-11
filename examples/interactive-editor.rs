@@ -243,7 +243,6 @@ fn main() -> Result<(), Infallible> {
         .text_color(BinaryColor::On)
         .build();
 
-    let textbox_style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Scrolling);
     let mut input = EditorInput::new("Hello, World!");
 
     'demo: loop {
@@ -252,14 +251,9 @@ fn main() -> Result<(), Infallible> {
 
         // Display an underscore for the "cursor"
         // Create the text box and apply styling options.
-        TextBox::with_textbox_style(
-            &input.text,
-            display.bounding_box(),
-            character_style,
-            textbox_style,
-        )
-        .add_plugin(input.cursor_plugin(BinaryColor::On))
-        .draw(&mut display)?;
+        TextBox::new(&input.text, display.bounding_box(), character_style)
+            .add_plugin(input.cursor_plugin(BinaryColor::On))
+            .draw(&mut display)?;
 
         // Update the window.
         window.update(&display);

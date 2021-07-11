@@ -14,7 +14,6 @@ use embedded_graphics::{
 };
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, Window};
 use embedded_text::{
-    alignment::VerticalAlignment,
     style::{HeightMode, TextBoxStyleBuilder},
     TextBox,
 };
@@ -23,7 +22,6 @@ fn main() -> Result<(), Infallible> {
     let text = "Lorem Ipsum is simply dummy text of the printing and typesetting industry.";
 
     let text_box_style = TextBoxStyleBuilder::new()
-        .vertical_alignment(VerticalAlignment::Scrolling)
         .height_mode(HeightMode::FitToText)
         .line_height(LineHeight::Pixels(12))
         .build();

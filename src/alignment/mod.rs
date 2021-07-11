@@ -1,13 +1,10 @@
 //! Text alignment options.
 use crate::{
-    plugin::Plugin,
     rendering::{cursor::Cursor, space_config::SpaceConfig},
     style::LineMeasurement,
     utils::str_width,
-    TextBox,
 };
-use az::SaturatingAs;
-use embedded_graphics::{pixelcolor::Rgb888, prelude::Dimensions, text::renderer::TextRenderer};
+use embedded_graphics::text::renderer::TextRenderer;
 
 #[cfg(test)]
 mod test;
@@ -80,41 +77,16 @@ pub enum VerticalAlignment {
     ///
     /// The last line of the text will be aligned to the bottom of the text box.
     Bottom,
-
-    /// Scrolling alignment.
-    ///
-    /// Aligns the last line of the text to be always visible. If the text fits inside the text box,
-    /// it will be top aligned. If the text is longer, it will be bottom aligned.
-    Scrolling,
 }
 
 impl VerticalAlignment {
     /// Set the cursor's initial vertical position
-    pub(crate) fn apply_vertical_alignment<'a, S, M>(
+    pub(crate) fn apply_vertical_alignment(
         self,
         cursor: &mut Cursor,
-        styled_text_box: &TextBox<'a, S, M>,
-    ) where
-        S: TextRenderer,
-        M: Plugin<'a, S::Color>,
-        S::Color: From<Rgb888>,
-    {
-        let text_height = styled_text_box
-            .style
-            .measure_text_height_impl(
-                styled_text_box.plugin.clone(),
-                &styled_text_box.character_style,
-                styled_text_box.text,
-                cursor.line_width(),
-            )
-            .saturating_as::<i32>();
-
-        let box_height = styled_text_box
-            .bounding_box()
-            .size
-            .height
-            .saturating_as::<i32>();
-
+        text_height: i32,
+        box_height: i32,
+    ) {
         match self {
             VerticalAlignment::Top => {
                 // nothing to do here
@@ -130,14 +102,6 @@ impl VerticalAlignment {
                 let offset = box_height - text_height;
 
                 cursor.y += offset;
-            }
-
-            VerticalAlignment::Scrolling => {
-                if text_height > box_height {
-                    let offset = box_height - text_height;
-
-                    cursor.y += offset
-                }
             }
         }
     }

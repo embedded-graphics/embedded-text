@@ -7,12 +7,18 @@ Unreleased
    - `TextBoxStyle::default()`
    - `TextBoxStyleBuilder::default()`
    - `TabSize::default()`
+ * [#134] `Tail` plugin
 
 ## Changed:
 
  * **breaking** [#133] `TextBoxStyle` and `TextBoxStyleBuilder` no longer implement the `Default` trait.
 
+## Removed:
+ 
+ * [#134] `Scrolling` vertical alignment
+
 [#133]: https://github.com/embedded-graphics/embedded-text/pull/133
+[#134]: https://github.com/embedded-graphics/embedded-text/pull/134
 
 0.5.0-beta.2 (2021-07-10)
 ==========================

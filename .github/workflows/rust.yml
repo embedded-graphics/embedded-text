@@ -100,12 +100,12 @@ jobs:
         mkdir -p ./target/screenshots
         EG_SIMULATOR_DUMP="./target/screenshots/alignment-horizontal.png" cargo run --example alignment-horizontal
         compare -metric AE ./assets/alignment-horizontal.png ./target/screenshots/alignment-horizontal.png result.png
-        EG_SIMULATOR_DUMP="./target/screenshots/alignment-scrolling.png" cargo run --example alignment-scrolling
-        compare -metric AE ./assets/alignment-scrolling.png ./target/screenshots/alignment-scrolling.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/alignment-vertical.png" cargo run --example alignment-vertical
         compare -metric AE ./assets/alignment-vertical.png ./target/screenshots/alignment-vertical.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/paragraph_spacing.png" cargo run --example paragraph_spacing
         compare -metric AE ./assets/paragraph_spacing.png ./target/screenshots/paragraph_spacing.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/plugin-tail.png" cargo run --example plugin-tail --features=plugin
+        compare -metric AE ./assets/plugin-tail.png ./target/screenshots/plugin-tail.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/special-characters.png" cargo run --example special-characters
         compare -metric AE ./assets/special-characters.png ./target/screenshots/special-characters.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/special-characters-tabs.png" cargo run --example special-characters-tabs

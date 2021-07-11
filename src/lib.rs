@@ -13,7 +13,6 @@
 //!      - `Top`
 //!      - `Middle`
 //!      - `Bottom`
-//!      - `Scrolling`
 //!
 //! [`TextBox`] also supports some special characters not handled by embedded-graphics' `Text`:
 //!  - non-breaking space (`\u{200b}`)
@@ -130,6 +129,7 @@ use embedded_graphics::{
     transform::Transform,
 };
 pub use parser::{ChangeTextStyle, Token};
+pub use rendering::TextBoxProperties;
 
 /// A text box object.
 ///
