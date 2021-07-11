@@ -15,14 +15,13 @@ pub struct TextBoxStyleBuilder {
     style: TextBoxStyle,
 }
 
-impl Default for TextBoxStyleBuilder {
+impl TextBoxStyleBuilder {
+    /// Create a new builder object.
     #[inline]
-    fn default() -> Self {
+    pub const fn default() -> Self {
         Self::new()
     }
-}
 
-impl TextBoxStyleBuilder {
     /// Creates a new text box style builder object.
     #[inline]
     pub const fn new() -> Self {
