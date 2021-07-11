@@ -1,3 +1,19 @@
+Unreleased
+==========
+
+## Added:
+
+ * [#133] Added the following `const` functions:
+   - `TextBoxStyle::default()`
+   - `TextBoxStyleBuilder::default()`
+   - `TabSize::default()`
+
+## Changed:
+
+ * **breaking** [#133] `TextBoxStyle` and `TextBoxStyleBuilder` no longer implement the `Default` trait.
+
+[#133]: https://github.com/embedded-graphics/embedded-text/pull/133
+
 0.5.0-beta.2 (2021-07-10)
 ==========================
 

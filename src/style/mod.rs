@@ -175,14 +175,13 @@ pub enum TabSize {
     Spaces(u16),
 }
 
-impl Default for TabSize {
+impl TabSize {
+    /// Returns the default tab size, which is 4 spaces.
     #[inline]
-    fn default() -> Self {
+    pub const fn default() -> Self {
         Self::Spaces(4)
     }
-}
 
-impl TabSize {
     /// Calculate the rendered with of the next tab
     #[inline]
     pub(crate) fn into_pixels(self, renderer: &impl TextRenderer) -> u32 {
@@ -233,6 +232,12 @@ pub struct TextBoxStyle {
 }
 
 impl TextBoxStyle {
+    /// Creates a new text box style object with default settings.
+    #[inline]
+    pub const fn default() -> Self {
+        TextBoxStyleBuilder::new().build()
+    }
+
     /// Creates a new text box style with the given alignment.
     #[inline]
     pub const fn with_alignment(alignment: HorizontalAlignment) -> TextBoxStyle {
@@ -245,13 +250,6 @@ impl TextBoxStyle {
         TextBoxStyleBuilder::new()
             .vertical_alignment(alignment)
             .build()
-    }
-}
-
-impl Default for TextBoxStyle {
-    #[inline]
-    fn default() -> Self {
-        TextBoxStyleBuilder::new().build()
     }
 }
 
@@ -448,10 +446,8 @@ impl TextBoxStyle {
             }
             paragraph_ended = lm.last_line;
 
-            if prev_end == LineEndType::LineBreak {
-                if lm.width != 0 {
-                    height += line_height;
-                }
+            if prev_end == LineEndType::LineBreak && lm.width != 0 {
+                height += line_height;
             }
 
             match lm.line_end_type {

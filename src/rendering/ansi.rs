@@ -6,7 +6,7 @@ use crate::parser::ChangeTextStyle;
 
 /// List of supported SGR (Select Graphics Rendition) sequences
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Sgr {
+pub(crate) enum Sgr {
     /// Reset all styling options
     Reset,
 
@@ -36,6 +36,7 @@ pub enum Sgr {
 }
 
 impl<C: PixelColor + From<Rgb888>> From<Sgr> for ChangeTextStyle<C> {
+    #[inline]
     fn from(sgr: Sgr) -> Self {
         match sgr {
             Sgr::Reset => ChangeTextStyle::Reset,
@@ -128,7 +129,7 @@ fn try_parse_color(v: &[u8]) -> Option<Rgb888> {
 
 /// Parse a set of SGR parameter numbers into a more convenient type
 #[inline]
-pub fn try_parse_sgr(v: &[u8]) -> Option<Sgr> {
+pub(crate) fn try_parse_sgr(v: &[u8]) -> Option<Sgr> {
     let code = *v.get(0)?;
     match code {
         0 => Some(Sgr::Reset),
