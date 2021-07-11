@@ -27,6 +27,14 @@ pub(crate) enum ProcessingState {
     Render,
 }
 
+mod private {
+    use embedded_graphics::prelude::PixelColor;
+
+    pub trait Sealed {}
+
+    impl<C: PixelColor> Sealed for super::NoPlugin<C> {}
+}
+
 /// Plugin trait.
 ///
 /// Plugins allow modifying and extending TextBox's internals.
@@ -35,7 +43,7 @@ pub(crate) enum ProcessingState {
 /// This is an experimental, unstable feature. It can be, and probably will be modified without
 /// any prior notice.
 /// Using plugins require enabling the `plugin` crate feature.
-pub trait Plugin<'a, C>: Clone
+pub trait Plugin<'a, C>: Clone + private::Sealed
 where
     C: PixelColor,
 {

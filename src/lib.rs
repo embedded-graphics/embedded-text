@@ -241,7 +241,6 @@ where
     }
 
     /// Adds a new plugin to the `TextBox`.
-    #[cfg(feature = "plugin")]
     #[inline]
     pub fn add_plugin<M>(self, plugin: M) -> TextBox<'a, S, M>
     where
