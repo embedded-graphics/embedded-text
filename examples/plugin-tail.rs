@@ -1,7 +1,7 @@
-//! # Example: Scrolling vertical text alignment.
+//! # Example: Tail plugin.
 //!
-//! This example demonstrates drawing a piece of text using the conventional vertical alignment options.
-//! The example uses different, but equivalent ways to specify the alignment options.
+//! This example demonstrates drawing a piece of text with the Tail plugin. The Tail plugin positions
+//! text so that the last lines are visible.
 
 use std::convert::Infallible;
 
@@ -15,7 +15,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
 };
 use embedded_text::{
-    alignment::VerticalAlignment,
+    plugin::tail::Tail,
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     TextBox,
 };
@@ -26,12 +26,12 @@ fn main() -> Result<(), Infallible> {
     let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
 
     // Divide the screen into 3 64px wide columns.
-    TextBox::with_vertical_alignment(
+    TextBox::new(
         "Short text using Scrolling alignment is aligned to the top.",
         Rectangle::new(Point::zero(), Size::new(64, 96)),
         character_style,
-        VerticalAlignment::Scrolling,
     )
+    .add_plugin(Tail)
     .draw(&mut display)?;
 
     TextBox::with_textbox_style(
@@ -40,10 +40,10 @@ fn main() -> Result<(), Infallible> {
         Rectangle::new(Point::new(64, 0), Size::new(64, 96)),
         character_style,
         TextBoxStyleBuilder::new()
-            .vertical_alignment(VerticalAlignment::Scrolling)
             .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
             .build(),
     )
+    .add_plugin(Tail)
     .draw(&mut display)?;
 
     // Set up the window and show the display's contents.

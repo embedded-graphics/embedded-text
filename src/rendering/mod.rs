@@ -13,18 +13,31 @@ use crate::{
         cursor::Cursor,
         line::{LineRenderState, StyledLineRenderer},
     },
+    style::TextBoxStyle,
     Plugin, TextBox,
 };
 use az::SaturatingAs;
 use embedded_graphics::{
     draw_target::{DrawTarget, DrawTargetExt},
     pixelcolor::Rgb888,
-    prelude::{Point, Size},
+    prelude::{Dimensions, Point, Size},
     primitives::Rectangle,
     text::renderer::{CharacterStyle, TextRenderer},
     Drawable,
 };
 use line_iter::LineEndType;
+
+///
+pub struct TextBoxProperties<'a, S> {
+    ///
+    pub box_style: &'a TextBoxStyle,
+    ///
+    pub char_style: &'a S,
+    ///
+    pub text_height: i32,
+    ///
+    pub box_height: i32,
+}
 
 impl<'a, F, M> Drawable for TextBox<'a, F, M>
 where
@@ -47,12 +60,34 @@ where
             self.style.tab_size.into_pixels(&self.character_style),
         );
 
-        self.style
-            .vertical_alignment
-            .apply_vertical_alignment(&mut cursor, self);
+        let text_height = self
+            .style
+            .measure_text_height_impl(
+                self.plugin.clone(),
+                &self.character_style,
+                self.text,
+                cursor.line_width(),
+            )
+            .saturating_as::<i32>();
+
+        let box_height = self.bounding_box().size.height.saturating_as::<i32>();
+
+        self.style.vertical_alignment.apply_vertical_alignment(
+            &mut cursor,
+            text_height,
+            box_height,
+        );
 
         cursor.y += self.vertical_offset;
-        self.plugin.on_start_render(self, &mut cursor);
+
+        let props = TextBoxProperties {
+            box_style: &self.style,
+            char_style: &self.character_style,
+            text_height,
+            box_height,
+        };
+
+        self.plugin.on_start_render(&mut cursor, props);
 
         let mut state = LineRenderState {
             style: self.style,

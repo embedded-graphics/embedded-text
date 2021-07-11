@@ -17,7 +17,7 @@ use embedded_graphics_simulator::{
 };
 use embedded_text::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    plugin::Plugin,
+    plugin::{tail::Tail, Plugin},
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     TextBox, Token,
 };
@@ -142,7 +142,6 @@ fn main() {
         let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
         let textbox_style = TextBoxStyleBuilder::new()
             .alignment(HorizontalAlignment::Justified)
-            .vertical_alignment(VerticalAlignment::Scrolling)
             .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
             .build();
 
@@ -155,6 +154,7 @@ fn main() {
         // Create and draw the text boxes.
         TextBox::with_textbox_style(text, bounds, character_style, textbox_style)
             .add_plugin(CharacterLimiter::new(chars))
+            //.add_plugin(Tail) // TODO: add this once multiple plugins are supported
             .draw(&mut display)
             .unwrap();
 

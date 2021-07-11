@@ -154,8 +154,7 @@ fn main() -> Result<(), Infallible> {
                     textbox_style.vertical_alignment = match textbox_style.vertical_alignment {
                         VerticalAlignment::Top => VerticalAlignment::Middle,
                         VerticalAlignment::Middle => VerticalAlignment::Bottom,
-                        VerticalAlignment::Bottom => VerticalAlignment::Scrolling,
-                        VerticalAlignment::Scrolling => VerticalAlignment::Top,
+                        VerticalAlignment::Bottom => VerticalAlignment::Top,
                     }
                 }
                 ProcessedEvent::NextMode => {

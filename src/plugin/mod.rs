@@ -6,15 +6,20 @@ use core::{
     marker::PhantomData,
 };
 use embedded_graphics::{
-    draw_target::DrawTarget, prelude::PixelColor, primitives::Rectangle,
-    text::renderer::TextRenderer,
+    draw_target::DrawTarget,
+    prelude::PixelColor,
+    primitives::Rectangle,
+    text::renderer::{CharacterStyle, TextRenderer},
 };
 
 use crate::{
     parser::{Parser, Token},
     rendering::cursor::Cursor,
-    TextBox,
+    TextBoxProperties,
 };
+
+#[cfg(feature = "plugin")]
+pub mod tail;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub(crate) enum ProcessingState {
@@ -74,10 +79,10 @@ where
 
     /// Called before TextBox rendering is started.
     #[inline]
-    fn on_start_render<S: TextRenderer>(
+    fn on_start_render<S: CharacterStyle>(
         &mut self,
-        _text_box: &TextBox<'a, S, Self>,
         _cursor: &mut Cursor,
+        _props: TextBoxProperties<'_, S>,
     ) {
     }
 }
@@ -197,15 +202,15 @@ where
         this.lookahead = this.plugin.clone();
     }
 
-    pub fn on_start_render<S: TextRenderer>(
+    pub fn on_start_render<S: CharacterStyle>(
         &self,
-        text_box: &TextBox<'a, S, M>,
         cursor: &mut Cursor,
+        props: TextBoxProperties<'_, S>,
     ) {
         let mut this = self.inner.borrow_mut();
         this.peeked_token = (0, None);
 
-        this.plugin.on_start_render(text_box, cursor);
+        this.plugin.on_start_render(cursor, props);
     }
 
     pub fn post_render<T, D>(
