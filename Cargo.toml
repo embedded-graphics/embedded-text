@@ -36,6 +36,7 @@ az = "1.1"
 embedded-graphics = "0.7.0"
 ansi-parser = { version = "0.8.0", default-features = false, optional = true }
 as-slice = { version = "0.1.4", optional = true }
+object-chain = "0.1"
 
 [dev-dependencies]
 embedded-graphics-simulator = "0.3.0"
