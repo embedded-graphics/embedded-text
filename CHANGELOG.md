@@ -9,6 +9,7 @@ Unreleased
    - `TabSize::default()`
  * [#134] `Tail` plugin
  * [#135] Allow using the built-in plugins without the `plugin` feature.
+ * [#137] Allow using multiple plugins.
 
 ## Changed:
 
@@ -21,6 +22,7 @@ Unreleased
 [#133]: https://github.com/embedded-graphics/embedded-text/pull/133
 [#134]: https://github.com/embedded-graphics/embedded-text/pull/134
 [#135]: https://github.com/embedded-graphics/embedded-text/pull/135
+[#137]: https://github.com/embedded-graphics/embedded-text/pull/137
 
 0.5.0-beta.2 (2021-07-10)
 ==========================

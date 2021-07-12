@@ -128,6 +128,7 @@ use embedded_graphics::{
     text::renderer::{CharacterStyle, TextRenderer},
     transform::Transform,
 };
+use object_chain::{Chain, ChainElement, Link};
 pub use parser::{ChangeTextStyle, Token};
 pub use rendering::TextBoxProperties;
 
@@ -242,7 +243,7 @@ where
 
     /// Adds a new plugin to the `TextBox`.
     #[inline]
-    pub fn add_plugin<M>(self, plugin: M) -> TextBox<'a, S, M>
+    pub fn add_plugin<M>(self, plugin: M) -> TextBox<'a, S, Chain<M>>
     where
         M: Plugin<'a, <S as TextRenderer>::Color>,
     {
@@ -252,7 +253,35 @@ where
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
-            plugin: PluginWrapper::new(plugin),
+            plugin: PluginWrapper::new(Chain::new(plugin)),
+        };
+        textbox.style.height_mode.apply(&mut textbox);
+
+        textbox
+    }
+}
+
+impl<'a, S, P> TextBox<'a, S, P>
+where
+    <S as TextRenderer>::Color: From<Rgb888>,
+    S: TextRenderer + CharacterStyle,
+    P: Plugin<'a, <S as TextRenderer>::Color> + ChainElement,
+{
+    /// Adds a new plugin to the `TextBox`.
+    #[inline]
+    pub fn add_plugin<M>(self, plugin: M) -> TextBox<'a, S, Link<M, P>>
+    where
+        M: Plugin<'a, <S as TextRenderer>::Color>,
+    {
+        let parent = self.plugin.inner.into_inner();
+
+        let mut textbox = TextBox {
+            text: self.text,
+            bounds: self.bounds,
+            character_style: self.character_style,
+            style: self.style,
+            vertical_offset: self.vertical_offset,
+            plugin: PluginWrapper::new(parent.plugin.append(plugin)),
         };
         textbox.style.height_mode.apply(&mut textbox);
 

@@ -71,7 +71,7 @@ where
     C: PixelColor,
 {
     lookahead: M,
-    plugin: M,
+    pub plugin: M,
     state: ProcessingState,
     peeked_token: (usize, Option<Token<'a, C>>),
 }
@@ -81,7 +81,7 @@ pub(crate) struct PluginWrapper<'a, M, C>
 where
     C: PixelColor,
 {
-    inner: RefCell<PluginInner<'a, M, C>>,
+    pub inner: RefCell<PluginInner<'a, M, C>>,
 }
 
 impl<'a, M, C> Hash for PluginWrapper<'a, M, C>
