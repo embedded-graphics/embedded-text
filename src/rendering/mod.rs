@@ -30,6 +30,7 @@ use line_iter::LineEndType;
 /// Text box properties.
 ///
 /// This struct holds information about the text box.
+#[derive(Clone)]
 pub struct TextBoxProperties<'a, S> {
     /// The used text box style.
     pub box_style: &'a TextBoxStyle,
