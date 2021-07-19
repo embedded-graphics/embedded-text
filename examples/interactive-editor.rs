@@ -66,9 +66,13 @@ impl Selector for (&str, &str, &str, &str) {
 }
 
 pub struct Cursor {
+    /// character offset
     offset: usize,
-    pos: Option<Point>,
-    old_desired_position: DesiredPosition,
+
+    /// cursor position in screen coordinates
+    pos: Point,
+
+    /// current command
     desired_position: DesiredPosition,
 }
 
@@ -78,7 +82,6 @@ impl Cursor {
             cursor_position: Point::zero(),
             current_offset: 0,
             desired_cursor_position: self.desired_position,
-            old_desired_position: self.old_desired_position,
             color,
             cursor_drawn: false,
             cursor: Rc::new(RefCell::new(self)),
@@ -97,9 +100,7 @@ impl EditorInput {
             text: text.to_owned(),
             cursor: Cursor {
                 offset: text.len(),
-                pos: None,
-
-                old_desired_position: DesiredPosition::EndOfText,
+                pos: Point::zero(),
                 desired_position: DesiredPosition::EndOfText,
             },
         }
@@ -138,13 +139,15 @@ impl EditorInput {
     }
 
     pub fn cursor_up(&mut self) {
-        self.cursor.old_desired_position = self.cursor.desired_position;
-        self.cursor.desired_position = DesiredPosition::OneLineUp;
+        self.cursor.desired_position = DesiredPosition::OneLineUp(
+            self.cursor.desired_position.coordinates_or(self.cursor.pos),
+        );
     }
 
     pub fn cursor_down(&mut self) {
-        self.cursor.old_desired_position = self.cursor.desired_position;
-        self.cursor.desired_position = DesiredPosition::OneLineDown;
+        self.cursor.desired_position = DesiredPosition::OneLineDown(
+            self.cursor.desired_position.coordinates_or(self.cursor.pos),
+        );
     }
 
     pub fn move_cursor_to(&mut self, point: Point) {
@@ -154,18 +157,26 @@ impl EditorInput {
 
 #[derive(Clone, Copy, Debug)]
 enum DesiredPosition {
-    OneLineUp,
-    OneLineDown,
+    OneLineUp(Point),
+    OneLineDown(Point),
     EndOfText,
     Offset(usize),
     Coordinates(Point),
+}
+
+impl DesiredPosition {
+    fn coordinates_or(&self, fallback: Point) -> Point {
+        match self {
+            DesiredPosition::Coordinates(c) => *c,
+            _ => fallback,
+        }
+    }
 }
 
 #[derive(Clone)]
 struct EditorPlugin<'a, C> {
     cursor: Rc<RefCell<&'a mut Cursor>>,
     desired_cursor_position: DesiredPosition,
-    old_desired_position: DesiredPosition,
     cursor_position: Point,
     current_offset: usize,
     color: C,
@@ -203,32 +214,27 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
         props: &TextBoxProperties<'_, S>,
     ) {
         let line_height = props.char_style.line_height() as i32;
-        let cursor_position = self.cursor.borrow().pos;
-        let old_desired_position =
-            if let DesiredPosition::Coordinates(point) = self.old_desired_position {
-                point
-            } else {
-                cursor_position.unwrap_or_default()
-            };
-
-        // Limiting here results in better behavior when returning from a clipped top/bottom position.
-        let old_desired_position = Point::new(
-            old_desired_position.x,
-            old_desired_position
-                .y
-                .max(0)
-                .min(props.text_height - line_height),
-        );
 
         match self.desired_cursor_position {
-            DesiredPosition::OneLineUp => {
-                self.desired_cursor_position = DesiredPosition::Coordinates(
-                    old_desired_position + Point::new(0, -line_height),
-                );
+            DesiredPosition::OneLineUp(old) => {
+                self.desired_cursor_position = DesiredPosition::Coordinates(Point::new(
+                    old.x,
+                    (old.y - line_height)
+                        // We limit one line above the text (to jump to beginning of first line)
+                        .max(-line_height)
+                        // As well as the second to last line (to jump up from below last position)
+                        .min(props.text_height - 2 * line_height),
+                ));
             }
-            DesiredPosition::OneLineDown => {
-                self.desired_cursor_position =
-                    DesiredPosition::Coordinates(old_desired_position + Point::new(0, line_height));
+            DesiredPosition::OneLineDown(old) => {
+                self.desired_cursor_position = DesiredPosition::Coordinates(Point::new(
+                    old.x,
+                    (old.y + line_height)
+                        // We limit to second line (to jump from above of first line)
+                        .max(line_height)
+                        // As well as one line below last line (to jump down to end of last line)
+                        .min(props.text_height),
+                ));
             }
             _ => {}
         }
@@ -334,7 +340,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
         // Update the parent object's cursor with the actual info.
         let mut cursor = self.cursor.borrow_mut();
 
-        cursor.pos.insert(self.cursor_position);
+        cursor.pos = self.cursor_position;
         cursor.offset = self.current_offset;
         cursor.desired_position = self.desired_cursor_position;
     }
