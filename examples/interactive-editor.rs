@@ -151,7 +151,7 @@ impl EditorInput {
     }
 
     pub fn move_cursor_to(&mut self, point: Point) {
-        self.cursor.desired_position = DesiredPosition::Coordinates(point);
+        self.cursor.desired_position = DesiredPosition::ScreenCoordinates(point);
     }
 }
 
@@ -161,7 +161,10 @@ enum DesiredPosition {
     OneLineDown(Point),
     EndOfText,
     Offset(usize),
+    /// Move the cursor to the desired text space coordinates
     Coordinates(Point),
+    /// Move the cursor to the desired screen space coordinates
+    ScreenCoordinates(Point),
 }
 
 impl DesiredPosition {
@@ -235,6 +238,10 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                         // As well as one line below last line (to jump down to end of last line)
                         .min(props.text_height),
                 ));
+            }
+            DesiredPosition::ScreenCoordinates(point) => {
+                // TODO transform to text space
+                self.desired_cursor_position = DesiredPosition::Coordinates(point)
             }
             _ => {}
         }
