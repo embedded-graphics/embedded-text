@@ -1,12 +1,11 @@
 //! Line rendering.
-use core::convert::Infallible;
 
 use crate::{
     parser::{ChangeTextStyle, Parser},
     plugin::{PluginMarker as Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
-        line_iter::{LineElementParser, LineEndType},
+        line_iter::{ElementHandler, LineElementParser, LineEndType},
     },
     style::TextBoxStyle,
     utils::str_width,
@@ -24,8 +23,6 @@ use embedded_graphics::{
     },
     Drawable,
 };
-
-use super::{line_iter::ElementHandler, space_config::SpaceConfig};
 
 impl<C> ChangeTextStyle<C>
 where
@@ -158,32 +155,6 @@ where
     }
 }
 
-struct StyleOnlyRenderElementHandler<'a, F> {
-    style: &'a mut F,
-}
-
-impl<'a, F> ElementHandler for StyleOnlyRenderElementHandler<'a, F>
-where
-    F: CharacterStyle + TextRenderer,
-    <F as CharacterStyle>::Color: From<Rgb888>,
-{
-    type Error = Infallible;
-    type Color = <F as CharacterStyle>::Color;
-
-    fn measure(&self, st: &str) -> u32 {
-        str_width(self.style, st)
-    }
-
-    #[cfg(feature = "ansi")]
-    fn change_text_style(
-        &mut self,
-        change: ChangeTextStyle<<F as CharacterStyle>::Color>,
-    ) -> Result<(), Self::Error> {
-        change.apply(self.style);
-        Ok(())
-    }
-}
-
 impl<'a, 'b, F, M> Drawable for StyledLineRenderer<'a, 'b, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
@@ -219,42 +190,22 @@ where
             )
         };
 
-        let (end_type, end_pos) = if display.bounding_box().size.height == 0 {
-            // We're outside of the view. Use simpler render element handler and space config.
-            let mut elements = LineElementParser::new(
-                &mut parser,
-                plugin,
-                self.cursor.clone(),
-                SpaceConfig::new_from_renderer(&character_style),
-                style.alignment,
-            );
+        let (left, space_config) = style.alignment.place_line(&character_style, lm);
 
-            let end_type = elements
-                .process(&mut StyleOnlyRenderElementHandler {
-                    style: &mut character_style,
-                })
-                .unwrap();
+        let mut cursor = self.cursor.clone();
+        cursor.move_cursor(left.saturating_as()).ok();
 
-            (end_type, elements.cursor.pos())
-        } else {
-            let (left, space_config) = style.alignment.place_line(&character_style, lm);
+        let pos = cursor.pos();
+        let mut elements =
+            LineElementParser::new(&mut parser, plugin, cursor, space_config, style.alignment);
 
-            let mut cursor = self.cursor.clone();
-            cursor.move_cursor(left.saturating_as()).ok();
-
-            let pos = cursor.pos();
-            let mut elements =
-                LineElementParser::new(&mut parser, plugin, cursor, space_config, style.alignment);
-
-            let end_type = elements.process(&mut RenderElementHandler {
-                style: &mut character_style,
-                display,
-                pos,
-                plugin,
-            })?;
-
-            (end_type, elements.cursor.pos())
-        };
+        let end_type = elements.process(&mut RenderElementHandler {
+            style: &mut character_style,
+            display,
+            pos,
+            plugin,
+        })?;
+        let end_pos = elements.cursor.pos();
 
         let next_state = LineRenderState {
             parser,
