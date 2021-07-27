@@ -124,12 +124,6 @@ where
         this.lookahead = this.plugin.clone();
     }
 
-    pub fn end_of_text(&self) {
-        let mut this = self.inner.borrow_mut();
-
-        this.lookahead.end_of_text();
-    }
-
     pub fn set_state(&self, state: ProcessingState) {
         self.inner.borrow_mut().state = state;
     }
@@ -187,11 +181,17 @@ where
         this.plugin.on_start_render(cursor, &props);
     }
 
+    pub fn on_rendering_finished(&self) {
+        let mut this = self.inner.borrow_mut();
+
+        this.lookahead.on_rendering_finished();
+    }
+
     pub fn post_render<T, D>(
         &self,
         draw_target: &mut D,
         character_style: &T,
-        text: &str,
+        text: Option<&str>,
         bounds: Rectangle,
     ) -> Result<(), D::Error>
     where

@@ -19,7 +19,11 @@ use embedded_graphics_simulator::{
     sdl2::MouseButton, BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent,
     Window,
 };
-use embedded_text::{plugin::Plugin, Cursor as RenderingCursor, TextBox, TextBoxProperties};
+use embedded_text::{
+    plugin::Plugin,
+    style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
+    Cursor as RenderingCursor, TextBox, TextBoxProperties,
+};
 use sdl2::keyboard::{Keycode, Mod};
 use std::{
     cell::RefCell, collections::HashMap, convert::Infallible, rc::Rc, thread, time::Duration,
@@ -74,16 +78,20 @@ pub struct Cursor {
 
     /// current command
     desired_position: DesiredPosition,
+
+    /// text vertical offset
+    vertical_offset: i32,
 }
 
 impl Cursor {
     fn plugin<'a, C: PixelColor>(&'a mut self, color: C) -> EditorPlugin<'a, C> {
         EditorPlugin {
-            cursor_position: Point::zero(),
+            cursor_position: self.pos,
             current_offset: 0,
             desired_cursor_position: self.desired_position,
             color,
             cursor_drawn: false,
+            vertical_offset: self.vertical_offset,
             cursor: Rc::new(RefCell::new(self)),
         }
     }
@@ -102,6 +110,7 @@ impl EditorInput {
                 offset: text.len(),
                 pos: Point::zero(),
                 desired_position: DesiredPosition::EndOfText,
+                vertical_offset: 0,
             },
         }
     }
@@ -184,6 +193,9 @@ struct EditorPlugin<'a, C> {
     current_offset: usize,
     color: C,
     cursor_drawn: bool,
+
+    /// text vertical offset
+    vertical_offset: i32,
 }
 
 impl<C: PixelColor> EditorPlugin<'_, C> {
@@ -197,7 +209,7 @@ impl<C: PixelColor> EditorPlugin<'_, C> {
     where
         D: DrawTarget<Color = C>,
     {
-        self.cursor_position = pos;
+        self.cursor_position = self.to_text_space(pos);
         self.cursor_drawn = true;
 
         let style = PrimitiveStyle::with_stroke(self.color, 1);
@@ -208,42 +220,81 @@ impl<C: PixelColor> EditorPlugin<'_, C> {
         .into_styled(style)
         .draw(draw_target)
     }
+
+    fn to_text_space(&self, mut point: Point) -> Point {
+        point.y -= self.vertical_offset;
+        point
+    }
+
+    fn to_screen_space(&self, mut point: Point) -> Point {
+        point.y += self.vertical_offset;
+        point
+    }
 }
 
 impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
     fn on_start_render<S: CharacterStyle + TextRenderer>(
         &mut self,
-        _cursor: &mut RenderingCursor,
+        cursor: &mut RenderingCursor,
         props: &TextBoxProperties<'_, S>,
     ) {
         let line_height = props.char_style.line_height() as i32;
 
-        match self.desired_cursor_position {
+        self.desired_cursor_position = match self.desired_cursor_position {
             DesiredPosition::OneLineUp(old) => {
-                self.desired_cursor_position = DesiredPosition::Coordinates(Point::new(
+                DesiredPosition::Coordinates(Point::new(
                     old.x,
                     (old.y - line_height)
                         // We limit one line above the text (to jump to beginning of first line)
                         .max(-line_height)
                         // As well as the second to last line (to jump up from below last position)
                         .min(props.text_height - 2 * line_height),
-                ));
+                ))
             }
             DesiredPosition::OneLineDown(old) => {
-                self.desired_cursor_position = DesiredPosition::Coordinates(Point::new(
+                DesiredPosition::Coordinates(Point::new(
                     old.x,
                     (old.y + line_height)
                         // We limit to second line (to jump from above of first line)
                         .max(line_height)
                         // As well as one line below last line (to jump down to end of last line)
                         .min(props.text_height),
-                ));
+                ))
             }
             DesiredPosition::ScreenCoordinates(point) => {
-                // TODO transform to text space
-                self.desired_cursor_position = DesiredPosition::Coordinates(point)
+                let point = self.to_text_space(point);
+                DesiredPosition::Coordinates(point)
             }
-            _ => {}
+            pos => pos,
+        };
+
+        let cursor_coordinates = self
+            .desired_cursor_position
+            .coordinates_or(self.cursor_position);
+
+        let cursor_coordinates = self.to_screen_space(cursor_coordinates);
+
+        // TODO what if the text box is not at 0,0?
+
+        // if point is outside the window, move the window
+        self.vertical_offset -= if cursor_coordinates.y < 0 {
+            cursor_coordinates.y
+        } else if cursor_coordinates.y + line_height > props.box_height {
+            cursor_coordinates.y + line_height - props.box_height
+        } else {
+            0
+        };
+
+        self.vertical_offset = self
+            .vertical_offset
+            .max(props.box_height - props.text_height)
+            .min(0);
+
+        cursor.y = self.vertical_offset;
+
+        if let DesiredPosition::Coordinates(pos) = self.desired_cursor_position {
+            self.desired_cursor_position =
+                DesiredPosition::ScreenCoordinates(self.to_screen_space(pos));
         }
     }
 
@@ -251,7 +302,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
         &mut self,
         draw_target: &mut D,
         character_style: &T,
-        text: &str,
+        text: Option<&str>,
         bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
@@ -262,26 +313,26 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
             return Ok(());
         }
 
-        let len = text.chars().count();
+        let len = text.unwrap_or_default().chars().count();
         match self.desired_cursor_position {
             DesiredPosition::EndOfText => {
-                if text == "" {
+                if text == None {
                     self.draw_cursor(draw_target, bounds, bounds.top_left)?;
-                    self.current_offset += len;
                 }
             }
 
             DesiredPosition::Offset(desired_offset) => {
                 let current_offset = self.current_offset;
 
-                if (len == 0 && current_offset == desired_offset)
+                if text == None
+                    || (len == 0 && current_offset == desired_offset)
                     || (current_offset..current_offset + len).contains(&desired_offset)
                 {
                     let chars_before = desired_offset - current_offset;
                     let pos = if chars_before == 0 {
                         bounds.top_left
                     } else {
-                        let str_before = text.first_n_chars(chars_before);
+                        let str_before = text.unwrap().first_n_chars(chars_before);
                         let metrics = character_style.measure_string(
                             str_before,
                             bounds.top_left,
@@ -295,13 +346,15 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                 }
             }
 
-            DesiredPosition::Coordinates(point) => {
+            DesiredPosition::ScreenCoordinates(point) => {
                 let same_line = point.y >= bounds.top_left.y
                     && point.y < bounds.anchor_point(AnchorPoint::BottomRight).y;
+
                 if same_line {
                     if bounds.contains(point) {
                         let mut anchor_point = bounds.anchor_point(AnchorPoint::TopLeft);
                         // Figure out the number of drawn characters, set cursor position
+                        let text = text.unwrap();
                         for i in 0..len.saturating_sub(1) {
                             // TODO: it might be faster to measure one character at a time and
                             // sum up the width manually.
@@ -324,10 +377,10 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                             self.draw_cursor(draw_target, bounds, anchor_point)?;
                             self.current_offset += len.saturating_sub(1);
                         }
-                    } else if text == "\n" || text == "" {
+                    } else if text == Some("\n") || text == None {
                         self.draw_cursor(draw_target, bounds, bounds.top_left)?;
                     }
-                } else if text == "" || point.y < bounds.top_left.y {
+                } else if text == None || self.to_text_space(point).y < 0 {
                     // end of text, or cursor is positioned before the text begins
                     self.draw_cursor(draw_target, bounds, bounds.top_left)?;
                 }
@@ -343,13 +396,14 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
         Ok(())
     }
 
-    fn end_of_text(&mut self) {
+    fn on_rendering_finished(&mut self) {
         // Update the parent object's cursor with the actual info.
         let mut cursor = self.cursor.borrow_mut();
 
         cursor.pos = self.cursor_position;
         cursor.offset = self.current_offset;
         cursor.desired_position = self.desired_cursor_position;
+        cursor.vertical_offset = self.vertical_offset;
     }
 }
 
@@ -416,7 +470,11 @@ fn main() -> Result<(), Infallible> {
         .text_color(BinaryColor::On)
         .build();
 
-    let mut input = EditorInput::new("Hello, \n\nWorld!");
+    let text_box_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
+        .build();
+
+    let mut input = EditorInput::new("Hello, \n\nWorld!\nline1\nline2\nline3\nline4\nline5");
 
     'demo: loop {
         // Create a simulated display with the dimensions of the text box.
@@ -424,9 +482,14 @@ fn main() -> Result<(), Infallible> {
 
         // Display an underscore for the "cursor"
         // Create the text box and apply styling options.
-        TextBox::new(&input.text, display.bounding_box(), character_style)
-            .add_plugin(input.cursor.plugin(BinaryColor::On))
-            .draw(&mut display)?;
+        TextBox::with_textbox_style(
+            &input.text,
+            display.bounding_box(),
+            character_style,
+            text_box_style,
+        )
+        .add_plugin(input.cursor.plugin(BinaryColor::On))
+        .draw(&mut display)?;
 
         // Update the window.
         window.update(&display);

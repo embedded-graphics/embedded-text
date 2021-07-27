@@ -118,7 +118,7 @@ where
         let bounds = Rectangle::new(top_left, size);
 
         self.plugin
-            .post_render(self.display, self.style, st, bounds)?;
+            .post_render(self.display, self.style, Some(st), bounds)?;
 
         Ok(())
     }
@@ -134,7 +134,7 @@ where
         let bounds = Rectangle::new(top_left, size);
 
         self.plugin
-            .post_render(self.display, self.style, st, bounds)?;
+            .post_render(self.display, self.style, Some(st), bounds)?;
 
         Ok(())
     }
@@ -219,7 +219,7 @@ where
             next_state.plugin.post_render(
                 display,
                 &next_state.character_style,
-                "",
+                None,
                 Rectangle::new(
                     end_pos,
                     Size::new(0, next_state.character_style.line_height()),

@@ -135,12 +135,13 @@ where
                     state.plugin.post_render(
                         &mut display,
                         &self.character_style,
-                        "",
+                        None,
                         Rectangle::new(
                             line_start,
                             Size::new(0, cursor.line_height().saturating_as()),
                         ),
                     )?;
+                    state.plugin.on_rendering_finished();
                     return Ok(self.text.get(consumed_bytes..).unwrap());
                 }
             } else {
@@ -151,7 +152,7 @@ where
 
             match state.end_type {
                 LineEndType::EndOfText => {
-                    state.plugin.end_of_text();
+                    state.plugin.on_rendering_finished();
                     break;
                 }
                 LineEndType::CarriageReturn => {}

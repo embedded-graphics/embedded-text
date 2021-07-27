@@ -26,10 +26,6 @@ where
     #[inline]
     fn new_line(&mut self) {}
 
-    /// Called after rendering has finished.
-    #[inline]
-    fn end_of_text(&mut self) {}
-
     /// Generate the next text token.
     #[inline]
     fn next_token(
@@ -54,7 +50,7 @@ where
         &mut self,
         _draw_target: &mut D,
         _character_style: &T,
-        _text: &str,
+        _text: Option<&str>,
         _bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
@@ -72,6 +68,10 @@ where
         _props: &TextBoxProperties<'_, S>,
     ) {
     }
+
+    /// Called after rendering has finished.
+    #[inline]
+    fn on_rendering_finished(&mut self) {}
 }
 
 impl<'a, C> Plugin<'a, C> for super::NoPlugin<C> where C: PixelColor {}
@@ -84,10 +84,6 @@ where
 {
     fn new_line(&mut self) {
         self.object.new_line();
-    }
-
-    fn end_of_text(&mut self) {
-        self.object.end_of_text();
     }
 
     fn next_token(
@@ -105,7 +101,7 @@ where
         &mut self,
         draw_target: &mut D,
         character_style: &T,
-        text: &str,
+        text: Option<&str>,
         bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
@@ -123,6 +119,10 @@ where
     ) {
         self.object.on_start_render(cursor, &props)
     }
+
+    fn on_rendering_finished(&mut self) {
+        self.object.on_rendering_finished();
+    }
 }
 
 impl<'a, C, P, CE> Plugin<'a, C> for Link<P, CE>
@@ -135,11 +135,6 @@ where
     fn new_line(&mut self) {
         self.parent.new_line();
         self.object.new_line();
-    }
-
-    fn end_of_text(&mut self) {
-        self.parent.end_of_text();
-        self.object.end_of_text();
     }
 
     fn next_token(
@@ -161,7 +156,7 @@ where
         &mut self,
         draw_target: &mut D,
         character_style: &T,
-        text: &str,
+        text: Option<&str>,
         bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
@@ -181,5 +176,10 @@ where
     ) {
         self.parent.on_start_render(cursor, &props);
         self.object.on_start_render(cursor, &props);
+    }
+
+    fn on_rendering_finished(&mut self) {
+        self.parent.on_rendering_finished();
+        self.object.on_rendering_finished();
     }
 }
