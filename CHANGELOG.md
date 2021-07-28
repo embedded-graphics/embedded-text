@@ -15,6 +15,10 @@ Unreleased
 
  * **breaking** [#133] `TextBoxStyle` and `TextBoxStyleBuilder` no longer implement the `Default` trait.
 
+## Fixed:
+
+ * [#140] Fixed an issue where, under certain circumstances no text was rendered.
+
 ## Removed:
 
  * [#134] `Scrolling` vertical alignment
@@ -23,6 +27,7 @@ Unreleased
 [#134]: https://github.com/embedded-graphics/embedded-text/pull/134
 [#135]: https://github.com/embedded-graphics/embedded-text/pull/135
 [#137]: https://github.com/embedded-graphics/embedded-text/pull/137
+[#140]: https://github.com/embedded-graphics/embedded-text/pull/140
 
 0.5.0-beta.2 (2021-07-10)
 ==========================
