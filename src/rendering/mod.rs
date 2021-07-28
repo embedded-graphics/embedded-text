@@ -127,7 +127,7 @@ where
                 line_start + Point::new(0, display_range.start),
                 display_size,
             ));
-            if display_range.start == display_range.end {
+            if display_range.start >= display_range.end {
                 if anything_drawn {
                     let remaining_bytes = state.parser.as_str().len();
                     let consumed_bytes = self.text.len() - remaining_bytes;
@@ -170,7 +170,10 @@ where
 pub mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+        mono_font::{
+            ascii::{FONT_6X10, FONT_6X9},
+            MonoTextStyleBuilder,
+        },
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
@@ -314,6 +317,42 @@ pub mod test {
             ".#..#..#.##...#.....#....#..#.",
             ".#..#..##.....#.....#....#..#.",
             ".#..#...###..###...###....##..",
+            "..............................",
+            "..............................",
+        ]);
+    }
+
+    #[test]
+    fn rendering_not_stopped_prematurely() {
+        let mut display = MockDisplay::new();
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(&FONT_6X10)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::with_textbox_style(
+            "hello\nbuggy\nworld",
+            Rectangle::new(Point::zero(), size_for(&FONT_6X10, 5, 3)),
+            character_style,
+            TextBoxStyleBuilder::new()
+                .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
+                .build(),
+        )
+        .set_vertical_offset(-20)
+        .draw(&mut display)
+        .unwrap();
+
+        display.assert_pattern(&[
+            "..............................",
+            "...................##.......#.",
+            "....................#.......#.",
+            "#...#..###..#.##....#....##.#.",
+            "#...#.#...#.##..#...#...#..##.",
+            "#.#.#.#...#.#.......#...#...#.",
+            "#.#.#.#...#.#.......#...#..##.",
+            ".#.#...###..#......###...##.#.",
             "..............................",
             "..............................",
         ]);
