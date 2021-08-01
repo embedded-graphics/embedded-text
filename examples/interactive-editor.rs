@@ -242,24 +242,22 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
 
         self.desired_cursor_position = match self.desired_cursor_position {
             DesiredPosition::OneLineUp(old) => {
-                DesiredPosition::Coordinates(Point::new(
-                    old.x,
-                    (old.y - line_height)
-                        // We limit one line above the text (to jump to beginning of first line)
-                        .max(-line_height)
-                        // As well as the second to last line (to jump up from below last position)
-                        .min(props.text_height - 2 * line_height),
-                ))
+                let newy = old.y - line_height;
+
+                if newy < 0 {
+                    DesiredPosition::Offset(0)
+                } else {
+                    DesiredPosition::Coordinates(Point::new(old.x, newy))
+                }
             }
             DesiredPosition::OneLineDown(old) => {
-                DesiredPosition::Coordinates(Point::new(
-                    old.x,
-                    (old.y + line_height)
-                        // We limit to second line (to jump from above of first line)
-                        .max(line_height)
-                        // As well as one line below last line (to jump down to end of last line)
-                        .min(props.text_height),
-                ))
+                let newy = old.y + line_height;
+
+                if newy > props.text_height {
+                    DesiredPosition::EndOfText
+                } else {
+                    DesiredPosition::Coordinates(Point::new(old.x, newy))
+                }
             }
             DesiredPosition::ScreenCoordinates(point) => {
                 let point = self.to_text_space(point);
@@ -325,8 +323,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                 let current_offset = self.current_offset;
 
                 if text == None
-                    || (len == 0 && current_offset == desired_offset)
-                    || (current_offset..current_offset + len).contains(&desired_offset)
+                    || (current_offset..current_offset + len.max(1)).contains(&desired_offset)
                 {
                     let chars_before = desired_offset - current_offset;
                     let pos = if chars_before == 0 {
