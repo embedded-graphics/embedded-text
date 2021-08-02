@@ -26,7 +26,8 @@ use embedded_text::{
 };
 use sdl2::keyboard::{Keycode, Mod};
 use std::{
-    cell::RefCell, collections::HashMap, convert::Infallible, rc::Rc, thread, time::Duration,
+    cell::RefCell, collections::HashMap, convert::Infallible, ops::Sub, rc::Rc, thread,
+    time::Duration,
 };
 
 trait StrExt {
@@ -253,7 +254,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
             DesiredPosition::OneLineDown(old) => {
                 let newy = old.y + line_height;
 
-                if newy > props.text_height {
+                if newy >= props.text_height {
                     DesiredPosition::EndOfText
                 } else {
                     DesiredPosition::Coordinates(Point::new(old.x, newy))
@@ -315,7 +316,11 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
         match self.desired_cursor_position {
             DesiredPosition::EndOfText => {
                 if text == None {
-                    self.draw_cursor(draw_target, bounds, bounds.top_left)?;
+                    self.draw_cursor(
+                        draw_target,
+                        bounds,
+                        Point::new(bounds.top_left.x.sub(1).max(0), bounds.top_left.y),
+                    )?;
                 }
             }
 
@@ -327,7 +332,9 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                 {
                     let chars_before = desired_offset - current_offset;
                     let pos = if chars_before == 0 {
-                        bounds.top_left
+                        // we want the end of the last character
+                        // TODO: limit should be left of text box
+                        Point::new(bounds.top_left.x.sub(1).max(0), bounds.top_left.y)
                     } else {
                         let str_before = text.unwrap().first_n_chars(chars_before);
                         let metrics = character_style.measure_string(
@@ -335,8 +342,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                             bounds.top_left,
                             Baseline::Top,
                         );
-                        // we want the start of the next character, not the end of the last, hence the +
-                        metrics.bounding_box.anchor_point(AnchorPoint::TopRight) + Point::new(1, 0)
+                        metrics.bounding_box.anchor_point(AnchorPoint::TopRight)
                     };
                     self.draw_cursor(draw_target, bounds, pos)?;
                     self.current_offset += chars_before;
@@ -347,9 +353,15 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                 let same_line = point.y >= bounds.top_left.y
                     && point.y < bounds.anchor_point(AnchorPoint::BottomRight).y;
 
+                let mut anchor_point =
+                    Point::new(bounds.top_left.x.sub(1).max(0), bounds.top_left.y);
+
                 if same_line {
-                    if bounds.contains(point) {
-                        let mut anchor_point = bounds.anchor_point(AnchorPoint::TopLeft);
+                    if text == None {
+                        // end of text, or cursor is positioned before the text begins
+                        self.draw_cursor(draw_target, bounds, anchor_point)?;
+                    } else if bounds.anchor_point(AnchorPoint::TopRight).x > point.x {
+                        // TODO: limit should be left of text box
                         // Figure out the number of drawn characters, set cursor position
                         let text = text.unwrap();
                         for i in 0..len.saturating_sub(1) {
@@ -361,25 +373,27 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                                 bounds.top_left,
                                 Baseline::Top,
                             );
-                            if metrics.bounding_box.contains(point) {
+                            let new_anchor_point =
+                                metrics.bounding_box.anchor_point(AnchorPoint::TopRight);
+                            if new_anchor_point.x > point.x {
                                 self.draw_cursor(draw_target, bounds, anchor_point)?;
                                 self.current_offset += i;
                                 break;
                             }
-                            anchor_point = metrics.bounding_box.anchor_point(AnchorPoint::TopRight);
+                            anchor_point = new_anchor_point;
                         }
 
                         if !self.cursor_drawn {
-                            // The cursor is right before the last character (unmeasured).
+                            // The cursor is right after the last character.
                             self.draw_cursor(draw_target, bounds, anchor_point)?;
                             self.current_offset += len.saturating_sub(1);
                         }
-                    } else if text == Some("\n") || text == None {
-                        self.draw_cursor(draw_target, bounds, bounds.top_left)?;
+                    } else if text == Some("\n") {
+                        self.draw_cursor(draw_target, bounds, anchor_point)?;
                     }
-                } else if text == None || self.to_text_space(point).y < 0 {
+                } else if self.to_text_space(point).y < 0 {
                     // end of text, or cursor is positioned before the text begins
-                    self.draw_cursor(draw_target, bounds, bounds.top_left)?;
+                    self.draw_cursor(draw_target, bounds, anchor_point)?;
                 }
             }
 
