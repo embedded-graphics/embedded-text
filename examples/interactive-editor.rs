@@ -289,7 +289,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
             .max(props.box_height - props.text_height)
             .min(0);
 
-        cursor.y = self.vertical_offset;
+        cursor.y += self.vertical_offset;
 
         if let DesiredPosition::Coordinates(pos) = self.desired_cursor_position {
             self.desired_cursor_position =
