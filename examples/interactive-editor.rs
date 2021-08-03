@@ -324,12 +324,14 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                 }
             }
 
-            DesiredPosition::Offset(desired_offset) => {
+            DesiredPosition::Offset(mut desired_offset) => {
                 let current_offset = self.current_offset;
 
-                if text == None
-                    || (current_offset..current_offset + len.max(1)).contains(&desired_offset)
-                {
+                if text == None {
+                    desired_offset = current_offset;
+                }
+
+                if (current_offset..current_offset + len.max(1)).contains(&desired_offset) {
                     let chars_before = desired_offset - current_offset;
                     let pos = if chars_before == 0 {
                         // we want the end of the last character
