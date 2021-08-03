@@ -1,5 +1,6 @@
 //! Display the last lines of the text.
 
+use az::SaturatingAs;
 use embedded_graphics::{
     prelude::PixelColor,
     text::renderer::{CharacterStyle, TextRenderer},
@@ -20,8 +21,9 @@ impl<'a, C: PixelColor> Plugin<'a, C> for Tail {
         cursor: &mut Cursor,
         props: &TextBoxProperties<'_, S>,
     ) {
-        if props.text_height > props.box_height {
-            let offset = props.box_height - props.text_height;
+        let box_height = props.bounding_box.size.height.saturating_as();
+        if props.text_height > box_height {
+            let offset = box_height - props.text_height;
 
             cursor.y += offset
         }

@@ -4,6 +4,7 @@
 //!
 //! The demo uses the "Scrolling" vertical layout which is especially useful for
 //! editor type applications.
+use az::SaturatingAs;
 use embedded_graphics::{
     geometry::AnchorPoint,
     mono_font::{iso_8859_2::FONT_6X10, MonoTextStyleBuilder},
@@ -274,19 +275,21 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
         let cursor_coordinates = self.to_screen_space(cursor_coordinates);
 
         // TODO what if the text box is not at 0,0?
+        // TODO: just using the box height is insufficient
+        let box_height = props.bounding_box.size.height.saturating_as();
 
         // if point is outside the window, move the window
         self.vertical_offset -= if cursor_coordinates.y < 0 {
             cursor_coordinates.y
-        } else if cursor_coordinates.y + line_height > props.box_height {
-            cursor_coordinates.y + line_height - props.box_height
+        } else if cursor_coordinates.y + line_height > box_height {
+            cursor_coordinates.y + line_height - box_height
         } else {
             0
         };
 
         self.vertical_offset = self
             .vertical_offset
-            .max(props.box_height - props.text_height)
+            .max(box_height - props.text_height)
             .min(0);
 
         cursor.y += self.vertical_offset;

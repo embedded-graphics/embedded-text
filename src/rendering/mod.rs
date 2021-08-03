@@ -41,8 +41,8 @@ pub struct TextBoxProperties<'a, S> {
     /// The height of the text.
     pub text_height: i32,
 
-    /// The height of the text box.
-    pub box_height: i32,
+    /// The bounds of the text box.
+    pub bounding_box: Rectangle,
 }
 
 impl<'a, F, M> Drawable for TextBox<'a, F, M>
@@ -90,7 +90,7 @@ where
             box_style: &self.style,
             char_style: &self.character_style,
             text_height,
-            box_height,
+            bounding_box: self.bounding_box(),
         };
 
         self.plugin.on_start_render(&mut cursor, props);
