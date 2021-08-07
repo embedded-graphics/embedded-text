@@ -325,45 +325,16 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
             return Ok(());
         }
 
-        let prev_end_pos_in_line = bounds
-            .top_left
-            .sub(Point::new(1, 0))
-            .component_max(self.top_left.x_axis());
-
+        // Convert different positions to offset
         let len = text.unwrap_or_default().chars().count();
-        match self.desired_cursor_position {
+        let desired_cursor_position = match self.desired_cursor_position {
             DesiredPosition::EndOfText => {
                 // We only want to draw the cursor, so we don't need to do anything
                 // if we are not at the very end of the text
-                if text == None {
-                    self.draw_cursor(draw_target, bounds, prev_end_pos_in_line)?;
-                }
-            }
-
-            DesiredPosition::Offset(mut desired_offset) => {
-                let current_offset = self.current_offset;
-
-                if text == None {
-                    desired_offset = current_offset;
-                }
-
-                if (current_offset..current_offset + len.max(1)).contains(&desired_offset) {
-                    let chars_before = desired_offset - current_offset;
-                    let pos = if chars_before == 0 {
-                        // we want the end of the last character
-                        prev_end_pos_in_line
-                    } else {
-                        character_style
-                            .measure_string(
-                                text.unwrap().first_n_chars(chars_before),
-                                prev_end_pos_in_line,
-                                Baseline::Top,
-                            )
-                            .bounding_box
-                            .anchor_point(AnchorPoint::TopRight)
-                    };
-                    self.draw_cursor(draw_target, bounds, pos)?;
-                    self.current_offset += chars_before;
+                if text.is_none() {
+                    Some(self.current_offset)
+                } else {
+                    None
                 }
             }
 
@@ -371,51 +342,81 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                 let same_line = point.y >= bounds.top_left.y
                     && point.y <= bounds.anchor_point(AnchorPoint::BottomRight).y;
 
-                let mut anchor_point = prev_end_pos_in_line;
-
                 if same_line {
-                    if text == None || text == Some("\n") {
-                        // end of text, or cursor is positioned before the text begins
-                        self.draw_cursor(draw_target, bounds, anchor_point)?;
-                    } else if bounds.anchor_point(AnchorPoint::TopRight).x > point.x {
-                        // Figure out the number of drawn characters, set cursor position
-                        let text = text.unwrap();
-                        let mut measure_point = anchor_point;
-                        // TODO: this can be simplified by iterating over char_indices
-                        for i in 0..len {
-                            let str_before = text.first_n_chars(i + 1);
-                            let current_char = text.first_n_chars(i + 2);
-                            let char_bounds = character_style
-                                .measure_string(
-                                    &text[str_before.len()..current_char.len()],
-                                    measure_point,
-                                    Baseline::Top,
-                                )
-                                .bounding_box;
-
-                            let top_right = char_bounds.anchor_point(AnchorPoint::TopRight);
-                            let top_center = char_bounds.anchor_point(AnchorPoint::TopCenter);
-
-                            if top_center.x > point.x {
-                                self.draw_cursor(draw_target, bounds, anchor_point)?;
-                                self.current_offset += i;
-                                break;
-                            }
-                            anchor_point = top_right;
-                            measure_point = anchor_point + Point::new(1, 0);
+                    match text {
+                        Some("\n") | None => {
+                            // end of text, or cursor is positioned before the text begins
+                            Some(self.current_offset)
                         }
+                        Some(text) if bounds.anchor_point(AnchorPoint::TopRight).x > point.x => {
+                            // Figure out the number of drawn characters, set cursor position
+                            // TODO: this can be simplified by iterating over char_indices
+                            let mut add = len;
+                            let mut anchor_point = bounds.top_left;
+                            for i in 0..len {
+                                let str_before = text.first_n_chars(i).len();
+                                let current_char_offset = text.first_n_chars(i + 1).len();
+                                let char_bounds = character_style
+                                    .measure_string(
+                                        &text[str_before..current_char_offset],
+                                        anchor_point,
+                                        Baseline::Top,
+                                    )
+                                    .bounding_box;
+
+                                let top_right = char_bounds.anchor_point(AnchorPoint::TopRight);
+                                let top_center = char_bounds.anchor_point(AnchorPoint::TopCenter);
+
+                                if top_center.x > point.x {
+                                    add = i;
+                                    break;
+                                }
+                                anchor_point = top_right + Point::new(1, 0);
+                            }
+                            Some(self.current_offset + add)
+                        }
+                        _ => None,
                     }
-                } else if self.to_text_space(point).y < 0 {
-                    // end of text, or cursor is positioned before the text begins
-                    self.draw_cursor(draw_target, bounds, anchor_point)?;
+                } else {
+                    None
                 }
             }
 
-            other => unreachable!("{:?} should have been replaced in on_start_render", other),
-        }
+            DesiredPosition::Offset(desired_offset) => Some(desired_offset),
 
-        if !self.cursor_drawn {
-            self.current_offset += len;
+            other => unreachable!("{:?} should have been replaced in on_start_render", other),
+        };
+
+        // Draw cursor
+        match desired_cursor_position {
+            Some(desired_cursor_position)
+                if (self.current_offset..self.current_offset + len.max(1))
+                    .contains(&desired_cursor_position) =>
+            {
+                let chars_before = desired_cursor_position - self.current_offset;
+                let pos = if chars_before == 0 {
+                    // we want the end of the last character
+                    bounds
+                        .top_left
+                        .sub(Point::new(1, 0))
+                        .component_max(self.top_left)
+                } else {
+                    character_style
+                        .measure_string(
+                            text.unwrap().first_n_chars(chars_before),
+                            bounds.top_left,
+                            Baseline::Top,
+                        )
+                        .bounding_box
+                        .anchor_point(AnchorPoint::TopRight)
+                };
+                self.draw_cursor(draw_target, bounds, pos)?;
+                self.current_offset = desired_cursor_position;
+            }
+
+            _ => {
+                self.current_offset += len;
+            }
         }
 
         Ok(())
@@ -499,7 +500,7 @@ fn main() -> Result<(), Infallible> {
         .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
         .build();
 
-    let mut input = EditorInput::new("Hello, World!\n\nline1\nline2");
+    let mut input = EditorInput::new("Hello, World!\n\nline1\nline2\nline3");
 
     let display_size = Size::new(128, 64);
     let margin = Size::new(32, 16);
