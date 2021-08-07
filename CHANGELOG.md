@@ -12,6 +12,8 @@ Unreleased
  * [#137] Allow using multiple plugins.
  * [#136] `Cursor` is now public.
  * [#136] Added `TextBox::take_plugins()`.
+ * [#138] `Ansi` plugin to parse ANSI escape sequences.
+ * [#138] `Token::MoveCursor` and `Token::ChangeTextStyle`
 
 ## Changed:
 
@@ -26,6 +28,7 @@ Unreleased
 ## Removed:
 
  * [#134] `Scrolling` vertical alignment
+ * [#138] `ansi` feature flag
 
 [#133]: https://github.com/embedded-graphics/embedded-text/pull/133
 [#134]: https://github.com/embedded-graphics/embedded-text/pull/134
@@ -33,6 +36,7 @@ Unreleased
 [#136]: https://github.com/embedded-graphics/embedded-text/pull/136
 [#137]: https://github.com/embedded-graphics/embedded-text/pull/137
 [#140]: https://github.com/embedded-graphics/embedded-text/pull/140
+[#138]: https://github.com/embedded-graphics/embedded-text/pull/138
 
 0.5.0-beta.2 (2021-07-10)
 ==========================
