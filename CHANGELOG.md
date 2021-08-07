@@ -11,10 +11,13 @@ Unreleased
  * [#135] Allow using the built-in plugins without the `plugin` feature.
  * [#137] Allow using multiple plugins.
  * [#136] `Cursor` is now public.
+ * [#136] Added `TextBox::take_plugins()`.
 
 ## Changed:
 
  * **breaking** [#133] `TextBoxStyle` and `TextBoxStyleBuilder` no longer implement the `Default` trait.
+ * [#136] Replaced `TextBoxProperties::box_height` with  in `TextBoxProperties::bounding_box`.
+ * [#136] Reworked the editor example to support vertical cursor movement and mouse input.
 
 ## Fixed:
 
