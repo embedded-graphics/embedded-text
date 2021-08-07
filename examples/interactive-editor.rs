@@ -95,6 +95,7 @@ impl Cursor {
             cursor_drawn: false,
             vertical_offset: self.vertical_offset,
             cursor: Rc::new(RefCell::new(self)),
+            min_x: 0,
         }
     }
 }
@@ -198,6 +199,7 @@ struct EditorPlugin<'a, C> {
 
     /// text vertical offset
     vertical_offset: i32,
+    min_x: i32,
 }
 
 impl<C: PixelColor> EditorPlugin<'_, C> {
@@ -211,6 +213,7 @@ impl<C: PixelColor> EditorPlugin<'_, C> {
     where
         D: DrawTarget<Color = C>,
     {
+        let pos = Point::new(pos.x.max(self.min_x), pos.y);
         self.cursor_position = self.to_text_space(pos);
         self.cursor_drawn = true;
 
@@ -223,14 +226,12 @@ impl<C: PixelColor> EditorPlugin<'_, C> {
         .draw(draw_target)
     }
 
-    fn to_text_space(&self, mut point: Point) -> Point {
-        point.y -= self.vertical_offset;
-        point
+    fn to_text_space(&self, point: Point) -> Point {
+        point - Point::new(0, self.vertical_offset)
     }
 
-    fn to_screen_space(&self, mut point: Point) -> Point {
-        point.y += self.vertical_offset;
-        point
+    fn to_screen_space(&self, point: Point) -> Point {
+        point + Point::new(0, self.vertical_offset)
     }
 }
 
@@ -274,15 +275,15 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
 
         let cursor_coordinates = self.to_screen_space(cursor_coordinates);
 
-        // TODO what if the text box is not at 0,0?
-        // TODO: just using the box height is insufficient
-        let box_height = props.bounding_box.size.height.saturating_as();
+        // Modify current offset value by the amount outside of the current window
+        let box_height: i32 = props.bounding_box.size.height.saturating_as();
+        let bounds_min = props.bounding_box.top_left.y;
+        let bounds_max = bounds_min + box_height;
 
-        // if point is outside the window, move the window
-        self.vertical_offset -= if cursor_coordinates.y < 0 {
-            cursor_coordinates.y
-        } else if cursor_coordinates.y + line_height > box_height {
-            cursor_coordinates.y + line_height - box_height
+        self.vertical_offset -= if cursor_coordinates.y < bounds_min {
+            cursor_coordinates.y - bounds_min
+        } else if cursor_coordinates.y + line_height > bounds_max {
+            cursor_coordinates.y + line_height - bounds_max
         } else {
             0
         };
@@ -298,6 +299,8 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
             self.desired_cursor_position =
                 DesiredPosition::ScreenCoordinates(self.to_screen_space(pos));
         }
+
+        self.min_x = props.bounding_box.top_left.x;
     }
 
     fn post_render<T, D>(
@@ -492,15 +495,21 @@ fn main() -> Result<(), Infallible> {
 
     let mut input = EditorInput::new("Hello, \n\nWorld!\nline1\nline2\nline3\nline4\nline5");
 
+    let display_size = Size::new(64, 64);
+    let margin = Size::zero(); // Size::new(32, 16);
+    let mut is_mouse_drag = false;
+
     'demo: loop {
         // Create a simulated display with the dimensions of the text box.
-        let mut display = SimulatorDisplay::new(Size::new(128, 64));
+        let mut display = SimulatorDisplay::new(display_size + margin);
 
         // Display an underscore for the "cursor"
         // Create the text box and apply styling options.
         TextBox::with_textbox_style(
             &input.text,
-            display.bounding_box(),
+            display
+                .bounding_box()
+                .resized(display_size, AnchorPoint::Center),
             character_style,
             text_box_style,
         )
@@ -533,7 +542,17 @@ fn main() -> Result<(), Infallible> {
                 SimulatorEvent::MouseButtonDown {
                     mouse_btn: MouseButton::Left,
                     point,
-                } => input.move_cursor_to(point),
+                } => {
+                    is_mouse_drag = true;
+                    input.move_cursor_to(point)
+                }
+                SimulatorEvent::MouseButtonUp {
+                    mouse_btn: MouseButton::Left,
+                    ..
+                } => {
+                    is_mouse_drag = false;
+                }
+                SimulatorEvent::MouseMove { point } if is_mouse_drag => input.move_cursor_to(point),
                 SimulatorEvent::Quit => break 'demo,
                 _ => {}
             }
