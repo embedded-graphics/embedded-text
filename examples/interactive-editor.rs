@@ -1,9 +1,7 @@
-//! # Example: editor
+//! # Example: interactive-editor
 //!
-//! This example demonstrates a simple text "editor" that lets you type and delete characters.
-//!
-//! The demo uses the "Scrolling" vertical layout which is especially useful for
-//! editor type applications.
+//! This example demonstrates how to use the plugins feature to implement an editable text box.
+
 use az::SaturatingAs;
 use embedded_graphics::{
     geometry::AnchorPoint,
