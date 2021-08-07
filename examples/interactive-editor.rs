@@ -23,11 +23,9 @@ use embedded_text::{
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     Cursor as RenderingCursor, TextBox, TextBoxProperties,
 };
+use object_chain::Chain;
 use sdl2::keyboard::{Keycode, Mod};
-use std::{
-    cell::RefCell, collections::HashMap, convert::Infallible, ops::Sub, rc::Rc, thread,
-    time::Duration,
-};
+use std::{collections::HashMap, convert::Infallible, ops::Sub, thread, time::Duration};
 
 trait StrExt {
     fn first_n_chars<'a>(&'a self, n: usize) -> &'a str;
@@ -84,7 +82,7 @@ pub struct Cursor {
 }
 
 impl Cursor {
-    fn plugin<'a, C: PixelColor>(&'a mut self, color: C) -> EditorPlugin<'a, C> {
+    fn plugin<C: PixelColor>(&mut self, color: C) -> EditorPlugin<C> {
         EditorPlugin {
             cursor_position: self.pos,
             current_offset: 0,
@@ -92,7 +90,6 @@ impl Cursor {
             color,
             cursor_drawn: false,
             vertical_offset: self.vertical_offset,
-            cursor: Rc::new(RefCell::new(self)),
             top_left: Point::zero(),
         }
     }
@@ -187,8 +184,7 @@ impl DesiredPosition {
 }
 
 #[derive(Clone)]
-struct EditorPlugin<'a, C> {
-    cursor: Rc<RefCell<&'a mut Cursor>>,
+struct EditorPlugin<C> {
     desired_cursor_position: DesiredPosition,
     cursor_position: Point,
     current_offset: usize,
@@ -200,7 +196,7 @@ struct EditorPlugin<'a, C> {
     top_left: Point,
 }
 
-impl<C: PixelColor> EditorPlugin<'_, C> {
+impl<C: PixelColor> EditorPlugin<C> {
     #[track_caller]
     fn draw_cursor<D>(
         &mut self,
@@ -231,9 +227,16 @@ impl<C: PixelColor> EditorPlugin<'_, C> {
     fn to_screen_space(&self, point: Point) -> Point {
         point + Point::new(0, self.vertical_offset) + self.top_left
     }
+
+    fn update_cursor(self, cursor: &mut Cursor) {
+        cursor.pos = self.cursor_position;
+        cursor.offset = self.current_offset;
+        cursor.desired_position = self.desired_cursor_position;
+        cursor.vertical_offset = self.vertical_offset;
+    }
 }
 
-impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
+impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<C> {
     fn on_start_render<S: CharacterStyle + TextRenderer>(
         &mut self,
         cursor: &mut RenderingCursor,
@@ -421,16 +424,6 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
 
         Ok(())
     }
-
-    fn on_rendering_finished(&mut self) {
-        // Update the parent object's cursor with the actual info.
-        let mut cursor = self.cursor.borrow_mut();
-
-        cursor.pos = self.cursor_position;
-        cursor.offset = self.current_offset;
-        cursor.desired_position = self.desired_cursor_position;
-        cursor.vertical_offset = self.vertical_offset;
-    }
 }
 
 fn main() -> Result<(), Infallible> {
@@ -512,7 +505,7 @@ fn main() -> Result<(), Infallible> {
 
         // Display an underscore for the "cursor"
         // Create the text box and apply styling options.
-        TextBox::with_textbox_style(
+        let tb = TextBox::with_textbox_style(
             &input.text,
             display
                 .bounding_box()
@@ -520,8 +513,12 @@ fn main() -> Result<(), Infallible> {
             character_style,
             text_box_style,
         )
-        .add_plugin(input.cursor.plugin(BinaryColor::On))
-        .draw(&mut display)?;
+        .add_plugin(input.cursor.plugin(BinaryColor::On));
+
+        tb.draw(&mut display)?;
+
+        let Chain { object: plugin } = tb.take_plugins();
+        plugin.update_cursor(&mut input.cursor);
 
         // Update the window.
         window.update(&display);

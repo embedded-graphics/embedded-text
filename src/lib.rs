@@ -247,17 +247,14 @@ where
     where
         M: Plugin<'a, <S as TextRenderer>::Color>,
     {
-        let mut textbox = TextBox {
+        TextBox {
             text: self.text,
             bounds: self.bounds,
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
             plugin: PluginWrapper::new(Chain::new(plugin)),
-        };
-        textbox.style.height_mode.apply(&mut textbox);
-
-        textbox
+        }
     }
 }
 
@@ -275,17 +272,20 @@ where
     {
         let parent = self.plugin.inner.into_inner();
 
-        let mut textbox = TextBox {
+        TextBox {
             text: self.text,
             bounds: self.bounds,
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
             plugin: PluginWrapper::new(parent.plugin.append(plugin)),
-        };
-        textbox.style.height_mode.apply(&mut textbox);
+        }
+    }
 
-        textbox
+    /// Deconstruct the textbox and return the plugins.
+    #[inline]
+    pub fn take_plugins(self) -> P {
+        self.plugin.inner.into_inner().lookahead
     }
 }
 

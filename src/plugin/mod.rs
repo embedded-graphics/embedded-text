@@ -76,8 +76,8 @@ pub(crate) struct PluginInner<'a, M, C>
 where
     C: PixelColor,
 {
-    lookahead: M,
-    pub plugin: M,
+    pub(crate) lookahead: M,
+    pub(crate) plugin: M,
     state: ProcessingState,
     peeked_token: (usize, Option<Token<'a, C>>),
 }
