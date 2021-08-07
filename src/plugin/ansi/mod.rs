@@ -1,8 +1,12 @@
 //! Ansi sequence support plugin
 
-use embedded_graphics::prelude::PixelColor;
+use ansi_parser::AnsiSequence;
+use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor};
 
-use crate::{plugin::Plugin, Token};
+use crate::{
+    plugin::{ansi::utils::try_parse_sgr, Plugin},
+    Token,
+};
 
 pub mod utils;
 
@@ -20,7 +24,7 @@ impl<C: PixelColor> Ansi<'_, C> {
     }
 }
 
-impl<'a, C: PixelColor> Plugin<'a, C> for Ansi<'a, C> {
+impl<'a, C: PixelColor + From<Rgb888>> Plugin<'a, C> for Ansi<'a, C> {
     fn next_token(
         &mut self,
         mut next_token: impl FnMut() -> Option<crate::Token<'a, C>>,
@@ -38,7 +42,23 @@ impl<'a, C: PixelColor> Plugin<'a, C> for Ansi<'a, C> {
                 Some((0, _)) => match ansi_parser::parse_escape(text) {
                     Ok((string, output)) => {
                         self.carry = Some(Token::Word(string));
-                        Some(Token::EscapeSequence(output))
+                        let new_token = match output {
+                            AnsiSequence::CursorForward(chars) => Token::MoveCursor {
+                                chars: chars as i32,
+                                draw_background: true,
+                            },
+                            AnsiSequence::CursorBackward(chars) => Token::MoveCursor {
+                                chars: -(chars as i32),
+                                draw_background: true,
+                            },
+                            AnsiSequence::SetGraphicsMode(sgr) => try_parse_sgr(&sgr)
+                                .map(|sgr| Token::ChangeTextStyle(sgr.into()))
+                                .or_else(|| self.next_token(next_token))?,
+
+                            _ => self.next_token(next_token)?,
+                        };
+
+                        Some(new_token)
                     }
                     Err(_) => {
                         self.carry = Some(Token::Word(chars.as_str()));

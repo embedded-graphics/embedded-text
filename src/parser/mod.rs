@@ -16,7 +16,6 @@
 //!     tokens
 //! );
 //! ```
-use ansi_parser::AnsiSequence;
 use core::{marker::PhantomData, str::Chars};
 use embedded_graphics::{prelude::PixelColor, text::DecorationColor};
 
@@ -69,8 +68,13 @@ where
     /// Change of text style.
     ChangeTextStyle(ChangeTextStyle<C>),
 
-    /// An ANSI escape sequence
-    EscapeSequence(AnsiSequence),
+    /// Move the cursor by a number of characters.
+    MoveCursor {
+        /// Number of characters to move.
+        chars: i32,
+        /// True to draw over the area of movement with the background color.
+        draw_background: bool,
+    },
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.

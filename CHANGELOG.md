@@ -13,6 +13,7 @@ Unreleased
  * [#136] `Cursor` is now public.
  * [#136] Added `TextBox::take_plugins()`.
  * [#138] `Ansi` plugin to parse ANSI escape sequences.
+ * [#138] `Token::MoveCursor` and `Token::ChangeTextStyle`
 
 ## Changed:
 

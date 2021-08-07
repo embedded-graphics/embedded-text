@@ -12,10 +12,6 @@ use crate::{
 use az::{SaturatingAs, SaturatingCast};
 use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor};
 
-use crate::plugin::ansi::utils::try_parse_sgr;
-use ansi_parser::AnsiSequence;
-use as_slice::AsSlice;
-
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
 #[must_use]
@@ -120,7 +116,7 @@ where
                     break 'lookahead;
                 }
 
-                Some(Token::EscapeSequence(_)) => {}
+                Some(Token::ChangeTextStyle(_)) | Some(Token::MoveCursor { .. }) => {}
 
                 _ => break 'lookahead,
             }
@@ -184,15 +180,11 @@ where
                 Some(Token::Whitespace(n, _)) => spaces.consume(n).saturating_as(),
                 Some(Token::Tab) => cursor.next_tab_width().saturating_as(),
 
-                Some(Token::EscapeSequence(AnsiSequence::CursorForward(by))) => {
-                    (by * handler.measure(" ")).saturating_as()
+                Some(Token::MoveCursor { chars, .. }) => {
+                    chars * handler.measure(" ").saturating_as::<i32>()
                 }
 
-                Some(Token::EscapeSequence(AnsiSequence::CursorBackward(by))) => {
-                    -(by * handler.measure(" ")).saturating_as::<i32>()
-                }
-
-                Some(Token::EscapeSequence(_)) => 0,
+                Some(Token::ChangeTextStyle(_)) => 0,
 
                 _ => return false,
             };
@@ -374,46 +366,39 @@ where
                     }
                 }
 
-                Token::EscapeSequence(seq) => {
-                    match seq {
-                        AnsiSequence::SetGraphicsMode(vec) => {
-                            if let Some(sgr) = try_parse_sgr(vec.as_slice()) {
-                                handler.change_text_style(sgr.into())?;
+                // Cursor movement can't rely on the text, as it's permitted
+                // to move the cursor outside of the current line.
+                // Example:
+                // (| denotes the cursor, [ and ] are the limits of the line):
+                // [Some text|    ]
+                // Cursor forward 2 characters
+                // [Some text  |  ]
+                Token::MoveCursor {
+                    chars,
+                    draw_background: true,
+                } => {
+                    let delta = chars * handler.measure(" ").saturating_as::<i32>();
+                    match self.move_cursor(delta) {
+                        Ok(delta) | Err(delta) => {
+                            if chars > 0 {
+                                handler.whitespace("", 1, delta.saturating_as())?;
+                            } else {
+                                handler.move_cursor(delta)?;
+                                handler.whitespace("", 1, delta.abs().saturating_as())?;
+                                handler.move_cursor(delta)?;
                             }
                         }
+                    }
+                }
 
-                        AnsiSequence::CursorForward(n) => {
-                            // Cursor movement can't rely on the text, as it's permitted
-                            // to move the cursor outside of the current line.
-                            // Example:
-                            // (| denotes the cursor, [ and ] are the limits of the line):
-                            // [Some text|    ]
-                            // Cursor forward 2 characters
-                            // [Some text  |  ]
-                            let delta = (n * handler.measure(" ")).saturating_as();
-                            match self.move_cursor(delta) {
-                                Ok(delta) | Err(delta) => {
-                                    handler.whitespace("", 1, delta.saturating_as())?;
-                                }
-                            }
-                        }
-
-                        AnsiSequence::CursorBackward(n) => {
-                            // The above poses an issue with variable-width fonts.
-                            // If cursor movement ignores the variable width, the cursor
-                            // will be placed in positions other than glyph boundaries.
-                            let delta = -(n * handler.measure(" ")).saturating_as::<i32>();
-                            match self.move_cursor(delta) {
-                                Ok(delta) | Err(delta) => {
-                                    handler.move_cursor(delta)?;
-                                    handler.whitespace("", 1, delta.abs().saturating_as())?;
-                                    handler.move_cursor(delta)?;
-                                }
-                            }
-                        }
-
-                        _ => {
-                            // ignore for now
+                Token::MoveCursor {
+                    chars,
+                    draw_background: false,
+                } => {
+                    let delta = chars * handler.measure(" ").saturating_as::<i32>();
+                    match self.move_cursor(delta) {
+                        Ok(delta) | Err(delta) => {
+                            handler.move_cursor(delta)?;
                         }
                     }
                 }
