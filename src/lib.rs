@@ -30,7 +30,7 @@
 //!
 //! ![embedded-text example](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/paragraph_spacing.png)
 //!
-//! ![embedded-text example with colored text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/styles-ansi.png)
+//! ![embedded-text example with colored text](https://raw.githubusercontent.com/embedded-graphics/embedded-text/master/assets/plugin-ansi.png)
 //!
 //! ```rust,no_run
 //! use embedded_graphics::{
@@ -96,9 +96,8 @@
 //! [embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
 //! [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator
 //! [simulator README]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator#usage-without-sdl2
-//! [`TextBox`]: ./struct.TextBox.html
-//! [`Horizontal`]: ./alignment/enum.HorizontalAlignment.html
-//! [`Vertical`]: ./alignment/enum.VerticalAlignment.html
+//! [`Horizontal`]: HorizontalAlignment
+//! [`Vertical`]: VerticalAlignment
 
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::missing_inline_in_public_items)]
@@ -112,7 +111,6 @@ mod parser;
 pub mod plugin;
 mod rendering;
 pub mod style;
-
 mod utils;
 
 use crate::{
@@ -140,10 +138,8 @@ pub use rendering::{cursor::Cursor, TextBoxProperties};
 ///
 /// See the [module-level documentation] for more information.
 ///
-/// [`into_styled`]: #method.into_styled
-/// [`TextBoxStyle`]: style/struct.TextBoxStyle.html
-/// [module-level documentation]: index.html
-/// [`draw`]: #method.draw
+/// [module-level documentation]: crate
+/// [`draw`]: embedded_graphics::Drawable::draw()
 #[derive(Clone, Debug, Hash)]
 #[must_use]
 pub struct TextBox<'a, S, M = NoPlugin<<S as TextRenderer>::Color>>
