@@ -1,6 +1,8 @@
 //! # Example: interactive-editor
 //!
 //! This example demonstrates how to use the plugins feature to implement an editable text box.
+//!
+//! Running this example requires enabling the "plugin" feature
 
 use az::SaturatingAs;
 use embedded_graphics::{
