@@ -93,7 +93,7 @@ impl Cursor {
             cursor_drawn: false,
             vertical_offset: self.vertical_offset,
             cursor: Rc::new(RefCell::new(self)),
-            min_x: 0,
+            top_left: Point::zero(),
         }
     }
 }
@@ -197,7 +197,7 @@ struct EditorPlugin<'a, C> {
 
     /// text vertical offset
     vertical_offset: i32,
-    min_x: i32,
+    top_left: Point,
 }
 
 impl<C: PixelColor> EditorPlugin<'_, C> {
@@ -211,7 +211,7 @@ impl<C: PixelColor> EditorPlugin<'_, C> {
     where
         D: DrawTarget<Color = C>,
     {
-        let pos = Point::new(pos.x.max(self.min_x), pos.y);
+        let pos = Point::new(pos.x.max(self.top_left.x), pos.y);
         self.cursor_position = self.to_text_space(pos);
         self.cursor_drawn = true;
 
@@ -225,11 +225,11 @@ impl<C: PixelColor> EditorPlugin<'_, C> {
     }
 
     fn to_text_space(&self, point: Point) -> Point {
-        point - Point::new(0, self.vertical_offset)
+        point - Point::new(0, self.vertical_offset) - self.top_left
     }
 
     fn to_screen_space(&self, point: Point) -> Point {
-        point + Point::new(0, self.vertical_offset)
+        point + Point::new(0, self.vertical_offset) + self.top_left
     }
 }
 
@@ -240,6 +240,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
         props: &TextBoxProperties<'_, S>,
     ) {
         let line_height = props.char_style.line_height() as i32;
+        self.top_left = props.bounding_box.top_left;
 
         self.desired_cursor_position = match self.desired_cursor_position {
             DesiredPosition::OneLineUp(old) => {
@@ -262,7 +263,17 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
             }
             DesiredPosition::ScreenCoordinates(point) => {
                 let point = self.to_text_space(point);
-                DesiredPosition::Coordinates(point)
+
+                if point.y < 0 {
+                    DesiredPosition::Offset(0)
+                } else if point.y >= props.text_height {
+                    DesiredPosition::EndOfText
+                } else {
+                    DesiredPosition::Coordinates(Point::new(
+                        point.x,
+                        point.y.min(props.text_height),
+                    ))
+                }
             }
             pos => pos,
         };
@@ -297,8 +308,6 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
             self.desired_cursor_position =
                 DesiredPosition::ScreenCoordinates(self.to_screen_space(pos));
         }
-
-        self.min_x = props.bounding_box.top_left.x;
     }
 
     fn post_render<T, D>(
@@ -316,15 +325,18 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
             return Ok(());
         }
 
+        let prev_end_pos_in_line = bounds
+            .top_left
+            .sub(Point::new(1, 0))
+            .component_max(self.top_left.x_axis());
+
         let len = text.unwrap_or_default().chars().count();
         match self.desired_cursor_position {
             DesiredPosition::EndOfText => {
+                // We only want to draw the cursor, so we don't need to do anything
+                // if we are not at the very end of the text
                 if text == None {
-                    self.draw_cursor(
-                        draw_target,
-                        bounds,
-                        Point::new(bounds.top_left.x.sub(1).max(0), bounds.top_left.y),
-                    )?;
+                    self.draw_cursor(draw_target, bounds, prev_end_pos_in_line)?;
                 }
             }
 
@@ -339,16 +351,16 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
                     let chars_before = desired_offset - current_offset;
                     let pos = if chars_before == 0 {
                         // we want the end of the last character
-                        // TODO: limit should be left of text box
-                        Point::new(bounds.top_left.x.sub(1).max(0), bounds.top_left.y)
+                        prev_end_pos_in_line
                     } else {
-                        let str_before = text.unwrap().first_n_chars(chars_before);
-                        let metrics = character_style.measure_string(
-                            str_before,
-                            bounds.top_left,
-                            Baseline::Top,
-                        );
-                        metrics.bounding_box.anchor_point(AnchorPoint::TopRight)
+                        character_style
+                            .measure_string(
+                                text.unwrap().first_n_chars(chars_before),
+                                prev_end_pos_in_line,
+                                Baseline::Top,
+                            )
+                            .bounding_box
+                            .anchor_point(AnchorPoint::TopRight)
                     };
                     self.draw_cursor(draw_target, bounds, pos)?;
                     self.current_offset += chars_before;
@@ -357,45 +369,41 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<'_, C> {
 
             DesiredPosition::ScreenCoordinates(point) => {
                 let same_line = point.y >= bounds.top_left.y
-                    && point.y < bounds.anchor_point(AnchorPoint::BottomRight).y;
+                    && point.y <= bounds.anchor_point(AnchorPoint::BottomRight).y;
 
-                let mut anchor_point =
-                    Point::new(bounds.top_left.x.sub(1).max(0), bounds.top_left.y);
+                let mut anchor_point = prev_end_pos_in_line;
 
                 if same_line {
-                    if text == None {
+                    if text == None || text == Some("\n") {
                         // end of text, or cursor is positioned before the text begins
                         self.draw_cursor(draw_target, bounds, anchor_point)?;
                     } else if bounds.anchor_point(AnchorPoint::TopRight).x > point.x {
-                        // TODO: limit should be left of text box
                         // Figure out the number of drawn characters, set cursor position
                         let text = text.unwrap();
-                        for i in 0..len.saturating_sub(1) {
-                            // TODO: it might be faster to measure one character at a time and
-                            // sum up the width manually.
+                        let mut measure_point = anchor_point;
+                        // TODO: this can be simplified by iterating over char_indices
+                        for i in 0..len {
                             let str_before = text.first_n_chars(i + 1);
-                            let metrics = character_style.measure_string(
-                                str_before,
-                                bounds.top_left,
-                                Baseline::Top,
-                            );
-                            let new_anchor_point =
-                                metrics.bounding_box.anchor_point(AnchorPoint::TopRight);
-                            if new_anchor_point.x > point.x {
+                            let current_char = text.first_n_chars(i + 2);
+                            let char_bounds = character_style
+                                .measure_string(
+                                    &text[str_before.len()..current_char.len()],
+                                    measure_point,
+                                    Baseline::Top,
+                                )
+                                .bounding_box;
+
+                            let top_right = char_bounds.anchor_point(AnchorPoint::TopRight);
+                            let top_center = char_bounds.anchor_point(AnchorPoint::TopCenter);
+
+                            if top_center.x > point.x {
                                 self.draw_cursor(draw_target, bounds, anchor_point)?;
                                 self.current_offset += i;
                                 break;
                             }
-                            anchor_point = new_anchor_point;
+                            anchor_point = top_right;
+                            measure_point = anchor_point + Point::new(1, 0);
                         }
-
-                        if !self.cursor_drawn {
-                            // The cursor is right after the last character.
-                            self.draw_cursor(draw_target, bounds, anchor_point)?;
-                            self.current_offset += len.saturating_sub(1);
-                        }
-                    } else if text == Some("\n") {
-                        self.draw_cursor(draw_target, bounds, anchor_point)?;
                     }
                 } else if self.to_text_space(point).y < 0 {
                     // end of text, or cursor is positioned before the text begins
@@ -491,10 +499,10 @@ fn main() -> Result<(), Infallible> {
         .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
         .build();
 
-    let mut input = EditorInput::new("Hello, \n\nWorld!\nline1\nline2\nline3\nline4\nline5");
+    let mut input = EditorInput::new("Hello, World!\n\nline1\nline2");
 
-    let display_size = Size::new(64, 64);
-    let margin = Size::zero(); // Size::new(32, 16);
+    let display_size = Size::new(128, 64);
+    let margin = Size::new(32, 16);
     let mut is_mouse_drag = false;
 
     'demo: loop {
