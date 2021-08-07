@@ -132,5 +132,6 @@ jobs:
     
     - name: Check doc links
       run: |
-        cargo install cargo-deadlinks
-        cargo deadlinks --ignore-fragments
+        cargo doc --color=never &> ./out
+        cat ./out
+        ! grep "^warning:" ./out

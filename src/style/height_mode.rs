@@ -3,8 +3,6 @@
 //! This module defines various options to set the height of a [`TextBox`]. Although it is
 //! necessary to specify the size of a [`TextBox`], sometimes we may want the text to stretch or
 //! shrink the text box. Height modes help us achieve this.
-//!
-//! [`TextBox`]: ../../struct.TextBox.html
 use crate::{
     plugin::PluginMarker as Plugin, rendering::cursor::Cursor, style::VerticalOverdraw, TextBox,
 };
@@ -12,8 +10,6 @@ use core::ops::Range;
 use embedded_graphics::{geometry::Dimensions, pixelcolor::Rgb888, text::renderer::TextRenderer};
 
 /// Specifies how the [`TextBox`]'s height should be adjusted.
-///
-/// [`TextBox`]: ../struct.TextBox.html
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum HeightMode {
     /// Keep the original [`TextBox`] height.
@@ -50,7 +46,7 @@ pub enum HeightMode {
 
     /// Sets the height of the [`TextBox`] to exactly fit the text.
     ///
-    /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`crate::alignment::VerticalAlignment::Top`] alignment
+    /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`Top`] alignment
     /// for efficiency.
     ///
     /// # Example: `FitToText` grows the [`TextBox`].
@@ -120,7 +116,7 @@ pub enum HeightMode {
     /// assert_eq!(size, Size::new(60, 18));
     /// ```
     ///
-    /// [`TopAligned`]: ../alignment/enum.VerticalAlignment.html#variant.Top
+    /// [`Top`]: crate::alignment::VerticalAlignment::Top
     FitToText,
 
     /// If the text does not fill the bounding box, shrink the [`TextBox`] to be as tall as the

@@ -7,8 +7,6 @@ use crate::{
 };
 
 /// [`TextBoxStyle`] builder object.
-///
-/// [`TextBoxStyle`]: struct.TextBoxStyle.html
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 #[must_use]
 pub struct TextBoxStyleBuilder {
@@ -114,8 +112,6 @@ impl TextBoxStyleBuilder {
     }
 
     /// Builds the [`TextBoxStyle`].
-    ///
-    /// [`TextBoxStyle`]: struct.TextBoxStyle.html
     #[inline]
     pub const fn build(self) -> TextBoxStyle {
         self.style

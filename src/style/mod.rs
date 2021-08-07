@@ -14,8 +14,6 @@
 //!
 //! See the [`TextBoxStyleBuilder`] for more information on what styling options you have.
 //!
-//! To apply a style, call [`TextBox::into_styled`].
-//!
 //! In-band text styling using ANSI escape codes
 //! ============================================
 //!
@@ -130,9 +128,6 @@
 //!    of line.
 //!
 //! [`TextBox`]: crate::TextBox
-//! [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
-//! [`TextBoxStyleBuilder::new`]: builder/struct.TextBoxStyleBuilder.html#method.new
-//! [`TextBox::into_styled`]: ../struct.TextBox.html#method.into_styled
 
 mod builder;
 mod height_mode;
@@ -197,16 +192,10 @@ impl TabSize {
 /// [`HeightMode`], [`HorizontalAlignment`] and [`VerticalAlignment`] information necessary
 /// to draw a [`TextBox`].
 ///
-/// To construct a new `TextBoxStyle` object, use the [`new`] or [`from_text_style`] methods or
+/// To construct a new `TextBoxStyle` object, use the [`TextBoxStyle::default`] method or
 /// the [`TextBoxStyleBuilder`] object.
 ///
-/// [`TextBox`]: ../struct.TextBox.html
-/// [`HeightMode`]: ./enum.HeightMode.html
-/// [`HorizontalAlignment`]: ../alignment/enum.HorizontalAlignment.html
-/// [`VerticalAlignment`]: ../alignment/enum.VerticalAlignment.html
-/// [`TextBoxStyleBuilder`]: builder/struct.TextBoxStyleBuilder.html
-/// [`new`]: #method.new
-/// [`from_text_style`]: #method.from_text_style
+/// [`TextBox`]: crate::TextBox
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 #[non_exhaustive]
 #[must_use]

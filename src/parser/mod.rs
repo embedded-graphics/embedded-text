@@ -78,8 +78,6 @@ where
 }
 
 /// Text parser. Turns a string into a stream of [`Token`] objects.
-///
-/// [`Token`]: enum.Token.html
 #[derive(Clone, Debug)]
 pub(crate) struct Parser<'a, C>
 where
