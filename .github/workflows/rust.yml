@@ -132,4 +132,6 @@ jobs:
     
     - name: Check doc links
       run: |
-        cargo doc
+        cargo doc --color=never &> ./out
+        cat ./out
+        ! grep "^warning:" ./out
