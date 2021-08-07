@@ -1,12 +1,11 @@
 //! Line rendering.
-use core::convert::Infallible;
 
 use crate::{
     parser::{ChangeTextStyle, Parser},
     plugin::{PluginMarker as Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
-        line_iter::{LineElementParser, LineEndType},
+        line_iter::{ElementHandler, LineElementParser, LineEndType},
     },
     style::TextBoxStyle,
     utils::str_width,
@@ -24,8 +23,6 @@ use embedded_graphics::{
     },
     Drawable,
 };
-
-use super::{line_iter::ElementHandler, space_config::SpaceConfig};
 
 impl<C> ChangeTextStyle<C>
 where
@@ -121,7 +118,7 @@ where
         let bounds = Rectangle::new(top_left, size);
 
         self.plugin
-            .post_render(self.display, self.style, st, bounds)?;
+            .post_render(self.display, self.style, Some(st), bounds)?;
 
         Ok(())
     }
@@ -137,7 +134,7 @@ where
         let bounds = Rectangle::new(top_left, size);
 
         self.plugin
-            .post_render(self.display, self.style, st, bounds)?;
+            .post_render(self.display, self.style, Some(st), bounds)?;
 
         Ok(())
     }
@@ -146,32 +143,6 @@ where
         // LineElementIterator ensures this new pos is valid.
         self.pos = Point::new(self.pos.x + by, self.pos.y);
         Ok(())
-    }
-
-    #[cfg(feature = "ansi")]
-    fn change_text_style(
-        &mut self,
-        change: ChangeTextStyle<<F as CharacterStyle>::Color>,
-    ) -> Result<(), Self::Error> {
-        change.apply(self.style);
-        Ok(())
-    }
-}
-
-struct StyleOnlyRenderElementHandler<'a, F> {
-    style: &'a mut F,
-}
-
-impl<'a, F> ElementHandler for StyleOnlyRenderElementHandler<'a, F>
-where
-    F: CharacterStyle + TextRenderer,
-    <F as CharacterStyle>::Color: From<Rgb888>,
-{
-    type Error = Infallible;
-    type Color = <F as CharacterStyle>::Color;
-
-    fn measure(&self, st: &str) -> u32 {
-        str_width(self.style, st)
     }
 
     #[cfg(feature = "ansi")]
@@ -206,52 +177,35 @@ where
             ..
         } = self.state.clone();
 
-        let mut cloned_parser = parser.clone();
-        let measure_plugin = plugin.clone();
-        measure_plugin.set_state(ProcessingState::Measure);
-        let lm = style.measure_line(
-            &measure_plugin,
-            &character_style,
-            &mut cloned_parser,
-            self.cursor.line_width(),
-        );
-
-        let (end_type, end_pos) = if display.bounding_box().size.height == 0 {
-            // We're outside of the view. Use simpler render element handler and space config.
-            let mut elements = LineElementParser::new(
-                &mut parser,
-                plugin,
-                self.cursor.clone(),
-                SpaceConfig::new_from_renderer(&character_style),
-                style.alignment,
-            );
-
-            let end_type = elements
-                .process(&mut StyleOnlyRenderElementHandler {
-                    style: &mut character_style,
-                })
-                .unwrap();
-
-            (end_type, elements.cursor.pos())
-        } else {
-            let (left, space_config) = style.alignment.place_line(&character_style, lm);
-
-            let mut cursor = self.cursor.clone();
-            cursor.move_cursor(left.saturating_as()).ok();
-
-            let pos = cursor.pos();
-            let mut elements =
-                LineElementParser::new(&mut parser, plugin, cursor, space_config, style.alignment);
-
-            let end_type = elements.process(&mut RenderElementHandler {
-                style: &mut character_style,
-                display,
-                pos,
-                plugin,
-            })?;
-
-            (end_type, elements.cursor.pos())
+        let lm = {
+            // Ensure the clone lives for as short as possible.
+            let mut cloned_parser = parser.clone();
+            let measure_plugin = plugin.clone();
+            measure_plugin.set_state(ProcessingState::Measure);
+            style.measure_line(
+                &measure_plugin,
+                &character_style,
+                &mut cloned_parser,
+                self.cursor.line_width(),
+            )
         };
+
+        let (left, space_config) = style.alignment.place_line(&character_style, lm);
+
+        let mut cursor = self.cursor.clone();
+        cursor.move_cursor(left.saturating_as()).ok();
+
+        let pos = cursor.pos();
+        let mut elements =
+            LineElementParser::new(&mut parser, plugin, cursor, space_config, style.alignment);
+
+        let end_type = elements.process(&mut RenderElementHandler {
+            style: &mut character_style,
+            display,
+            pos,
+            plugin,
+        })?;
+        let end_pos = elements.cursor.pos();
 
         let next_state = LineRenderState {
             parser,
@@ -265,7 +219,7 @@ where
             next_state.plugin.post_render(
                 display,
                 &next_state.character_style,
-                "",
+                None,
                 Rectangle::new(
                     end_pos,
                     Size::new(0, next_state.character_style.line_height()),

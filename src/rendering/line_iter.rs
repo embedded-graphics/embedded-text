@@ -237,11 +237,12 @@ where
             handler.whitespace(string, 0, 0)?;
             return Ok(());
         }
+        let signed_width = space_width.saturating_as();
         let draw_whitespace = (self.empty && self.render_leading_spaces())
             || self.render_trailing_spaces()
-            || self.next_word_fits(space_width.saturating_as(), handler);
+            || self.next_word_fits(signed_width, handler);
 
-        match self.move_cursor(space_width.saturating_cast()) {
+        match self.move_cursor(signed_width) {
             Ok(moved) => {
                 let spaces = if draw_whitespace { space_count } else { 0 };
                 handler.whitespace(string, spaces, moved.saturating_as())?;

@@ -41,8 +41,8 @@ pub struct TextBoxProperties<'a, S> {
     /// The height of the text.
     pub text_height: i32,
 
-    /// The height of the text box.
-    pub box_height: i32,
+    /// The bounds of the text box.
+    pub bounding_box: Rectangle,
 }
 
 impl<'a, F, M> Drawable for TextBox<'a, F, M>
@@ -90,7 +90,7 @@ where
             box_style: &self.style,
             char_style: &self.character_style,
             text_height,
-            box_height,
+            bounding_box: self.bounding_box(),
         };
 
         self.plugin.on_start_render(&mut cursor, props);
@@ -135,12 +135,13 @@ where
                     state.plugin.post_render(
                         &mut display,
                         &self.character_style,
-                        "",
+                        None,
                         Rectangle::new(
                             line_start,
                             Size::new(0, cursor.line_height().saturating_as()),
                         ),
                     )?;
+                    state.plugin.on_rendering_finished();
                     return Ok(self.text.get(consumed_bytes..).unwrap());
                 }
             } else {
@@ -150,7 +151,10 @@ where
             state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
 
             match state.end_type {
-                LineEndType::EndOfText => break,
+                LineEndType::EndOfText => {
+                    state.plugin.on_rendering_finished();
+                    break;
+                }
                 LineEndType::CarriageReturn => {}
                 _ => {
                     cursor.new_line();

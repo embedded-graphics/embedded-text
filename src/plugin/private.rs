@@ -50,7 +50,7 @@ where
         &mut self,
         _draw_target: &mut D,
         _character_style: &T,
-        _text: &str,
+        _text: Option<&str>,
         _bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
@@ -62,12 +62,16 @@ where
 
     /// Called before TextBox rendering is started.
     #[inline]
-    fn on_start_render<S: CharacterStyle>(
+    fn on_start_render<S: CharacterStyle + TextRenderer>(
         &mut self,
         _cursor: &mut Cursor,
-        _props: TextBoxProperties<'_, S>,
+        _props: &TextBoxProperties<'_, S>,
     ) {
     }
+
+    /// Called after rendering has finished.
+    #[inline]
+    fn on_rendering_finished(&mut self) {}
 }
 
 impl<'a, C> Plugin<'a, C> for super::NoPlugin<C> where C: PixelColor {}
@@ -97,7 +101,7 @@ where
         &mut self,
         draw_target: &mut D,
         character_style: &T,
-        text: &str,
+        text: Option<&str>,
         bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
@@ -108,12 +112,16 @@ where
             .post_render(draw_target, character_style, text, bounds)
     }
 
-    fn on_start_render<S: CharacterStyle>(
+    fn on_start_render<S: CharacterStyle + TextRenderer>(
         &mut self,
         cursor: &mut Cursor,
-        props: TextBoxProperties<'_, S>,
+        props: &TextBoxProperties<'_, S>,
     ) {
-        self.object.on_start_render(cursor, props)
+        self.object.on_start_render(cursor, &props)
+    }
+
+    fn on_rendering_finished(&mut self) {
+        self.object.on_rendering_finished();
     }
 }
 
@@ -148,7 +156,7 @@ where
         &mut self,
         draw_target: &mut D,
         character_style: &T,
-        text: &str,
+        text: Option<&str>,
         bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
@@ -161,12 +169,17 @@ where
             .post_render(draw_target, character_style, text, bounds)
     }
 
-    fn on_start_render<S: CharacterStyle>(
+    fn on_start_render<S: CharacterStyle + TextRenderer>(
         &mut self,
         cursor: &mut Cursor,
-        props: TextBoxProperties<'_, S>,
+        props: &TextBoxProperties<'_, S>,
     ) {
-        self.parent.on_start_render(cursor, props.clone());
-        self.object.on_start_render(cursor, props);
+        self.parent.on_start_render(cursor, &props);
+        self.object.on_start_render(cursor, &props);
+    }
+
+    fn on_rendering_finished(&mut self) {
+        self.parent.on_rendering_finished();
+        self.object.on_rendering_finished();
     }
 }

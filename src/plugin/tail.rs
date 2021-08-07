@@ -1,6 +1,10 @@
 //! Display the last lines of the text.
 
-use embedded_graphics::{prelude::PixelColor, text::renderer::CharacterStyle};
+use az::SaturatingAs;
+use embedded_graphics::{
+    prelude::PixelColor,
+    text::renderer::{CharacterStyle, TextRenderer},
+};
 
 use crate::{plugin::Plugin, rendering::cursor::Cursor, TextBoxProperties};
 
@@ -12,13 +16,14 @@ use crate::{plugin::Plugin, rendering::cursor::Cursor, TextBoxProperties};
 pub struct Tail;
 
 impl<'a, C: PixelColor> Plugin<'a, C> for Tail {
-    fn on_start_render<S: CharacterStyle>(
+    fn on_start_render<S: CharacterStyle + TextRenderer>(
         &mut self,
         cursor: &mut Cursor,
-        props: TextBoxProperties<'_, S>,
+        props: &TextBoxProperties<'_, S>,
     ) {
-        if props.text_height > props.box_height {
-            let offset = props.box_height - props.text_height;
+        let box_height = props.bounding_box.size.height.saturating_as();
+        if props.text_height > box_height {
+            let offset = box_height - props.text_height;
 
             cursor.y += offset
         }

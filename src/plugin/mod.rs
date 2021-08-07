@@ -1,4 +1,7 @@
-//! Plugin allow changing TextBox behaviour.
+//! Plugins allow changing TextBox behaviour.
+//!
+//! Note: Custom plugins are experimental. Ff you wish to implement custom plugins,
+//! you need to activate the `plugin` feature.
 
 use core::{
     cell::RefCell,
@@ -54,7 +57,10 @@ where
 /// Plugin marker trait.
 ///
 /// This trait is an implementation detail. Most likely you don't need to implement this.
-/// If you wish to implement a plugin, see [Plugin].
+#[cfg_attr(
+    feature = "plugin",
+    doc = "If you wish to implement a plugin, see [Plugin]."
+)]
 // TODO: remove this trait once Plugin is stabilized, then move Plugin here
 pub trait PluginMarker<'a, C: PixelColor>: Plugin<'a, C> {}
 
@@ -70,8 +76,8 @@ pub(crate) struct PluginInner<'a, M, C>
 where
     C: PixelColor,
 {
-    lookahead: M,
-    pub plugin: M,
+    pub(crate) lookahead: M,
+    pub(crate) plugin: M,
     state: ProcessingState,
     peeked_token: (usize, Option<Token<'a, C>>),
 }
@@ -160,10 +166,11 @@ where
         this.peeked_token.0 = len;
         this.peeked_token.1.replace(token);
 
-        this.lookahead = this.plugin.clone();
+        // keeping this here messes up editor example with extremely long words.
+        // this.lookahead = this.plugin.clone();
     }
 
-    pub fn on_start_render<S: CharacterStyle>(
+    pub fn on_start_render<S: CharacterStyle + TextRenderer>(
         &self,
         cursor: &mut Cursor,
         props: TextBoxProperties<'_, S>,
@@ -171,14 +178,20 @@ where
         let mut this = self.inner.borrow_mut();
         this.peeked_token = (0, None);
 
-        this.plugin.on_start_render(cursor, props);
+        this.plugin.on_start_render(cursor, &props);
+    }
+
+    pub fn on_rendering_finished(&self) {
+        let mut this = self.inner.borrow_mut();
+
+        this.lookahead.on_rendering_finished();
     }
 
     pub fn post_render<T, D>(
         &self,
         draw_target: &mut D,
         character_style: &T,
-        text: &str,
+        text: Option<&str>,
         bounds: Rectangle,
     ) -> Result<(), D::Error>
     where

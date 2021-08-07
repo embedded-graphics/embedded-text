@@ -1,23 +1,33 @@
-//! # Example: editor
+//! # Example: interactive-editor
 //!
-//! This example demonstrates a simple text "editor" that lets you type and delete characters.
+//! This example demonstrates how to use the plugins feature to implement an editable text box.
 //!
-//! The demo uses the "Scrolling" vertical layout which is especially useful for
-//! editor type applications.
+//! Running this example requires enabling the "plugin" feature
+
+use az::SaturatingAs;
 use embedded_graphics::{
     geometry::AnchorPoint,
     mono_font::{iso_8859_2::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::{Line, PrimitiveStyle, Rectangle},
-    text::{renderer::TextRenderer, Baseline},
+    text::{
+        renderer::{CharacterStyle, TextRenderer},
+        Baseline,
+    },
 };
 use embedded_graphics_simulator::{
-    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
+    sdl2::MouseButton, BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent,
+    Window,
 };
-use embedded_text::{alignment::VerticalAlignment, plugin::Plugin, style::TextBoxStyle, TextBox};
+use embedded_text::{
+    plugin::Plugin,
+    style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
+    Cursor as RenderingCursor, TextBox, TextBoxProperties,
+};
+use object_chain::Chain;
 use sdl2::keyboard::{Keycode, Mod};
-use std::{collections::HashMap, convert::Infallible, thread, time::Duration};
+use std::{collections::HashMap, convert::Infallible, ops::Sub, thread, time::Duration};
 
 trait StrExt {
     fn first_n_chars<'a>(&'a self, n: usize) -> &'a str;
@@ -59,70 +69,139 @@ impl Selector for (&str, &str, &str, &str) {
     }
 }
 
+pub struct Cursor {
+    /// character offset
+    offset: usize,
+
+    /// cursor position in screen coordinates
+    pos: Point,
+
+    /// current command
+    desired_position: DesiredPosition,
+
+    /// text vertical offset
+    vertical_offset: i32,
+}
+
+impl Cursor {
+    fn plugin<C: PixelColor>(&mut self, color: C) -> EditorPlugin<C> {
+        EditorPlugin {
+            cursor_position: self.pos,
+            current_offset: 0,
+            desired_cursor_position: self.desired_position,
+            color,
+            cursor_drawn: false,
+            vertical_offset: self.vertical_offset,
+            top_left: Point::zero(),
+        }
+    }
+}
+
 struct EditorInput {
     pub text: String,
-    cursor_offset: usize,
+    pub cursor: Cursor,
 }
 
 impl EditorInput {
     pub fn new(text: &str) -> Self {
         Self {
-            cursor_offset: text.len(),
             text: text.to_owned(),
+            cursor: Cursor {
+                offset: text.len(),
+                pos: Point::zero(),
+                desired_position: DesiredPosition::EndOfText,
+                vertical_offset: 0,
+            },
         }
     }
 
     pub fn insert(&mut self, s: &str) {
-        self.text.insert_str(self.cursor_offset, s);
-        self.cursor_offset += s.len();
+        self.text.insert_str(self.cursor.offset, s);
+        self.cursor.offset += s.len();
+        self.cursor.desired_position = DesiredPosition::Offset(self.cursor.offset);
     }
 
     pub fn delete_before(&mut self) {
-        if self.cursor_offset > 0 {
-            self.cursor_offset -= 1;
-            self.text.remove(self.cursor_offset);
+        if self.cursor.offset > 0 {
+            self.cursor.offset -= 1;
+            self.cursor.desired_position = DesiredPosition::Offset(self.cursor.offset);
+            self.text.remove(self.cursor.offset);
         }
     }
 
     pub fn delete_after(&mut self) {
-        if self.cursor_offset < self.text.chars().count() {
-            self.text.remove(self.cursor_offset);
+        if self.cursor.offset < self.text.chars().count() {
+            self.text.remove(self.cursor.offset);
         }
     }
 
     pub fn cursor_left(&mut self) {
-        if self.cursor_offset > 0 {
-            self.cursor_offset -= 1;
+        if self.cursor.offset > 0 {
+            self.cursor.desired_position = DesiredPosition::Offset(self.cursor.offset - 1);
         }
     }
 
     pub fn cursor_right(&mut self) {
-        if self.cursor_offset < self.text.len() {
-            self.cursor_offset += 1;
+        if self.cursor.offset < self.text.len() {
+            self.cursor.desired_position = DesiredPosition::Offset(self.cursor.offset + 1);
         }
     }
 
-    pub fn cursor_plugin<C: PixelColor>(&self, color: C) -> EditorPlugin<C> {
-        EditorPlugin {
-            current_offset: 0,
-            cursor_offset: self.cursor_offset,
-            color,
-            cursor_drawn: false,
+    pub fn cursor_up(&mut self) {
+        self.cursor.desired_position = DesiredPosition::OneLineUp(
+            self.cursor.desired_position.coordinates_or(self.cursor.pos),
+        );
+    }
+
+    pub fn cursor_down(&mut self) {
+        self.cursor.desired_position = DesiredPosition::OneLineDown(
+            self.cursor.desired_position.coordinates_or(self.cursor.pos),
+        );
+    }
+
+    pub fn move_cursor_to(&mut self, point: Point) {
+        self.cursor.desired_position = DesiredPosition::ScreenCoordinates(point);
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum DesiredPosition {
+    OneLineUp(Point),
+    OneLineDown(Point),
+    EndOfText,
+    Offset(usize),
+    /// Move the cursor to the desired text space coordinates
+    Coordinates(Point),
+    /// Move the cursor to the desired screen space coordinates
+    ScreenCoordinates(Point),
+}
+
+impl DesiredPosition {
+    fn coordinates_or(&self, fallback: Point) -> Point {
+        match self {
+            DesiredPosition::Coordinates(c) => *c,
+            _ => fallback,
         }
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct EditorPlugin<C> {
+    desired_cursor_position: DesiredPosition,
+    cursor_position: Point,
     current_offset: usize,
-    cursor_offset: usize,
     color: C,
     cursor_drawn: bool,
+
+    /// text vertical offset
+    vertical_offset: i32,
+    top_left: Point,
 }
 
 impl<C: PixelColor> EditorPlugin<C> {
+    #[track_caller]
     fn draw_cursor<D>(
-        &self,
+        &mut self,
         draw_target: &mut D,
         bounds: Rectangle,
         pos: Point,
@@ -130,6 +209,10 @@ impl<C: PixelColor> EditorPlugin<C> {
     where
         D: DrawTarget<Color = C>,
     {
+        let pos = Point::new(pos.x.max(self.top_left.x), pos.y);
+        self.cursor_position = self.to_text_space(pos);
+        self.cursor_drawn = true;
+
         let style = PrimitiveStyle::with_stroke(self.color, 1);
         Line::new(
             pos + Point::new(0, 1),
@@ -138,44 +221,209 @@ impl<C: PixelColor> EditorPlugin<C> {
         .into_styled(style)
         .draw(draw_target)
     }
+
+    fn to_text_space(&self, point: Point) -> Point {
+        point - Point::new(0, self.vertical_offset) - self.top_left
+    }
+
+    fn to_screen_space(&self, point: Point) -> Point {
+        point + Point::new(0, self.vertical_offset) + self.top_left
+    }
+
+    fn update_cursor(self, cursor: &mut Cursor) {
+        cursor.pos = self.cursor_position;
+        cursor.offset = self.current_offset;
+        cursor.desired_position = self.desired_cursor_position;
+        cursor.vertical_offset = self.vertical_offset;
+    }
 }
 
 impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<C> {
+    fn on_start_render<S: CharacterStyle + TextRenderer>(
+        &mut self,
+        cursor: &mut RenderingCursor,
+        props: &TextBoxProperties<'_, S>,
+    ) {
+        let line_height = props.char_style.line_height() as i32;
+        self.top_left = props.bounding_box.top_left;
+
+        self.desired_cursor_position = match self.desired_cursor_position {
+            DesiredPosition::OneLineUp(old) => {
+                let newy = old.y - line_height;
+
+                if newy < 0 {
+                    DesiredPosition::Offset(0)
+                } else {
+                    DesiredPosition::Coordinates(Point::new(old.x, newy))
+                }
+            }
+            DesiredPosition::OneLineDown(old) => {
+                let newy = old.y + line_height;
+
+                if newy >= props.text_height {
+                    DesiredPosition::EndOfText
+                } else {
+                    DesiredPosition::Coordinates(Point::new(old.x, newy))
+                }
+            }
+            DesiredPosition::ScreenCoordinates(point) => {
+                let point = self.to_text_space(point);
+
+                if point.y < 0 {
+                    DesiredPosition::Offset(0)
+                } else if point.y >= props.text_height {
+                    DesiredPosition::EndOfText
+                } else {
+                    DesiredPosition::Coordinates(Point::new(
+                        point.x,
+                        point.y.min(props.text_height),
+                    ))
+                }
+            }
+            pos => pos,
+        };
+
+        let cursor_coordinates = self
+            .desired_cursor_position
+            .coordinates_or(self.cursor_position);
+
+        let cursor_coordinates = self.to_screen_space(cursor_coordinates);
+
+        // Modify current offset value by the amount outside of the current window
+        let box_height: i32 = props.bounding_box.size.height.saturating_as();
+        let bounds_min = props.bounding_box.top_left.y;
+        let bounds_max = bounds_min + box_height;
+
+        self.vertical_offset -= if cursor_coordinates.y < bounds_min {
+            cursor_coordinates.y - bounds_min
+        } else if cursor_coordinates.y + line_height > bounds_max {
+            cursor_coordinates.y + line_height - bounds_max
+        } else {
+            0
+        };
+
+        self.vertical_offset = self
+            .vertical_offset
+            .max(box_height - props.text_height)
+            .min(0);
+
+        cursor.y += self.vertical_offset;
+
+        if let DesiredPosition::Coordinates(pos) = self.desired_cursor_position {
+            self.desired_cursor_position =
+                DesiredPosition::ScreenCoordinates(self.to_screen_space(pos));
+        }
+    }
+
     fn post_render<T, D>(
         &mut self,
         draw_target: &mut D,
         character_style: &T,
-        text: &str,
+        text: Option<&str>,
         bounds: Rectangle,
     ) -> Result<(), D::Error>
     where
         T: TextRenderer<Color = C>,
         D: DrawTarget<Color = T::Color>,
     {
-        let len = text.chars().count();
-        let current_offset = self.current_offset;
-        self.current_offset += len;
-
         if self.cursor_drawn {
             return Ok(());
         }
 
-        if (len == 0 && current_offset == self.cursor_offset)
-            || (current_offset..current_offset + len).contains(&self.cursor_offset)
-        {
-            let chars_before = self.cursor_offset - current_offset;
-            let pos = if chars_before == 0 {
-                bounds.top_left
-            } else {
-                let str_before = text.first_n_chars(chars_before);
-                let metrics =
-                    character_style.measure_string(str_before, bounds.top_left, Baseline::Top);
-                // we want the start of the next character, not the end of the last, hence the +
-                metrics.bounding_box.anchor_point(AnchorPoint::TopRight) + Point::new(1, 0)
-            };
-            self.draw_cursor(draw_target, bounds, pos)?;
-            self.cursor_drawn = true;
+        // Convert different positions to offset
+        let len = text.unwrap_or_default().chars().count();
+        let desired_cursor_position = match self.desired_cursor_position {
+            DesiredPosition::EndOfText => {
+                // We only want to draw the cursor, so we don't need to do anything
+                // if we are not at the very end of the text
+                if text.is_none() {
+                    Some(self.current_offset)
+                } else {
+                    None
+                }
+            }
+
+            DesiredPosition::ScreenCoordinates(point) => {
+                let same_line = point.y >= bounds.top_left.y
+                    && point.y <= bounds.anchor_point(AnchorPoint::BottomRight).y;
+
+                if same_line {
+                    match text {
+                        Some("\n") | None => {
+                            // end of text, or cursor is positioned before the text begins
+                            Some(self.current_offset)
+                        }
+                        Some(text) if bounds.anchor_point(AnchorPoint::TopRight).x > point.x => {
+                            // Figure out the number of drawn characters, set cursor position
+                            // TODO: this can be simplified by iterating over char_indices
+                            let mut add = len;
+                            let mut anchor_point = bounds.top_left;
+                            for i in 0..len {
+                                let str_before = text.first_n_chars(i).len();
+                                let current_char_offset = text.first_n_chars(i + 1).len();
+                                let char_bounds = character_style
+                                    .measure_string(
+                                        &text[str_before..current_char_offset],
+                                        anchor_point,
+                                        Baseline::Top,
+                                    )
+                                    .bounding_box;
+
+                                let top_right = char_bounds.anchor_point(AnchorPoint::TopRight);
+                                let top_center = char_bounds.anchor_point(AnchorPoint::TopCenter);
+
+                                if top_center.x > point.x {
+                                    add = i;
+                                    break;
+                                }
+                                anchor_point = top_right + Point::new(1, 0);
+                            }
+                            Some(self.current_offset + add)
+                        }
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }
+
+            DesiredPosition::Offset(desired_offset) => Some(desired_offset),
+
+            other => unreachable!("{:?} should have been replaced in on_start_render", other),
+        };
+
+        // Draw cursor
+        match desired_cursor_position {
+            Some(desired_cursor_position)
+                if (self.current_offset..self.current_offset + len.max(1))
+                    .contains(&desired_cursor_position) =>
+            {
+                let chars_before = desired_cursor_position - self.current_offset;
+                let pos = if chars_before == 0 {
+                    // we want the end of the last character
+                    bounds
+                        .top_left
+                        .sub(Point::new(1, 0))
+                        .component_max(self.top_left)
+                } else {
+                    character_style
+                        .measure_string(
+                            text.unwrap().first_n_chars(chars_before),
+                            bounds.top_left,
+                            Baseline::Top,
+                        )
+                        .bounding_box
+                        .anchor_point(AnchorPoint::TopRight)
+                };
+                self.draw_cursor(draw_target, bounds, pos)?;
+                self.current_offset = desired_cursor_position;
+            }
+
+            _ => {
+                self.current_offset += len;
+            }
         }
+
         Ok(())
     }
 }
@@ -243,17 +491,36 @@ fn main() -> Result<(), Infallible> {
         .text_color(BinaryColor::On)
         .build();
 
-    let mut input = EditorInput::new("Hello, World!");
+    let text_box_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
+        .build();
+
+    let mut input = EditorInput::new("Hello, World!\n\nline1\nline2\nline3");
+
+    let display_size = Size::new(128, 64);
+    let margin = Size::new(32, 16);
+    let mut is_mouse_drag = false;
 
     'demo: loop {
         // Create a simulated display with the dimensions of the text box.
-        let mut display = SimulatorDisplay::new(Size::new(128, 64));
+        let mut display = SimulatorDisplay::new(display_size + margin);
 
         // Display an underscore for the "cursor"
         // Create the text box and apply styling options.
-        TextBox::new(&input.text, display.bounding_box(), character_style)
-            .add_plugin(input.cursor_plugin(BinaryColor::On))
-            .draw(&mut display)?;
+        let tb = TextBox::with_textbox_style(
+            &input.text,
+            display
+                .bounding_box()
+                .resized(display_size, AnchorPoint::Center),
+            character_style,
+            text_box_style,
+        )
+        .add_plugin(input.cursor.plugin(BinaryColor::On));
+
+        tb.draw(&mut display)?;
+
+        let Chain { object: plugin } = tb.take_plugins();
+        plugin.update_cursor(&mut input.cursor);
 
         // Update the window.
         window.update(&display);
@@ -268,8 +535,9 @@ fn main() -> Result<(), Infallible> {
 
                     Keycode::Delete => input.delete_after(),
                     Keycode::Left => input.cursor_left(),
-
                     Keycode::Right => input.cursor_right(),
+                    Keycode::Up => input.cursor_up(),
+                    Keycode::Down => input.cursor_down(),
 
                     _ => {
                         if let Some(k) = inputs.get(&keycode) {
@@ -277,7 +545,20 @@ fn main() -> Result<(), Infallible> {
                         }
                     }
                 },
-
+                SimulatorEvent::MouseButtonDown {
+                    mouse_btn: MouseButton::Left,
+                    point,
+                } => {
+                    is_mouse_drag = true;
+                    input.move_cursor_to(point)
+                }
+                SimulatorEvent::MouseButtonUp {
+                    mouse_btn: MouseButton::Left,
+                    ..
+                } => {
+                    is_mouse_drag = false;
+                }
+                SimulatorEvent::MouseMove { point } if is_mouse_drag => input.move_cursor_to(point),
                 SimulatorEvent::Quit => break 'demo,
                 _ => {}
             }
