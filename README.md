@@ -93,7 +93,8 @@ fn main() {
 
 ## Cargo features
 
- * `plugin` (*experimental*): allows the user to implement plugins.
+ * `plugin` (*experimental*): allows implementing custom plugins.
+ * `ansi` (default enabled): enables ANSI sequence support using the `Ansi` plugin.
 
 [embedded-graphics]: https://github.com/embedded-graphics/embedded-graphics/
 [the embedded-graphics simulator]: https://github.com/embedded-graphics/embedded-graphics/tree/master/simulator

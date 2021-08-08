@@ -28,7 +28,6 @@ Unreleased
 ## Removed:
 
  * [#134] `Scrolling` vertical alignment
- * [#138] `ansi` feature flag
 
 [#133]: https://github.com/embedded-graphics/embedded-text/pull/133
 [#134]: https://github.com/embedded-graphics/embedded-text/pull/134
