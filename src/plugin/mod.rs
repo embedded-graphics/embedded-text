@@ -31,6 +31,7 @@ mod private;
 #[cfg(not(feature = "plugin"))]
 use private::Plugin;
 
+#[cfg(feature = "ansi")]
 pub mod ansi;
 pub mod tail;
 
