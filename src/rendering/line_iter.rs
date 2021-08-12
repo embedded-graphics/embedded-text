@@ -749,6 +749,28 @@ pub(crate) mod test {
     }
 
     #[test]
+    fn space_wrapping_issue() {
+        let mut parser = Parser::parse("Hello,     s");
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
+
+        assert_line_elements(
+            &mut parser,
+            10,
+            &[
+                RenderElement::string("Hello,", 36),
+                RenderElement::Space(6 * 4, false),
+            ],
+            &mw,
+        );
+        assert_line_elements(
+            &mut parser,
+            10,
+            &[RenderElement::Space(6, true), RenderElement::string("s", 6)],
+            &mw,
+        );
+    }
+
+    #[test]
     fn cursor_limit() {
         let mut parser = Parser::parse("Some sample text");
         let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
