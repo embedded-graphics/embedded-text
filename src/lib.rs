@@ -243,14 +243,16 @@ where
     where
         M: Plugin<'a, <S as TextRenderer>::Color>,
     {
-        TextBox {
+        let mut styled = TextBox {
             text: self.text,
             bounds: self.bounds,
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
             plugin: PluginWrapper::new(Chain::new(plugin)),
-        }
+        };
+        styled.style.height_mode.apply(&mut styled);
+        styled
     }
 }
 
@@ -268,14 +270,16 @@ where
     {
         let parent = self.plugin.inner.into_inner();
 
-        TextBox {
+        let mut styled = TextBox {
             text: self.text,
             bounds: self.bounds,
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
             plugin: PluginWrapper::new(parent.plugin.append(plugin)),
-        }
+        };
+        styled.style.height_mode.apply(&mut styled);
+        styled
     }
 
     /// Deconstruct the textbox and return the plugins.
@@ -338,7 +342,8 @@ where
         // Measure text given the width of the textbox
         let text_height = self
             .style
-            .measure_text_height(
+            .measure_text_height_impl(
+                self.plugin.clone(),
                 &self.character_style,
                 self.text,
                 self.bounding_box().size.width,

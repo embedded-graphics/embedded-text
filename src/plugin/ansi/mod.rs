@@ -93,11 +93,13 @@ mod test {
         mock_display::MockDisplay,
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
         pixelcolor::{BinaryColor, Rgb888},
+        prelude::{Point, Size},
+        primitives::Rectangle,
         Drawable,
     };
 
     use crate::{
-        alignment::HorizontalAlignment,
+        alignment::{HorizontalAlignment, VerticalAlignment},
         parser::Parser,
         plugin::{ansi::Ansi, PluginWrapper},
         rendering::{
@@ -108,9 +110,9 @@ mod test {
                 LineEndType,
             },
         },
-        style::{TabSize, TextBoxStyleBuilder},
+        style::{HeightMode, TabSize, TextBoxStyleBuilder},
         utils::test::size_for,
-        ChangeTextStyle,
+        ChangeTextStyle, TextBox,
     };
 
     #[test]
@@ -242,5 +244,32 @@ mod test {
             ".........................#................",
             ".........................#................",
         ]);
+    }
+
+    #[test]
+    fn ansi_style_measure() {
+        let text = "Some \x1b[4mstylish\x1b[24m multiline text that expands the widget vertically";
+
+        let character_style = MonoTextStyleBuilder::new()
+            .font(&FONT_6X9)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        let style = TextBoxStyleBuilder::new()
+            .alignment(HorizontalAlignment::Center)
+            .vertical_alignment(VerticalAlignment::Middle)
+            .height_mode(HeightMode::FitToText)
+            .build();
+
+        let tb = TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), Size::new(150, 240)),
+            character_style,
+            style,
+        )
+        .add_plugin(Ansi::new());
+
+        assert_eq!(3 * 9, tb.bounds.size.height);
     }
 }
