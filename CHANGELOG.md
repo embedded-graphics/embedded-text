@@ -1,3 +1,12 @@
+Unreleased
+==========
+
+## Fixed:
+
+ * [#143] Fixed measuring text height with active plugins.
+
+[#143]: https://github.com/embedded-graphics/embedded-text/pull/143
+
 0.5.0-beta.3 (2021-08-08)
 =========================
 
@@ -34,8 +43,8 @@
 [#135]: https://github.com/embedded-graphics/embedded-text/pull/135
 [#136]: https://github.com/embedded-graphics/embedded-text/pull/136
 [#137]: https://github.com/embedded-graphics/embedded-text/pull/137
-[#140]: https://github.com/embedded-graphics/embedded-text/pull/140
 [#138]: https://github.com/embedded-graphics/embedded-text/pull/138
+[#140]: https://github.com/embedded-graphics/embedded-text/pull/140
 
 0.5.0-beta.2 (2021-07-10)
 ==========================
