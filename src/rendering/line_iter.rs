@@ -221,10 +221,10 @@ where
         string: &'a str,
         space_count: u32,
         space_width: u32,
-    ) -> Result<(), E::Error> {
+    ) -> Result<bool, E::Error> {
         if self.empty && !self.render_leading_spaces() {
             handler.whitespace(string, 0, 0)?;
-            return Ok(());
+            return Ok(false);
         }
         let signed_width = space_width.saturating_as();
         let draw_whitespace = (self.empty && self.render_leading_spaces())
@@ -242,18 +242,27 @@ where
                 let consumed = moved as u32 / single;
                 if consumed > 0 {
                     let (pos, _) = string.char_indices().nth(consumed as usize).unwrap();
-                    let (consumed_str, _) = string.split_at(pos);
-                    handler.whitespace(consumed_str, consumed, consumed * single)?;
+                    let (consumed_str, remainder_str) = string.split_at(pos);
+                    let consumed_width = consumed * single;
 
+                    let _ = self.move_cursor(consumed_width.saturating_as());
+                    handler.whitespace(
+                        consumed_str,
+                        consumed * self.render_trailing_spaces() as u32,
+                        consumed_width,
+                    )?;
+
+                    // Counter-intuitive:
+                    // Replace the consumed token so it will be consumed from the parsed stream
                     self.replace_peeked_token(
                         consumed as usize,
-                        Token::Whitespace(consumed, consumed_str),
+                        Token::Whitespace(consumed, remainder_str),
                     );
-                    return Ok(());
+                    return Ok(true);
                 }
             }
         }
-        Ok(())
+        Ok(false)
     }
 
     fn draw_tab<E: ElementHandler>(
@@ -300,7 +309,10 @@ where
             match token {
                 Token::Whitespace(n, seq) => {
                     let space_width = self.spaces.consume(n);
-                    self.draw_whitespace(handler, seq, n, space_width)?;
+                    if self.draw_whitespace(handler, seq, n, space_width)? {
+                        self.consume_token();
+                        return Ok(LineEndType::LineBreak);
+                    }
                 }
 
                 Token::Tab => {
