@@ -196,13 +196,14 @@ where
         let mut elements =
             LineElementParser::new(&mut parser, plugin, cursor, space_config, style.alignment);
 
-        let end_type = elements.process(&mut RenderElementHandler {
+        let mut render_element_handler = RenderElementHandler {
             style: &mut character_style,
             display,
             pos,
             plugin,
-        })?;
-        let end_pos = elements.cursor.pos();
+        };
+        let end_type = elements.process(&mut render_element_handler)?;
+        let end_pos = render_element_handler.pos;
 
         let next_state = LineRenderState {
             parser,

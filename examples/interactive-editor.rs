@@ -27,7 +27,7 @@ use embedded_text::{
 };
 use object_chain::Chain;
 use sdl2::keyboard::{Keycode, Mod};
-use std::{collections::HashMap, convert::Infallible, ops::Sub, thread, time::Duration};
+use std::{collections::HashMap, convert::Infallible, thread, time::Duration};
 
 trait StrExt {
     fn first_n_chars<'a>(&'a self, n: usize) -> &'a str;
@@ -493,7 +493,7 @@ fn main() -> Result<(), Infallible> {
         .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
         .build();
 
-    let mut input = EditorInput::new("line3 ");
+    let mut input = EditorInput::new("Hello, World!\nline1\nline2 \nline3 ");
 
     let display_size = Size::new(128, 64);
     let margin = Size::new(32, 16);
