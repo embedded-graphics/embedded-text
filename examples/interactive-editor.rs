@@ -495,7 +495,7 @@ fn main() -> Result<(), Infallible> {
         .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
         .build();
 
-    let mut input = EditorInput::new("Hello, World!\n\nline1\nline2\nline3");
+    let mut input = EditorInput::new("Hello, World!\n\nline1\nline2\nline3 ");
 
     let display_size = Size::new(128, 64);
     let margin = Size::new(32, 16);

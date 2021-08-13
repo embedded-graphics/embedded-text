@@ -104,14 +104,12 @@ where
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, st: &str, space_count: u32, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, st: &str, _space_count: u32, width: u32) -> Result<(), Self::Error> {
         let top_left = self.pos;
-        if space_count > 0 {
+        if width > 0 {
             self.pos = self
                 .style
                 .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
-        } else {
-            self.pos += Point::new(width.saturating_as(), 0);
         }
 
         let size = Size::new(width, self.style.line_height().saturating_as());
