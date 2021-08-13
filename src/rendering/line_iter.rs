@@ -4,10 +4,10 @@
 //! a single line and is responsible for handling word wrapping, eating leading/trailing whitespace,
 //! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
 use crate::{
-    alignment::HorizontalAlignment,
     parser::{ChangeTextStyle, Parser, Token, SPEC_CHAR_NBSP},
     plugin::{PluginMarker as Plugin, PluginWrapper},
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
+    style::TextBoxStyle,
 };
 use az::{SaturatingAs, SaturatingCast};
 use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor};
@@ -22,13 +22,12 @@ where
     /// Position information.
     pub cursor: LineCursor,
 
-    /// The text to draw.
     parser: &'b mut Parser<'a, C>,
 
     spaces: SpaceConfig,
-    alignment: HorizontalAlignment,
     empty: bool,
     plugin: &'b PluginWrapper<'a, M, C>,
+    style: &'b TextBoxStyle,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,15 +81,15 @@ where
         plugin: &'b PluginWrapper<'a, M, C>,
         cursor: LineCursor,
         spaces: SpaceConfig,
-        alignment: HorizontalAlignment,
+        style: &'b TextBoxStyle,
     ) -> Self {
         Self {
             parser,
             spaces,
             cursor,
-            alignment,
             empty: true,
             plugin,
+            style,
         }
     }
 
@@ -201,18 +200,11 @@ where
     }
 
     fn render_trailing_spaces(&self) -> bool {
-        // TODO: make this configurable
-        false
+        self.style.trailing_spaces
     }
 
     fn render_leading_spaces(&self) -> bool {
-        // TODO: make this configurable
-        match self.alignment {
-            HorizontalAlignment::Left => true,
-            HorizontalAlignment::Center => false,
-            HorizontalAlignment::Right => false,
-            HorizontalAlignment::Justified => false,
-        }
+        self.style.leading_spaces
     }
 
     fn draw_whitespace<E: ElementHandler>(
@@ -580,9 +572,10 @@ pub(crate) mod test {
         )
         .line();
 
+        let text_box_style = TextBoxStyle::default();
+
         let mut handler = TestElementHandler::new(style);
-        let mut line1 =
-            LineElementParser::new(parser, plugin, cursor, config, HorizontalAlignment::Left);
+        let mut line1 = LineElementParser::new(parser, plugin, cursor, config, &text_box_style);
 
         line1.process(&mut handler).unwrap();
 
@@ -604,15 +597,12 @@ pub(crate) mod test {
         )
         .line();
 
+        let text_box_style = TextBoxStyle::default();
+
+        let plugin = PluginWrapper::new(NoPlugin::<Rgb888>::new());
         let mut handler = TestElementHandler::new(style);
-        let mut mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
-        let mut line1 = LineElementParser::new(
-            &mut parser,
-            &mut mw,
-            cursor,
-            config,
-            HorizontalAlignment::Left,
-        );
+        let mut line1 =
+            LineElementParser::new(&mut parser, &plugin, cursor, config, &text_box_style);
 
         line1.process(&mut handler).unwrap();
 
