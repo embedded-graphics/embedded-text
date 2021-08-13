@@ -169,7 +169,9 @@ where
         // We don't want to count the current token.
         lookahead.consume_peeked_token(&mut lookahead_parser);
 
-        let _ = cursor.move_cursor(space_width);
+        if cursor.move_cursor(space_width).is_err() {
+            return false;
+        }
         while !exit {
             let width = match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
@@ -219,10 +221,10 @@ where
         string: &'a str,
         space_count: u32,
         space_width: u32,
-    ) -> Result<(), E::Error> {
+    ) -> Result<bool, E::Error> {
         if self.empty && !self.render_leading_spaces() {
-            handler.whitespace(string, 0, 0)?;
-            return Ok(());
+            handler.whitespace(string, space_count, 0)?;
+            return Ok(false);
         }
         let signed_width = space_width.saturating_as();
         let draw_whitespace = (self.empty && self.render_leading_spaces())
@@ -231,8 +233,11 @@ where
 
         match self.move_cursor(signed_width) {
             Ok(moved) => {
-                let spaces = if draw_whitespace { space_count } else { 0 };
-                handler.whitespace(string, spaces, moved.saturating_as())?;
+                handler.whitespace(
+                    string,
+                    space_count,
+                    moved.saturating_as::<u32>() * draw_whitespace as u32,
+                )?;
             }
 
             Err(moved) => {
@@ -240,18 +245,27 @@ where
                 let consumed = moved as u32 / single;
                 if consumed > 0 {
                     let (pos, _) = string.char_indices().nth(consumed as usize).unwrap();
-                    let (consumed_str, _) = string.split_at(pos);
-                    handler.whitespace(consumed_str, consumed, consumed * single)?;
+                    let (consumed_str, remainder_str) = string.split_at(pos);
+                    let consumed_width = consumed * single;
 
+                    let _ = self.move_cursor(consumed_width.saturating_as());
+                    handler.whitespace(
+                        consumed_str,
+                        consumed,
+                        consumed_width * self.render_trailing_spaces() as u32,
+                    )?;
+
+                    // Counter-intuitive:
+                    // Replace the consumed token so it will be consumed from the parsed stream
                     self.replace_peeked_token(
                         consumed as usize,
-                        Token::Whitespace(consumed, consumed_str),
+                        Token::Whitespace(consumed, remainder_str),
                     );
-                    return Ok(());
+                    return Ok(true);
                 }
             }
         }
-        Ok(())
+        Ok(false)
     }
 
     fn draw_tab<E: ElementHandler>(
@@ -298,7 +312,10 @@ where
             match token {
                 Token::Whitespace(n, seq) => {
                     let space_width = self.spaces.consume(n);
-                    self.draw_whitespace(handler, seq, n, space_width)?;
+                    if self.draw_whitespace(handler, seq, n, space_width)? {
+                        self.consume_token();
+                        return Ok(LineEndType::LineBreak);
+                    }
                 }
 
                 Token::Tab => {
@@ -519,7 +536,7 @@ pub(crate) mod test {
 
         fn whitespace(&mut self, _string: &str, count: u32, width: u32) -> Result<(), Self::Error> {
             self.elements
-                .push(RenderElement::Space(width, (count > 0) as bool));
+                .push(RenderElement::Space(count, (width > 0) as bool));
             Ok(())
         }
 
@@ -662,9 +679,9 @@ pub(crate) mod test {
             5,
             &[
                 RenderElement::string("a", 6),
-                RenderElement::Space(6, true),
+                RenderElement::Space(1, true),
                 RenderElement::string("b", 6),
-                RenderElement::Space(6, false),
+                RenderElement::Space(1, false),
             ],
             &mw,
         );
@@ -673,9 +690,9 @@ pub(crate) mod test {
             5,
             &[
                 RenderElement::string("c", 6),
-                RenderElement::Space(6, true),
+                RenderElement::Space(1, true),
                 RenderElement::string("d", 6),
-                RenderElement::Space(6, true),
+                RenderElement::Space(1, true),
                 RenderElement::string("e", 6),
             ],
             &mw,
@@ -711,7 +728,7 @@ pub(crate) mod test {
             50,
             &[
                 RenderElement::string("glued", 30),
-                RenderElement::Space(6, true),
+                RenderElement::Space(1, true),
                 RenderElement::string("words", 30),
             ],
             &mw,
@@ -728,7 +745,7 @@ pub(crate) mod test {
             16,
             &[
                 RenderElement::string("a", 6),
-                RenderElement::Space(6 * 3, true),
+                RenderElement::Space(1, true),
                 RenderElement::string("word", 24),
                 RenderElement::Space(0, false), // the newline
             ],
@@ -739,11 +756,33 @@ pub(crate) mod test {
             16,
             &[
                 RenderElement::string("and", 18),
-                RenderElement::Space(6, true),
-                RenderElement::Space(6 * 4, true),
+                RenderElement::Space(1, true),
+                RenderElement::Space(1, true),
                 RenderElement::string("another", 42),
                 RenderElement::MoveCursor(6),
             ],
+            &mw,
+        );
+    }
+
+    #[test]
+    fn space_wrapping_issue() {
+        let mut parser = Parser::parse("Hello,     s");
+        let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
+
+        assert_line_elements(
+            &mut parser,
+            10,
+            &[
+                RenderElement::string("Hello,", 36),
+                RenderElement::Space(4, false),
+            ],
+            &mw,
+        );
+        assert_line_elements(
+            &mut parser,
+            10,
+            &[RenderElement::Space(1, true), RenderElement::string("s", 6)],
             &mw,
         );
     }

@@ -4,8 +4,10 @@ Unreleased
 ## Fixed:
 
  * [#143] Fixed measuring text height with active plugins.
+ * [#144] Fixed a word wrapping issue
 
 [#143]: https://github.com/embedded-graphics/embedded-text/pull/143
+[#144]: https://github.com/embedded-graphics/embedded-text/pull/144
 
 0.5.0-beta.3 (2021-08-08)
 =========================

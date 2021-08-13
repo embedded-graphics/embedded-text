@@ -162,7 +162,7 @@ mod test {
             100,
             &[
                 RenderElement::string("Lorem", 30),
-                RenderElement::Space(6, true),
+                RenderElement::Space(1, true),
                 RenderElement::ChangeTextStyle(ChangeTextStyle::TextColor(Some(Rgb888::new(
                     22, 198, 12,
                 )))),
@@ -182,7 +182,7 @@ mod test {
             8,
             &[
                 RenderElement::string("Lorem", 30),
-                RenderElement::Space(6, false),
+                RenderElement::Space(1, false),
             ],
             &mw,
         );

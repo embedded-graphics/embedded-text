@@ -104,14 +104,12 @@ where
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, st: &str, space_count: u32, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, st: &str, _space_count: u32, width: u32) -> Result<(), Self::Error> {
         let top_left = self.pos;
-        if space_count > 0 {
+        if width > 0 {
             self.pos = self
                 .style
                 .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
-        } else {
-            self.pos += Point::new(width.saturating_as(), 0);
         }
 
         let size = Size::new(width, self.style.line_height().saturating_as());
@@ -198,13 +196,14 @@ where
         let mut elements =
             LineElementParser::new(&mut parser, plugin, cursor, space_config, style.alignment);
 
-        let end_type = elements.process(&mut RenderElementHandler {
+        let mut render_element_handler = RenderElementHandler {
             style: &mut character_style,
             display,
             pos,
             plugin,
-        })?;
-        let end_pos = elements.cursor.pos();
+        };
+        let end_type = elements.process(&mut render_element_handler)?;
+        let end_pos = render_element_handler.pos;
 
         let next_state = LineRenderState {
             parser,
