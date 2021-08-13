@@ -491,6 +491,7 @@ fn main() -> Result<(), Infallible> {
 
     let text_box_style = TextBoxStyleBuilder::new()
         .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
+        .trailing_spaces(true)
         .build();
 
     let mut input = EditorInput::new("Hello, World!\nline1\nline2 \nline3 ");

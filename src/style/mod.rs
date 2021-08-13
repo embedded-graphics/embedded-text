@@ -217,6 +217,12 @@ pub struct TextBoxStyle {
 
     /// Desired column width for tabs
     pub tab_size: TabSize,
+
+    /// True to render leading spaces
+    pub leading_spaces: bool,
+
+    /// True to render trailing spaces
+    pub trailing_spaces: bool,
 }
 
 impl TextBoxStyle {
@@ -334,7 +340,7 @@ impl TextBoxStyle {
             plugin,
             cursor,
             SpaceConfig::new(str_width(character_style, " "), None),
-            self.alignment,
+            self,
         );
 
         let mut handler = MeasureLineElementHandler {

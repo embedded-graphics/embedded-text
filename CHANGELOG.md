@@ -1,6 +1,11 @@
 Unreleased
 ==========
 
+## Added:
+
+ * [#148] Added `TextBoxStyleBuilder::leading_spaces()` and `TextBoxStyleBuilder::trailing_spaces()`
+ * [#148] Added `TextBoxStyle::leading_spaces` and `TextBoxStyle::trailing_spaces`
+
 ## Fixed:
 
  * [#143] Fixed measuring text height with active plugins.
@@ -8,6 +13,7 @@ Unreleased
 
 [#143]: https://github.com/embedded-graphics/embedded-text/pull/143
 [#144]: https://github.com/embedded-graphics/embedded-text/pull/144
+[#148]: https://github.com/embedded-graphics/embedded-text/pull/148
 
 0.5.0-beta.3 (2021-08-08)
 =========================

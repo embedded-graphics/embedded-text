@@ -58,6 +58,19 @@ impl HorizontalAlignment {
             }
         }
     }
+
+    pub(crate) const fn leading_spaces(self) -> bool {
+        match self {
+            HorizontalAlignment::Left => true,
+            HorizontalAlignment::Center => false,
+            HorizontalAlignment::Right => false,
+            HorizontalAlignment::Justified => false,
+        }
+    }
+
+    pub(crate) const fn trailing_spaces(self) -> bool {
+        false
+    }
 }
 
 /// Vertical text alignment options.

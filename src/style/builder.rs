@@ -11,6 +11,8 @@ use crate::{
 #[must_use]
 pub struct TextBoxStyleBuilder {
     style: TextBoxStyle,
+    leading_spaces: Option<bool>,
+    trailing_spaces: Option<bool>,
 }
 
 impl TextBoxStyleBuilder {
@@ -31,7 +33,12 @@ impl TextBoxStyleBuilder {
                 line_height: LineHeight::Percent(100),
                 paragraph_spacing: 0,
                 tab_size: TabSize::Spaces(4),
+                // we will update these at build time
+                leading_spaces: false,
+                trailing_spaces: false,
             },
+            leading_spaces: None,
+            trailing_spaces: None,
         }
     }
 
@@ -111,9 +118,35 @@ impl TextBoxStyleBuilder {
         self
     }
 
+    /// Render leading spaces.
+    #[inline]
+    pub const fn leading_spaces(mut self, render: bool) -> Self {
+        self.leading_spaces = Some(render);
+
+        self
+    }
+
+    /// Render trailing spaces.
+    #[inline]
+    pub const fn trailing_spaces(mut self, render: bool) -> Self {
+        self.trailing_spaces = Some(render);
+
+        self
+    }
+
     /// Builds the [`TextBoxStyle`].
     #[inline]
-    pub const fn build(self) -> TextBoxStyle {
+    pub const fn build(mut self) -> TextBoxStyle {
+        self.style.leading_spaces = match self.leading_spaces {
+            Some(leading_spaces) => leading_spaces,
+            None => self.style.alignment.leading_spaces(),
+        };
+
+        self.style.trailing_spaces = match self.trailing_spaces {
+            Some(trailing_spaces) => trailing_spaces,
+            None => self.style.alignment.trailing_spaces(),
+        };
+
         self.style
     }
 }
@@ -121,6 +154,10 @@ impl TextBoxStyleBuilder {
 impl From<&TextBoxStyle> for TextBoxStyleBuilder {
     #[inline]
     fn from(style: &TextBoxStyle) -> Self {
-        Self { style: *style }
+        Self {
+            style: *style,
+            leading_spaces: None,
+            trailing_spaces: None,
+        }
     }
 }

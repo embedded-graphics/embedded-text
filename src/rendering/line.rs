@@ -194,7 +194,7 @@ where
 
         let pos = cursor.pos();
         let mut elements =
-            LineElementParser::new(&mut parser, plugin, cursor, space_config, style.alignment);
+            LineElementParser::new(&mut parser, plugin, cursor, space_config, &style);
 
         let mut render_element_handler = RenderElementHandler {
             style: &mut character_style,
