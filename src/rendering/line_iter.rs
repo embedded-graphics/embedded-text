@@ -274,7 +274,7 @@ where
             || self.next_word_fits(space_width.saturating_as(), handler);
 
         match self.move_cursor(space_width.saturating_cast()) {
-            Ok(moved) if draw_whitespace => handler.whitespace("\t", 1, moved.saturating_as())?,
+            Ok(moved) if draw_whitespace => handler.whitespace("\t", 0, moved.saturating_as())?,
 
             Ok(moved) | Err(moved) => {
                 handler.move_cursor(moved.saturating_as())?;
@@ -735,7 +735,7 @@ pub(crate) mod test {
             16,
             &[
                 RenderElement::string("a", 6),
-                RenderElement::Space(1, true),
+                RenderElement::Space(0, true),
                 RenderElement::string("word", 24),
                 RenderElement::Space(0, false), // the newline
             ],
@@ -746,8 +746,8 @@ pub(crate) mod test {
             16,
             &[
                 RenderElement::string("and", 18),
-                RenderElement::Space(1, true),
-                RenderElement::Space(1, true),
+                RenderElement::Space(0, true),
+                RenderElement::Space(0, true),
                 RenderElement::string("another", 42),
                 RenderElement::MoveCursor(6),
             ],

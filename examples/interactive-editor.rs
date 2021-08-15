@@ -21,6 +21,7 @@ use embedded_graphics_simulator::{
     Window,
 };
 use embedded_text::{
+    alignment::HorizontalAlignment,
     plugin::Plugin,
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     Cursor as RenderingCursor, TextBox, TextBoxProperties,
@@ -470,6 +471,7 @@ fn main() -> Result<(), Infallible> {
         (Keycode::Comma, (",", "?", ",", " ")),
         (Keycode::Period, (".", ":", ".", ">")),
         (Keycode::Minus, ("-", "_", "-", "*")),
+        (Keycode::Tab, ("\t", "\t", "\t", "\t")),
         (Keycode::Return, ("\n", "\n", "\n", "\n")),
         (Keycode::KpEnter, ("\n", "\n", "\n", "\n")),
     ]
@@ -491,6 +493,8 @@ fn main() -> Result<(), Infallible> {
 
     let text_box_style = TextBoxStyleBuilder::new()
         .height_mode(HeightMode::Exact(VerticalOverdraw::Hidden))
+        .alignment(HorizontalAlignment::Left)
+        .leading_spaces(true)
         .trailing_spaces(true)
         .build();
 

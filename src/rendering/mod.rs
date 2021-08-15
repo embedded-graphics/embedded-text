@@ -184,7 +184,7 @@ pub mod test {
 
     use crate::{
         alignment::HorizontalAlignment,
-        style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
+        style::{HeightMode, TextBoxStyle, TextBoxStyleBuilder, VerticalOverdraw},
         utils::test::size_for,
         TextBox,
     };
@@ -196,6 +196,16 @@ pub mod test {
         size: Size,
         pattern: &[&str],
     ) {
+        assert_styled_rendered(
+            TextBoxStyleBuilder::new().alignment(alignment).build(),
+            text,
+            size,
+            pattern,
+        );
+    }
+
+    #[track_caller]
+    pub fn assert_styled_rendered(style: TextBoxStyle, text: &str, size: Size, pattern: &[&str]) {
         let mut display = MockDisplay::new();
 
         let character_style = MonoTextStyleBuilder::new()
@@ -203,8 +213,6 @@ pub mod test {
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
             .build();
-
-        let style = TextBoxStyleBuilder::new().alignment(alignment).build();
 
         TextBox::with_textbox_style(
             text,
