@@ -1,20 +1,52 @@
 //! `TextBox` styling.
+//! ==================
 //!
-//! Style objects and why you need them
-//! ===================================
+//! To construct a `TextBox` object at least a text string, a bounding box and character style are
+//! required. For advanced formatting options an additional `TextBoxStyle` object might be required.
 //!
-//! By itself, a [`TextBox`] does not contain the information necessary to draw it on a display.
-//! This information is called "style" and it is contained in [`TextBoxStyle`] objects.
+//! Text rendering in `embedded-graphics` is designed to be extendable by text renderers for
+//! different font formats. `embedded-text` follows this philosophy by using the same text renderer
+//! infrastructure. To use a text renderer in an `embedded-text` project each renderer provides a
+//! character style object. See the [`embedded-graphics` documentation] for more information.
 //!
-//! The recommended (and most flexible) way of constructing a style object is using the
-//! [`TextBoxStyleBuilder`] builder object. The least amount of information necessary to create a
-//! text style is the `MonoFont` used to render the text, so you'll need to specify this when you call
-//! [`TextBoxStyleBuilder::new`].
-//! You can then chain together various builder methods to customize MonoFont rendering.
+//! TextBox style
+//! ---------------
 //!
-//! See the [`TextBoxStyleBuilder`] for more information on what styling options you have.
+//! In addition to styling the individual characters the [`TextBox`] drawable also contains a
+//! [`TextBoxStyle`] setting. The text box style is used to set the horizontal and vertical
+//! alignment, line and paragraph spacing, tab size and some other advanced settings of text box
+//! objects.
+//!
+//! The [`alignment`] option sets the horizontal alignment of the text.
+//! **Note: alignment works differently from `embedded-graphics`.**
+//! With the default value `Left` the start of each line will be lined up with the left side of the
+//! bounding box. Similarly `Right` aligned text will line up the ends of the lines with the right
+//! side of the bounding box. `Center`ed text will be positioned at equal distance from the left and
+//! right sides. `Justified` text will distribute the text in such a way that both the start and end
+//! of a line will align with the respective sides of the bounding box.
+//!
+//! The [`vertical_alignment`] setting sets the vertical alignment of the text.
+//! With the default value `Top` the top of the text is lined up with the top of the bounding box.
+//! Similarly `Bottom` aligned text will line up the bottom of the last line of the text with the
+//! bottom edge of the bounding box. `Middle` aligned text will be positioned at equal distance from
+//! the top and bottom sides.
+//!
+//! The [`line_height`] option sets the distance between the baselines of the lines of text. It can
+//! be specified in either pixels or percentage of the line height defined by the font.
+//!
+//! The [`paragraph_spacing`] setting sets the distance between paragraphs of text, in addition to
+//! the line spacing.
+//!
+//! The [`tab_size`] setting sets the maximum width of a tab character. It can be specified in
+//! either pixels of number of space characters.
 //!
 //! [`TextBox`]: crate::TextBox
+//! [`alignment`]: TextBoxStyle::alignment
+//! [`vertical_alignment`]: TextBoxStyle::vertical_alignment
+//! [`line_height`]: TextBoxStyle::line_height
+//! [`paragraph_spacing`]: TextBoxStyle::paragraph_spacing
+//! [`tab_size`]: TextBoxStyle::tab_size
+//! [`embedded-graphics` documentation]: https://docs.rs/embedded-graphics/0.7.1/embedded_graphics/text/index.html
 
 mod builder;
 mod height_mode;
