@@ -91,7 +91,10 @@ impl<'a, C: PixelColor + From<Rgb888>> Plugin<'a, C> for Ansi<'a, C> {
 mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+        mono_font::{
+            ascii::{FONT_6X10, FONT_6X9},
+            MonoTextStyle, MonoTextStyleBuilder,
+        },
         pixelcolor::{BinaryColor, Rgb888},
         prelude::{Point, Size},
         primitives::Rectangle,
@@ -271,5 +274,19 @@ mod test {
         .add_plugin(Ansi::new());
 
         assert_eq!(3 * 9, tb.bounds.size.height);
+    }
+
+    #[test]
+    fn no_panic() {
+        let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+        let bounding_box = Rectangle::new(Point::zero(), Size::new(50, 20));
+
+        TextBox::new(
+            "Some \x1b[4munderlined\x1b[24m text",
+            bounding_box,
+            character_style,
+        )
+        .add_plugin(Ansi::new())
+        .fit_height();
     }
 }
