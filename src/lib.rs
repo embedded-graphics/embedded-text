@@ -161,6 +161,34 @@ pub use rendering::{cursor::Cursor, TextBoxProperties};
 ///
 /// *Note:* Implementing custom plugins is experimental and require enabling the `plugin` feature.
 ///
+/// ### Example: advanced text styling using the ANSI plugin
+///
+/// ```rust
+/// # use embedded_graphics::{
+/// #   Drawable,
+/// #   geometry::{Point, Size},
+/// #   primitives::Rectangle,
+/// #   mock_display::MockDisplay,
+/// #   mono_font::{
+/// #       ascii::FONT_6X10, MonoTextStyle, MonoTextStyleBuilder,
+/// #   },
+/// #   pixelcolor::BinaryColor,
+/// # };
+/// # let mut display: MockDisplay<BinaryColor> = MockDisplay::default();
+/// # display.set_allow_out_of_bounds_drawing(true);
+/// # let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+/// # let bounding_box = Rectangle::new(Point::zero(), Size::new(100, 20));
+/// use embedded_text::{TextBox, plugin::ansi::Ansi};
+/// TextBox::new(
+///     "Some \x1b[4munderlined\x1b[24m text",
+///     bounding_box,
+///     character_style,
+/// )
+/// .add_plugin(Ansi::new())
+/// .draw(&mut display)?;
+/// # Ok::<(), core::convert::Infallible>(())
+/// ```
+///
 /// Vertical offsetting
 /// -------------------
 ///
