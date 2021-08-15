@@ -26,7 +26,7 @@ use embedded_text::{
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     Cursor as RenderingCursor, TextBox, TextBoxProperties,
 };
-use object_chain::Chain;
+use object_chain::{Chain, ChainElement};
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, convert::Infallible, thread, time::Duration};
 
@@ -522,7 +522,8 @@ fn main() -> Result<(), Infallible> {
 
         tb.draw(&mut display)?;
 
-        let Chain { object: plugin } = tb.take_plugins();
+        let plugins = tb.take_plugins();
+        let (plugin, _plugins) = plugins.pop();
         plugin.update_cursor(&mut input.cursor);
 
         // Update the window.
