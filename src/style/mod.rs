@@ -137,7 +137,7 @@ use core::convert::Infallible;
 
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
-    parser::{Parser, SPEC_CHAR_NBSP},
+    parser::Parser,
     plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper, ProcessingState},
     rendering::{
         cursor::LineCursor,
@@ -248,7 +248,7 @@ impl TextBoxStyle {
 }
 
 /// Information about a line.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 #[must_use]
 pub(crate) struct LineMeasurement {
     /// Maximum line width in pixels.
@@ -274,6 +274,7 @@ struct MeasureLineElementHandler<'a, S> {
     pos: u32,
     space_count: u32,
     partial_space_count: u32,
+    trailing_spaces: bool,
 }
 
 impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
@@ -284,14 +285,14 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
         str_width(self.style, st)
     }
 
-    fn whitespace(&mut self, st: &str, _count: u32, width: u32) -> Result<(), Self::Error> {
+    fn whitespace(&mut self, _st: &str, count: u32, width: u32) -> Result<(), Self::Error> {
         self.pos += width;
+        self.partial_space_count += count;
 
-        self.partial_space_count += st
-            .chars()
-            .filter(|c| [' ', SPEC_CHAR_NBSP].contains(c))
-            .count()
-            .saturating_as::<u32>();
+        if self.trailing_spaces {
+            self.space_count = self.partial_space_count;
+            self.right = self.pos;
+        }
 
         Ok(())
     }
@@ -350,6 +351,7 @@ impl TextBoxStyle {
             max_line_width,
             space_count: 0,
             partial_space_count: 0,
+            trailing_spaces: self.trailing_spaces,
         };
         let last_token = iter.process(&mut handler).unwrap();
 
