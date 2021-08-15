@@ -321,7 +321,7 @@ impl TextBoxStyle {
 
     /// Measures text height when rendered using a given width.
     ///
-    /// # Example: measure height of text when rendered using a 6x8 MonoFont and 72px width.
+    /// # Example: measure height of text when rendered using a 6x9 MonoFont and 72px width.
     ///
     /// ```rust
     /// # use embedded_text::style::TextBoxStyleBuilder;
