@@ -16,7 +16,7 @@ exclude = [
 
 [features]
 plugin = []
-ansi = ["ansi-parser", "as-slice"]
+ansi = ["ansi-parser"]
 default = ["ansi"]
 
 [[example]]
@@ -35,7 +35,6 @@ required-features = ["plugin"]
 az = "1.1"
 embedded-graphics = "0.7.0"
 ansi-parser = { version = "0.8.0", default-features = false, optional = true }
-as-slice = { version = "0.1.4", optional = true }
 object-chain = "0.1"
 
 [dev-dependencies]

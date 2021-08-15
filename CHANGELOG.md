@@ -11,9 +11,14 @@ Unreleased
  * [#143] Fixed measuring text height with active plugins.
  * [#144] Fixed a word wrapping issue
 
+## Removed:
+
+ * [#150] Removed unused `as-slice` dependency
+
 [#143]: https://github.com/embedded-graphics/embedded-text/pull/143
 [#144]: https://github.com/embedded-graphics/embedded-text/pull/144
 [#148]: https://github.com/embedded-graphics/embedded-text/pull/148
+[#150]: https://github.com/embedded-graphics/embedded-text/pull/150
 
 0.5.0-beta.3 (2021-08-08)
 =========================
