@@ -161,6 +161,13 @@ pub use rendering::{cursor::Cursor, TextBoxProperties};
 ///
 /// *Note:* Implementing custom plugins is experimental and require enabling the `plugin` feature.
 ///
+/// Vertical offsetting
+/// -------------------
+///
+/// You can use the [`set_vertical_offset`] method to move the text inside the text box. Vertical
+/// offset is applied after all vertical measurements and alignments. This can be useful to scroll
+/// text in a fixed text box. Setting a positive value moves the text down.
+///
 /// Residual text
 /// -------------
 ///
@@ -168,6 +175,7 @@ pub use rendering::{cursor::Cursor, TextBoxProperties};
 /// not processed. The return value can be used to flow text into multiple text boxes.
 ///
 /// [`draw`]: embedded_graphics::Drawable::draw()
+/// [`set_vertical_offset`]: TextBox::set_vertical_offset()
 /// [`add_plugin`]: TextBox::add_plugin()
 /// [`take_plugins`]: TextBox::take_plugins()
 /// [`embedded-graphics` documentation]: https://docs.rs/embedded-graphics/0.7.1/embedded_graphics/text/index.html
@@ -261,6 +269,8 @@ where
     }
 
     /// Sets the vertical text offset.
+    ///
+    /// Setting a positive value moves the text down.
     #[inline]
     pub fn set_vertical_offset(&mut self, offset: i32) -> &mut Self {
         self.vertical_offset = offset;
