@@ -168,7 +168,7 @@ where
         this.peeked_token.0 = len;
         this.peeked_token.1.replace(token);
 
-        // keeping this here messes up editor example with extremely long words.
+        // Can't simply reset the lookahead plugin here
         // this.lookahead = this.plugin.clone();
     }
 

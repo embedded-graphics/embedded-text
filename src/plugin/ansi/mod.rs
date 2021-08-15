@@ -284,16 +284,12 @@ mod test {
     }
 
     #[test]
-    fn no_panic() {
+    fn no_panic_when_word_is_broken() {
         let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
         let bounding_box = Rectangle::new(Point::zero(), Size::new(50, 20));
 
-        TextBox::new(
-            "Some \x1b[4munderlined\x1b[24m text",
-            bounding_box,
-            character_style,
-        )
-        .add_plugin(Ansi::new())
-        .fit_height();
+        TextBox::new("\x1b[4munderlined", bounding_box, character_style)
+            .add_plugin(Ansi::new())
+            .fit_height();
     }
 }
