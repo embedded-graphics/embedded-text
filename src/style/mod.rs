@@ -40,12 +40,48 @@
 //! The [`tab_size`] setting sets the maximum width of a tab character. It can be specified in
 //! either pixels of number of space characters.
 //!
+//! Advanced settings
+//! -----------------
+//!
+//! The [`height_mode`] setting determines how the `TextBox` adjusts its height to its contents.
+//! The default value [`Exact`] does not adjust the height - the text box will be as tall as the
+//! bounding box given to it. [`FitToText`] will adjust the height to the height of the text,
+//! regardless of the initial bounding box's height. [`ShrinkToText`] will decrease the height
+//! of the text box to the height of the text, if the bounding box given to the text box is too
+//! tall.
+//!
+//! `Exact` and `ShrinkToText` have an additional [`VerticalOverdraw`] parameter. This setting
+//! specifies how the text outside of the adjusted bounding box is handled. [`Visible`] renders the
+//! text regardless of the bounding box. [`Hidden`] renders everything inside the bounding box. If a
+//! line is too tall to fit inside the bounding box, it will be drawn partially, the bottom part of
+//! the text clipped. [`FullRowsOnly`] only renders lines that are completely inside the bounding
+//! box.
+//!
+//! The [`leading_spaces`] and [`trailing_spaces`] settings set whether the spaces at the beginning
+//! or the end of a line are visible. The default values depend on the [`alignment`] setting.
+//!
+//! | `alignment`  | `leading_spaces` | `trailing_spaces` |
+//! | ------------ | ---------------- | ----------------- |
+//! | `Left`       | `true`           | `false`           |
+//! | `Right`      | `false`          | `false`           |
+//! | `Center`     | `false`          | `false`           |
+//! | `Justified`  | `false`          | `false`           |
+//!
 //! [`TextBox`]: crate::TextBox
 //! [`alignment`]: TextBoxStyle::alignment
 //! [`vertical_alignment`]: TextBoxStyle::vertical_alignment
 //! [`line_height`]: TextBoxStyle::line_height
 //! [`paragraph_spacing`]: TextBoxStyle::paragraph_spacing
 //! [`tab_size`]: TextBoxStyle::tab_size
+//! [`height_mode`]: TextBoxStyle::height_mode
+//! [`leading_spaces`]: TextBoxStyle::leading_spaces
+//! [`trailing_spaces`]: TextBoxStyle::trailing_spaces
+//! [`Exact`]: HeightMode::Exact
+//! [`FitToText`]: HeightMode::FitToText
+//! [`ShrinkToText`]: HeightMode::ShrinkToText
+//! [`Visible`]: VerticalOverdraw::Visible
+//! [`Hidden`]: VerticalOverdraw::Hidden
+//! [`FullRowsOnly`]: VerticalOverdraw::FullRowsOnly
 //! [`embedded-graphics` documentation]: https://docs.rs/embedded-graphics/0.7.1/embedded_graphics/text/index.html
 
 mod builder;
