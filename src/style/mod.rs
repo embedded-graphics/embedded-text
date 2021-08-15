@@ -2,7 +2,7 @@
 //! ==================
 //!
 //! To construct a `TextBox` object at least a text string, a bounding box and character style are
-//! required. For advanced formatting options an additional `TextBoxStyle` object might be required.
+//! required. For advanced formatting options an additional `TextBoxStyle` object might be used.
 //!
 //! Text rendering in `embedded-graphics` is designed to be extendable by text renderers for
 //! different font formats. `embedded-text` follows this philosophy by using the same text renderer

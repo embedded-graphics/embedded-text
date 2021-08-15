@@ -131,16 +131,46 @@ pub use parser::{ChangeTextStyle, Token};
 pub use rendering::{cursor::Cursor, TextBoxProperties};
 
 /// A text box object.
+/// ==================
 ///
-/// The `TextBox` struct represents a piece of text that can be drawn on a display inside the given
-/// bounding box.
+/// The `TextBox` object can be used to draw text on a draw target. It is meant to be a more
+/// feature-rich alternative to `Text` in embedded-graphics.
 ///
-/// Use the [`draw`] method to draw the text box on a display.
+/// To construct a [`TextBox`] object at least a text string, a bounding box and character style are
+/// required. For advanced formatting options an additional [`TextBoxStyle`] object might be used.
 ///
-/// See the [module-level documentation] for more information.
+/// Text rendering in `embedded-graphics` is designed to be extendable by text renderers for
+/// different font formats. `embedded-text` follows this philosophy by using the same text renderer
+/// infrastructure. To use a text renderer in an `embedded-text` project each renderer provides a
+/// character style object. See the [`embedded-graphics` documentation] for more information.
 ///
-/// [module-level documentation]: crate
+/// Plugins
+/// -------
+///
+/// The feature set of `TextBox` can be extended by plugins. Plugins can be used to implement
+/// optional features which are not essential to the core functionality of `embedded-text`.
+///
+/// Use the [`add_plugin`] method to add a plugin to the `TextBox` object. Multiple plugins can be
+/// used at the same time. Plugins are applied in the reverse order they are added. Note that some
+/// plugins may interfere with others if used together or not in the expected order.
+///
+/// If you need to extract data from plugins after the text box has been rendered,
+/// you can use the [`take_plugins`] method.
+///
+/// See the list of built-in plugins in the [`plugin`] module.
+///
+/// *Note:* Implementing custom plugins is experimental and require enabling the `plugin` feature.
+///
+/// Residual text
+/// -------------
+///
+/// If the text does not fit the given bounding box, the [`draw`] method returns the part which was
+/// not processed. The return value can be used to flow text into multiple text boxes.
+///
 /// [`draw`]: embedded_graphics::Drawable::draw()
+/// [`add_plugin`]: TextBox::add_plugin()
+/// [`take_plugins`]: TextBox::take_plugins()
+/// [`embedded-graphics` documentation]: https://docs.rs/embedded-graphics/0.7.1/embedded_graphics/text/index.html
 #[derive(Clone, Debug, Hash)]
 #[must_use]
 pub struct TextBox<'a, S, M = NoPlugin<<S as TextRenderer>::Color>>
