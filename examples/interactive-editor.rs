@@ -26,7 +26,7 @@ use embedded_text::{
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     Cursor as RenderingCursor, TextBox, TextBoxProperties,
 };
-use object_chain::{Chain, ChainElement};
+use object_chain::ChainElement;
 use sdl2::keyboard::{Keycode, Mod};
 use std::{collections::HashMap, convert::Infallible, thread, time::Duration};
 
@@ -210,7 +210,7 @@ impl<C: PixelColor> EditorPlugin<C> {
     where
         D: DrawTarget<Color = C>,
     {
-        let pos = Point::new(pos.x.max(self.top_left.x), pos.y);
+        let pos = Point::new(pos.x.saturating_sub(1).max(self.top_left.x), pos.y);
         self.cursor_position = self.to_text_space(pos);
         self.cursor_drawn = true;
 
