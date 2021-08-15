@@ -246,7 +246,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for EditorPlugin<C> {
         props: &TextBoxProperties<'_, S>,
     ) {
         let line_height = props.char_style.line_height() as i32;
-        self.top_left = props.bounding_box.top_left;
+        self.top_left = Point::new(props.bounding_box.top_left.x, cursor.y);
 
         self.desired_cursor_position = match self.desired_cursor_position {
             DesiredPosition::OneLineUp(old) => {
