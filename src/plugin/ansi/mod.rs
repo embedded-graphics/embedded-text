@@ -27,8 +27,8 @@ impl<C: PixelColor> Ansi<'_, C> {
 impl<'a, C: PixelColor + From<Rgb888>> Plugin<'a, C> for Ansi<'a, C> {
     fn next_token(
         &mut self,
-        mut next_token: impl FnMut() -> Option<crate::Token<'a, C>>,
-    ) -> Option<crate::Token<'a, C>> {
+        mut next_token: impl FnMut() -> Option<Token<'a, C>>,
+    ) -> Option<Token<'a, C>> {
         let token = if let Some(token) = self.carry.take() {
             Some(token)
         } else {
@@ -41,18 +41,26 @@ impl<'a, C: PixelColor + From<Rgb888>> Plugin<'a, C> for Ansi<'a, C> {
             match chars.find(|(_, c)| *c == '\u{1b}') {
                 Some((0, _)) => match ansi_parser::parse_escape(text) {
                     Ok((string, output)) => {
-                        self.carry = Some(Token::Word(string));
                         let new_token = match output {
-                            AnsiSequence::CursorForward(chars) => Token::MoveCursor {
-                                chars: chars as i32,
-                                draw_background: true,
-                            },
-                            AnsiSequence::CursorBackward(chars) => Token::MoveCursor {
-                                chars: -(chars as i32),
-                                draw_background: true,
-                            },
+                            AnsiSequence::CursorForward(chars) => {
+                                self.carry = Some(Token::Word(string));
+                                Token::MoveCursor {
+                                    chars: chars as i32,
+                                    draw_background: true,
+                                }
+                            }
+                            AnsiSequence::CursorBackward(chars) => {
+                                self.carry = Some(Token::Word(string));
+                                Token::MoveCursor {
+                                    chars: -(chars as i32),
+                                    draw_background: true,
+                                }
+                            }
                             AnsiSequence::SetGraphicsMode(sgr) => try_parse_sgr(&sgr)
-                                .map(|sgr| Token::ChangeTextStyle(sgr.into()))
+                                .map(|sgr| {
+                                    self.carry = Some(Token::Word(string));
+                                    Token::ChangeTextStyle(sgr.into())
+                                })
                                 .or_else(|| self.next_token(next_token))?,
 
                             _ => self.next_token(next_token)?,
@@ -71,7 +79,6 @@ impl<'a, C: PixelColor + From<Rgb888>> Plugin<'a, C> for Ansi<'a, C> {
                     let (pre, rem) = text.split_at(idx);
 
                     self.carry = Some(Token::Word(rem));
-
                     Some(Token::Word(pre))
                 }
 
@@ -91,7 +98,10 @@ impl<'a, C: PixelColor + From<Rgb888>> Plugin<'a, C> for Ansi<'a, C> {
 mod test {
     use embedded_graphics::{
         mock_display::MockDisplay,
-        mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+        mono_font::{
+            ascii::{FONT_6X10, FONT_6X9},
+            MonoTextStyle, MonoTextStyleBuilder,
+        },
         pixelcolor::{BinaryColor, Rgb888},
         prelude::{Point, Size},
         primitives::Rectangle,
@@ -271,5 +281,52 @@ mod test {
         .add_plugin(Ansi::new());
 
         assert_eq!(3 * 9, tb.bounds.size.height);
+    }
+
+    #[test]
+    fn no_panic_when_word_is_broken() {
+        let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+        let bounding_box = Rectangle::new(Point::zero(), Size::new(50, 20));
+
+        TextBox::new("\x1b[4munderlined", bounding_box, character_style)
+            .add_plugin(Ansi::new())
+            .fit_height();
+    }
+
+    #[test]
+    fn broken_underlned_token() {
+        let mut display = MockDisplay::new();
+        display.set_allow_overdraw(true);
+
+        let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+        let bounding_box = Rectangle::new(Point::zero(), Size::new(50, 20));
+
+        TextBox::new("\x1b[4munderlined", bounding_box, character_style)
+            .add_plugin(Ansi::new())
+            .draw(&mut display)
+            .unwrap();
+
+        display.assert_pattern(&[
+            "                                                ",
+            "                #              ##     #         ",
+            "                #               #               ",
+            "#   # # ##   ## #  ###  # ##    #    ##   # ##  ",
+            "#   # ##  # #  ## #   # ##  #   #     #   ##  # ",
+            "#   # #   # #   # ##### #       #     #   #   # ",
+            "#  ## #   # #  ## #     #       #     #   #   # ",
+            " ## # #   #  ## #  ###  #      ###   ###  #   # ",
+            "                                                ",
+            "################################################",
+            "                                                ",
+            "          #                                     ",
+            "          #                                     ",
+            " ###   ## #                                     ",
+            "#   # #  ##                                     ",
+            "##### #   #                                     ",
+            "#     #  ##                                     ",
+            " ###   ## #                                     ",
+            "                                                ",
+            "############                                    ",
+        ]);
     }
 }

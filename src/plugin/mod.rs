@@ -81,7 +81,7 @@ where
     pub(crate) lookahead: M,
     pub(crate) plugin: M,
     state: ProcessingState,
-    peeked_token: (usize, Option<Token<'a, C>>),
+    peeked_token: Option<Token<'a, C>>,
 }
 
 #[derive(Clone, Debug)]
@@ -112,18 +112,15 @@ where
                 lookahead: plugin.clone(),
                 plugin,
                 state: ProcessingState::Measure,
-                peeked_token: (0, None),
+                peeked_token: None,
             }),
         }
     }
 
     pub fn new_line(&self) {
         let mut this = self.inner.borrow_mut();
-        this.peeked_token.0 = 0;
-        this.peeked_token.1 = None;
-        this.plugin.new_line();
 
-        this.lookahead = this.plugin.clone();
+        this.lookahead.new_line();
     }
 
     pub fn set_state(&self, state: ProcessingState) {
@@ -142,34 +139,49 @@ where
     pub fn peek_token(&self, source: &mut Parser<'a, C>) -> Option<Token<'a, C>> {
         let mut this = self.inner.borrow_mut();
 
-        if this.peeked_token.1.is_none() {
-            let mut cloned = source.clone();
-            this.peeked_token.1 = this.lookahead.next_token(|| cloned.next());
-            this.peeked_token.0 = source.as_str().len() - cloned.as_str().len();
+        if this.peeked_token.is_none() {
+            this.peeked_token = this.lookahead.next_token(|| source.next());
         }
-        this.peeked_token.1.clone()
+
+        this.peeked_token.clone()
     }
 
-    pub fn consume_peeked_token(&self, source: &mut Parser<'a, C>) {
+    pub fn consume_peeked_token(&self) {
         let mut this = self.inner.borrow_mut();
 
-        unsafe {
-            source.consume(this.peeked_token.0);
-        }
-        this.peeked_token.0 = 0;
-        this.peeked_token.1 = None;
+        if this.peeked_token.is_some() {
+            this.peeked_token = None;
 
-        this.plugin = this.lookahead.clone();
+            this.plugin = this.lookahead.clone();
+        }
     }
 
-    pub fn replace_peeked_token(&self, len: usize, token: Token<'a, C>) {
+    pub fn consume_partial(&self, len: usize) {
         let mut this = self.inner.borrow_mut();
 
-        this.peeked_token.0 = len;
-        this.peeked_token.1.replace(token);
+        // Only string-like tokens can be partially consumed.
+        debug_assert!(matches!(
+            this.peeked_token,
+            Some(Token::Whitespace(_, _)) | Some(Token::Word(_))
+        ));
 
-        // keeping this here messes up editor example with extremely long words.
-        // this.lookahead = this.plugin.clone();
+        let skip_chars = |str: &'a str, n| {
+            let mut chars = str.chars();
+            for _ in 0..n {
+                chars.next();
+            }
+            chars.as_str()
+        };
+
+        let token = match this.peeked_token.take().unwrap() {
+            Token::Whitespace(count, seq) => {
+                Token::Whitespace(count - len as u32, skip_chars(seq, len))
+            }
+            Token::Word(w) => Token::Word(skip_chars(w, len)),
+            _ => unreachable!(),
+        };
+
+        this.peeked_token.replace(token);
     }
 
     pub fn on_start_render<S: CharacterStyle + TextRenderer>(
@@ -178,9 +190,9 @@ where
         props: TextBoxProperties<'_, S>,
     ) {
         let mut this = self.inner.borrow_mut();
-        this.peeked_token = (0, None);
+        this.peeked_token = None;
 
-        this.plugin.on_start_render(cursor, &props);
+        this.lookahead.on_start_render(cursor, &props);
     }
 
     pub fn on_rendering_finished(&self) {

@@ -101,7 +101,7 @@ where
         let mut lookahead_parser = self.parser.clone();
 
         // We don't want to count the current token.
-        lookahead.consume_peeked_token(&mut lookahead_parser);
+        lookahead.consume_peeked_token();
 
         'lookahead: loop {
             match lookahead.peek_token(&mut lookahead_parser) {
@@ -119,7 +119,7 @@ where
 
                 _ => break 'lookahead,
             }
-            lookahead.consume_peeked_token(&mut lookahead_parser);
+            lookahead.consume_peeked_token();
         }
 
         width
@@ -141,6 +141,7 @@ where
                 w.get_unchecked(idx..idx + c.len_utf8())
             });
             if !self.cursor.fits_in_line(width + char_width) {
+                debug_assert!(w.is_char_boundary(idx));
                 return (
                     unsafe {
                         // SAFETY: we are working on character boundaries
@@ -166,7 +167,7 @@ where
         let mut lookahead_parser = self.parser.clone();
 
         // We don't want to count the current token.
-        lookahead.consume_peeked_token(&mut lookahead_parser);
+        lookahead.consume_peeked_token();
 
         if cursor.move_cursor(space_width).is_err() {
             return false;
@@ -190,7 +191,7 @@ where
                 _ => return false,
             };
 
-            lookahead.consume_peeked_token(&mut lookahead_parser);
+            lookahead.consume_peeked_token();
             if cursor.move_cursor(width).is_err() {
                 return false;
             }
@@ -237,7 +238,10 @@ where
                 let consumed = moved as u32 / single;
                 if consumed > 0 {
                     let (pos, _) = string.char_indices().nth(consumed as usize).unwrap();
-                    let (consumed_str, remainder_str) = string.split_at(pos);
+                    let consumed_str = unsafe {
+                        // SAFETY: Pos is a valid index, we just got it
+                        string.get_unchecked(0..pos)
+                    };
                     let consumed_width = consumed * single;
 
                     let _ = self.move_cursor(consumed_width.saturating_as());
@@ -247,12 +251,7 @@ where
                         consumed_width * self.render_trailing_spaces() as u32,
                     )?;
 
-                    // Counter-intuitive:
-                    // Replace the consumed token so it will be consumed from the parsed stream
-                    self.replace_peeked_token(
-                        consumed as usize,
-                        Token::Whitespace(consumed, remainder_str),
-                    );
+                    self.plugin.consume_partial(consumed as usize);
                     return Ok(true);
                 }
             }
@@ -288,11 +287,7 @@ where
     }
 
     fn consume_token(&mut self) {
-        self.plugin.consume_peeked_token(&mut self.parser);
-    }
-
-    fn replace_peeked_token(&mut self, len: usize, token: Token<'a, C>) {
-        self.plugin.replace_peeked_token(len, token);
+        self.plugin.consume_peeked_token();
     }
 
     #[inline]
@@ -305,7 +300,6 @@ where
                 Token::Whitespace(n, seq) => {
                     let space_width = self.spaces.consume(n);
                     if self.draw_whitespace(handler, seq, n, space_width)? {
-                        self.consume_token();
                         return Ok(LineEndType::LineBreak);
                     }
                 }
@@ -369,8 +363,7 @@ where
 
                     if remainder.is_some() {
                         // Consume what was printed.
-                        self.replace_peeked_token(word.len(), Token::Word(word));
-                        self.consume_token();
+                        self.plugin.consume_partial(word.len());
                         return Ok(LineEndType::LineBreak);
                     }
                 }

@@ -118,11 +118,6 @@ where
         }
     }
 
-    pub unsafe fn consume(&mut self, bytes: usize) {
-        // SAFETY: caller needs to make sure we end up on character boundary
-        self.inner = self.inner.as_str().get_unchecked(bytes..).chars();
-    }
-
     pub fn as_str(&self) -> &str {
         self.inner.as_str()
     }
@@ -149,16 +144,17 @@ where
                             let ptr_cur = self.inner.as_str().as_ptr() as usize;
                             ptr_cur - ptr_start - c.len_utf8()
                         };
-                        self.inner = unsafe {
+                        debug_assert!(string.is_char_boundary(offset));
+                        let (word, remainder) = unsafe {
                             // SAFETY: we only work with character boundaries and
                             // offset is <= length
-                            string.get_unchecked(offset..).chars()
+                            (
+                                string.get_unchecked(0..offset),
+                                string.get_unchecked(offset..).chars(),
+                            )
                         };
-                        return Some(Token::Word(unsafe {
-                            // SAFETY: we only work with character boundaries and
-                            // offset is <= length
-                            string.get_unchecked(0..offset)
-                        }));
+                        self.inner = remainder;
+                        return Some(Token::Word(word));
                     }
                 }
 
@@ -199,17 +195,18 @@ where
                                     let ptr_cur = self.inner.as_str().as_ptr() as usize;
                                     ptr_cur - ptr_start - c.len_utf8()
                                 };
+                                debug_assert!(string.is_char_boundary(offset));
                                 // consume the whitespaces
-                                self.inner = unsafe {
+                                let (sequence, remainder) = unsafe {
                                     // SAFETY: we only work with character boundaries and
                                     // offset is <= length
-                                    string.get_unchecked(offset..).chars()
+                                    (
+                                        string.get_unchecked(0..offset),
+                                        string.get_unchecked(offset..).chars(),
+                                    )
                                 };
-                                return Some(Token::Whitespace(len, unsafe {
-                                    // SAFETY: we only work with character boundaries and
-                                    // offset is <= length
-                                    string.get_unchecked(0..offset)
-                                }));
+                                self.inner = remainder;
+                                return Some(Token::Whitespace(len, sequence));
                             }
                         }
 
