@@ -200,6 +200,34 @@ impl TextBoxStyle {
             .vertical_alignment(alignment)
             .build()
     }
+
+    /// Creates a new text box style with the given [height mode].
+    ///
+    /// [height mode]: HeightMode
+    #[inline]
+    pub const fn with_height_mode(mode: HeightMode) -> TextBoxStyle {
+        TextBoxStyleBuilder::new().height_mode(mode).build()
+    }
+
+    /// Creates a new text box style with the given line height.
+    #[inline]
+    pub const fn with_line_height(line_height: LineHeight) -> TextBoxStyle {
+        TextBoxStyleBuilder::new().line_height(line_height).build()
+    }
+
+    /// Creates a new text box style with the given paragraph spacing.
+    #[inline]
+    pub const fn with_paragraph_spacing(spacing: u32) -> TextBoxStyle {
+        TextBoxStyleBuilder::new()
+            .paragraph_spacing(spacing)
+            .build()
+    }
+
+    /// Creates a new text box style with the given tab size.
+    #[inline]
+    pub const fn with_tab_size(tab_size: TabSize) -> TextBoxStyle {
+        TextBoxStyleBuilder::new().tab_size(tab_size).build()
+    }
 }
 
 /// Information about a line.

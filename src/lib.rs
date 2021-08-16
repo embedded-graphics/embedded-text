@@ -117,13 +117,16 @@ mod utils;
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
     plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
-    style::TextBoxStyle,
+    style::{HeightMode, TabSize, TextBoxStyle},
 };
 use embedded_graphics::{
     geometry::{Dimensions, Point},
     pixelcolor::Rgb888,
     primitives::Rectangle,
-    text::renderer::{CharacterStyle, TextRenderer},
+    text::{
+        renderer::{CharacterStyle, TextRenderer},
+        LineHeight,
+    },
     transform::Transform,
 };
 use object_chain::{Chain, ChainElement, Link};
@@ -242,7 +245,8 @@ where
         TextBox::with_textbox_style(text, bounds, character_style, TextBoxStyle::default())
     }
 
-    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given
+    /// `TextBoxStyle`.
     #[inline]
     pub fn with_textbox_style(
         text: &'a str,
@@ -264,7 +268,8 @@ where
         styled
     }
 
-    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` with the given horizontal alignment.
     #[inline]
     pub fn with_alignment(
         text: &'a str,
@@ -280,7 +285,8 @@ where
         )
     }
 
-    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given vertical alignment.
     #[inline]
     pub fn with_vertical_alignment(
         text: &'a str,
@@ -296,8 +302,79 @@ where
         )
     }
 
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given [height mode].
+    ///
+    /// [height mode]: HeightMode
+    #[inline]
+    pub fn with_height_mode(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        mode: HeightMode,
+    ) -> Self {
+        TextBox::with_textbox_style(
+            text,
+            bounds,
+            character_style,
+            TextBoxStyle::with_height_mode(mode),
+        )
+    }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given line height.
+    #[inline]
+    pub fn with_line_height(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        line_height: LineHeight,
+    ) -> Self {
+        TextBox::with_textbox_style(
+            text,
+            bounds,
+            character_style,
+            TextBoxStyle::with_line_height(line_height),
+        )
+    }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given paragraph spacing.
+    #[inline]
+    pub fn with_paragraph_spacing(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        spacing: u32,
+    ) -> Self {
+        TextBox::with_textbox_style(
+            text,
+            bounds,
+            character_style,
+            TextBoxStyle::with_paragraph_spacing(spacing),
+        )
+    }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given tab size.
+    #[inline]
+    pub fn with_tab_size(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        tab_size: TabSize,
+    ) -> Self {
+        TextBox::with_textbox_style(
+            text,
+            bounds,
+            character_style,
+            TextBoxStyle::with_tab_size(tab_size),
+        )
+    }
+
     /// Sets the vertical text offset.
     ///
+    /// Vertical offset changes the vertical position of the displayed text within the bounding box.
     /// Setting a positive value moves the text down.
     #[inline]
     pub fn set_vertical_offset(&mut self, offset: i32) -> &mut Self {
@@ -350,7 +427,7 @@ where
         styled
     }
 
-    /// Deconstruct the textbox and return the plugins.
+    /// Deconstruct the text box and return the plugins.
     #[inline]
     pub fn take_plugins(self) -> P {
         self.plugin.inner.into_inner().lookahead
