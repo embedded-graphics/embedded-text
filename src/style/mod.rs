@@ -69,6 +69,97 @@
 //! | `Center`     | `false`          | `false`           |
 //! | `Justified`  | `false`          | `false`           |
 //!
+//! # Ways to create and apply text box styles
+//!
+//! ## Example 1: Setting multiple options using the [`TextBoxStyleBuilder`] object:
+//!
+//! To build more complex styles, you can use the [`TextBoxStyleBuilder`] object and the
+//! [`TextBox::with_textbox_style`] constructor.
+//!
+//! ```rust
+//! # use embedded_graphics::{
+//! #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+//! #     pixelcolor::BinaryColor,
+//! #     prelude::*,
+//! #     primitives::Rectangle,
+//! # };
+//! # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+//! # let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 10));
+//! # let text = "";
+//! #
+//! use embedded_text::{
+//!     TextBox,
+//!     style::TextBoxStyleBuilder,
+//!     alignment::{
+//!         HorizontalAlignment,
+//!         VerticalAlignment,
+//!     },
+//! };
+//!
+//! let textbox_style = TextBoxStyleBuilder::new()
+//!     .alignment(HorizontalAlignment::Center)
+//!     .vertical_alignment(VerticalAlignment::Middle)
+//!     .build();
+//!
+//! let textbox = TextBox::with_textbox_style(
+//!     text,
+//!     bounding_box,
+//!     character_style,
+//!     textbox_style,
+//! );
+//! ```
+//!
+//! [`TextBox::with_textbox_style`]: crate::TextBox::with_textbox_style
+//!
+//! ## Examples 2 and 3: Only setting a single option:
+//!
+//! Both the [`TextBox`] and [`TextBoxStyle`] objects have different constructor methods in case you
+//! only want to set a single style option.
+//!
+//! ```rust
+//! # use embedded_graphics::{
+//! #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+//! #     pixelcolor::BinaryColor,
+//! #     prelude::*,
+//! #     primitives::Rectangle,
+//! # };
+//! # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+//! # let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 10));
+//! # let text = "";
+//! #
+//! use embedded_text::{TextBox, alignment::HorizontalAlignment};
+//!
+//! let textbox = TextBox::with_alignment(
+//!     text,
+//!     bounding_box,
+//!     character_style,
+//!     HorizontalAlignment::Center,
+//! );
+//! ```
+//!
+//! ```rust
+//! # use embedded_graphics::{
+//! #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+//! #     pixelcolor::BinaryColor,
+//! #     prelude::*,
+//! #     primitives::Rectangle,
+//! # };
+//! # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+//! # let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 10));
+//! # let text = "";
+//! #
+//! use embedded_text::{TextBox, style::TextBoxStyle, alignment::VerticalAlignment};
+//!
+//! let textbox_style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Middle);
+//!
+//! let textbox = TextBox::with_textbox_style(
+//!     text,
+//!     bounding_box,
+//!     character_style,
+//!     textbox_style,
+//! );
+//! ```
+//!
 //! [`TextBox`]: crate::TextBox
 //! [`alignment`]: TextBoxStyle::alignment
 //! [`vertical_alignment`]: TextBoxStyle::vertical_alignment
