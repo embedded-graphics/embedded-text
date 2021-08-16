@@ -163,6 +163,9 @@ where
     }
 
     pub fn replace_peeked_token(&self, len: usize, token: Token<'a, C>) {
+        // Only string-like tokens can be replaced.
+        debug_assert!(matches!(token, Token::Whitespace(_, _) | Token::Word(_)));
+
         let mut this = self.inner.borrow_mut();
 
         this.peeked_token.0 = len;

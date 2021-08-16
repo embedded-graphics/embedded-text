@@ -141,6 +141,7 @@ where
                 w.get_unchecked(idx..idx + c.len_utf8())
             });
             if !self.cursor.fits_in_line(width + char_width) {
+                debug_assert!(w.is_char_boundary(idx));
                 return (
                     unsafe {
                         // SAFETY: we are working on character boundaries
@@ -253,6 +254,7 @@ where
                         consumed as usize,
                         Token::Whitespace(consumed, remainder_str),
                     );
+                    self.consume_token();
                     return Ok(true);
                 }
             }
@@ -305,7 +307,6 @@ where
                 Token::Whitespace(n, seq) => {
                     let space_width = self.spaces.consume(n);
                     if self.draw_whitespace(handler, seq, n, space_width)? {
-                        self.consume_token();
                         return Ok(LineEndType::LineBreak);
                     }
                 }
