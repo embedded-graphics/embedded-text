@@ -81,7 +81,7 @@ where
     pub(crate) lookahead: M,
     pub(crate) plugin: M,
     state: ProcessingState,
-    peeked_token: (usize, Option<Token<'a, C>>),
+    peeked_token: Option<Token<'a, C>>,
 }
 
 #[derive(Clone, Debug)]
@@ -112,7 +112,7 @@ where
                 lookahead: plugin.clone(),
                 plugin,
                 state: ProcessingState::Measure,
-                peeked_token: (0, None),
+                peeked_token: None,
             }),
         }
     }
@@ -139,37 +139,29 @@ where
     pub fn peek_token(&self, source: &mut Parser<'a, C>) -> Option<Token<'a, C>> {
         let mut this = self.inner.borrow_mut();
 
-        if this.peeked_token.1.is_none() {
-            let mut cloned = source.clone();
-
-            this.peeked_token.1 = this.lookahead.next_token(|| cloned.next());
-
-            // It's possible that plugins modify the returned token so this isn't reliable
-            this.peeked_token.0 = source.as_str().len() - cloned.as_str().len();
+        if this.peeked_token.is_none() {
+            this.peeked_token = this.lookahead.next_token(|| source.next());
         }
-        this.peeked_token.1.clone()
+
+        this.peeked_token.clone()
     }
 
-    pub fn consume_peeked_token(&self, source: &mut Parser<'a, C>) {
+    pub fn consume_peeked_token(&self) {
         let mut this = self.inner.borrow_mut();
 
-        if this.peeked_token.1.is_some() {
-            unsafe {
-                source.consume(this.peeked_token.0);
-            }
-            this.peeked_token.0 = 0;
-            this.peeked_token.1 = None;
+        if this.peeked_token.is_some() {
+            this.peeked_token = None;
 
             this.plugin = this.lookahead.clone();
         }
     }
 
-    pub fn consume_partial(&self, len: usize, source: &mut Parser<'a, C>) {
+    pub fn consume_partial(&self, len: usize) {
         let mut this = self.inner.borrow_mut();
 
         // Only string-like tokens can be partially consumed.
         debug_assert!(matches!(
-            this.peeked_token.1,
+            this.peeked_token,
             Some(Token::Whitespace(_, _)) | Some(Token::Word(_))
         ));
 
@@ -181,7 +173,7 @@ where
             chars.as_str()
         };
 
-        let token = match this.peeked_token.1.take().unwrap() {
+        let token = match this.peeked_token.take().unwrap() {
             Token::Whitespace(count, seq) => {
                 Token::Whitespace(count - len as u32, skip_chars(seq, len))
             }
@@ -189,16 +181,7 @@ where
             _ => unreachable!(),
         };
 
-        // In case plugin only returned a partial token, we are consuming parts but
-        // `this.peeked_token.0` contains the length of the whole token.
-        let consumed = len.min(this.peeked_token.0);
-
-        unsafe {
-            source.consume(consumed);
-        }
-
-        this.peeked_token.0 -= consumed;
-        this.peeked_token.1.replace(token);
+        this.peeked_token.replace(token);
     }
 
     pub fn on_start_render<S: CharacterStyle + TextRenderer>(
@@ -207,7 +190,7 @@ where
         props: TextBoxProperties<'_, S>,
     ) {
         let mut this = self.inner.borrow_mut();
-        this.peeked_token = (0, None);
+        this.peeked_token = None;
 
         this.lookahead.on_start_render(cursor, &props);
     }

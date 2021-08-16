@@ -118,12 +118,6 @@ where
         }
     }
 
-    pub unsafe fn consume(&mut self, bytes: usize) {
-        // SAFETY: caller needs to make sure we end up on character boundary
-        debug_assert!(self.inner.as_str().is_char_boundary(bytes));
-        self.inner = self.inner.as_str().get_unchecked(bytes..).chars();
-    }
-
     pub fn as_str(&self) -> &str {
         self.inner.as_str()
     }

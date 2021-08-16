@@ -101,7 +101,7 @@ where
         let mut lookahead_parser = self.parser.clone();
 
         // We don't want to count the current token.
-        lookahead.consume_peeked_token(&mut lookahead_parser);
+        lookahead.consume_peeked_token();
 
         'lookahead: loop {
             match lookahead.peek_token(&mut lookahead_parser) {
@@ -119,7 +119,7 @@ where
 
                 _ => break 'lookahead,
             }
-            lookahead.consume_peeked_token(&mut lookahead_parser);
+            lookahead.consume_peeked_token();
         }
 
         width
@@ -167,7 +167,7 @@ where
         let mut lookahead_parser = self.parser.clone();
 
         // We don't want to count the current token.
-        lookahead.consume_peeked_token(&mut lookahead_parser);
+        lookahead.consume_peeked_token();
 
         if cursor.move_cursor(space_width).is_err() {
             return false;
@@ -191,7 +191,7 @@ where
                 _ => return false,
             };
 
-            lookahead.consume_peeked_token(&mut lookahead_parser);
+            lookahead.consume_peeked_token();
             if cursor.move_cursor(width).is_err() {
                 return false;
             }
@@ -251,8 +251,7 @@ where
                         consumed_width * self.render_trailing_spaces() as u32,
                     )?;
 
-                    self.plugin
-                        .consume_partial(consumed as usize, &mut self.parser);
+                    self.plugin.consume_partial(consumed as usize);
                     return Ok(true);
                 }
             }
@@ -288,7 +287,7 @@ where
     }
 
     fn consume_token(&mut self) {
-        self.plugin.consume_peeked_token(&mut self.parser);
+        self.plugin.consume_peeked_token();
     }
 
     #[inline]
@@ -364,7 +363,7 @@ where
 
                     if remainder.is_some() {
                         // Consume what was printed.
-                        self.plugin.consume_partial(word.len(), &mut self.parser);
+                        self.plugin.consume_partial(word.len());
                         return Ok(LineEndType::LineBreak);
                     }
                 }
