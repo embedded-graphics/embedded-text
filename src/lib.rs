@@ -130,8 +130,12 @@ use embedded_graphics::{
     transform::Transform,
 };
 use object_chain::{Chain, ChainElement, Link};
-pub use parser::{ChangeTextStyle, Token};
-pub use rendering::{cursor::Cursor, TextBoxProperties};
+
+#[cfg(feature = "plugin")]
+pub use crate::{
+    parser::{ChangeTextStyle, Token},
+    rendering::{cursor::Cursor, TextBoxProperties},
+};
 
 /// A text box object.
 /// ==================

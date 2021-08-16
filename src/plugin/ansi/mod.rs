@@ -115,8 +115,8 @@ use ansi_parser::AnsiSequence;
 use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor};
 
 use crate::{
+    parser::Token,
     plugin::{ansi::utils::try_parse_sgr, Plugin},
-    Token,
 };
 
 mod utils;
@@ -221,7 +221,7 @@ mod test {
 
     use crate::{
         alignment::{HorizontalAlignment, VerticalAlignment},
-        parser::Parser,
+        parser::{ChangeTextStyle, Parser},
         plugin::{ansi::Ansi, PluginWrapper},
         rendering::{
             cursor::LineCursor,
@@ -233,7 +233,7 @@ mod test {
         },
         style::{HeightMode, TabSize, TextBoxStyleBuilder},
         utils::test::size_for,
-        ChangeTextStyle, TextBox,
+        TextBox,
     };
 
     #[test]

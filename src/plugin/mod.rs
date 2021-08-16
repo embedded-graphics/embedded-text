@@ -17,8 +17,7 @@ use embedded_graphics::{
 
 use crate::{
     parser::{Parser, Token},
-    rendering::cursor::Cursor,
-    TextBoxProperties,
+    rendering::{cursor::Cursor, TextBoxProperties},
 };
 
 #[cfg(feature = "plugin")]
