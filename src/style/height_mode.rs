@@ -14,33 +14,54 @@ use embedded_graphics::{geometry::Dimensions, pixelcolor::Rgb888, text::renderer
 pub enum HeightMode {
     /// Keep the original [`TextBox`] height.
     ///
-    /// # Example:
+    /// # Example: default mode is `Exact(FullRowsOnly)`
     ///
     /// ```rust
-    /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
-    ///     pixelcolor::BinaryColor,
-    ///     prelude::*,
-    ///     primitives::Rectangle,
-    /// };
-    /// use embedded_text::{style::TextBoxStyleBuilder, TextBox};
+    /// # use embedded_graphics::{
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+    /// #     pixelcolor::BinaryColor,
+    /// #     prelude::*,
+    /// # };
+    /// # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+    /// #
+    /// use embedded_graphics::primitives::Rectangle;
+    /// use embedded_text::TextBox;
     ///
-    /// let character_style = MonoTextStyleBuilder::new()
-    ///     .font(&FONT_6X9)
-    ///     .text_color(BinaryColor::On)
-    ///     .build();
-    ///
-    /// // This TextBox contains two lines of text, but is 60px high
+    /// // The default option is Exact, which does not change the size of the TextBox.
+    /// let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 60));
     /// let text_box = TextBox::new(
     ///     "Two lines\nof text",
-    ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+    ///     bounding_box,
     ///     character_style,
     /// );
     ///
-    /// // Exact does not change the size of the TextBox
-    /// let orig_size = text_box.bounding_box().size;
-    /// let size = text_box.bounding_box().size;
-    /// assert_eq!(size, orig_size);
+    /// assert_eq!(text_box.bounding_box().size, Size::new(60, 60));
+    /// ```
+    ///
+    /// # Example: display everything inside the bounding box.
+    ///
+    /// ```rust
+    /// # use embedded_graphics::{
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+    /// #     pixelcolor::BinaryColor,
+    /// #     prelude::*,
+    /// # };
+    /// # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+    /// #
+    /// use embedded_graphics::primitives::Rectangle;
+    /// use embedded_text::{TextBox, style::{HeightMode, VerticalOverdraw}};
+    ///
+    /// // `HeightMode::Exact(VerticalOverdraw::Hidden)` will display everything inside the text
+    /// // box, not just completely visible rows.
+    /// let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 10));
+    /// let text_box = TextBox::with_height_mode(
+    ///     "Two lines\nof text",
+    ///     bounding_box,
+    ///     character_style,
+    ///     HeightMode::Exact(VerticalOverdraw::Hidden),
+    /// );
+    ///
+    /// assert_eq!(text_box.bounding_box().size, Size::new(60, 10));
     /// ```
     Exact(VerticalOverdraw),
 
@@ -49,71 +70,52 @@ pub enum HeightMode {
     /// Note: in this mode, vertical alignment is meaningless. Make sure to use [`Top`] alignment
     /// for efficiency.
     ///
+    /// # Example: `FitToText` shrinks the [`TextBox`].
+    ///
+    /// ```rust
+    /// # use embedded_graphics::{
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+    /// #     pixelcolor::BinaryColor,
+    /// #     prelude::*,
+    /// # };
+    /// # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+    /// use embedded_graphics::primitives::Rectangle;
+    /// use embedded_text::{TextBox, style::HeightMode};
+    ///
+    /// // FitToText shrinks the TextBox to the height of the text
+    /// let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 60));
+    /// let text_box = TextBox::with_height_mode(
+    ///     "Two lines\nof text",
+    ///     bounding_box,
+    ///     character_style,
+    ///     HeightMode::FitToText,
+    /// );
+    ///
+    /// assert_eq!(text_box.bounding_box().size, Size::new(60, 18));
+    /// ```
+    ///
     /// # Example: `FitToText` grows the [`TextBox`].
     ///
     /// ```rust
-    /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
-    ///     pixelcolor::BinaryColor,
-    ///     prelude::*,
-    ///     primitives::Rectangle,
-    /// };
-    /// use embedded_text::{
-    ///     style::{HeightMode, TextBoxStyleBuilder},
-    ///     TextBox,
-    /// };
-    ///
-    /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-    /// let character_style = MonoTextStyleBuilder::new()
-    ///     .font(&FONT_6X9)
-    ///     .text_color(BinaryColor::On)
-    ///     .build();
-    ///
-    /// let style = TextBoxStyleBuilder::new().height_mode(HeightMode::FitToText).build();
-    ///
-    /// // This TextBox contains two lines of text, but is 1px high
-    /// let text_box = TextBox::with_textbox_style(
-    ///     "Two lines\nof text",
-    ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
-    ///     character_style,
-    ///     style,
-    /// );
+    /// # use embedded_graphics::{
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+    /// #     pixelcolor::BinaryColor,
+    /// #     prelude::*,
+    /// # };
+    /// # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+    /// use embedded_graphics::primitives::Rectangle;
+    /// use embedded_text::{TextBox, style::HeightMode};
     ///
     /// // FitToText grows the TextBox to the height of the text
-    /// let size = text_box.bounding_box().size;
-    /// assert_eq!(size, Size::new(60, 18));
-    /// ```
-    ///
-    /// # Example: `FitToText` also shrinks the [`TextBox`].
-    ///
-    /// ```rust
-    /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyle},
-    ///     pixelcolor::BinaryColor,
-    ///     prelude::*,
-    ///     primitives::Rectangle,
-    /// };
-    /// use embedded_text::{
-    ///     style::{HeightMode, TextBoxStyleBuilder},
-    ///     TextBox,
-    /// };
-    ///
-    /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-    /// let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
-    ///
-    /// let style = TextBoxStyleBuilder::new().height_mode(HeightMode::FitToText).build();
-    ///
-    /// // This TextBox contains two lines of text, but is 1px high
-    /// let text_box = TextBox::with_textbox_style(
+    /// let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 0));
+    /// let text_box = TextBox::with_height_mode(
     ///     "Two lines\nof text",
-    ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+    ///     bounding_box,
     ///     character_style,
-    ///     style,
+    ///     HeightMode::FitToText,
     /// );
     ///
-    /// // FitToText shrinks the TextBox to the height of the text
-    /// let size = text_box.bounding_box().size;
-    /// assert_eq!(size, Size::new(60, 18));
+    /// assert_eq!(text_box.bounding_box().size, Size::new(60, 18));
     /// ```
     ///
     /// [`Top`]: crate::alignment::VerticalAlignment::Top
@@ -125,67 +127,51 @@ pub enum HeightMode {
     /// # Example: `ShrinkToText` does not grow the [`TextBox`].
     ///
     /// ```rust
-    /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyle},
-    ///     pixelcolor::BinaryColor,
-    ///     prelude::*,
-    ///     primitives::Rectangle,
-    /// };
-    /// use embedded_text::{
-    ///     style::{HeightMode, VerticalOverdraw, TextBoxStyleBuilder},
-    ///     TextBox,
-    /// };
+    /// # use embedded_graphics::{
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+    /// #     pixelcolor::BinaryColor,
+    /// #     prelude::*,
+    /// # };
+    /// # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+    /// #
+    /// use embedded_graphics::primitives::Rectangle;
+    /// use embedded_text::{TextBox, style::{HeightMode, VerticalOverdraw}};
     ///
-    /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-    /// let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
-    ///
-    /// let style = TextBoxStyleBuilder::new()
-    ///     .height_mode(HeightMode::ShrinkToText(VerticalOverdraw::FullRowsOnly))
-    ///     .build();
-    ///
-    /// // This TextBox contains two lines of text, but is 1px high
-    /// let text_box = TextBox::with_textbox_style(
+    /// // This TextBox contains two lines of text, but is 0px high
+    /// let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 0));
+    /// let text_box = TextBox::with_height_mode(
     ///     "Two lines\nof text",
-    ///     Rectangle::new(Point::zero(), Size::new(60, 0)),
+    ///     bounding_box,
     ///     character_style,
-    ///     style,
+    ///     HeightMode::ShrinkToText(VerticalOverdraw::FullRowsOnly),
     /// );
     ///
-    /// let size = text_box.bounding_box().size;
-    /// assert_eq!(size, Size::new(60, 0));
+    /// assert_eq!(text_box.bounding_box().size, Size::new(60, 0));
     /// ```
     ///
     /// # Example: `ShrinkToText` shrinks the [`TextBox`].
     ///
     /// ```rust
-    /// use embedded_graphics::{
-    ///     mono_font::{ascii::FONT_6X9, MonoTextStyle},
-    ///     pixelcolor::BinaryColor,
-    ///     prelude::*,
-    ///     primitives::Rectangle,
-    /// };
-    /// use embedded_text::{
-    ///     style::{HeightMode, VerticalOverdraw, TextBoxStyleBuilder},
-    ///     TextBox,
-    /// };
-    ///
-    /// // Set style, use 6x9 MonoFont so the 2 lines are 18px high.
-    /// let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
-    ///
-    /// let style = TextBoxStyleBuilder::new()
-    ///     .height_mode(HeightMode::ShrinkToText(VerticalOverdraw::FullRowsOnly))
-    ///     .build();
+    /// # use embedded_graphics::{
+    /// #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+    /// #     pixelcolor::BinaryColor,
+    /// #     prelude::*,
+    /// # };
+    /// # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+    /// #
+    /// use embedded_graphics::primitives::Rectangle;
+    /// use embedded_text::{TextBox, style::{HeightMode, VerticalOverdraw}};
     ///
     /// // This TextBox contains two lines of text, but is 60px high
-    /// let text_box = TextBox::with_textbox_style(
+    /// let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 60));
+    /// let text_box = TextBox::with_height_mode(
     ///     "Two lines\nof text",
-    ///     Rectangle::new(Point::zero(), Size::new(60, 60)),
+    ///     bounding_box,
     ///     character_style,
-    ///     style,
+    ///     HeightMode::ShrinkToText(VerticalOverdraw::Hidden),
     /// );
     ///
-    /// let size = text_box.bounding_box().size;
-    /// assert_eq!(size, Size::new(60, 18));
+    /// assert_eq!(text_box.bounding_box().size, Size::new(60, 18));
     /// ```
     ShrinkToText(VerticalOverdraw),
 }

@@ -57,6 +57,8 @@
 //! the text clipped. [`FullRowsOnly`] only renders lines that are completely inside the bounding
 //! box.
 //!
+//! For examples on how to use height mode settings, see the documentation of [`HeightMode`].
+//!
 //! The [`leading_spaces`] and [`trailing_spaces`] settings set whether the spaces at the beginning
 //! or the end of a line are visible. The default values depend on the [`alignment`] setting.
 //!

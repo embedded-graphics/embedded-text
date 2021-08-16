@@ -145,11 +145,13 @@ pub use crate::{
 ///
 /// To construct a [`TextBox`] object at least a text string, a bounding box and character style are
 /// required. For advanced formatting options an additional [`TextBoxStyle`] object might be used.
+/// For more information about text box styling, see the documentation of the [`style`] module.
 ///
 /// Text rendering in `embedded-graphics` is designed to be extendable by text renderers for
 /// different font formats. `embedded-text` follows this philosophy by using the same text renderer
 /// infrastructure. To use a text renderer in an `embedded-text` project each renderer provides a
-/// character style object. See the [`embedded-graphics` documentation] for more information.
+/// character style object. See the [`embedded-graphics` documentation] for more information on text
+/// renderers and character styling.
 ///
 /// Plugins
 /// -------
