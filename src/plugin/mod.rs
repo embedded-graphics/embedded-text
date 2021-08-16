@@ -119,11 +119,8 @@ where
 
     pub fn new_line(&self) {
         let mut this = self.inner.borrow_mut();
-        this.peeked_token.0 = 0;
-        this.peeked_token.1 = None;
-        this.plugin.new_line();
 
-        this.lookahead = this.plugin.clone();
+        this.lookahead.new_line();
     }
 
     pub fn set_state(&self, state: ProcessingState) {
@@ -144,7 +141,10 @@ where
 
         if this.peeked_token.1.is_none() {
             let mut cloned = source.clone();
+
             this.peeked_token.1 = this.lookahead.next_token(|| cloned.next());
+
+            // It's possible that plugins modify the returned token so this isn't reliable
             this.peeked_token.0 = source.as_str().len() - cloned.as_str().len();
         }
         this.peeked_token.1.clone()
@@ -153,34 +153,32 @@ where
     pub fn consume_peeked_token(&self, source: &mut Parser<'a, C>) {
         let mut this = self.inner.borrow_mut();
 
-        unsafe {
-            source.consume(this.peeked_token.0);
-        }
-        this.peeked_token.0 = 0;
-        this.peeked_token.1 = None;
+        if this.peeked_token.1.is_some() {
+            unsafe {
+                source.consume(this.peeked_token.0);
+            }
+            this.peeked_token.0 = 0;
+            this.peeked_token.1 = None;
 
-        this.plugin = this.lookahead.clone();
+            this.plugin = this.lookahead.clone();
+        }
     }
 
     pub fn consume_partial(&self, len: usize, source: &mut Parser<'a, C>) {
         let mut this = self.inner.borrow_mut();
 
         // Only string-like tokens can be partially consumed.
-        debug_assert!(
-            len <= this.peeked_token.0,
-            "Tried to consume {} characters but token is {} long",
-            len,
-            this.peeked_token.0
-        );
-        debug_assert!(0 < len);
         debug_assert!(matches!(
             this.peeked_token.1,
             Some(Token::Whitespace(_, _)) | Some(Token::Word(_))
         ));
 
         let skip_chars = |str: &'a str, n| {
-            let (pos, _) = str.char_indices().nth(n - 1).unwrap();
-            &str[pos..]
+            let mut chars = str.chars();
+            for _ in 0..n {
+                chars.next();
+            }
+            chars.as_str()
         };
 
         let token = match this.peeked_token.1.take().unwrap() {
@@ -191,10 +189,15 @@ where
             _ => unreachable!(),
         };
 
+        // In case plugin only returned a partial token, we are consuming parts but
+        // `this.peeked_token.0` contains the length of the whole token.
+        let consumed = len.min(this.peeked_token.0);
+
         unsafe {
-            source.consume(len);
+            source.consume(consumed);
         }
-        this.peeked_token.0 -= len;
+
+        this.peeked_token.0 -= consumed;
         this.peeked_token.1.replace(token);
     }
 
@@ -206,7 +209,7 @@ where
         let mut this = self.inner.borrow_mut();
         this.peeked_token = (0, None);
 
-        this.plugin.on_start_render(cursor, &props);
+        this.lookahead.on_start_render(cursor, &props);
     }
 
     pub fn on_rendering_finished(&self) {

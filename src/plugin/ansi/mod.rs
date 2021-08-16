@@ -292,4 +292,41 @@ mod test {
             .add_plugin(Ansi::new())
             .fit_height();
     }
+
+    #[test]
+    fn broken_underlned_token() {
+        let mut display = MockDisplay::new();
+        display.set_allow_overdraw(true);
+
+        let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+        let bounding_box = Rectangle::new(Point::zero(), Size::new(50, 20));
+
+        TextBox::new("\x1b[4munderlined", bounding_box, character_style)
+            .add_plugin(Ansi::new())
+            .draw(&mut display)
+            .unwrap();
+
+        display.assert_pattern(&[
+            "                                                ",
+            "                #              ##     #         ",
+            "                #               #               ",
+            "#   # # ##   ## #  ###  # ##    #    ##   # ##  ",
+            "#   # ##  # #  ## #   # ##  #   #     #   ##  # ",
+            "#   # #   # #   # ##### #       #     #   #   # ",
+            "#  ## #   # #  ## #     #       #     #   #   # ",
+            " ## # #   #  ## #  ###  #      ###   ###  #   # ",
+            "                                                ",
+            "################################################",
+            "                                                ",
+            "          #                                     ",
+            "          #                                     ",
+            " ###   ## #                                     ",
+            "#   # #  ##                                     ",
+            "##### #   #                                     ",
+            "#     #  ##                                     ",
+            " ###   ## #                                     ",
+            "                                                ",
+            "############                                    ",
+        ]);
+    }
 }
