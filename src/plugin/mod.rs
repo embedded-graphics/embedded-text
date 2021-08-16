@@ -162,17 +162,40 @@ where
         this.plugin = this.lookahead.clone();
     }
 
-    pub fn replace_peeked_token(&self, len: usize, token: Token<'a, C>) {
-        // Only string-like tokens can be replaced.
-        debug_assert!(matches!(token, Token::Whitespace(_, _) | Token::Word(_)));
-
+    pub fn consume_partial(&self, len: usize, source: &mut Parser<'a, C>) {
         let mut this = self.inner.borrow_mut();
 
-        this.peeked_token.0 = len;
-        this.peeked_token.1.replace(token);
+        // Only string-like tokens can be partially consumed.
+        debug_assert!(
+            len <= this.peeked_token.0,
+            "Tried to consume {} characters but token is {} long",
+            len,
+            this.peeked_token.0
+        );
+        debug_assert!(0 < len);
+        debug_assert!(matches!(
+            this.peeked_token.1,
+            Some(Token::Whitespace(_, _)) | Some(Token::Word(_))
+        ));
 
-        // Can't simply reset the lookahead plugin here
-        // this.lookahead = this.plugin.clone();
+        let skip_chars = |str: &'a str, n| {
+            let (pos, _) = str.char_indices().nth(n - 1).unwrap();
+            &str[pos..]
+        };
+
+        let token = match this.peeked_token.1.take().unwrap() {
+            Token::Whitespace(count, seq) => {
+                Token::Whitespace(count - len as u32, skip_chars(seq, len))
+            }
+            Token::Word(w) => Token::Word(skip_chars(w, len)),
+            _ => unreachable!(),
+        };
+
+        unsafe {
+            source.consume(len);
+        }
+        this.peeked_token.0 -= len;
+        this.peeked_token.1.replace(token);
     }
 
     pub fn on_start_render<S: CharacterStyle + TextRenderer>(
