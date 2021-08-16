@@ -8,7 +8,10 @@ use embedded_graphics::{
 };
 use object_chain::{Chain, ChainElement, Link};
 
-use crate::{parser::Token, rendering::cursor::Cursor, TextBoxProperties};
+use crate::{
+    parser::Token,
+    rendering::{cursor::Cursor, TextBoxProperties},
+};
 
 /// Plugin trait.
 ///

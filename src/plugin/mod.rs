@@ -1,6 +1,6 @@
 //! Plugins allow changing TextBox behaviour.
 //!
-//! Note: Custom plugins are experimental. Ff you wish to implement custom plugins,
+//! Note: Custom plugins are experimental. If you wish to implement custom plugins,
 //! you need to activate the `plugin` feature.
 
 use core::{
@@ -17,8 +17,7 @@ use embedded_graphics::{
 
 use crate::{
     parser::{Parser, Token},
-    rendering::cursor::Cursor,
-    TextBoxProperties,
+    rendering::{cursor::Cursor, TextBoxProperties},
 };
 
 #[cfg(feature = "plugin")]

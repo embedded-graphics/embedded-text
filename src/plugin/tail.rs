@@ -6,7 +6,10 @@ use embedded_graphics::{
     text::renderer::{CharacterStyle, TextRenderer},
 };
 
-use crate::{plugin::Plugin, rendering::cursor::Cursor, TextBoxProperties};
+use crate::{
+    plugin::Plugin,
+    rendering::{cursor::Cursor, TextBoxProperties},
+};
 
 /// Text tail display plugin.
 ///

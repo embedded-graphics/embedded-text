@@ -1,133 +1,181 @@
 //! `TextBox` styling.
+//! ==================
 //!
-//! Style objects and why you need them
-//! ===================================
+//! To construct a `TextBox` object at least a text string, a bounding box and character style are
+//! required. For advanced formatting options an additional `TextBoxStyle` object might be used.
 //!
-//! By itself, a [`TextBox`] does not contain the information necessary to draw it on a display.
-//! This information is called "style" and it is contained in [`TextBoxStyle`] objects.
+//! Text rendering in `embedded-graphics` is designed to be extendable by text renderers for
+//! different font formats. `embedded-text` follows this philosophy by using the same text renderer
+//! infrastructure. To use a text renderer in an `embedded-text` project each renderer provides a
+//! character style object. See the [`embedded-graphics` documentation] for more information.
 //!
-//! The recommended (and most flexible) way of constructing a style object is using the
-//! [`TextBoxStyleBuilder`] builder object. The least amount of information necessary to create a
-//! text style is the `MonoFont` used to render the text, so you'll need to specify this when you call
-//! [`TextBoxStyleBuilder::new`].
-//! You can then chain together various builder methods to customize MonoFont rendering.
+//! TextBox style
+//! ---------------
 //!
-//! See the [`TextBoxStyleBuilder`] for more information on what styling options you have.
+//! In addition to styling the individual characters the [`TextBox`] drawable also contains a
+//! [`TextBoxStyle`] setting. The text box style is used to set the horizontal and vertical
+//! alignment, line and paragraph spacing, tab size and some other advanced settings of text box
+//! objects.
 //!
-//! In-band text styling using ANSI escape codes
-//! ============================================
+//! The [`alignment`] option sets the horizontal alignment of the text.
+//! **Note: alignment works differently from `embedded-graphics`.**
+//! With the default value `Left` the start of each line will be lined up with the left side of the
+//! bounding box. Similarly `Right` aligned text will line up the ends of the lines with the right
+//! side of the bounding box. `Center`ed text will be positioned at equal distance from the left and
+//! right sides. `Justified` text will distribute the text in such a way that both the start and end
+//! of a line will align with the respective sides of the bounding box.
 //!
-//! Sometimes you need more flexibility than what a single style object can provide, like changing
-//! MonoFont color for a specific word in the text. `embedded-text` supports this use case by using a
-//! subset of the standard [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
-//! These are special character sequences you can use *in the text* to change the MonoFont style of the
-//! text itself. This documentation does not aim to provide a full specification of all the ANSI
-//! escape codes, only describes the supported subset.
+//! The [`vertical_alignment`] setting sets the vertical alignment of the text.
+//! With the default value `Top` the top of the text is lined up with the top of the bounding box.
+//! Similarly `Bottom` aligned text will line up the bottom of the last line of the text with the
+//! bottom edge of the bounding box. `Middle` aligned text will be positioned at equal distance from
+//! the top and bottom sides.
 //!
-//! > *Note:* if `embedded-text` fails to parse an escape sequence, it will ignore the `\x1b` character
-//! and display the rest as normal text.
+//! The [`line_height`] option sets the distance between the baselines of the lines of text. It can
+//! be specified in either pixels or percentage of the line height defined by the font.
 //!
-//! All escape sequences start with the `\x1b[` sequence, where `\x1b` is the ASCII `escape`
-//! character. `embedded-text` supports a subset of the `SGR` parameters, which are numeric codes
-//! with specific functions, followed by a number of parameters and end with the `m` character.
+//! The [`paragraph_spacing`] setting sets the distance between paragraphs of text, in addition to
+//! the line spacing.
 //!
-//! Currently, `embedded-text` supports changing the text and background colors. To do this, you
-//! have the following options:
+//! The [`tab_size`] setting sets the maximum width of a tab character. It can be specified in
+//! either pixels of number of space characters.
 //!
-//! Standard color codes
-//! --------------------
+//! Advanced settings
+//! -----------------
 //!
-//! <style>
-//! .ansi_color {
-//!     display: block;
-//!     text-align: center;
-//!     color: white;
-//! }
-//! </style>
+//! The [`height_mode`] setting determines how the `TextBox` adjusts its height to its contents.
+//! The default value [`Exact`] does not adjust the height - the text box will be as tall as the
+//! bounding box given to it. [`FitToText`] will adjust the height to the height of the text,
+//! regardless of the initial bounding box's height. [`ShrinkToText`] will decrease the height
+//! of the text box to the height of the text, if the bounding box given to the text box is too
+//! tall.
 //!
-//! The standard color codes option is the simplest, and least flexible way to set color.
+//! `Exact` and `ShrinkToText` have an additional [`VerticalOverdraw`] parameter. This setting
+//! specifies how the text outside of the adjusted bounding box is handled. [`Visible`] renders the
+//! text regardless of the bounding box. [`Hidden`] renders everything inside the bounding box. If a
+//! line is too tall to fit inside the bounding box, it will be drawn partially, the bottom part of
+//! the text clipped. [`FullRowsOnly`] only renders lines that are completely inside the bounding
+//! box.
 //!
-//! | Color name          | Text color | Background color | RGB888                                                                                          |
-//! |---------------------|------------|------------------|-------------------------------------------------------------------------------------------------|
-//! | Black               | `\x1b[30m` | `\x1b[40m`       | <span class="ansi_color" style="background: rgb(12,12,12);"> 12,12,12 </span>                     |
-//! | Red                 | `\x1b[31m` | `\x1b[41m`       | <span class="ansi_color" style="background: rgb(197,15,31);"> 197,15,31 </span>                   |
-//! | Green               | `\x1b[32m` | `\x1b[42m`       | <span class="ansi_color" style="background: rgb(19,161,14);"> 19,161,14 </span>                   |
-//! | Yellow              | `\x1b[33m` | `\x1b[43m`       | <span class="ansi_color" style="background: rgb(193,156,0);"> 193,156,0 </span>                   |
-//! | Blue                | `\x1b[34m` | `\x1b[44m`       | <span class="ansi_color" style="background: rgb(0,55,218);"> 0,55,218 </span>                     |
-//! | Magenta             | `\x1b[35m` | `\x1b[45m`       | <span class="ansi_color" style="background: rgb(136,23,152);"> 136,23,152 </span>                 |
-//! | Cyan                | `\x1b[36m` | `\x1b[46m`       | <span class="ansi_color" style="background: rgb(58,150,221);"> 58,150,221 </span>                 |
-//! | White               | `\x1b[37m` | `\x1b[47m`       | <span class="ansi_color" style="background: rgb(204,204,204); color: black;"> 204,204,204 </span> |
-//! | Gray (Bright Black) | `\x1b[90m` | `\x1b[100m`      | <span class="ansi_color" style="background: rgb(118,118,118); color: black;"> 118,118,118 </span> |
-//! | Bright Red          | `\x1b[91m` | `\x1b[101m`      | <span class="ansi_color" style="background: rgb(231,72,86);"> 231,72,86 </span>                   |
-//! | Bright Green        | `\x1b[92m` | `\x1b[102m`      | <span class="ansi_color" style="background: rgb(22,198,12); color: black;"> 22,198,12 </span>     |
-//! | Bright Yellow       | `\x1b[93m` | `\x1b[103m`      | <span class="ansi_color" style="background: rgb(249,241,165); color: black;"> 249,241,165 </span> |
-//! | Bright Blue         | `\x1b[94m` | `\x1b[104m`      | <span class="ansi_color" style="background: rgb(59,120,255);"> 59,120,255 </span>                 |
-//! | Bright Magenta      | `\x1b[95m` | `\x1b[105m`      | <span class="ansi_color" style="background: rgb(180,0,158);"> 180,0,158 </span>                   |
-//! | Bright Cyan         | `\x1b[96m` | `\x1b[106m`      | <span class="ansi_color" style="background: rgb(97,214,214); color: black;"> 97,214,214 </span>   |
-//! | Bright White        | `\x1b[97m` | `\x1b[107m`      | <span class="ansi_color" style="background: rgb(242,242,242); color: black;"> 242,242,242 </span> |
+//! For examples on how to use height mode settings, see the documentation of [`HeightMode`].
 //!
-//! 8 bit colors
-//! ------------
+//! The [`leading_spaces`] and [`trailing_spaces`] settings set whether the spaces at the beginning
+//! or the end of a line are visible. The default values depend on the [`alignment`] setting.
 //!
-//! 8 bit colors are in the form of either `\x1b[38;5;<n>m` (text color) or `\x1b[48;5;<n>m`
-//! (background color) sequence. Here, `<n>` marks a parameter that determines the color. `<n>` can
-//! have the following values:
+//! | `alignment`  | `leading_spaces` | `trailing_spaces` |
+//! | ------------ | ---------------- | ----------------- |
+//! | `Left`       | `true`           | `false`           |
+//! | `Right`      | `false`          | `false`           |
+//! | `Center`     | `false`          | `false`           |
+//! | `Justified`  | `false`          | `false`           |
 //!
-//! * 0-15: standard colors in the order of the above table.
-//!   For example, `\x1b[38;5;12m` is the `Bright Blue` color.
-//! * 16-231: 6 × 6 × 6 cube (216 colors): `16 + 36 × r + 6 × g + b (0 ≤ r, g, b ≤ 5)`
-//! * 232-255: grayscale from black to white
+//! # Ways to create and apply text box styles
 //!
-//! 24 bit colors
-//! -------------
+//! ## Example 1: Setting multiple options using the [`TextBoxStyleBuilder`] object:
 //!
-//! 8 bit colors are in the form of either `\x1b[38;2;<r>;<g>;<b>m` (text color) or
-//! `\x1b[48;2;<r>;<g>;<b>m` (background color) sequence. Here, `<r>`, `<g>` and `<b>` can take any
-//! value between `0` and `255`.
+//! To build more complex styles, you can use the [`TextBoxStyleBuilder`] object and the
+//! [`TextBox::with_textbox_style`] constructor.
 //!
-//! Supported color types
-//! ---------------------
+//! ```rust
+//! # use embedded_graphics::{
+//! #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+//! #     pixelcolor::BinaryColor,
+//! #     prelude::*,
+//! #     primitives::Rectangle,
+//! # };
+//! # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+//! # let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 10));
+//! # let text = "";
+//! #
+//! use embedded_text::{
+//!     TextBox,
+//!     style::TextBoxStyleBuilder,
+//!     alignment::{
+//!         HorizontalAlignment,
+//!         VerticalAlignment,
+//!     },
+//! };
 //!
-//! `embedded-text` supports all color types that are included in `embedded-graphics`.
+//! let textbox_style = TextBoxStyleBuilder::new()
+//!     .alignment(HorizontalAlignment::Center)
+//!     .vertical_alignment(VerticalAlignment::Middle)
+//!     .build();
 //!
-//! If you wish to use a different color type, the types needs to implement `From<Rgb888>`.
+//! let textbox = TextBox::with_textbox_style(
+//!     text,
+//!     bounding_box,
+//!     character_style,
+//!     textbox_style,
+//! );
+//! ```
 //!
-//! Other text styling options
-//! --------------------------
+//! [`TextBox::with_textbox_style`]: crate::TextBox::with_textbox_style
 //!
-//! The following SGR sequences are supported:
+//! ## Examples 2 and 3: Only setting a single option:
 //!
-//!  * `\x1b[0m`: Reset everything
-//!  * `\x1b[4m`: Underlined text
-//!  * `\x1b[24m`: Turn off text underline
-//!  * `\x1b[9m`: Crossed out/strikethrough text
-//!  * `\x1b[29m`: Turn off strikethrough
-//!  * `\x1b[39m`: Reset text color
-//!  * `\x1b[49m`: Reset background color
+//! Both the [`TextBox`] and [`TextBoxStyle`] objects have different constructor methods in case you
+//! only want to set a single style option.
 //!
-//! Reset style options to default
-//! ------------------------------
+//! ```rust
+//! # use embedded_graphics::{
+//! #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+//! #     pixelcolor::BinaryColor,
+//! #     prelude::*,
+//! #     primitives::Rectangle,
+//! # };
+//! # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+//! # let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 10));
+//! # let text = "";
+//! #
+//! use embedded_text::{TextBox, alignment::HorizontalAlignment};
 //!
-//! `embedded-text` supports the `Reset all` (`\x1b[0m`), `Default text color` (`\x1b[39m`) and
-//! `Default background color` (`\x1b[49m`) codes. These codes can be used to reset colors to
-//! *transparent* (i.e. no pixels drawn for text or background).
+//! let textbox = TextBox::with_alignment(
+//!     text,
+//!     bounding_box,
+//!     character_style,
+//!     HorizontalAlignment::Center,
+//! );
+//! ```
 //!
-//! In addition, `Reset all` turns off the underlined and crossed out styles.
+//! ```rust
+//! # use embedded_graphics::{
+//! #     mono_font::{ascii::FONT_6X9, MonoTextStyle},
+//! #     pixelcolor::BinaryColor,
+//! #     prelude::*,
+//! #     primitives::Rectangle,
+//! # };
+//! # let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+//! # let bounding_box = Rectangle::new(Point::zero(), Size::new(60, 10));
+//! # let text = "";
+//! #
+//! use embedded_text::{TextBox, style::TextBoxStyle, alignment::VerticalAlignment};
 //!
-//! Other supported ANSI escape codes
-//! ---------------------------------
+//! let textbox_style = TextBoxStyle::with_vertical_alignment(VerticalAlignment::Middle);
 //!
-//! Besides changing text style, you can also move the cursor using ANSI escape codes!
-//! You have the following options:
-//!
-//!  - Move the cursor forward `<n>` characters: `\x1b[<n>C`. This command will stop at the end of
-//!    line, so you can use it to simulate a highlighted line, for example.
-//!    *Note:* Moving the cursor *forward* fills the line with the background color. If you want to
-//!    avoid this, make sure to reset the background color before moving the cursor!
-//!  - Move the cursor backward `<n>` characters: `\x1b[<n>D`. This command will stop at the start
-//!    of line.
+//! let textbox = TextBox::with_textbox_style(
+//!     text,
+//!     bounding_box,
+//!     character_style,
+//!     textbox_style,
+//! );
+//! ```
 //!
 //! [`TextBox`]: crate::TextBox
+//! [`alignment`]: TextBoxStyle::alignment
+//! [`vertical_alignment`]: TextBoxStyle::vertical_alignment
+//! [`line_height`]: TextBoxStyle::line_height
+//! [`paragraph_spacing`]: TextBoxStyle::paragraph_spacing
+//! [`tab_size`]: TextBoxStyle::tab_size
+//! [`height_mode`]: TextBoxStyle::height_mode
+//! [`leading_spaces`]: TextBoxStyle::leading_spaces
+//! [`trailing_spaces`]: TextBoxStyle::trailing_spaces
+//! [`Exact`]: HeightMode::Exact
+//! [`FitToText`]: HeightMode::FitToText
+//! [`ShrinkToText`]: HeightMode::ShrinkToText
+//! [`Visible`]: VerticalOverdraw::Visible
+//! [`Hidden`]: VerticalOverdraw::Hidden
+//! [`FullRowsOnly`]: VerticalOverdraw::FullRowsOnly
+//! [`embedded-graphics` documentation]: https://docs.rs/embedded-graphics/0.7.1/embedded_graphics/text/index.html
 
 mod builder;
 mod height_mode;
@@ -244,6 +292,34 @@ impl TextBoxStyle {
         TextBoxStyleBuilder::new()
             .vertical_alignment(alignment)
             .build()
+    }
+
+    /// Creates a new text box style with the given [height mode].
+    ///
+    /// [height mode]: HeightMode
+    #[inline]
+    pub const fn with_height_mode(mode: HeightMode) -> TextBoxStyle {
+        TextBoxStyleBuilder::new().height_mode(mode).build()
+    }
+
+    /// Creates a new text box style with the given line height.
+    #[inline]
+    pub const fn with_line_height(line_height: LineHeight) -> TextBoxStyle {
+        TextBoxStyleBuilder::new().line_height(line_height).build()
+    }
+
+    /// Creates a new text box style with the given paragraph spacing.
+    #[inline]
+    pub const fn with_paragraph_spacing(spacing: u32) -> TextBoxStyle {
+        TextBoxStyleBuilder::new()
+            .paragraph_spacing(spacing)
+            .build()
+    }
+
+    /// Creates a new text box style with the given tab size.
+    #[inline]
+    pub const fn with_tab_size(tab_size: TabSize) -> TextBoxStyle {
+        TextBoxStyleBuilder::new().tab_size(tab_size).build()
     }
 }
 
@@ -366,7 +442,7 @@ impl TextBoxStyle {
 
     /// Measures text height when rendered using a given width.
     ///
-    /// # Example: measure height of text when rendered using a 6x8 MonoFont and 72px width.
+    /// # Example: measure height of text when rendered using a 6x9 MonoFont and 72px width.
     ///
     /// ```rust
     /// # use embedded_text::style::TextBoxStyleBuilder;

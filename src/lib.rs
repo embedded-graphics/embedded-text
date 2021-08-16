@@ -117,30 +117,105 @@ mod utils;
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
     plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
-    style::TextBoxStyle,
+    style::{HeightMode, TabSize, TextBoxStyle},
 };
 use embedded_graphics::{
     geometry::{Dimensions, Point},
     pixelcolor::Rgb888,
     primitives::Rectangle,
-    text::renderer::{CharacterStyle, TextRenderer},
+    text::{
+        renderer::{CharacterStyle, TextRenderer},
+        LineHeight,
+    },
     transform::Transform,
 };
 use object_chain::{Chain, ChainElement, Link};
-pub use parser::{ChangeTextStyle, Token};
-pub use rendering::{cursor::Cursor, TextBoxProperties};
+
+#[cfg(feature = "plugin")]
+pub use crate::{
+    parser::{ChangeTextStyle, Token},
+    rendering::{cursor::Cursor, TextBoxProperties},
+};
 
 /// A text box object.
+/// ==================
 ///
-/// The `TextBox` struct represents a piece of text that can be drawn on a display inside the given
-/// bounding box.
+/// The `TextBox` object can be used to draw text on a draw target. It is meant to be a more
+/// feature-rich alternative to `Text` in embedded-graphics.
 ///
-/// Use the [`draw`] method to draw the text box on a display.
+/// To construct a [`TextBox`] object at least a text string, a bounding box and character style are
+/// required. For advanced formatting options an additional [`TextBoxStyle`] object might be used.
+/// For more information about text box styling, see the documentation of the [`style`] module.
 ///
-/// See the [module-level documentation] for more information.
+/// Text rendering in `embedded-graphics` is designed to be extendable by text renderers for
+/// different font formats. `embedded-text` follows this philosophy by using the same text renderer
+/// infrastructure. To use a text renderer in an `embedded-text` project each renderer provides a
+/// character style object. See the [`embedded-graphics` documentation] for more information on text
+/// renderers and character styling.
 ///
-/// [module-level documentation]: crate
+/// Plugins
+/// -------
+///
+/// The feature set of `TextBox` can be extended by plugins. Plugins can be used to implement
+/// optional features which are not essential to the core functionality of `embedded-text`.
+///
+/// Use the [`add_plugin`] method to add a plugin to the `TextBox` object. Multiple plugins can be
+/// used at the same time. Plugins are applied in the reverse order they are added. Note that some
+/// plugins may interfere with others if used together or not in the expected order.
+///
+/// If you need to extract data from plugins after the text box has been rendered,
+/// you can use the [`take_plugins`] method.
+///
+/// See the list of built-in plugins in the [`plugin`] module.
+///
+/// *Note:* Implementing custom plugins is experimental and require enabling the `plugin` feature.
+///
+/// ### Example: advanced text styling using the ANSI plugin
+///
+/// ```rust
+/// # use embedded_graphics::{
+/// #   Drawable,
+/// #   geometry::{Point, Size},
+/// #   primitives::Rectangle,
+/// #   mock_display::MockDisplay,
+/// #   mono_font::{
+/// #       ascii::FONT_6X10, MonoTextStyle, MonoTextStyleBuilder,
+/// #   },
+/// #   pixelcolor::BinaryColor,
+/// # };
+/// # let mut display: MockDisplay<BinaryColor> = MockDisplay::default();
+/// # display.set_allow_out_of_bounds_drawing(true);
+/// # let character_style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+/// # let bounding_box = Rectangle::new(Point::zero(), Size::new(100, 20));
+/// use embedded_text::{TextBox, plugin::ansi::Ansi};
+/// TextBox::new(
+///     "Some \x1b[4munderlined\x1b[24m text",
+///     bounding_box,
+///     character_style,
+/// )
+/// .add_plugin(Ansi::new())
+/// .draw(&mut display)?;
+/// # Ok::<(), core::convert::Infallible>(())
+/// ```
+///
+/// Vertical offsetting
+/// -------------------
+///
+/// You can use the [`set_vertical_offset`] method to move the text inside the text box. Vertical
+/// offset is applied after all vertical measurements and alignments. This can be useful to scroll
+/// text in a fixed text box. Setting a positive value moves the text down.
+///
+/// Residual text
+/// -------------
+///
+/// If the text does not fit the given bounding box, the [`draw`] method returns the part which was
+/// not processed. The return value can be used to flow text into multiple text boxes.
+///
 /// [`draw`]: embedded_graphics::Drawable::draw()
+/// [`set_vertical_offset`]: TextBox::set_vertical_offset()
+/// [`add_plugin`]: TextBox::add_plugin()
+/// [`take_plugins`]: TextBox::take_plugins()
+/// [`embedded-graphics` documentation]: https://docs.rs/embedded-graphics/0.7.1/embedded_graphics/text/index.html
 #[derive(Clone, Debug, Hash)]
 #[must_use]
 pub struct TextBox<'a, S, M = NoPlugin<<S as TextRenderer>::Color>>
@@ -176,7 +251,8 @@ where
         TextBox::with_textbox_style(text, bounds, character_style, TextBoxStyle::default())
     }
 
-    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given
+    /// `TextBoxStyle`.
     #[inline]
     pub fn with_textbox_style(
         text: &'a str,
@@ -198,7 +274,8 @@ where
         styled
     }
 
-    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` with the given horizontal alignment.
     #[inline]
     pub fn with_alignment(
         text: &'a str,
@@ -214,7 +291,8 @@ where
         )
     }
 
-    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a given `TextBoxStyle`.
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given vertical alignment.
     #[inline]
     pub fn with_vertical_alignment(
         text: &'a str,
@@ -230,7 +308,80 @@ where
         )
     }
 
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given [height mode].
+    ///
+    /// [height mode]: HeightMode
+    #[inline]
+    pub fn with_height_mode(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        mode: HeightMode,
+    ) -> Self {
+        TextBox::with_textbox_style(
+            text,
+            bounds,
+            character_style,
+            TextBoxStyle::with_height_mode(mode),
+        )
+    }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given line height.
+    #[inline]
+    pub fn with_line_height(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        line_height: LineHeight,
+    ) -> Self {
+        TextBox::with_textbox_style(
+            text,
+            bounds,
+            character_style,
+            TextBoxStyle::with_line_height(line_height),
+        )
+    }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given paragraph spacing.
+    #[inline]
+    pub fn with_paragraph_spacing(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        spacing: u32,
+    ) -> Self {
+        TextBox::with_textbox_style(
+            text,
+            bounds,
+            character_style,
+            TextBoxStyle::with_paragraph_spacing(spacing),
+        )
+    }
+
+    /// Creates a new `TextBox` instance with a given bounding `Rectangle` and a default
+    /// `TextBoxStyle` and the given tab size.
+    #[inline]
+    pub fn with_tab_size(
+        text: &'a str,
+        bounds: Rectangle,
+        character_style: S,
+        tab_size: TabSize,
+    ) -> Self {
+        TextBox::with_textbox_style(
+            text,
+            bounds,
+            character_style,
+            TextBoxStyle::with_tab_size(tab_size),
+        )
+    }
+
     /// Sets the vertical text offset.
+    ///
+    /// Vertical offset changes the vertical position of the displayed text within the bounding box.
+    /// Setting a positive value moves the text down.
     #[inline]
     pub fn set_vertical_offset(&mut self, offset: i32) -> &mut Self {
         self.vertical_offset = offset;
@@ -282,7 +433,7 @@ where
         styled
     }
 
-    /// Deconstruct the textbox and return the plugins.
+    /// Deconstruct the text box and return the plugins.
     #[inline]
     pub fn take_plugins(self) -> P {
         self.plugin.inner.into_inner().lookahead
