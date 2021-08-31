@@ -1,3 +1,10 @@
+0.5.0 (??)
+==========
+
+ * [#155] Removed `TextBox::fit_height` and `TextBox::fit_height_limited`
+
+[#155]: https://github.com/embedded-graphics/embedded-text/pull/155
+
 0.5.0-beta.4 (2021-08-16)
 =========================
 
