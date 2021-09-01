@@ -480,7 +480,7 @@ where
 {
     /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]
-    pub fn fit_height(&mut self) -> &mut Self {
+    fn fit_height(&mut self) -> &mut Self {
         self.fit_height_limited(u32::max_value())
     }
 
@@ -489,7 +489,7 @@ where
     /// This method allows you to set a maximum height. The [`TextBox`] will take up at most
     /// `max_height` pixel vertical space.
     #[inline]
-    pub fn fit_height_limited(&mut self, max_height: u32) -> &mut Self {
+    fn fit_height_limited(&mut self, max_height: u32) -> &mut Self {
         // Measure text given the width of the textbox
         let text_height = self
             .style
