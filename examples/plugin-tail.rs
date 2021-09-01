@@ -27,7 +27,7 @@ fn main() -> Result<(), Infallible> {
 
     // Divide the screen into 3 64px wide columns.
     TextBox::new(
-        "Short text using Scrolling alignment is aligned to the top.",
+        "Short text using the Tail plugin is aligned to the top.",
         Rectangle::new(Point::zero(), Size::new(64, 96)),
         character_style,
     )
@@ -35,7 +35,7 @@ fn main() -> Result<(), Infallible> {
     .draw(&mut display)?;
 
     TextBox::with_textbox_style(
-        "Some longer text to demonstrate that Scrolling alignment aligns text so that the \
+        "Some longer text to demonstrate that Tail plugin aligns text so that the \
         bottom line is always visible.",
         Rectangle::new(Point::new(64, 0), Size::new(64, 96)),
         character_style,
