@@ -30,10 +30,10 @@ fn main() -> Result<(), Infallible> {
         .build();
 
     // Create a simulated display.
-    let mut display = SimulatorDisplay::new(Size::new(255, 255));
+    let mut display = SimulatorDisplay::new(Size::new(255, 140));
 
     // Create bounding boxes
-    let bounds = Rectangle::new(Point::zero(), Size::new(255, 255));
+    let bounds = Rectangle::new(Point::zero(), Size::new(255, 140));
 
     // Create and draw the text boxes.
     TextBox::with_textbox_style(

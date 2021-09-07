@@ -116,6 +116,8 @@ jobs:
         compare -metric AE ./assets/styles-plugin.png ./target/screenshots/styles-plugin.png result.png
         EG_SIMULATOR_DUMP="./target/screenshots/styles-static.png" cargo run --example styles-static
         compare -metric AE ./assets/styles-static.png ./target/screenshots/styles-static.png result.png
+        EG_SIMULATOR_DUMP="./target/screenshots/whitespace_control.png" cargo run --example whitespace_control
+        compare -metric AE ./assets/whitespace_control.png ./target/screenshots/whitespace_control.png result.png
 
   docs:
     runs-on: ubuntu-latest
