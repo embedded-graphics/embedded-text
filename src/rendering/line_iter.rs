@@ -250,10 +250,11 @@ where
                         consumed,
                         consumed_width * self.render_trailing_spaces() as u32,
                     )?;
-
-                    self.plugin.consume_partial(consumed as usize);
-                    return Ok(true);
                 }
+
+                self.plugin
+                    .consume_partial((consumed + 1).min(space_count) as usize);
+                return Ok(true);
             }
         }
         Ok(false)
