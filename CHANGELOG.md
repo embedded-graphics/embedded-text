@@ -1,9 +1,16 @@
 0.5.0 (??)
 ==========
 
+## Fixed:
+
+ * [#15X] Fixed carrying whitespace to the next line
+
+## Removed:
+
  * [#155] Removed `TextBox::fit_height` and `TextBox::fit_height_limited`
 
 [#155]: https://github.com/embedded-graphics/embedded-text/pull/155
+[#15X]: https://github.com/embedded-graphics/embedded-text/pull/15X
 
 0.5.0-beta.4 (2021-08-16)
 =========================
