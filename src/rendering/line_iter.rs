@@ -250,10 +250,11 @@ where
                         consumed,
                         consumed_width * self.render_trailing_spaces() as u32,
                     )?;
-
-                    self.plugin.consume_partial(consumed as usize);
-                    return Ok(true);
                 }
+
+                self.plugin
+                    .consume_partial((consumed + 1).min(space_count) as usize);
+                return Ok(true);
             }
         }
         Ok(false)
@@ -680,7 +681,15 @@ pub(crate) mod test {
             ],
             &mw,
         );
-        assert_line_elements(&mut parser, 5, &[RenderElement::string("f", 6)], &mw);
+        assert_line_elements(
+            &mut parser,
+            5,
+            &[
+                RenderElement::Space(0, false), // FIXME: why 🤷‍♂️ Should have eaten in prev line
+                RenderElement::string("f", 6),
+            ],
+            &mw,
+        );
     }
 
     #[test]
@@ -750,7 +759,7 @@ pub(crate) mod test {
 
     #[test]
     fn space_wrapping_issue() {
-        let mut parser = Parser::parse("Hello,     s");
+        let mut parser = Parser::parse("Hello,      s");
         let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(

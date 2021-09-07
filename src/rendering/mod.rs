@@ -380,7 +380,7 @@ pub mod test {
             .build();
 
         TextBox::with_textbox_style(
-            "Hello,     s",
+            "Hello,      s",
             Rectangle::new(Point::zero(), size_for(&FONT_6X10, 10, 2)),
             character_style,
             TextBoxStyleBuilder::new()
