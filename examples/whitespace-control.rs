@@ -49,7 +49,7 @@ fn main() -> Result<(), Infallible> {
         bounds.resized(Size::new(128, 255), AnchorPoint::TopRight),
         character_style,
         TextBoxStyleBuilder::default()
-            .leading_spaces(true)
+            .leading_spaces(false)
             .trailing_spaces(true)
             .build(),
     )
