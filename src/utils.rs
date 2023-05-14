@@ -23,6 +23,8 @@ pub fn str_width(renderer: &impl TextRenderer, s: &str) -> u32 {
         .filter(|c| *c == SPEC_CHAR_NBSP)
         .count()
         .saturating_as();
+
+    // TODO: hack to measure NBSP as a single space
     width(s) - nbsp_count * (width("\u{a0}").saturating_sub(width(" ")))
 }
 

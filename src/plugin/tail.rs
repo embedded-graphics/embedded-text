@@ -15,7 +15,7 @@ use crate::{
 ///
 /// Aligns the last line of the text to be always visible. If the text fits inside the text box,
 /// it will be top aligned. If the text is longer, it will be bottom aligned.
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Tail;
 
 impl<'a, C: PixelColor> Plugin<'a, C> for Tail {

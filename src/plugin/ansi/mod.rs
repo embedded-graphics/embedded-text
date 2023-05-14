@@ -130,7 +130,7 @@ pub struct Ansi<'a, C: PixelColor> {
 impl<C: PixelColor> Ansi<'_, C> {
     /// Returns a new plugin object.
     #[inline]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { carry: None }
     }
 }

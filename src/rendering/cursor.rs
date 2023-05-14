@@ -14,7 +14,7 @@ pub struct LineCursor {
 
 impl LineCursor {
     /// Creates a new object whose position isn't important.
-    pub fn new(width: u32, tab_width: u32) -> Self {
+    pub const fn new(width: u32, tab_width: u32) -> Self {
         Self {
             start: Point::zero(),
             width,
@@ -28,23 +28,23 @@ impl LineCursor {
     }
 
     /// Returns the distance to the next tab position.
-    pub fn next_tab_width(&self) -> u32 {
+    pub const fn next_tab_width(&self) -> u32 {
         let next_tab_pos = (self.position / self.tab_width + 1) * self.tab_width;
         next_tab_pos - self.position
     }
 
     /// Returns the width of the text box.
-    pub fn line_width(&self) -> u32 {
+    pub const fn line_width(&self) -> u32 {
         self.width
     }
 
     /// Returns whether the current line has enough space to also include an object of given width.
-    pub fn fits_in_line(&self, width: u32) -> bool {
+    pub const fn fits_in_line(&self, width: u32) -> bool {
         width <= self.space()
     }
 
     /// Returns the amount of empty space in the line.
-    pub fn space(&self) -> u32 {
+    pub const fn space(&self) -> u32 {
         self.width - self.position
     }
 

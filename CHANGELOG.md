@@ -3,6 +3,10 @@ Unreleased (2023-05-14)
 
 ## Changed:
 
+ - The following functions can now be called from `const` code:
+   - `Ansi::new()`
+ - The following types are now `Copy`:
+   - `Tail`
  - **breaking** Bump Minimum Supported Rust Version (MSRV) to 1.61.
 
 0.5.0 (2021-09-08)

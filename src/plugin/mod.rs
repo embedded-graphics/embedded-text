@@ -50,7 +50,7 @@ impl<C> NoPlugin<C>
 where
     C: PixelColor,
 {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self(PhantomData)
     }
 }
