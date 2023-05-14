@@ -3,12 +3,14 @@ Unreleased (2023-05-14)
 
 ## Changed:
 
- - The following functions can now be called from `const` code:
+ - [#158] The following functions can now be called from `const` code:
    - `Ansi::new()`
- - The following types are now `Copy`:
+ - [#158] The following types are now `Copy`:
    - `Tail`
- - **breaking** Update embedded-graphics dependency to 0.8.
- - **breaking** Bump Minimum Supported Rust Version (MSRV) to 1.61.
+ - [#158] **breaking** Update embedded-graphics dependency to 0.8.
+ - [#158] **breaking** Bump Minimum Supported Rust Version (MSRV) to 1.61.
+
+[#158]: https://github.com/embedded-graphics/embedded-text/pull/158
 
 0.5.0 (2021-09-08)
 ==================
