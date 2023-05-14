@@ -7,6 +7,7 @@ Unreleased (2023-05-14)
    - `Ansi::new()`
  - The following types are now `Copy`:
    - `Tail`
+ - **breaking** Update embedded-graphics dependency to 0.8.
  - **breaking** Bump Minimum Supported Rust Version (MSRV) to 1.61.
 
 0.5.0 (2021-09-08)

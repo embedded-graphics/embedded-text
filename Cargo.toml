@@ -34,10 +34,10 @@ required-features = ["plugin"]
 
 [dependencies]
 az = "1.1"
-embedded-graphics = "0.7.0"
+embedded-graphics = "0.8.0"
 ansi-parser = { version = "0.8.0", default-features = false, optional = true }
 object-chain = "0.1"
 
 [dev-dependencies]
-embedded-graphics-simulator = "0.4.1"
+embedded-graphics-simulator = "0.5.0"
 sdl2 = "0.35.2"

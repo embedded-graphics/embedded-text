@@ -6,26 +6,13 @@ use embedded_graphics::{
     text::{renderer::TextRenderer, Baseline},
 };
 
-use crate::parser::SPEC_CHAR_NBSP;
-
 /// Measure the width of a piece of string.
 pub fn str_width(renderer: &impl TextRenderer, s: &str) -> u32 {
-    let width = |s: &str| -> u32 {
-        renderer
-            .measure_string(s, Point::zero(), Baseline::Top)
-            .next_position
-            .x
-            .saturating_as()
-    };
-
-    let nbsp_count: u32 = s
-        .chars()
-        .filter(|c| *c == SPEC_CHAR_NBSP)
-        .count()
-        .saturating_as();
-
-    // TODO: hack to measure NBSP as a single space
-    width(s) - nbsp_count * (width("\u{a0}").saturating_sub(width(" ")))
+    renderer
+        .measure_string(s, Point::zero(), Baseline::Top)
+        .next_position
+        .x
+        .saturating_as()
 }
 
 #[cfg(test)]
