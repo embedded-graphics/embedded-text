@@ -120,7 +120,7 @@ where
         cursor: &mut Cursor,
         props: &TextBoxProperties<'_, S>,
     ) {
-        self.object.on_start_render(cursor, &props)
+        self.object.on_start_render(cursor, props);
     }
 
     fn on_rendering_finished(&mut self) {
@@ -177,8 +177,8 @@ where
         cursor: &mut Cursor,
         props: &TextBoxProperties<'_, S>,
     ) {
-        self.parent.on_start_render(cursor, &props);
-        self.object.on_start_render(cursor, &props);
+        self.parent.on_start_render(cursor, props);
+        self.object.on_start_render(cursor, props);
     }
 
     fn on_rendering_finished(&mut self) {

@@ -28,7 +28,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for Tail {
         if props.text_height > box_height {
             let offset = box_height - props.text_height;
 
-            cursor.y += offset
+            cursor.y += offset;
         }
     }
 }

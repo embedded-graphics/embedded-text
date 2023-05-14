@@ -284,7 +284,7 @@ where
     }
 
     fn peek_next_token(&mut self) -> Option<Token<'a, C>> {
-        self.plugin.peek_token(&mut self.parser)
+        self.plugin.peek_token(self.parser)
     }
 
     fn consume_token(&mut self) {
