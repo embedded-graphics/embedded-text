@@ -90,7 +90,7 @@ where
     plugin: &'b PluginWrapper<'a, M, F::Color>,
 }
 
-impl<'a, 'b, 'c, F, D, M> ElementHandler for RenderElementHandler<'a, 'c, F, D, M>
+impl<'a, 'c, F, D, M> ElementHandler for RenderElementHandler<'a, 'c, F, D, M>
 where
     F: CharacterStyle + TextRenderer,
     <F as CharacterStyle>::Color: From<Rgb888>,

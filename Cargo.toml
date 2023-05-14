@@ -7,7 +7,8 @@ repository = "https://github.com/embedded-graphics/embedded-text"
 authors = ["Dániel Buga <bugadani@gmail.com>"]
 keywords = ["embedded-graphics", "textbox", "text"]
 categories = ["no-std", "embedded", "graphics"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.61"
 
 exclude = [
     ".gitignore",
@@ -15,9 +16,9 @@ exclude = [
 ]
 
 [features]
+default = []
 plugin = []
 ansi = ["ansi-parser"]
-default = ["ansi"]
 
 [[example]]
 name = "interactive-editor"
@@ -28,16 +29,23 @@ name = "plugin"
 required-features = ["plugin"]
 
 [[example]]
+name = "plugin-ansi"
+required-features = ["ansi"]
+
+[[example]]
+name = "special-characters-tabs"
+required-features = ["ansi"]
+
+[[example]]
 name = "styles-plugin"
 required-features = ["plugin"]
 
 [dependencies]
 az = "1.1"
-embedded-graphics = "0.7.0"
+embedded-graphics = "0.8.0"
 ansi-parser = { version = "0.8.0", default-features = false, optional = true }
 object-chain = "0.1"
 
 [dev-dependencies]
-embedded-graphics-simulator = "0.3.0"
-sdl2 = "0.32.2"
-heapless = "0.5.6"
+embedded-graphics-simulator = "0.5.0"
+sdl2 = "0.35.2"

@@ -17,7 +17,7 @@ pub struct SpaceConfig {
 /// Retrieves size of space characters.
 impl SpaceConfig {
     /// Creates a new SpaceConfig object.
-    pub fn new(width: u32, count: Option<u32>) -> Self {
+    pub const fn new(width: u32, count: Option<u32>) -> Self {
         Self { width, count }
     }
 

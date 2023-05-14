@@ -172,7 +172,7 @@ pub use crate::{
 ///
 /// ### Example: advanced text styling using the ANSI plugin
 ///
-/// ```rust
+/// ```rust,ignore
 /// # use embedded_graphics::{
 /// #   Drawable,
 /// #   geometry::{Point, Size},
@@ -481,7 +481,7 @@ where
     /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]
     fn fit_height(&mut self) -> &mut Self {
-        self.fit_height_limited(u32::max_value())
+        self.fit_height_limited(u32::MAX)
     }
 
     /// Sets the height of the [`TextBox`] to the height of the text, limited to `max_height`.
@@ -500,7 +500,7 @@ where
                 self.bounding_box().size.width,
             )
             .min(max_height)
-            .min(i32::max_value() as u32);
+            .min(i32::MAX as u32);
 
         // Apply height
         self.bounds.size.height = text_height;

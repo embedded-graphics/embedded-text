@@ -15,7 +15,7 @@ use crate::{
 ///
 /// Aligns the last line of the text to be always visible. If the text fits inside the text box,
 /// it will be top aligned. If the text is longer, it will be bottom aligned.
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Tail;
 
 impl<'a, C: PixelColor> Plugin<'a, C> for Tail {
@@ -28,7 +28,7 @@ impl<'a, C: PixelColor> Plugin<'a, C> for Tail {
         if props.text_height > box_height {
             let offset = box_height - props.text_height;
 
-            cursor.y += offset
+            cursor.y += offset;
         }
     }
 }

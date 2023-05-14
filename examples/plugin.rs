@@ -16,7 +16,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 use embedded_text::{
-    alignment::{HorizontalAlignment, VerticalAlignment},
+    alignment::HorizontalAlignment,
     plugin::{tail::Tail, Plugin},
     style::{HeightMode, TextBoxStyleBuilder, VerticalOverdraw},
     TextBox, Token,

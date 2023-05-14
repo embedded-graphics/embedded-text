@@ -1,0 +1,4 @@
+[future-incompat-report]
+# ansi-parser uses an old nom that uses a soon-to-be invalid macro syntax
+# this change will be made during an edition change, so we can sweep the issue under the rug for now
+frequency = "never" 
