@@ -172,7 +172,7 @@ pub use crate::{
 ///
 /// ### Example: advanced text styling using the ANSI plugin
 ///
-/// ```rust
+/// ```rust,ignore
 /// # use embedded_graphics::{
 /// #   Drawable,
 /// #   geometry::{Point, Size},

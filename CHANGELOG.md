@@ -9,6 +9,7 @@ Unreleased (2023-05-14)
    - `Tail`
  - [#158] **breaking** Update embedded-graphics dependency to 0.8.
  - [#158] **breaking** Bump Minimum Supported Rust Version (MSRV) to 1.61.
+ - [#158] **breaking** The `ansi` feature is no longer enabled by default
 
 [#158]: https://github.com/embedded-graphics/embedded-text/pull/158
 
