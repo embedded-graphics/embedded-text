@@ -333,7 +333,7 @@ pub(crate) struct LineMeasurement {
     /// Width in pixels, using the default space width returned by the text renderer.
     pub width: u32,
 
-    /// Whether this line ended with a \r.
+    /// What kind of line ending was encountered.
     pub line_end_type: LineEndType,
 
     /// Number of spaces in the current line.
