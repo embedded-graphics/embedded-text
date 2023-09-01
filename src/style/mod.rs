@@ -347,6 +347,10 @@ impl LineMeasurement {
             LineEndType::NewLine | LineEndType::EndOfText
         )
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.width == 0
+    }
 }
 
 struct MeasureLineElementHandler<'a, S> {
@@ -516,7 +520,7 @@ impl TextBoxStyle {
             plugin.new_line();
             let lm = self.measure_line(&plugin, character_style, &mut parser, max_width);
 
-            if prev_end == LineEndType::LineBreak && lm.width != 0 {
+            if prev_end == LineEndType::LineBreak && !lm.is_empty() {
                 height += line_height;
             }
 
