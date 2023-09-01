@@ -158,11 +158,7 @@ where
     }
 
     pub fn consume_peeked_token(&self) {
-        self.inner(|this| {
-            if this.peeked_token.is_some() {
-                this.peeked_token = None;
-            }
-        });
+        self.inner(|this| this.peeked_token = None);
     }
 
     pub fn consume_partial(&self, len: usize) {
