@@ -357,6 +357,7 @@ struct MeasureLineElementHandler<'a, S> {
     style: &'a S,
     trailing_spaces: bool,
     max_line_width: u32,
+    cursor: u32,
     pos: u32,
     right: u32,
     partial_space_count: u32,
@@ -390,14 +391,16 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     }
 
     fn whitespace(&mut self, _st: &str, count: u32, width: u32) -> Result<(), Self::Error> {
-        self.pos += width;
+        self.cursor += width;
+        self.pos = self.pos.max(self.cursor);
         self.partial_space_count += count;
 
         Ok(())
     }
 
     fn printed_characters(&mut self, _: &str, width: u32) -> Result<(), Self::Error> {
-        self.pos += width;
+        self.cursor += width;
+        self.pos = self.pos.max(self.cursor);
         self.right = self.pos;
         self.space_count = self.partial_space_count;
 
@@ -405,7 +408,7 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     }
 
     fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
-        self.pos = (self.pos.saturating_as::<i32>() + by)
+        self.cursor = (self.cursor.saturating_as::<i32>() + by)
             .clamp(0, self.max_line_width.saturating_as()) as u32;
 
         Ok(())
@@ -448,6 +451,7 @@ impl TextBoxStyle {
             trailing_spaces: self.trailing_spaces,
             max_line_width,
 
+            cursor: 0,
             pos: 0,
             right: 0,
             partial_space_count: 0,
