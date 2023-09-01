@@ -371,6 +371,14 @@ impl<'a, S> MeasureLineElementHandler<'a, S> {
             self.space_count
         }
     }
+
+    fn right(&self) -> u32 {
+        if self.trailing_spaces {
+            self.pos
+        } else {
+            self.right
+        }
+    }
 }
 
 impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
@@ -385,17 +393,14 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
         self.pos += width;
         self.partial_space_count += count;
 
-        if self.trailing_spaces {
-            self.right = self.pos;
-        }
-
         Ok(())
     }
 
     fn printed_characters(&mut self, _: &str, width: u32) -> Result<(), Self::Error> {
-        self.right = self.right.max(self.pos + width);
         self.pos += width;
+        self.right = self.pos;
         self.space_count = self.partial_space_count;
+
         Ok(())
     }
 
@@ -451,7 +456,7 @@ impl TextBoxStyle {
 
         LineMeasurement {
             max_line_width,
-            width: handler.right,
+            width: handler.right(),
             space_count: handler.space_count(),
             line_end_type: last_token,
         }
