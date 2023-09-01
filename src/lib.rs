@@ -419,7 +419,7 @@ where
     where
         M: Plugin<'a, <S as TextRenderer>::Color>,
     {
-        let parent = self.plugin.inner.into_inner();
+        let parent = self.plugin.into_inner();
 
         let mut styled = TextBox {
             text: self.text,
@@ -427,7 +427,7 @@ where
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
-            plugin: PluginWrapper::new(parent.plugin.append(plugin)),
+            plugin: PluginWrapper::new(parent.append(plugin)),
         };
         styled.style.height_mode.apply(&mut styled);
         styled
@@ -436,7 +436,7 @@ where
     /// Deconstruct the text box and return the plugins.
     #[inline]
     pub fn take_plugins(self) -> P {
-        self.plugin.inner.into_inner().lookahead
+        self.plugin.into_inner()
     }
 }
 

@@ -77,8 +77,8 @@ pub(crate) struct PluginInner<'a, M, C>
 where
     C: PixelColor,
 {
-    pub(crate) lookahead: M,
     pub(crate) plugin: M,
+    pub(crate) plugin_rollback: M,
     state: ProcessingState,
     peeked_token: Option<Token<'a, C>>,
 }
@@ -88,7 +88,7 @@ pub(crate) struct PluginWrapper<'a, M, C>
 where
     C: PixelColor,
 {
-    pub inner: RefCell<PluginInner<'a, M, C>>,
+    inner: RefCell<PluginInner<'a, M, C>>,
 }
 
 impl<'a, M, C> Hash for PluginWrapper<'a, M, C>
@@ -108,7 +108,7 @@ where
     pub fn new(plugin: M) -> Self {
         Self {
             inner: RefCell::new(PluginInner {
-                lookahead: plugin.clone(),
+                plugin_rollback: plugin.clone(),
                 plugin,
                 state: ProcessingState::Measure,
                 peeked_token: None,
@@ -116,10 +116,14 @@ where
         }
     }
 
+    pub fn into_inner(self) -> M {
+        self.inner.into_inner().plugin
+    }
+
     pub fn new_line(&self) {
         let mut this = self.inner.borrow_mut();
 
-        this.lookahead.new_line();
+        this.plugin.new_line();
     }
 
     pub fn set_state(&self, state: ProcessingState) {
@@ -131,7 +135,7 @@ where
         let mut this = self.inner.borrow_mut();
         match this.state {
             ProcessingState::Measure => Some(token),
-            ProcessingState::Render => this.lookahead.render_token(token),
+            ProcessingState::Render => this.plugin.render_token(token),
         }
     }
 
@@ -139,7 +143,7 @@ where
         let mut this = self.inner.borrow_mut();
 
         if this.peeked_token.is_none() {
-            this.peeked_token = this.lookahead.next_token(|| source.next());
+            this.peeked_token = this.plugin.next_token(|| source.next());
         }
 
         this.peeked_token.clone()
@@ -151,7 +155,7 @@ where
         if this.peeked_token.is_some() {
             this.peeked_token = None;
 
-            this.plugin = this.lookahead.clone();
+            this.plugin_rollback = this.plugin.clone();
         }
     }
 
@@ -191,13 +195,13 @@ where
         let mut this = self.inner.borrow_mut();
         this.peeked_token = None;
 
-        this.lookahead.on_start_render(cursor, &props);
+        this.plugin.on_start_render(cursor, &props);
     }
 
     pub fn on_rendering_finished(&self) {
         let mut this = self.inner.borrow_mut();
 
-        this.lookahead.on_rendering_finished();
+        this.plugin.on_rendering_finished();
     }
 
     pub fn post_render<T, D>(
@@ -213,7 +217,7 @@ where
     {
         self.inner
             .borrow_mut()
-            .lookahead
+            .plugin
             .post_render(draw_target, character_style, text, bounds)
     }
 }
