@@ -156,7 +156,7 @@ where
         (w, None)
     }
 
-    fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &mut E) -> bool {
+    fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &E) -> bool {
         let mut cursor = self.cursor.clone();
         let mut spaces = self.spaces;
 
