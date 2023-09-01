@@ -4,7 +4,7 @@
 //! you need to activate the `plugin` feature.
 
 use core::{
-    cell::RefCell,
+    cell::UnsafeCell,
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
@@ -73,21 +73,23 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct PluginInner<'a, M, C>
-where
-    C: PixelColor,
-{
+pub(crate) struct PluginInner<'a, M, C> {
     pub(crate) plugin: M,
     state: ProcessingState,
     peeked_token: Option<Token<'a, C>>,
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct PluginWrapper<'a, M, C>
-where
-    C: PixelColor,
-{
-    inner: RefCell<PluginInner<'a, M, C>>,
+#[derive(Debug)]
+pub(crate) struct PluginWrapper<'a, M, C> {
+    inner: UnsafeCell<PluginInner<'a, M, C>>,
+}
+
+impl<'a, M: Clone, C: Clone> Clone for PluginWrapper<'a, M, C> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: UnsafeCell::new(self.inner(|this| this.clone())),
+        }
+    }
 }
 
 impl<'a, M, C> Hash for PluginWrapper<'a, M, C>
@@ -95,18 +97,14 @@ where
     C: PixelColor,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.inner.borrow().state.hash(state)
+        self.inner(|this| this.state.hash(state))
     }
 }
 
-impl<'a, M, C> PluginWrapper<'a, M, C>
-where
-    C: PixelColor,
-    M: private::Plugin<'a, C>,
-{
+impl<'a, M, C> PluginWrapper<'a, M, C> {
     pub fn new(plugin: M) -> Self {
         Self {
-            inner: RefCell::new(PluginInner {
+            inner: UnsafeCell::new(PluginInner {
                 plugin,
                 state: ProcessingState::Measure,
                 peeked_token: None,
@@ -118,69 +116,81 @@ where
         self.inner.into_inner().plugin
     }
 
-    pub fn new_line(&self) {
-        let mut this = self.inner.borrow_mut();
+    fn inner<R>(&self, cb: impl FnOnce(&mut PluginInner<'a, M, C>) -> R) -> R {
+        let inner = unsafe {
+            // SAFETY: This is safe because we aren't exposing the reference.
+            core::ptr::NonNull::new_unchecked(self.inner.get()).as_mut()
+        };
 
-        this.plugin.new_line();
+        cb(inner)
+    }
+}
+
+impl<'a, M, C> PluginWrapper<'a, M, C>
+where
+    C: PixelColor,
+    M: private::Plugin<'a, C>,
+{
+    pub fn new_line(&self) {
+        self.inner(|this| this.plugin.new_line());
     }
 
     pub fn set_state(&self, state: ProcessingState) {
-        self.inner.borrow_mut().state = state;
+        self.inner(|this| this.state = state);
     }
 
     #[inline]
     pub fn render_token(&self, token: Token<'a, C>) -> Option<Token<'a, C>> {
-        let mut this = self.inner.borrow_mut();
-        match this.state {
+        self.inner(|this| match this.state {
             ProcessingState::Measure => Some(token),
             ProcessingState::Render => this.plugin.render_token(token),
-        }
+        })
     }
 
     pub fn peek_token(&self, source: &mut Parser<'a, C>) -> Option<Token<'a, C>> {
-        let mut this = self.inner.borrow_mut();
+        self.inner(|this| {
+            if this.peeked_token.is_none() {
+                this.peeked_token = this.plugin.next_token(|| source.next());
+            }
 
-        if this.peeked_token.is_none() {
-            this.peeked_token = this.plugin.next_token(|| source.next());
-        }
-
-        this.peeked_token.clone()
+            this.peeked_token.clone()
+        })
     }
 
     pub fn consume_peeked_token(&self) {
-        let mut this = self.inner.borrow_mut();
-
-        if this.peeked_token.is_some() {
-            this.peeked_token = None;
-        }
+        self.inner(|this| {
+            if this.peeked_token.is_some() {
+                this.peeked_token = None;
+            }
+        });
     }
 
     pub fn consume_partial(&self, len: usize) {
-        let mut this = self.inner.borrow_mut();
+        self.inner(|this| {
+            // Only string-like tokens can be partially consumed.
+            debug_assert!(matches!(
+                this.peeked_token,
+                Some(Token::Whitespace(_, _)) | Some(Token::Word(_))
+            ));
 
-        // Only string-like tokens can be partially consumed.
-        debug_assert!(matches!(
-            this.peeked_token,
-            Some(Token::Whitespace(_, _)) | Some(Token::Word(_))
-        ));
+            let skip_chars = |str: &'a str, n| {
+                let mut chars = str.chars();
+                for _ in 0..n {
+                    chars.next();
+                }
+                chars.as_str()
+            };
 
-        let skip_chars = |str: &'a str, n| {
-            let mut chars = str.chars();
-            for _ in 0..n {
-                chars.next();
-            }
-            chars.as_str()
-        };
+            let token = match this.peeked_token.take().unwrap() {
+                Token::Whitespace(count, seq) => {
+                    Token::Whitespace(count - len as u32, skip_chars(seq, len))
+                }
+                Token::Word(w) => Token::Word(skip_chars(w, len)),
+                _ => unreachable!(),
+            };
 
-        let token = match this.peeked_token.take().unwrap() {
-            Token::Whitespace(count, seq) => {
-                Token::Whitespace(count - len as u32, skip_chars(seq, len))
-            }
-            Token::Word(w) => Token::Word(skip_chars(w, len)),
-            _ => unreachable!(),
-        };
-
-        this.peeked_token.replace(token);
+            this.peeked_token.replace(token);
+        })
     }
 
     pub fn on_start_render<S: CharacterStyle + TextRenderer>(
@@ -188,16 +198,15 @@ where
         cursor: &mut Cursor,
         props: TextBoxProperties<'_, S>,
     ) {
-        let mut this = self.inner.borrow_mut();
-        this.peeked_token = None;
+        self.inner(|this| {
+            this.peeked_token = None;
 
-        this.plugin.on_start_render(cursor, &props);
+            this.plugin.on_start_render(cursor, &props);
+        });
     }
 
     pub fn on_rendering_finished(&self) {
-        let mut this = self.inner.borrow_mut();
-
-        this.plugin.on_rendering_finished();
+        self.inner(|this| this.plugin.on_rendering_finished());
     }
 
     pub fn post_render<T, D>(
@@ -211,9 +220,9 @@ where
         T: TextRenderer<Color = C>,
         D: DrawTarget<Color = C>,
     {
-        self.inner
-            .borrow_mut()
-            .plugin
-            .post_render(draw_target, character_style, text, bounds)
+        self.inner(|this| {
+            this.plugin
+                .post_render(draw_target, character_style, text, bounds)
+        })
     }
 }

@@ -21,10 +21,7 @@ use embedded_graphics::{prelude::PixelColor, text::DecorationColor};
 
 /// Change text style.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum ChangeTextStyle<C>
-where
-    C: PixelColor,
-{
+pub enum ChangeTextStyle<C> {
     /// Reset text style. Disables decoration, removes background color and sets a default text color.
     Reset,
 
@@ -43,10 +40,7 @@ where
 
 /// A text token
 #[derive(Debug, PartialEq, Clone)]
-pub enum Token<'a, C>
-where
-    C: PixelColor,
-{
+pub enum Token<'a, C> {
     /// A newline character.
     NewLine,
 
