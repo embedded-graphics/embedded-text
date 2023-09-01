@@ -499,11 +499,9 @@ impl TextBoxStyle {
         S::Color: From<Rgb888>,
     {
         let mut parser = Parser::parse(text);
-        let mut closed_paragraphs: u32 = 0;
-        let line_height = self.line_height.to_absolute(character_style.line_height());
-        let last_line_height = character_style.line_height();
-        let mut height = last_line_height;
-        let mut paragraph_ended = false;
+        let base_line_height = character_style.line_height();
+        let line_height = self.line_height.to_absolute(base_line_height);
+        let mut height = base_line_height;
 
         plugin.set_state(ProcessingState::Measure);
 
@@ -513,22 +511,14 @@ impl TextBoxStyle {
             plugin.new_line();
             let lm = self.measure_line(&plugin, character_style, &mut parser, max_width);
 
-            if paragraph_ended {
-                closed_paragraphs += 1;
-            }
-            paragraph_ended = lm.last_line;
-
             if prev_end == LineEndType::LineBreak && lm.width != 0 {
                 height += line_height;
             }
 
             match lm.line_end_type {
-                LineEndType::CarriageReturn => {}
-                LineEndType::LineBreak => {}
-                LineEndType::NewLine => height += line_height,
-                LineEndType::EndOfText => {
-                    return height + closed_paragraphs * self.paragraph_spacing;
-                }
+                LineEndType::CarriageReturn | LineEndType::LineBreak => {}
+                LineEndType::NewLine => height += line_height + self.paragraph_spacing,
+                LineEndType::EndOfText => return height,
             }
             prev_end = lm.line_end_type;
         }
