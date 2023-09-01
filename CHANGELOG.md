@@ -1,3 +1,12 @@
+0.6.1 (2023-09-01)
+==================
+
+## Changed:
+
+ - [#159] Internal improvements
+
+[#159]: https://github.com/embedded-graphics/embedded-text/pull/159
+
 0.6.0 (2023-05-14)
 =======================
 
