@@ -355,12 +355,12 @@ impl LineMeasurement {
 
 struct MeasureLineElementHandler<'a, S> {
     style: &'a S,
-    right: u32,
+    trailing_spaces: bool,
     max_line_width: u32,
     pos: u32,
-    space_count: u32,
+    right: u32,
     partial_space_count: u32,
-    trailing_spaces: bool,
+    space_count: u32,
 }
 
 impl<'a, S> MeasureLineElementHandler<'a, S> {
@@ -445,12 +445,13 @@ impl TextBoxStyle {
 
         let mut handler = MeasureLineElementHandler {
             style: character_style,
-            right: 0,
-            pos: 0,
-            max_line_width,
-            space_count: 0,
-            partial_space_count: 0,
             trailing_spaces: self.trailing_spaces,
+            max_line_width,
+
+            pos: 0,
+            right: 0,
+            partial_space_count: 0,
+            space_count: 0,
         };
         let last_token = iter.process(&mut handler).unwrap();
 
