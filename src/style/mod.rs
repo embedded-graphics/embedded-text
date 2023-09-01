@@ -333,14 +333,20 @@ pub(crate) struct LineMeasurement {
     /// Width in pixels, using the default space width returned by the text renderer.
     pub width: u32,
 
-    /// Whether this line is the last line of a paragraph.
-    pub last_line: bool,
-
     /// Whether this line ended with a \r.
     pub line_end_type: LineEndType,
 
     /// Number of spaces in the current line.
     pub space_count: u32,
+}
+
+impl LineMeasurement {
+    pub fn last_line(&self) -> bool {
+        matches!(
+            self.line_end_type,
+            LineEndType::NewLine | LineEndType::EndOfText
+        )
+    }
 }
 
 struct MeasureLineElementHandler<'a, S> {
@@ -435,7 +441,6 @@ impl TextBoxStyle {
             max_line_width,
             width: handler.right,
             space_count: handler.space_count,
-            last_line: matches!(last_token, LineEndType::NewLine | LineEndType::EndOfText),
             line_end_type: last_token,
         }
     }

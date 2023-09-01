@@ -45,7 +45,7 @@ impl HorizontalAlignment {
             HorizontalAlignment::Justified => {
                 let space_width = str_width(renderer, " ");
                 let space_count = measurement.space_count;
-                let space_info = if !measurement.last_line && space_count != 0 {
+                let space_info = if !measurement.last_line() && space_count != 0 {
                     let space =
                         measurement.max_line_width - measurement.width + space_count * space_width;
                     let space_width = space / space_count;
