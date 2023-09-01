@@ -333,24 +333,53 @@ pub(crate) struct LineMeasurement {
     /// Width in pixels, using the default space width returned by the text renderer.
     pub width: u32,
 
-    /// Whether this line is the last line of a paragraph.
-    pub last_line: bool,
-
-    /// Whether this line ended with a \r.
+    /// What kind of line ending was encountered.
     pub line_end_type: LineEndType,
 
     /// Number of spaces in the current line.
     pub space_count: u32,
 }
 
+impl LineMeasurement {
+    pub fn last_line(&self) -> bool {
+        matches!(
+            self.line_end_type,
+            LineEndType::NewLine | LineEndType::EndOfText
+        )
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.width == 0
+    }
+}
+
 struct MeasureLineElementHandler<'a, S> {
     style: &'a S,
-    right: u32,
-    max_line_width: u32,
-    pos: u32,
-    space_count: u32,
-    partial_space_count: u32,
     trailing_spaces: bool,
+    max_line_width: u32,
+    cursor: u32,
+    pos: u32,
+    right: u32,
+    partial_space_count: u32,
+    space_count: u32,
+}
+
+impl<'a, S> MeasureLineElementHandler<'a, S> {
+    fn space_count(&self) -> u32 {
+        if self.trailing_spaces {
+            self.partial_space_count
+        } else {
+            self.space_count
+        }
+    }
+
+    fn right(&self) -> u32 {
+        if self.trailing_spaces {
+            self.pos
+        } else {
+            self.right
+        }
+    }
 }
 
 impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
@@ -362,28 +391,25 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     }
 
     fn whitespace(&mut self, _st: &str, count: u32, width: u32) -> Result<(), Self::Error> {
-        self.pos += width;
+        self.cursor += width;
+        self.pos = self.pos.max(self.cursor);
         self.partial_space_count += count;
-
-        if self.trailing_spaces {
-            self.space_count = self.partial_space_count;
-            self.right = self.pos;
-        }
 
         Ok(())
     }
 
     fn printed_characters(&mut self, _: &str, width: u32) -> Result<(), Self::Error> {
-        self.right = self.right.max(self.pos + width);
-        self.pos += width;
+        self.cursor += width;
+        self.pos = self.pos.max(self.cursor);
+        self.right = self.pos;
         self.space_count = self.partial_space_count;
+
         Ok(())
     }
 
     fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
-        self.pos = (self.pos.saturating_as::<i32>() + by)
-            .max(0)
-            .min(self.max_line_width.saturating_as()) as u32;
+        self.cursor = (self.cursor.saturating_as::<i32>() + by)
+            .clamp(0, self.max_line_width.saturating_as()) as u32;
 
         Ok(())
     }
@@ -422,20 +448,21 @@ impl TextBoxStyle {
 
         let mut handler = MeasureLineElementHandler {
             style: character_style,
-            right: 0,
-            pos: 0,
-            max_line_width,
-            space_count: 0,
-            partial_space_count: 0,
             trailing_spaces: self.trailing_spaces,
+            max_line_width,
+
+            cursor: 0,
+            pos: 0,
+            right: 0,
+            partial_space_count: 0,
+            space_count: 0,
         };
         let last_token = iter.process(&mut handler).unwrap();
 
         LineMeasurement {
             max_line_width,
-            width: handler.right,
-            space_count: handler.space_count,
-            last_line: matches!(last_token, LineEndType::NewLine | LineEndType::EndOfText),
+            width: handler.right(),
+            space_count: handler.space_count(),
             line_end_type: last_token,
         }
     }
@@ -499,11 +526,9 @@ impl TextBoxStyle {
         S::Color: From<Rgb888>,
     {
         let mut parser = Parser::parse(text);
-        let mut closed_paragraphs: u32 = 0;
-        let line_height = self.line_height.to_absolute(character_style.line_height());
-        let last_line_height = character_style.line_height();
-        let mut height = last_line_height;
-        let mut paragraph_ended = false;
+        let base_line_height = character_style.line_height();
+        let line_height = self.line_height.to_absolute(base_line_height);
+        let mut height = base_line_height;
 
         plugin.set_state(ProcessingState::Measure);
 
@@ -513,24 +538,14 @@ impl TextBoxStyle {
             plugin.new_line();
             let lm = self.measure_line(&plugin, character_style, &mut parser, max_width);
 
-            if paragraph_ended {
-                closed_paragraphs += 1;
-            }
-            paragraph_ended = lm.last_line;
-
-            if prev_end == LineEndType::LineBreak && lm.width != 0 {
+            if prev_end == LineEndType::LineBreak && !lm.is_empty() {
                 height += line_height;
             }
 
             match lm.line_end_type {
-                LineEndType::CarriageReturn => {}
-                LineEndType::LineBreak => {}
-                LineEndType::NewLine => {
-                    height += line_height;
-                }
-                LineEndType::EndOfText => {
-                    return height + closed_paragraphs * self.paragraph_spacing;
-                }
+                LineEndType::CarriageReturn | LineEndType::LineBreak => {}
+                LineEndType::NewLine => height += line_height + self.paragraph_spacing,
+                LineEndType::EndOfText => return height,
             }
             prev_end = lm.line_end_type;
         }
@@ -597,15 +612,16 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyle::default();
+        let style = TextBoxStyle::with_paragraph_spacing(2);
 
         for (i, (text, width, expected_n_lines)) in data.iter().enumerate() {
             let height = style.measure_text_height(&character_style, text, *width);
-            let expected_height = *expected_n_lines * character_style.line_height();
+            let expected_height = *expected_n_lines * character_style.line_height()
+                + (text.chars().filter(|&c| c == '\n').count() as u32) * style.paragraph_spacing;
             assert_eq!(
                 height,
                 expected_height,
-                r#"#{}: Height of "{}" is {} but is expected to be {}"#,
+                r#"#{}: Height of {:?} is {} but is expected to be {}"#,
                 i,
                 text.replace('\r', "\\r").replace('\n', "\\n"),
                 height,

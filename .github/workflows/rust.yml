@@ -89,8 +89,9 @@ jobs:
 
     - name: Run tests
       run: |
-        cargo test --lib --verbose
-        cargo test --lib --verbose --no-default-features
+        cargo test --lib
+        cargo test --lib --no-default-features
+        cargo test --lib --all-features
 
     - name: Build examples
       run: cargo build --examples --verbose

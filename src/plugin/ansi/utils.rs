@@ -53,7 +53,7 @@ impl<C: PixelColor + From<Rgb888>> From<Sgr> for ChangeTextStyle<C> {
 }
 
 fn try_parse_8b_color(v: &[u8]) -> Option<Rgb888> {
-    let color = *v.get(0)?;
+    let color = *v.first()?;
     match color {
         //   0-  7:  standard colors (as in ESC [ 30–37 m)
         //   8- 15:  high intensity colors (as in ESC [ 90–97 m)
@@ -86,11 +86,11 @@ fn try_parse_8b_color(v: &[u8]) -> Option<Rgb888> {
 }
 
 fn try_parse_rgb(v: &[u8]) -> Option<Rgb888> {
-    let r = *v.get(0)?;
-    let g = *v.get(1)?;
-    let b = *v.get(2)?;
-
-    Some(Rgb888::new(r, g, b))
+    if let [r, g, b] = *v.get(0..3).unwrap_or(&[]) {
+        Some(Rgb888::new(r, g, b))
+    } else {
+        None
+    }
 }
 
 fn standard_to_rgb(idx: u8) -> Rgb888 {
@@ -117,7 +117,7 @@ fn standard_to_rgb(idx: u8) -> Rgb888 {
 }
 
 fn try_parse_color(v: &[u8]) -> Option<Rgb888> {
-    let color_type = *v.get(0)?;
+    let color_type = *v.first()?;
 
     match color_type {
         2 => try_parse_rgb(&v[1..]),
@@ -130,7 +130,7 @@ fn try_parse_color(v: &[u8]) -> Option<Rgb888> {
 /// Parse a set of SGR parameter numbers into a more convenient type
 #[inline]
 pub(crate) fn try_parse_sgr(v: &[u8]) -> Option<Sgr> {
-    let code = *v.get(0)?;
+    let code = *v.first()?;
     match code {
         0 => Some(Sgr::Reset),
         4 => Some(Sgr::Underline),
