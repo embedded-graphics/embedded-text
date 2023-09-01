@@ -78,7 +78,6 @@ where
     C: PixelColor,
 {
     pub(crate) plugin: M,
-    pub(crate) plugin_rollback: M,
     state: ProcessingState,
     peeked_token: Option<Token<'a, C>>,
 }
@@ -108,7 +107,6 @@ where
     pub fn new(plugin: M) -> Self {
         Self {
             inner: RefCell::new(PluginInner {
-                plugin_rollback: plugin.clone(),
                 plugin,
                 state: ProcessingState::Measure,
                 peeked_token: None,
@@ -154,8 +152,6 @@ where
 
         if this.peeked_token.is_some() {
             this.peeked_token = None;
-
-            this.plugin_rollback = this.plugin.clone();
         }
     }
 
