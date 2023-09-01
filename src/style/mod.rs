@@ -525,9 +525,7 @@ impl TextBoxStyle {
             match lm.line_end_type {
                 LineEndType::CarriageReturn => {}
                 LineEndType::LineBreak => {}
-                LineEndType::NewLine => {
-                    height += line_height;
-                }
+                LineEndType::NewLine => height += line_height,
                 LineEndType::EndOfText => {
                     return height + closed_paragraphs * self.paragraph_spacing;
                 }
@@ -597,15 +595,16 @@ mod test {
             .text_color(BinaryColor::On)
             .build();
 
-        let style = TextBoxStyle::default();
+        let style = TextBoxStyle::with_paragraph_spacing(2);
 
         for (i, (text, width, expected_n_lines)) in data.iter().enumerate() {
             let height = style.measure_text_height(&character_style, text, *width);
-            let expected_height = *expected_n_lines * character_style.line_height();
+            let expected_height = *expected_n_lines * character_style.line_height()
+                + (text.chars().filter(|&c| c == '\n').count() as u32) * style.paragraph_spacing;
             assert_eq!(
                 height,
                 expected_height,
-                r#"#{}: Height of "{}" is {} but is expected to be {}"#,
+                r#"#{}: Height of {:?} is {} but is expected to be {}"#,
                 i,
                 text.replace('\r', "\\r").replace('\n', "\\n"),
                 height,
