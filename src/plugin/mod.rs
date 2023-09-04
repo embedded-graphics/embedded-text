@@ -177,15 +177,17 @@ where
                 chars.as_str()
             };
 
-            let token = match this.peeked_token.take().unwrap() {
-                Token::Whitespace(count, seq) => {
-                    Token::Whitespace(count - len as u32, skip_chars(seq, len))
-                }
-                Token::Word(w) => Token::Word(skip_chars(w, len)),
-                _ => unreachable!(),
-            };
+            if let Some(token) = this.peeked_token.take() {
+                let token = match token {
+                    Token::Whitespace(count, seq) => {
+                        Token::Whitespace(count - len as u32, skip_chars(seq, len))
+                    }
+                    Token::Word(w) => Token::Word(skip_chars(w, len)),
+                    _ => return,
+                };
 
-            this.peeked_token.replace(token);
+                this.peeked_token.replace(token);
+            }
         })
     }
 
