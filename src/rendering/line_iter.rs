@@ -51,7 +51,7 @@ pub trait ElementHandler {
     }
 
     /// A string of printable characters.
-    fn printed_characters(&mut self, _st: &str, _width: u32) -> Result<(), Self::Error> {
+    fn printed_characters(&mut self, _st: &str, _width: Option<u32>) -> Result<(), Self::Error> {
         Ok(())
     }
 
@@ -319,7 +319,7 @@ where
                             let width = handler.measure(c);
                             if self.move_cursor(width.saturating_as()).is_ok() {
                                 if let Some(Token::Break(c, _)) = self.plugin.render_token(token) {
-                                    handler.printed_characters(c, width)?;
+                                    handler.printed_characters(c, Some(width))?;
                                 }
                                 self.consume_token();
                             }
@@ -439,7 +439,7 @@ where
                         // Safety: space_pos must be a character boundary
                         w.get_unchecked(0..space_pos)
                     };
-                    handler.printed_characters(word, handler.measure(word))?;
+                    handler.printed_characters(word, None)?;
                 }
 
                 handler.whitespace("\u{a0}", 1, self.spaces.consume(1))?;
@@ -450,9 +450,7 @@ where
                 }
             }
 
-            None => {
-                handler.printed_characters(w, handler.measure(w))?;
-            }
+            None => handler.printed_characters(w, None)?,
         }
 
         Ok(())
@@ -526,9 +524,11 @@ pub(crate) mod test {
             Ok(())
         }
 
-        fn printed_characters(&mut self, st: &str, width: u32) -> Result<(), Self::Error> {
-            self.elements
-                .push(RenderElement::String(st.to_owned(), width));
+        fn printed_characters(&mut self, str: &str, width: Option<u32>) -> Result<(), Self::Error> {
+            self.elements.push(RenderElement::String(
+                str.to_owned(),
+                width.unwrap_or_else(|| self.measure(str)),
+            ));
             Ok(())
         }
 
