@@ -3,6 +3,7 @@
 //! Turns a token stream into a number of events. A single `LineElementParser` object operates on
 //! a single line and is responsible for handling word wrapping, eating leading/trailing whitespace,
 //! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
+
 use crate::{
     parser::{ChangeTextStyle, Parser, Token, SPEC_CHAR_NBSP},
     plugin::{PluginMarker as Plugin, PluginWrapper},
@@ -133,7 +134,7 @@ where
         &mut self,
         handler: &E,
         w: &'a str,
-    ) -> (&'a str, Option<&'a str>) {
+    ) -> (&'a str, &'a str) {
         let mut width = 0;
         for (idx, c) in w.char_indices() {
             let char_width = handler.measure(unsafe {
@@ -141,19 +142,18 @@ where
                 w.get_unchecked(idx..idx + c.len_utf8())
             });
             if !self.cursor.fits_in_line(width + char_width) {
-                debug_assert!(w.is_char_boundary(idx));
-                return (
-                    unsafe {
-                        // SAFETY: we are working on character boundaries
-                        w.get_unchecked(0..idx)
-                    },
-                    w.get(idx..),
-                );
+                unsafe {
+                    if w.is_char_boundary(idx) {
+                        return w.split_at(idx);
+                    } else {
+                        core::hint::unreachable_unchecked();
+                    }
+                }
             }
             width += char_width;
         }
 
-        (w, None)
+        (w, "")
     }
 
     fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &E) -> bool {
@@ -342,7 +342,7 @@ where
                     let (word, remainder) = if self.move_cursor(width.saturating_as()).is_ok() {
                         // We can move the cursor here since `process_word()`
                         // doesn't depend on it.
-                        (w, None)
+                        (w, "")
                     } else if self.empty {
                         // This word does not fit into an empty line. Find longest part
                         // that fits and push the rest to the next line.
@@ -366,7 +366,7 @@ where
                         self.process_word(handler, word)?;
                     }
 
-                    if remainder.is_some() {
+                    if !remainder.is_empty() {
                         // Consume what was printed.
                         self.plugin.consume_partial(word.len());
                         return Ok(LineEndType::LineBreak);
