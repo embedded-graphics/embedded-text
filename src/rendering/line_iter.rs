@@ -237,11 +237,15 @@ where
                 let single = space_width / space_count;
                 let consumed = moved as u32 / single;
                 if consumed > 0 {
-                    let (pos, _) = string.char_indices().nth(consumed as usize).unwrap();
-                    let consumed_str = unsafe {
-                        // SAFETY: Pos is a valid index, we just got it
-                        string.get_unchecked(0..pos)
-                    };
+                    let consumed_str = string
+                        .char_indices()
+                        .nth(consumed as usize)
+                        .map(|(pos, _)| unsafe {
+                            // SAFETY: Pos is a valid index, we just got it
+                            string.get_unchecked(0..pos)
+                        })
+                        .unwrap_or(string);
+
                     let consumed_width = consumed * single;
 
                     let _ = self.move_cursor(consumed_width.saturating_as());
