@@ -121,10 +121,13 @@ where
         Ok(())
     }
 
-    fn printed_characters(&mut self, st: &str, width: u32) -> Result<(), Self::Error> {
+    fn printed_characters(&mut self, st: &str, width: Option<u32>) -> Result<(), Self::Error> {
         let top_left = self.pos;
-        self.style
+        let render_width = self
+            .style
             .draw_string(st, self.pos, Baseline::Top, self.display)?;
+
+        let width = width.unwrap_or((render_width - top_left).x as u32);
 
         self.pos += Point::new(width.saturating_as(), 0);
 

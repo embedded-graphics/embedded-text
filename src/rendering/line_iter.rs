@@ -3,6 +3,7 @@
 //! Turns a token stream into a number of events. A single `LineElementParser` object operates on
 //! a single line and is responsible for handling word wrapping, eating leading/trailing whitespace,
 //! handling tab characters, soft wrapping characters, non-breaking spaces, etc.
+
 use crate::{
     parser::{ChangeTextStyle, Parser, Token, SPEC_CHAR_NBSP},
     plugin::{PluginMarker as Plugin, PluginWrapper},
@@ -51,7 +52,7 @@ pub trait ElementHandler {
     }
 
     /// A string of printable characters.
-    fn printed_characters(&mut self, _st: &str, _width: u32) -> Result<(), Self::Error> {
+    fn printed_characters(&mut self, _st: &str, _width: Option<u32>) -> Result<(), Self::Error> {
         Ok(())
     }
 
@@ -133,7 +134,7 @@ where
         &mut self,
         handler: &E,
         w: &'a str,
-    ) -> (&'a str, Option<&'a str>) {
+    ) -> (&'a str, &'a str) {
         let mut width = 0;
         for (idx, c) in w.char_indices() {
             let char_width = handler.measure(unsafe {
@@ -141,19 +142,18 @@ where
                 w.get_unchecked(idx..idx + c.len_utf8())
             });
             if !self.cursor.fits_in_line(width + char_width) {
-                debug_assert!(w.is_char_boundary(idx));
-                return (
-                    unsafe {
-                        // SAFETY: we are working on character boundaries
-                        w.get_unchecked(0..idx)
-                    },
-                    w.get(idx..),
-                );
+                unsafe {
+                    if w.is_char_boundary(idx) {
+                        return w.split_at(idx);
+                    } else {
+                        core::hint::unreachable_unchecked();
+                    }
+                }
             }
             width += char_width;
         }
 
-        (w, None)
+        (w, "")
     }
 
     fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &E) -> bool {
@@ -237,11 +237,15 @@ where
                 let single = space_width / space_count;
                 let consumed = moved as u32 / single;
                 if consumed > 0 {
-                    let (pos, _) = string.char_indices().nth(consumed as usize).unwrap();
-                    let consumed_str = unsafe {
-                        // SAFETY: Pos is a valid index, we just got it
-                        string.get_unchecked(0..pos)
-                    };
+                    let consumed_str = string
+                        .char_indices()
+                        .nth(consumed as usize)
+                        .map(|(pos, _)| unsafe {
+                            // SAFETY: Pos is a valid index, we just got it
+                            string.get_unchecked(0..pos)
+                        })
+                        .unwrap_or(string);
+
                     let consumed_width = consumed * single;
 
                     let _ = self.move_cursor(consumed_width.saturating_as());
@@ -319,7 +323,7 @@ where
                             let width = handler.measure(c);
                             if self.move_cursor(width.saturating_as()).is_ok() {
                                 if let Some(Token::Break(c, _)) = self.plugin.render_token(token) {
-                                    handler.printed_characters(c, width)?;
+                                    handler.printed_characters(c, Some(width))?;
                                 }
                                 self.consume_token();
                             }
@@ -338,7 +342,7 @@ where
                     let (word, remainder) = if self.move_cursor(width.saturating_as()).is_ok() {
                         // We can move the cursor here since `process_word()`
                         // doesn't depend on it.
-                        (w, None)
+                        (w, "")
                     } else if self.empty {
                         // This word does not fit into an empty line. Find longest part
                         // that fits and push the rest to the next line.
@@ -362,7 +366,7 @@ where
                         self.process_word(handler, word)?;
                     }
 
-                    if remainder.is_some() {
+                    if !remainder.is_empty() {
                         // Consume what was printed.
                         self.plugin.consume_partial(word.len());
                         return Ok(LineEndType::LineBreak);
@@ -439,7 +443,7 @@ where
                         // Safety: space_pos must be a character boundary
                         w.get_unchecked(0..space_pos)
                     };
-                    handler.printed_characters(word, handler.measure(word))?;
+                    handler.printed_characters(word, None)?;
                 }
 
                 handler.whitespace("\u{a0}", 1, self.spaces.consume(1))?;
@@ -450,9 +454,7 @@ where
                 }
             }
 
-            None => {
-                handler.printed_characters(w, handler.measure(w))?;
-            }
+            None => handler.printed_characters(w, None)?,
         }
 
         Ok(())
@@ -526,9 +528,11 @@ pub(crate) mod test {
             Ok(())
         }
 
-        fn printed_characters(&mut self, st: &str, width: u32) -> Result<(), Self::Error> {
-            self.elements
-                .push(RenderElement::String(st.to_owned(), width));
+        fn printed_characters(&mut self, str: &str, width: Option<u32>) -> Result<(), Self::Error> {
+            self.elements.push(RenderElement::String(
+                str.to_owned(),
+                width.unwrap_or_else(|| self.measure(str)),
+            ));
             Ok(())
         }
 

@@ -398,8 +398,8 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
         Ok(())
     }
 
-    fn printed_characters(&mut self, _: &str, width: u32) -> Result<(), Self::Error> {
-        self.cursor += width;
+    fn printed_characters(&mut self, str: &str, width: Option<u32>) -> Result<(), Self::Error> {
+        self.cursor += width.unwrap_or_else(|| self.measure(str));
         self.pos = self.pos.max(self.cursor);
         self.right = self.pos;
         self.space_count = self.partial_space_count;

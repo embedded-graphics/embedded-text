@@ -104,7 +104,6 @@ where
     /// Create a new parser object to process the given piece of text.
     #[inline]
     #[must_use]
-
     pub fn parse(text: &'a str) -> Self {
         Self {
             inner: text.chars(),

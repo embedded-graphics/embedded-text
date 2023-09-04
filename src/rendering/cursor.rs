@@ -29,7 +29,11 @@ impl LineCursor {
 
     /// Returns the distance to the next tab position.
     pub const fn next_tab_width(&self) -> u32 {
-        let next_tab_pos = (self.position / self.tab_width + 1) * self.tab_width;
+        let next_tab_pos = if self.tab_width == 0 {
+            self.position
+        } else {
+            (self.position / self.tab_width + 1) * self.tab_width
+        };
         next_tab_pos - self.position
     }
 
