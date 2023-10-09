@@ -49,3 +49,4 @@ object-chain = "0.1"
 [dev-dependencies]
 embedded-graphics-simulator = "0.5.0"
 sdl2 = "0.35.2"
+rayon-core = "=1.11"
