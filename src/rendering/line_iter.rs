@@ -10,7 +10,7 @@ use crate::{
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
     style::TextBoxStyle,
 };
-use az::{SaturatingAs, SaturatingCast};
+use az::SaturatingAs;
 use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor};
 
 /// Parser to break down a line into primitive elements used by measurement and rendering.
@@ -219,10 +219,9 @@ where
             handler.whitespace(string, space_count, 0)?;
             return Ok(false);
         }
+
         let signed_width = space_width.saturating_as();
-        let draw_whitespace = (self.empty && self.render_leading_spaces())
-            || self.render_trailing_spaces()
-            || self.next_word_fits(signed_width, handler);
+        let draw_whitespace = self.should_draw_whitespace(handler, signed_width);
 
         match self.move_cursor(signed_width) {
             Ok(moved) => {
@@ -273,11 +272,10 @@ where
             return Ok(());
         }
 
-        let draw_whitespace = (self.empty && self.render_leading_spaces())
-            || self.render_trailing_spaces()
-            || self.next_word_fits(space_width.saturating_as(), handler);
+        let signed_width = space_width.saturating_as();
+        let draw_whitespace = self.should_draw_whitespace(handler, signed_width);
 
-        match self.move_cursor(space_width.saturating_cast()) {
+        match self.move_cursor(signed_width) {
             Ok(moved) if draw_whitespace => handler.whitespace("\t", 0, moved.saturating_as())?,
 
             Ok(moved) | Err(moved) => {
@@ -458,6 +456,12 @@ where
         }
 
         Ok(())
+    }
+
+    fn should_draw_whitespace<E: ElementHandler>(&self, handler: &E, signed_width: i32) -> bool {
+        (self.empty && self.render_leading_spaces())
+            || self.render_trailing_spaces()
+            || self.next_word_fits(signed_width, handler)
     }
 }
 
