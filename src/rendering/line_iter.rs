@@ -156,11 +156,8 @@ where
         (w, "")
     }
 
-    fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &E) -> bool {
+    fn next_word_fits<E: ElementHandler>(&self, handler: &E) -> bool {
         let mut cursor = self.cursor.clone();
-        if cursor.move_cursor(space_width).is_err() {
-            return false;
-        }
 
         let mut spaces = self.spaces;
 
@@ -220,15 +217,12 @@ where
             return Ok(false);
         }
 
-        let signed_width = space_width.saturating_as();
-        let draw_whitespace = self.should_draw_whitespace(handler, signed_width);
-
-        match self.move_cursor(signed_width) {
+        match self.move_cursor(space_width.saturating_as()) {
             Ok(moved) => {
                 handler.whitespace(
                     string,
                     space_count,
-                    moved.saturating_as::<u32>() * draw_whitespace as u32,
+                    moved.saturating_as::<u32>() * self.should_draw_whitespace(handler) as u32,
                 )?;
             }
 
@@ -272,11 +266,10 @@ where
             return Ok(());
         }
 
-        let signed_width = space_width.saturating_as();
-        let draw_whitespace = self.should_draw_whitespace(handler, signed_width);
-
-        match self.move_cursor(signed_width) {
-            Ok(moved) if draw_whitespace => handler.whitespace("\t", 0, moved.saturating_as())?,
+        match self.move_cursor(space_width.saturating_as()) {
+            Ok(moved) if self.should_draw_whitespace(handler) => {
+                handler.whitespace("\t", 0, moved.saturating_as())?
+            }
 
             Ok(moved) | Err(moved) => {
                 handler.move_cursor(moved.saturating_as())?;
@@ -458,10 +451,10 @@ where
         Ok(())
     }
 
-    fn should_draw_whitespace<E: ElementHandler>(&self, handler: &E, signed_width: i32) -> bool {
+    fn should_draw_whitespace<E: ElementHandler>(&self, handler: &E) -> bool {
         (self.empty && self.render_leading_spaces())
             || self.render_trailing_spaces()
-            || self.next_word_fits(signed_width, handler)
+            || self.next_word_fits(handler)
     }
 }
 
