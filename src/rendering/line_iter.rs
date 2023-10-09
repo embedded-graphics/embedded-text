@@ -158,9 +158,11 @@ where
 
     fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &E) -> bool {
         let mut cursor = self.cursor.clone();
-        let mut spaces = self.spaces;
+        if cursor.move_cursor(space_width).is_err() {
+            return false;
+        }
 
-        let mut exit = false;
+        let mut spaces = self.spaces;
 
         // This looks extremely inefficient.
         let lookahead = self.plugin.clone();
@@ -169,9 +171,7 @@ where
         // We don't want to count the current token.
         lookahead.consume_peeked_token();
 
-        if cursor.move_cursor(space_width).is_err() {
-            return false;
-        }
+        let mut exit = false;
         while !exit {
             let width = match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
