@@ -90,6 +90,26 @@ where
     plugin: &'b PluginWrapper<'a, M, F::Color>,
 }
 
+impl<'a, 'b, F, D, M> RenderElementHandler<'a, 'b, F, D, M>
+where
+    F: CharacterStyle + TextRenderer,
+    <F as CharacterStyle>::Color: From<Rgb888>,
+    D: DrawTarget<Color = <F as TextRenderer>::Color>,
+    M: Plugin<'a, <F as TextRenderer>::Color>,
+{
+    fn post_print(&mut self, width: u32, st: &str) -> Result<(), D::Error> {
+        let bounds = Rectangle::new(
+            self.pos,
+            Size::new(width, self.style.line_height().saturating_as()),
+        );
+
+        self.pos += Point::new(width.saturating_as(), 0);
+
+        self.plugin
+            .post_render(self.display, self.style, Some(st), bounds)
+    }
+}
+
 impl<'a, 'c, F, D, M> ElementHandler for RenderElementHandler<'a, 'c, F, D, M>
 where
     F: CharacterStyle + TextRenderer,
@@ -105,39 +125,22 @@ where
     }
 
     fn whitespace(&mut self, st: &str, _space_count: u32, width: u32) -> Result<(), Self::Error> {
-        let top_left = self.pos;
         if width > 0 {
-            self.pos = self
-                .style
+            self.style
                 .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
         }
 
-        let size = Size::new(width, self.style.line_height().saturating_as());
-        let bounds = Rectangle::new(top_left, size);
-
-        self.plugin
-            .post_render(self.display, self.style, Some(st), bounds)?;
-
-        Ok(())
+        self.post_print(width, st)
     }
 
     fn printed_characters(&mut self, st: &str, width: Option<u32>) -> Result<(), Self::Error> {
-        let top_left = self.pos;
         let render_width = self
             .style
             .draw_string(st, self.pos, Baseline::Top, self.display)?;
 
-        let width = width.unwrap_or((render_width - top_left).x as u32);
+        let width = width.unwrap_or((render_width - self.pos).x as u32);
 
-        self.pos += Point::new(width.saturating_as(), 0);
-
-        let size = Size::new(width, self.style.line_height().saturating_as());
-        let bounds = Rectangle::new(top_left, size);
-
-        self.plugin
-            .post_render(self.display, self.style, Some(st), bounds)?;
-
-        Ok(())
+        self.post_print(width, st)
     }
 
     fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
