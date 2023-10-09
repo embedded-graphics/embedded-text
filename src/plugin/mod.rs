@@ -7,6 +7,7 @@ use core::{
     cell::UnsafeCell,
     hash::{Hash, Hasher},
     marker::PhantomData,
+    ptr::addr_of,
 };
 use embedded_graphics::{
     draw_target::DrawTarget,
@@ -87,7 +88,11 @@ pub(crate) struct PluginWrapper<'a, M, C> {
 impl<'a, M: Clone, C: Clone> Clone for PluginWrapper<'a, M, C> {
     fn clone(&self) -> Self {
         Self {
-            inner: UnsafeCell::new(self.with(|this| this.clone())),
+            inner: UnsafeCell::new(self.with(|this| PluginInner {
+                plugin: this.plugin.clone(),
+                state: this.state.clone(),
+                peeked_token: unsafe { addr_of!(this.peeked_token).read() },
+            })),
         }
     }
 }
