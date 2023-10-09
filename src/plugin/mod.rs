@@ -119,7 +119,7 @@ impl<'a, M, C> PluginWrapper<'a, M, C> {
     fn inner<R>(&self, cb: impl FnOnce(&mut PluginInner<'a, M, C>) -> R) -> R {
         let inner = unsafe {
             // SAFETY: This is safe because we aren't exposing the reference.
-            core::ptr::NonNull::new_unchecked(self.inner.get()).as_mut()
+            self.inner.get().as_mut().unwrap_unchecked()
         };
 
         cb(inner)
