@@ -114,6 +114,25 @@ where
     pub fn as_str(&self) -> &str {
         self.inner.as_str()
     }
+
+    fn consume_string(&mut self, string: &'a str, c: char) -> &'a str {
+        // pointer arithmetic to get the offset of `c` relative to `string`
+        let offset = {
+            let ptr_start = string.as_ptr() as usize;
+            let ptr_cur = self.inner.as_str().as_ptr() as usize;
+            ptr_cur - ptr_start - c.len_utf8()
+        };
+
+        debug_assert!(string.is_char_boundary(offset));
+
+        unsafe {
+            // SAFETY: we only work with character boundaries and
+            // offset is <= length
+            self.inner = string.get_unchecked(offset..).chars();
+
+            string.get_unchecked(0..offset)
+        }
+    }
 }
 
 impl<'a, C> Iterator for Parser<'a, C>
@@ -131,23 +150,8 @@ where
                 // find the longest consecutive slice of text for a Word token
                 for c in &mut self.inner {
                     if !is_word_char(c) {
-                        // pointer arithmetic to get the offset of `c` relative to `string`
-                        let offset = {
-                            let ptr_start = string.as_ptr() as usize;
-                            let ptr_cur = self.inner.as_str().as_ptr() as usize;
-                            ptr_cur - ptr_start - c.len_utf8()
-                        };
-                        debug_assert!(string.is_char_boundary(offset));
-                        let (word, remainder) = unsafe {
-                            // SAFETY: we only work with character boundaries and
-                            // offset is <= length
-                            (
-                                string.get_unchecked(0..offset),
-                                string.get_unchecked(offset..).chars(),
-                            )
-                        };
-                        self.inner = remainder;
-                        return Some(Token::Word(word));
+                        let consumed = self.consume_string(string, c);
+                        return Some(Token::Word(consumed));
                     }
                 }
 
@@ -182,24 +186,8 @@ where
                                     len += 1;
                                 }
                             } else {
-                                // pointer arithmetic to get the offset of `c` relative to `string`
-                                let offset = {
-                                    let ptr_start = string.as_ptr() as usize;
-                                    let ptr_cur = self.inner.as_str().as_ptr() as usize;
-                                    ptr_cur - ptr_start - c.len_utf8()
-                                };
-                                debug_assert!(string.is_char_boundary(offset));
-                                // consume the whitespaces
-                                let (sequence, remainder) = unsafe {
-                                    // SAFETY: we only work with character boundaries and
-                                    // offset is <= length
-                                    (
-                                        string.get_unchecked(0..offset),
-                                        string.get_unchecked(offset..).chars(),
-                                    )
-                                };
-                                self.inner = remainder;
-                                return Some(Token::Whitespace(len, sequence));
+                                let consumed = self.consume_string(string, c);
+                                return Some(Token::Whitespace(len, consumed));
                             }
                         }
 
