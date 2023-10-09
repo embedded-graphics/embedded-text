@@ -7,6 +7,7 @@ use core::{
     cell::UnsafeCell,
     hash::{Hash, Hasher},
     marker::PhantomData,
+    ptr::addr_of,
 };
 use embedded_graphics::{
     draw_target::DrawTarget,
@@ -74,7 +75,7 @@ where
 
 #[derive(Clone, Debug)]
 pub(crate) struct PluginInner<'a, M, C> {
-    pub(crate) plugin: M,
+    plugin: M,
     state: ProcessingState,
     peeked_token: Option<Token<'a, C>>,
 }
@@ -87,7 +88,11 @@ pub(crate) struct PluginWrapper<'a, M, C> {
 impl<'a, M: Clone, C: Clone> Clone for PluginWrapper<'a, M, C> {
     fn clone(&self) -> Self {
         Self {
-            inner: UnsafeCell::new(self.inner(|this| this.clone())),
+            inner: UnsafeCell::new(self.with(|this| PluginInner {
+                plugin: this.plugin.clone(),
+                state: this.state.clone(),
+                peeked_token: unsafe { addr_of!(this.peeked_token).read() },
+            })),
         }
     }
 }
@@ -97,7 +102,7 @@ where
     C: PixelColor,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.inner(|this| this.state.hash(state))
+        self.with(|this| this.state.hash(state))
     }
 }
 
@@ -116,10 +121,19 @@ impl<'a, M, C> PluginWrapper<'a, M, C> {
         self.inner.into_inner().plugin
     }
 
-    fn inner<R>(&self, cb: impl FnOnce(&mut PluginInner<'a, M, C>) -> R) -> R {
+    fn with<R>(&self, cb: impl FnOnce(&PluginInner<'a, M, C>) -> R) -> R {
         let inner = unsafe {
             // SAFETY: This is safe because we aren't exposing the reference.
-            core::ptr::NonNull::new_unchecked(self.inner.get()).as_mut()
+            self.inner.get().as_ref().unwrap_unchecked()
+        };
+
+        cb(inner)
+    }
+
+    fn with_mut<R>(&self, cb: impl FnOnce(&mut PluginInner<'a, M, C>) -> R) -> R {
+        let inner = unsafe {
+            // SAFETY: This is safe because we aren't exposing the reference.
+            self.inner.get().as_mut().unwrap_unchecked()
         };
 
         cb(inner)
@@ -132,23 +146,23 @@ where
     M: private::Plugin<'a, C>,
 {
     pub fn new_line(&self) {
-        self.inner(|this| this.plugin.new_line());
+        self.with_mut(|this| this.plugin.new_line());
     }
 
     pub fn set_state(&self, state: ProcessingState) {
-        self.inner(|this| this.state = state);
+        self.with_mut(|this| this.state = state);
     }
 
     #[inline]
     pub fn render_token(&self, token: Token<'a, C>) -> Option<Token<'a, C>> {
-        self.inner(|this| match this.state {
+        self.with_mut(|this| match this.state {
             ProcessingState::Measure => Some(token),
             ProcessingState::Render => this.plugin.render_token(token),
         })
     }
 
     pub fn peek_token(&self, source: &mut Parser<'a, C>) -> Option<Token<'a, C>> {
-        self.inner(|this| {
+        self.with_mut(|this| {
             if this.peeked_token.is_none() {
                 this.peeked_token = this.plugin.next_token(|| source.next());
             }
@@ -158,11 +172,11 @@ where
     }
 
     pub fn consume_peeked_token(&self) {
-        self.inner(|this| this.peeked_token = None);
+        self.with_mut(|this| this.peeked_token = None);
     }
 
     pub fn consume_partial(&self, len: usize) {
-        self.inner(|this| {
+        self.with_mut(|this| {
             // Only string-like tokens can be partially consumed.
             debug_assert!(matches!(
                 this.peeked_token,
@@ -196,7 +210,7 @@ where
         cursor: &mut Cursor,
         props: TextBoxProperties<'_, S>,
     ) {
-        self.inner(|this| {
+        self.with_mut(|this| {
             this.peeked_token = None;
 
             this.plugin.on_start_render(cursor, &props);
@@ -204,7 +218,7 @@ where
     }
 
     pub fn on_rendering_finished(&self) {
-        self.inner(|this| this.plugin.on_rendering_finished());
+        self.with_mut(|this| this.plugin.on_rendering_finished());
     }
 
     pub fn post_render<T, D>(
@@ -218,7 +232,7 @@ where
         T: TextRenderer<Color = C>,
         D: DrawTarget<Color = C>,
     {
-        self.inner(|this| {
+        self.with_mut(|this| {
             this.plugin
                 .post_render(draw_target, character_style, text, bounds)
         })

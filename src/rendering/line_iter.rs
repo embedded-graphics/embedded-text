@@ -10,7 +10,7 @@ use crate::{
     rendering::{cursor::LineCursor, space_config::SpaceConfig},
     style::TextBoxStyle,
 };
-use az::{SaturatingAs, SaturatingCast};
+use az::SaturatingAs;
 use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor};
 
 /// Parser to break down a line into primitive elements used by measurement and rendering.
@@ -156,11 +156,10 @@ where
         (w, "")
     }
 
-    fn next_word_fits<E: ElementHandler>(&self, space_width: i32, handler: &E) -> bool {
+    fn next_word_fits<E: ElementHandler>(&self, handler: &E) -> bool {
         let mut cursor = self.cursor.clone();
-        let mut spaces = self.spaces;
 
-        let mut exit = false;
+        let mut spaces = self.spaces;
 
         // This looks extremely inefficient.
         let lookahead = self.plugin.clone();
@@ -169,9 +168,7 @@ where
         // We don't want to count the current token.
         lookahead.consume_peeked_token();
 
-        if cursor.move_cursor(space_width).is_err() {
-            return false;
-        }
+        let mut exit = false;
         while !exit {
             let width = match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
@@ -219,17 +216,13 @@ where
             handler.whitespace(string, space_count, 0)?;
             return Ok(false);
         }
-        let signed_width = space_width.saturating_as();
-        let draw_whitespace = (self.empty && self.render_leading_spaces())
-            || self.render_trailing_spaces()
-            || self.next_word_fits(signed_width, handler);
 
-        match self.move_cursor(signed_width) {
+        match self.move_cursor(space_width.saturating_as()) {
             Ok(moved) => {
                 handler.whitespace(
                     string,
                     space_count,
-                    moved.saturating_as::<u32>() * draw_whitespace as u32,
+                    moved.saturating_as::<u32>() * self.should_draw_whitespace(handler) as u32,
                 )?;
             }
 
@@ -273,16 +266,12 @@ where
             return Ok(());
         }
 
-        let draw_whitespace = (self.empty && self.render_leading_spaces())
-            || self.render_trailing_spaces()
-            || self.next_word_fits(space_width.saturating_as(), handler);
-
-        match self.move_cursor(space_width.saturating_cast()) {
-            Ok(moved) if draw_whitespace => handler.whitespace("\t", 0, moved.saturating_as())?,
-
-            Ok(moved) | Err(moved) => {
-                handler.move_cursor(moved.saturating_as())?;
+        match self.move_cursor(space_width.saturating_as()) {
+            Ok(moved) if self.should_draw_whitespace(handler) => {
+                handler.whitespace("\t", 0, moved.saturating_as())?
             }
+
+            Ok(moved) | Err(moved) => handler.move_cursor(moved)?,
         }
         Ok(())
     }
@@ -458,6 +447,12 @@ where
         }
 
         Ok(())
+    }
+
+    fn should_draw_whitespace<E: ElementHandler>(&self, handler: &E) -> bool {
+        (self.empty && self.render_leading_spaces())
+            || self.render_trailing_spaces()
+            || self.next_word_fits(handler)
     }
 }
 
