@@ -425,7 +425,8 @@ where
         mut w: &str,
     ) -> Result<(), E::Error> {
         loop {
-            match w.char_indices().find(|(_, c)| *c == SPEC_CHAR_NBSP) {
+            let mut iter = w.char_indices();
+            match iter.find(|(_, c)| *c == SPEC_CHAR_NBSP) {
                 Some((space_pos, _)) => {
                     // If we have anything before the space...
                     if space_pos != 0 {
@@ -439,20 +440,12 @@ where
                     handler.whitespace("\u{a0}", 1, self.spaces.consume(1))?;
 
                     // If we have anything after the space...
-                    match w.get(space_pos + SPEC_CHAR_NBSP.len_utf8()..) {
-                        Some(word) => w = word, // loop back
-                        None => break,
-                    }
+                    w = iter.as_str();
                 }
 
-                None => {
-                    handler.printed_characters(w, None)?;
-                    break;
-                }
+                None => return handler.printed_characters(w, None),
             }
         }
-
-        Ok(())
     }
 
     fn should_draw_whitespace<E: ElementHandler>(&self, handler: &E) -> bool {
