@@ -422,28 +422,34 @@ where
     fn process_word<E: ElementHandler>(
         &mut self,
         handler: &mut E,
-        w: &str,
+        mut w: &str,
     ) -> Result<(), E::Error> {
-        match w.char_indices().find(|(_, c)| *c == SPEC_CHAR_NBSP) {
-            Some((space_pos, _)) => {
-                // If we have anything before the space...
-                if space_pos != 0 {
-                    let word = unsafe {
-                        // Safety: space_pos must be a character boundary
-                        w.get_unchecked(0..space_pos)
-                    };
-                    handler.printed_characters(word, None)?;
+        loop {
+            match w.char_indices().find(|(_, c)| *c == SPEC_CHAR_NBSP) {
+                Some((space_pos, _)) => {
+                    // If we have anything before the space...
+                    if space_pos != 0 {
+                        let word = unsafe {
+                            // Safety: space_pos must be a character boundary
+                            w.get_unchecked(0..space_pos)
+                        };
+                        handler.printed_characters(word, None)?;
+                    }
+
+                    handler.whitespace("\u{a0}", 1, self.spaces.consume(1))?;
+
+                    // If we have anything after the space...
+                    match w.get(space_pos + SPEC_CHAR_NBSP.len_utf8()..) {
+                        Some(word) => w = word, // loop back
+                        None => break,
+                    }
                 }
 
-                handler.whitespace("\u{a0}", 1, self.spaces.consume(1))?;
-
-                // If we have anything after the space...
-                if let Some(word) = w.get(space_pos + SPEC_CHAR_NBSP.len_utf8()..) {
-                    return self.process_word(handler, word);
+                None => {
+                    handler.printed_characters(w, None)?;
+                    break;
                 }
             }
-
-            None => handler.printed_characters(w, None)?,
         }
 
         Ok(())
