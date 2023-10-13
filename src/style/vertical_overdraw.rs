@@ -1,4 +1,5 @@
 //! Vertical overdraw options.
+
 use crate::rendering::cursor::Cursor;
 use core::ops::Range;
 
@@ -16,10 +17,11 @@ pub enum VerticalOverdraw {
 impl VerticalOverdraw {
     /// Calculate the range of rows of the current line that can be drawn.
     pub(crate) fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
+        let line_height = cursor.line_height();
         match self {
             VerticalOverdraw::FullRowsOnly => {
                 if cursor.in_display_area() {
-                    0..cursor.line_height()
+                    0..line_height
                 } else {
                     0..0
                 }
@@ -27,13 +29,12 @@ impl VerticalOverdraw {
 
             VerticalOverdraw::Hidden => {
                 let offset_top = (cursor.top_left().y - cursor.y).max(0);
-                let offset_bottom =
-                    (cursor.bottom_right().y - cursor.y + 1).min(cursor.line_height());
+                let offset_bottom = (cursor.bottom_right().y - cursor.y).min(line_height);
 
                 offset_top..offset_bottom
             }
 
-            VerticalOverdraw::Visible => 0..cursor.line_height(),
+            VerticalOverdraw::Visible => 0..line_height,
         }
     }
 }
