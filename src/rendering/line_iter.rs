@@ -555,7 +555,8 @@ pub(crate) mod test {
     {
         let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On.into());
 
-        let config = SpaceConfig::new_from_renderer(&style);
+        let space_width = str_width(&style, " ");
+        let config = SpaceConfig::new(space_width, None);
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, max_chars, 1)),
             style.line_height(),
@@ -580,7 +581,8 @@ pub(crate) mod test {
 
         let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On.into());
 
-        let config = SpaceConfig::new_from_renderer(&style);
+        let space_width = str_width(&style, " ");
+        let config = SpaceConfig::new(space_width, None);
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1) - Size::new(1, 0)),
             style.line_height(),
