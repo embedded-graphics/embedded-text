@@ -62,7 +62,7 @@ where
 {
     pub parser: Parser<'a, S::Color>,
     pub character_style: S,
-    pub style: TextBoxStyle,
+    pub style: &'b TextBoxStyle,
     pub end_type: LineEndType,
     pub plugin: &'b PluginWrapper<'a, M, S::Color>,
 }
@@ -279,7 +279,7 @@ mod test {
         let state = LineRenderState {
             parser,
             character_style,
-            style,
+            style: &style,
             end_type: LineEndType::EndOfText,
             plugin: &plugin,
         };

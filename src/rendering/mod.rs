@@ -95,7 +95,7 @@ where
         self.plugin.on_start_render(&mut cursor, props);
 
         let mut state = LineRenderState {
-            style: self.style,
+            style: &self.style,
             character_style: self.character_style.clone(),
             parser: Parser::parse(self.text),
             end_type: LineEndType::EndOfText,
