@@ -95,35 +95,32 @@ where
     }
 
     fn next_word_width<E: ElementHandler>(&mut self, handler: &E) -> Option<u32> {
-        let mut width = None;
-
         // This looks extremely inefficient.
         let lookahead = self.plugin.clone();
         let mut lookahead_parser = self.parser.clone();
 
-        // We don't want to count the current token.
-        lookahead.consume_peeked_token();
+        let mut width = 0;
+        let mut width_set = false;
 
-        'lookahead: loop {
+        loop {
+            lookahead.consume_peeked_token();
             match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) => {
-                    *width.get_or_insert(0) += handler.measure(w);
+                    width += handler.measure(w);
+                    width_set = true;
                 }
 
-                Some(Token::Break(w, _original)) => {
-                    *width.get_or_insert(0) += handler.measure(w);
-
-                    break 'lookahead;
-                }
-
+                Some(Token::Break(w, _original)) => return Some(width + handler.measure(w)),
                 Some(Token::ChangeTextStyle(_)) | Some(Token::MoveCursor { .. }) => {}
 
-                _ => break 'lookahead,
+                _ => {
+                    return match width_set {
+                        true => Some(width),
+                        false => None,
+                    };
+                }
             }
-            lookahead.consume_peeked_token();
         }
-
-        width
     }
 
     fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
@@ -555,7 +552,8 @@ pub(crate) mod test {
     {
         let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On.into());
 
-        let config = SpaceConfig::new_from_renderer(&style);
+        let space_width = str_width(&style, " ");
+        let config = SpaceConfig::new(space_width, None);
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, max_chars, 1)),
             style.line_height(),
@@ -580,7 +578,8 @@ pub(crate) mod test {
 
         let style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On.into());
 
-        let config = SpaceConfig::new_from_renderer(&style);
+        let space_width = str_width(&style, " ");
+        let config = SpaceConfig::new(space_width, None);
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size_for(&FONT_6X9, 1, 1) - Size::new(1, 0)),
             style.line_height(),

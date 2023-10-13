@@ -1,9 +1,5 @@
 //! Space rendering config
 
-use embedded_graphics::text::renderer::TextRenderer;
-
-use crate::utils::str_width;
-
 #[derive(Copy, Clone, Debug)]
 pub struct SpaceConfig {
     /// The width of the whitespace characters.
@@ -19,11 +15,6 @@ impl SpaceConfig {
     /// Creates a new SpaceConfig object.
     pub const fn new(width: u32, count: Option<u32>) -> Self {
         Self { width, count }
-    }
-
-    pub fn new_from_renderer(renderer: &impl TextRenderer) -> Self {
-        let width = str_width(renderer, " ");
-        Self::new(width, None)
     }
 
     /// Look at the size of next n spaces, without advancing.

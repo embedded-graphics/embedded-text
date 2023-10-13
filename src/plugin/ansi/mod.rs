@@ -346,7 +346,7 @@ mod test {
         let state = LineRenderState {
             parser,
             character_style,
-            style,
+            style: &style,
             end_type: LineEndType::EndOfText,
             plugin: &plugin,
         };

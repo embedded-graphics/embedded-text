@@ -1,5 +1,5 @@
 //! Cursor to track rendering position.
-use embedded_graphics::{geometry::Point, primitives::Rectangle, text::LineHeight};
+use embedded_graphics::{geometry::Point, prelude::Size, primitives::Rectangle, text::LineHeight};
 
 use az::{SaturatingAs, SaturatingCast};
 
@@ -105,7 +105,7 @@ impl Cursor {
             y: bounds.top_left.y,
             line_height: base_line_height.saturating_as(),
             line_spacing: line_height.to_absolute(base_line_height).saturating_as(),
-            bounds,
+            bounds: Rectangle::new(bounds.top_left, bounds.size + Size::new(0, 1)),
             tab_width,
         }
     }
@@ -159,6 +159,6 @@ impl Cursor {
     #[inline]
     #[must_use]
     pub fn in_display_area(&self) -> bool {
-        self.bounds.top_left.y <= self.y && self.y <= self.bottom_right().y - self.line_height + 1
+        self.bounds.top_left.y <= self.y && self.y + self.line_height <= self.bottom_right().y
     }
 }
