@@ -164,7 +164,7 @@ where
     M: Plugin<'a, <F as TextRenderer>::Color> + Plugin<'a, <F as CharacterStyle>::Color>,
 {
     #[inline]
-    pub(crate) fn draw<D>(&mut self, display: &mut D) -> Result<(), D::Error>
+    pub(crate) fn draw<D>(mut self, display: &mut D) -> Result<(), D::Error>
     where
         D: DrawTarget<Color = <F as CharacterStyle>::Color>,
     {
@@ -191,16 +191,15 @@ where
 
         let (left, space_config) = style.alignment.place_line(character_style, lm);
 
-        let mut cursor = self.cursor.clone();
-        cursor.move_cursor(left.saturating_as()).ok();
+        self.cursor.move_cursor(left.saturating_as()).ok();
 
         let mut render_element_handler = RenderElementHandler {
             style: character_style,
             display,
-            pos: cursor.pos(),
+            pos: self.cursor.pos(),
             plugin: *plugin,
         };
-        let end_type = LineElementParser::new(parser, plugin, cursor, space_config, style)
+        let end_type = LineElementParser::new(parser, plugin, self.cursor, space_config, style)
             .process(&mut render_element_handler)?;
 
         if end_type == LineEndType::EndOfText {
@@ -267,7 +266,7 @@ mod test {
             plugin: &plugin,
         };
 
-        let mut renderer = StyledLineRenderer::new(cursor, &mut state);
+        let renderer = StyledLineRenderer::new(cursor, &mut state);
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
 
