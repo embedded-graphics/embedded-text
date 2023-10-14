@@ -19,14 +19,15 @@ use crate::{
 pub struct Tail;
 
 impl<'a, C: PixelColor> Plugin<'a, C> for Tail {
-    fn on_start_render<S: CharacterStyle + TextRenderer>(
+    fn on_start_render<S: CharacterStyle + TextRenderer, TH: Fn() -> i32>(
         &mut self,
         cursor: &mut Cursor,
-        props: &TextBoxProperties<'_, S>,
+        props: &TextBoxProperties<'_, S, TH>,
     ) {
         let box_height = props.bounding_box.size.height.saturating_as();
-        if props.text_height > box_height {
-            let offset = box_height - props.text_height;
+        let text_height = (props.text_height)();
+        if text_height > box_height {
+            let offset = box_height - text_height;
 
             cursor.y += offset;
         }

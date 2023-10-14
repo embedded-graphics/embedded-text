@@ -114,6 +114,8 @@ mod rendering;
 pub mod style;
 mod utils;
 
+use core::cell::Cell;
+
 use crate::{
     alignment::{HorizontalAlignment, VerticalAlignment},
     plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
@@ -216,7 +218,7 @@ pub use crate::{
 /// [`add_plugin`]: TextBox::add_plugin()
 /// [`take_plugins`]: TextBox::take_plugins()
 /// [`embedded-graphics` documentation]: https://docs.rs/embedded-graphics/0.7.1/embedded_graphics/text/index.html
-#[derive(Clone, Debug, Hash)]
+#[derive(Clone, Debug)]
 #[must_use]
 pub struct TextBox<'a, S, M = NoPlugin<<S as TextRenderer>::Color>>
 where
@@ -237,7 +239,23 @@ where
     /// Vertical offset applied to the text just before rendering.
     pub vertical_offset: i32,
 
+    text_height: Cell<Option<u32>>,
+
     plugin: PluginWrapper<'a, M, S::Color>,
+}
+
+impl<'a, S: core::hash::Hash, M: core::hash::Hash> core::hash::Hash for TextBox<'a, S, M>
+where
+    S: TextRenderer,
+{
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.text.hash(state);
+        self.bounds.hash(state);
+        self.character_style.hash(state);
+        self.style.hash(state);
+        self.vertical_offset.hash(state);
+        self.plugin.hash(state);
+    }
 }
 
 impl<'a, S> TextBox<'a, S, NoPlugin<<S as TextRenderer>::Color>>
@@ -266,6 +284,7 @@ where
             character_style,
             style: textbox_style,
             vertical_offset: 0,
+            text_height: Cell::new(None),
             plugin: PluginWrapper::new(NoPlugin::new()),
         };
 
@@ -400,6 +419,7 @@ where
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
+            text_height: Cell::new(None), // reset, plugins may modify text height measurement
             plugin: PluginWrapper::new(Chain::new(plugin)),
         };
         styled.style.height_mode.apply(&mut styled);
@@ -427,6 +447,7 @@ where
             character_style: self.character_style,
             style: self.style,
             vertical_offset: self.vertical_offset,
+            text_height: Cell::new(None), // reset, plugins may modify text height measurement
             plugin: PluginWrapper::new(parent.append(plugin)),
         };
         styled.style.height_mode.apply(&mut styled);
@@ -478,6 +499,23 @@ where
     M: Plugin<'a, S::Color>,
     S::Color: From<Rgb888>,
 {
+    fn text_height(&self) -> u32 {
+        match self.text_height.get() {
+            Some(height) => height,
+            None => {
+                let height = self.style.measure_text_height_impl(
+                    self.plugin.clone(),
+                    &self.character_style,
+                    self.text,
+                    self.bounds.size.width,
+                );
+
+                self.text_height.set(Some(height));
+                height
+            }
+        }
+    }
+
     /// Sets the height of the [`TextBox`] to the height of the text.
     #[inline]
     fn fit_height(&mut self) -> &mut Self {
@@ -491,19 +529,10 @@ where
     #[inline]
     fn fit_height_limited(&mut self, max_height: u32) -> &mut Self {
         // Measure text given the width of the textbox
-        let text_height = self
-            .style
-            .measure_text_height_impl(
-                self.plugin.clone(),
-                &self.character_style,
-                self.text,
-                self.bounding_box().size.width,
-            )
-            .min(max_height)
-            .min(i32::MAX as u32);
+        let text_height = self.text_height();
 
         // Apply height
-        self.bounds.size.height = text_height;
+        self.bounds.size.height = text_height.min(max_height).min(i32::MAX as u32);
 
         self
     }

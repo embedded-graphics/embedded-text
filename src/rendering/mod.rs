@@ -30,7 +30,7 @@ use line_iter::LineEndType;
 ///
 /// This struct holds information about the text box.
 #[derive(Clone)]
-pub struct TextBoxProperties<'a, S> {
+pub struct TextBoxProperties<'a, S, TH> {
     /// The used text box style.
     pub box_style: &'a TextBoxStyle,
 
@@ -38,7 +38,7 @@ pub struct TextBoxProperties<'a, S> {
     pub char_style: &'a S,
 
     /// The height of the text.
-    pub text_height: i32,
+    pub text_height: TH,
 
     /// The bounds of the text box.
     pub bounding_box: Rectangle,
@@ -65,21 +65,11 @@ where
             self.style.tab_size.into_pixels(&self.character_style),
         );
 
-        let text_height = self
-            .style
-            .measure_text_height_impl(
-                self.plugin.clone(),
-                &self.character_style,
-                self.text,
-                cursor.line_width(),
-            )
-            .saturating_as::<i32>();
-
         let box_height = self.bounding_box().size.height.saturating_as::<i32>();
 
         self.style.vertical_alignment.apply_vertical_alignment(
             &mut cursor,
-            text_height,
+            || self.text_height().saturating_as::<i32>(),
             box_height,
         );
 
@@ -88,7 +78,7 @@ where
         let props = TextBoxProperties {
             box_style: &self.style,
             char_style: &self.character_style,
-            text_height,
+            text_height: || self.text_height().saturating_as::<i32>(),
             bounding_box: self.bounding_box(),
         };
 

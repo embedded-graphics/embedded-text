@@ -205,10 +205,10 @@ where
         })
     }
 
-    pub fn on_start_render<S: CharacterStyle + TextRenderer>(
+    pub fn on_start_render<S: CharacterStyle + TextRenderer, TH: Fn() -> i32>(
         &self,
         cursor: &mut Cursor,
-        props: TextBoxProperties<'_, S>,
+        props: TextBoxProperties<'_, S, TH>,
     ) {
         self.with_mut(|this| {
             this.peeked_token = None;

@@ -92,7 +92,7 @@ impl VerticalAlignment {
     pub(crate) fn apply_vertical_alignment(
         self,
         cursor: &mut Cursor,
-        text_height: i32,
+        text_height: impl Fn() -> i32,
         box_height: i32,
     ) {
         match self {
@@ -101,13 +101,13 @@ impl VerticalAlignment {
             }
 
             VerticalAlignment::Middle => {
-                let offset = (box_height - text_height) / 2;
+                let offset = (box_height - text_height()) / 2;
 
                 cursor.y += offset;
             }
 
             VerticalAlignment::Bottom => {
-                let offset = box_height - text_height;
+                let offset = box_height - text_height();
 
                 cursor.y += offset;
             }
