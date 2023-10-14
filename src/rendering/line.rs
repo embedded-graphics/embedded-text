@@ -169,12 +169,12 @@ where
         D: DrawTarget<Color = <F as CharacterStyle>::Color>,
     {
         let LineRenderState {
-            mut parser,
-            mut character_style,
+            ref mut parser,
+            ref mut character_style,
             style,
             plugin,
             ..
-        } = self.state.clone();
+        } = self.state;
 
         let lm = {
             // Ensure the clone lives for as short as possible.
@@ -183,46 +183,39 @@ where
             measure_plugin.set_state(ProcessingState::Measure);
             style.measure_line(
                 &measure_plugin,
-                &character_style,
+                character_style,
                 &mut cloned_parser,
                 self.cursor.line_width(),
             )
         };
 
-        let (left, space_config) = style.alignment.place_line(&character_style, lm);
+        let (left, space_config) = style.alignment.place_line(character_style, lm);
 
         let mut cursor = self.cursor.clone();
         cursor.move_cursor(left.saturating_as()).ok();
 
         let pos = cursor.pos();
-        let mut elements =
-            LineElementParser::new(&mut parser, plugin, cursor, space_config, &style);
+        let mut elements = LineElementParser::new(parser, plugin, cursor, space_config, &style);
 
         let mut render_element_handler = RenderElementHandler {
-            style: &mut character_style,
+            style: character_style,
             display,
             pos,
-            plugin,
+            plugin: &*plugin,
         };
         let end_type = elements.process(&mut render_element_handler)?;
-        let end_pos = render_element_handler.pos;
 
         if end_type == LineEndType::EndOfText {
+            let end_pos = render_element_handler.pos;
             plugin.post_render(
                 display,
-                &character_style,
+                character_style,
                 None,
                 Rectangle::new(end_pos, Size::new(0, character_style.line_height())),
             )?;
         }
 
-        *self.state = LineRenderState {
-            parser,
-            character_style,
-            style,
-            end_type,
-            plugin,
-        };
+        self.state.end_type = end_type;
 
         Ok(())
     }
