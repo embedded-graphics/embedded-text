@@ -113,11 +113,17 @@ impl Cursor {
     #[must_use]
     pub(crate) fn line(&self) -> LineCursor {
         LineCursor {
-            start: Point::new(self.bounds.top_left.x, self.y),
+            start: self.line_start(),
             width: self.bounds.size.width,
             position: 0,
             tab_width: self.tab_width,
         }
+    }
+
+    /// Returns the coordinates of the start of the current line.
+    #[inline]
+    pub(crate) fn line_start(&self) -> Point {
+        Point::new(self.bounds.top_left.x, self.y)
     }
 
     /// Returns the coordinates of the bottom right corner.
@@ -126,7 +132,7 @@ impl Cursor {
         self.bounds.bottom_right().unwrap_or(self.bounds.top_left)
     }
 
-    /// Returns the coordinates of the bottom right corner.
+    /// Returns the coordinates of the top left corner.
     #[inline]
     pub fn top_left(&self) -> Point {
         self.bounds.top_left

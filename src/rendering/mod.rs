@@ -107,7 +107,6 @@ where
         let mut anything_drawn = false;
         loop {
             state.plugin.new_line();
-            let line_cursor = cursor.line();
 
             let display_range = self
                 .style
@@ -117,7 +116,7 @@ where
             let display_range_count = (display_range.end - display_range.start).saturating_as();
             let display_size = Size::new(cursor.line_width(), display_range_count);
 
-            let line_start = line_cursor.pos();
+            let line_start = cursor.line_start();
 
             // FIXME: cropping isn't necessary for whole lines, but make sure not to blow up the
             // binary size as well.
@@ -146,7 +145,7 @@ where
                 anything_drawn = true;
             }
 
-            StyledLineRenderer::new(line_cursor, &mut state).draw(&mut display)?;
+            StyledLineRenderer::new(cursor.line(), &mut state).draw(&mut display)?;
 
             match state.end_type {
                 LineEndType::EndOfText => {
