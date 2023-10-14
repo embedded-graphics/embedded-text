@@ -144,7 +144,7 @@ where
 
     fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
         // LineElementIterator ensures this new pos is valid.
-        self.pos = Point::new(self.pos.x + by, self.pos.y);
+        self.pos += Point::new(by, 0);
         Ok(())
     }
 
