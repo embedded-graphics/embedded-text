@@ -21,7 +21,6 @@ use embedded_graphics::{
         renderer::{CharacterStyle, TextRenderer},
         Baseline, DecorationColor,
     },
-    Drawable,
 };
 
 impl<C> ChangeTextStyle<C>
@@ -45,13 +44,13 @@ where
 }
 
 /// Render a single line of styled text.
-pub(crate) struct StyledLineRenderer<'a, 'b, S, M>
+pub(crate) struct StyledLineRenderer<'a, 'b, 'c, S, M>
 where
     S: TextRenderer + Clone,
     M: Plugin<'a, <S as TextRenderer>::Color>,
 {
     cursor: LineCursor,
-    state: LineRenderState<'a, 'b, S, M>,
+    state: &'c mut LineRenderState<'a, 'b, S, M>,
 }
 
 #[derive(Clone)]
@@ -67,14 +66,14 @@ where
     pub plugin: &'b PluginWrapper<'a, M, S::Color>,
 }
 
-impl<'a, 'b, F, M> StyledLineRenderer<'a, 'b, F, M>
+impl<'a, 'b, 'c, F, M> StyledLineRenderer<'a, 'b, 'c, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
     M: Plugin<'a, <F as TextRenderer>::Color>,
 {
     /// Creates a new line renderer.
-    pub fn new(cursor: LineCursor, state: LineRenderState<'a, 'b, F, M>) -> Self {
+    pub fn new(cursor: LineCursor, state: &'c mut LineRenderState<'a, 'b, F, M>) -> Self {
         Self { cursor, state }
     }
 }
@@ -158,19 +157,16 @@ where
     }
 }
 
-impl<'a, 'b, F, M> Drawable for StyledLineRenderer<'a, 'b, F, M>
+impl<'a, 'b, 'c, F, M> StyledLineRenderer<'a, 'b, 'c, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
     M: Plugin<'a, <F as TextRenderer>::Color> + Plugin<'a, <F as CharacterStyle>::Color>,
 {
-    type Color = <F as CharacterStyle>::Color;
-    type Output = LineRenderState<'a, 'b, F, M>;
-
     #[inline]
-    fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
+    pub(crate) fn draw<D>(&mut self, display: &mut D) -> Result<(), D::Error>
     where
-        D: DrawTarget<Color = Self::Color>,
+        D: DrawTarget<Color = <F as CharacterStyle>::Color>,
     {
         let LineRenderState {
             mut parser,
@@ -211,7 +207,16 @@ where
         let end_type = elements.process(&mut render_element_handler)?;
         let end_pos = render_element_handler.pos;
 
-        let next_state = LineRenderState {
+        if end_type == LineEndType::EndOfText {
+            plugin.post_render(
+                display,
+                &character_style,
+                None,
+                Rectangle::new(end_pos, Size::new(0, character_style.line_height())),
+            )?;
+        }
+
+        *self.state = LineRenderState {
             parser,
             character_style,
             style,
@@ -219,19 +224,7 @@ where
             plugin,
         };
 
-        if next_state.end_type == LineEndType::EndOfText {
-            next_state.plugin.post_render(
-                display,
-                &next_state.character_style,
-                None,
-                Rectangle::new(
-                    end_pos,
-                    Size::new(0, next_state.character_style.line_height()),
-                ),
-            )?;
-        }
-
-        Ok(next_state)
+        Ok(())
     }
 }
 
@@ -255,7 +248,6 @@ mod test {
         pixelcolor::{BinaryColor, Rgb888},
         primitives::Rectangle,
         text::renderer::{CharacterStyle, TextRenderer},
-        Drawable,
     };
 
     fn test_rendered_text<'a, S>(
@@ -276,7 +268,7 @@ mod test {
 
         let plugin = PluginWrapper::new(NoPlugin::new());
 
-        let state = LineRenderState {
+        let mut state = LineRenderState {
             parser,
             character_style,
             style: &style,
@@ -284,7 +276,7 @@ mod test {
             plugin: &plugin,
         };
 
-        let renderer = StyledLineRenderer::new(cursor, state);
+        let mut renderer = StyledLineRenderer::new(cursor, &mut state);
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
 

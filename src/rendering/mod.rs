@@ -113,20 +113,19 @@ where
                 .style
                 .height_mode
                 .calculate_displayed_row_range(&cursor);
-            let display_size = Size::new(
-                cursor.line_width(),
-                display_range.clone().count().saturating_as(),
-            );
+            let display_range_start = display_range.start;
+            let display_range_count = (display_range.end - display_range.start).saturating_as();
+            let display_size = Size::new(cursor.line_width(), display_range_count);
 
             let line_start = line_cursor.pos();
 
             // FIXME: cropping isn't necessary for whole lines, but make sure not to blow up the
             // binary size as well.
             let mut display = display.clipped(&Rectangle::new(
-                line_start + Point::new(0, display_range.start),
+                line_start + Point::new(0, display_range_start),
                 display_size,
             ));
-            if display_range.start >= display_range.end {
+            if display_range_count == 0 {
                 if anything_drawn {
                     let remaining_bytes = state.parser.as_str().len();
                     let consumed_bytes = self.text.len() - remaining_bytes;
@@ -147,7 +146,7 @@ where
                 anything_drawn = true;
             }
 
-            state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
+            StyledLineRenderer::new(line_cursor, &mut state).draw(&mut display)?;
 
             match state.end_type {
                 LineEndType::EndOfText => {

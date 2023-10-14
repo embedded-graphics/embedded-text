@@ -343,14 +343,14 @@ mod test {
         );
 
         let plugin = PluginWrapper::new(Ansi::new());
-        let state = LineRenderState {
+        let mut state = LineRenderState {
             parser,
             character_style,
             style: &style,
             end_type: LineEndType::EndOfText,
             plugin: &plugin,
         };
-        StyledLineRenderer::new(cursor, state)
+        StyledLineRenderer::new(cursor, &mut state)
             .draw(&mut display)
             .unwrap();
 
