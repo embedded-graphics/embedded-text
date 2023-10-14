@@ -195,13 +195,13 @@ where
         cursor.move_cursor(left.saturating_as()).ok();
 
         let pos = cursor.pos();
-        let mut elements = LineElementParser::new(parser, plugin, cursor, space_config, &style);
+        let mut elements = LineElementParser::new(parser, plugin, cursor, space_config, style);
 
         let mut render_element_handler = RenderElementHandler {
             style: character_style,
             display,
             pos,
-            plugin: &*plugin,
+            plugin: *plugin,
         };
         let end_type = elements.process(&mut render_element_handler)?;
 
