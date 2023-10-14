@@ -194,16 +194,14 @@ where
         let mut cursor = self.cursor.clone();
         cursor.move_cursor(left.saturating_as()).ok();
 
-        let pos = cursor.pos();
-        let mut elements = LineElementParser::new(parser, plugin, cursor, space_config, style);
-
         let mut render_element_handler = RenderElementHandler {
             style: character_style,
             display,
-            pos,
+            pos: cursor.pos(),
             plugin: *plugin,
         };
-        let end_type = elements.process(&mut render_element_handler)?;
+        let end_type = LineElementParser::new(parser, plugin, cursor, space_config, style)
+            .process(&mut render_element_handler)?;
 
         if end_type == LineEndType::EndOfText {
             let end_pos = render_element_handler.pos;
