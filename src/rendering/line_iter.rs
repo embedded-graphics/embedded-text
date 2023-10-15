@@ -255,15 +255,12 @@ where
         }
     }
 
-    fn draw_tab<E: ElementHandler>(
-        &mut self,
-        handler: &mut E,
-        space_width: u32,
-    ) -> Result<(), E::Error> {
+    fn draw_tab<E: ElementHandler>(&mut self, handler: &mut E) -> Result<(), E::Error> {
         if self.skip_leading_spaces() {
             return Ok(());
         }
 
+        let space_width = self.cursor.next_tab_width();
         match self.move_cursor_forward(space_width) {
             Ok(moved) if self.should_draw_whitespace(handler) => {
                 handler.whitespace("\t", 0, moved)?
@@ -297,8 +294,7 @@ where
                 }
 
                 Token::Tab => {
-                    let space_width = self.cursor.next_tab_width();
-                    self.draw_tab(handler, space_width)?;
+                    self.draw_tab(handler)?;
                 }
 
                 Token::Break(c) => {
