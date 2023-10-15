@@ -95,8 +95,7 @@ where
         self.plugin.on_start_render(&mut cursor, props);
 
         let mut state = LineRenderState {
-            style: &self.style,
-            character_style: self.character_style.clone(),
+            text_renderer: self.character_style.clone(),
             parser: Parser::parse(self.text),
             end_type: LineEndType::EndOfText,
             plugin: &self.plugin,
@@ -145,7 +144,12 @@ where
                 anything_drawn = true;
             }
 
-            StyledLineRenderer::new(cursor.line(), &mut state).draw(&mut display)?;
+            StyledLineRenderer {
+                cursor: cursor.line(),
+                state: &mut state,
+                style: &self.style,
+            }
+            .draw(&mut display)?;
 
             match state.end_type {
                 LineEndType::EndOfText => {
