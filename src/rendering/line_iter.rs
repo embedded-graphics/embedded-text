@@ -162,11 +162,9 @@ where
         let lookahead = self.plugin.clone();
         let mut lookahead_parser = self.parser.clone();
 
-        // We don't want to count the current token.
-        lookahead.consume_peeked_token();
-
         let mut exit = false;
         while !exit {
+            lookahead.consume_peeked_token();
             let width = match lookahead.peek_token(&mut lookahead_parser) {
                 Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
                     exit = true;
@@ -185,7 +183,6 @@ where
                 _ => return false,
             };
 
-            lookahead.consume_peeked_token();
             if cursor.move_cursor(width).is_err() {
                 return false;
             }
