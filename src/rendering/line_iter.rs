@@ -222,6 +222,7 @@ where
                     space_count,
                     moved * self.should_draw_whitespace(handler) as u32,
                 )?;
+                Ok(false)
             }
 
             Err(moved) => {
@@ -249,10 +250,9 @@ where
 
                 self.plugin
                     .consume_partial((consumed + 1).min(space_count) as usize);
-                return Ok(true);
+                Ok(true)
             }
         }
-        Ok(false)
     }
 
     fn draw_tab<E: ElementHandler>(
