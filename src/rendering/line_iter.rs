@@ -266,7 +266,7 @@ where
 
         match self.move_cursor_forward(space_width) {
             Ok(moved) if self.should_draw_whitespace(handler) => {
-                handler.whitespace("\t", 0, moved.saturating_as())?
+                handler.whitespace("\t", 0, moved)?
             }
 
             Ok(moved) | Err(moved) => handler.move_cursor(moved.saturating_as())?,
