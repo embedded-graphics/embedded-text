@@ -202,7 +202,7 @@ impl HeightMode {
     /// If a line does not fully fit in the bounding box, some `HeightMode` options allow drawing
     /// partial lines. For a partial line, this function calculates, which rows of each character
     /// should be displayed.
-    pub(crate) fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<i32> {
+    pub(crate) fn calculate_displayed_row_range(self, cursor: &Cursor) -> Range<u32> {
         let overdraw = match self {
             HeightMode::Exact(overdraw) | HeightMode::ShrinkToText(overdraw) => overdraw,
             HeightMode::FitToText => VerticalOverdraw::Visible,

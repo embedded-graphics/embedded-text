@@ -10,7 +10,6 @@ use crate::{
     style::TextBoxStyle,
     utils::str_width,
 };
-use az::SaturatingAs;
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
@@ -21,37 +20,37 @@ use embedded_graphics::{
         renderer::{CharacterStyle, TextRenderer},
         Baseline, DecorationColor,
     },
-    Drawable,
 };
 
 impl<C> ChangeTextStyle<C>
 where
     C: PixelColor + From<Rgb888>,
 {
-    pub(crate) fn apply<S: CharacterStyle<Color = C>>(self, style: &mut S) {
+    pub(crate) fn apply<S: CharacterStyle<Color = C>>(self, text_renderer: &mut S) {
         match self {
             ChangeTextStyle::Reset => {
-                style.set_text_color(Some(Into::<Rgb888>::into(BinaryColor::On).into()));
-                style.set_background_color(None);
-                style.set_underline_color(DecorationColor::None);
-                style.set_strikethrough_color(DecorationColor::None);
+                text_renderer.set_text_color(Some(Into::<Rgb888>::into(BinaryColor::On).into()));
+                text_renderer.set_background_color(None);
+                text_renderer.set_underline_color(DecorationColor::None);
+                text_renderer.set_strikethrough_color(DecorationColor::None);
             }
-            ChangeTextStyle::TextColor(color) => style.set_text_color(color),
-            ChangeTextStyle::BackgroundColor(color) => style.set_background_color(color),
-            ChangeTextStyle::Underline(color) => style.set_underline_color(color),
-            ChangeTextStyle::Strikethrough(color) => style.set_strikethrough_color(color),
+            ChangeTextStyle::TextColor(color) => text_renderer.set_text_color(color),
+            ChangeTextStyle::BackgroundColor(color) => text_renderer.set_background_color(color),
+            ChangeTextStyle::Underline(color) => text_renderer.set_underline_color(color),
+            ChangeTextStyle::Strikethrough(color) => text_renderer.set_strikethrough_color(color),
         }
     }
 }
 
 /// Render a single line of styled text.
-pub(crate) struct StyledLineRenderer<'a, 'b, S, M>
+pub(crate) struct StyledLineRenderer<'a, 'b, 'c, S, M>
 where
     S: TextRenderer + Clone,
     M: Plugin<'a, <S as TextRenderer>::Color>,
 {
-    cursor: LineCursor,
-    state: LineRenderState<'a, 'b, S, M>,
+    pub(crate) cursor: LineCursor,
+    pub(crate) state: &'c mut LineRenderState<'a, 'b, S, M>,
+    pub(crate) style: &'c TextBoxStyle,
 }
 
 #[derive(Clone)]
@@ -61,22 +60,9 @@ where
     M: Plugin<'a, S::Color>,
 {
     pub parser: Parser<'a, S::Color>,
-    pub character_style: S,
-    pub style: &'b TextBoxStyle,
+    pub text_renderer: S,
     pub end_type: LineEndType,
     pub plugin: &'b PluginWrapper<'a, M, S::Color>,
-}
-
-impl<'a, 'b, F, M> StyledLineRenderer<'a, 'b, F, M>
-where
-    F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
-    <F as CharacterStyle>::Color: From<Rgb888>,
-    M: Plugin<'a, <F as TextRenderer>::Color>,
-{
-    /// Creates a new line renderer.
-    pub fn new(cursor: LineCursor, state: LineRenderState<'a, 'b, F, M>) -> Self {
-        Self { cursor, state }
-    }
 }
 
 struct RenderElementHandler<'a, 'b, F, D, M>
@@ -84,7 +70,7 @@ where
     F: TextRenderer,
     D: DrawTarget<Color = F::Color>,
 {
-    style: &'b mut F,
+    text_renderer: &'b mut F,
     display: &'b mut D,
     pos: Point,
     plugin: &'b PluginWrapper<'a, M, F::Color>,
@@ -98,15 +84,12 @@ where
     M: Plugin<'a, <F as TextRenderer>::Color>,
 {
     fn post_print(&mut self, width: u32, st: &str) -> Result<(), D::Error> {
-        let bounds = Rectangle::new(
-            self.pos,
-            Size::new(width, self.style.line_height().saturating_as()),
-        );
+        let bounds = Rectangle::new(self.pos, Size::new(width, self.text_renderer.line_height()));
 
-        self.pos += Point::new(width.saturating_as(), 0);
+        self.pos += Point::new(width as i32, 0);
 
         self.plugin
-            .post_render(self.display, self.style, Some(st), bounds)
+            .post_render(self.display, self.text_renderer, Some(st), bounds)
     }
 }
 
@@ -121,12 +104,12 @@ where
     type Color = <F as CharacterStyle>::Color;
 
     fn measure(&self, st: &str) -> u32 {
-        str_width(self.style, st)
+        str_width(self.text_renderer, st)
     }
 
     fn whitespace(&mut self, st: &str, _space_count: u32, width: u32) -> Result<(), Self::Error> {
         if width > 0 {
-            self.style
+            self.text_renderer
                 .draw_whitespace(width, self.pos, Baseline::Top, self.display)?;
         }
 
@@ -134,9 +117,9 @@ where
     }
 
     fn printed_characters(&mut self, st: &str, width: Option<u32>) -> Result<(), Self::Error> {
-        let render_width = self
-            .style
-            .draw_string(st, self.pos, Baseline::Top, self.display)?;
+        let render_width =
+            self.text_renderer
+                .draw_string(st, self.pos, Baseline::Top, self.display)?;
 
         let width = width.unwrap_or((render_width - self.pos).x as u32);
 
@@ -145,7 +128,7 @@ where
 
     fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
         // LineElementIterator ensures this new pos is valid.
-        self.pos = Point::new(self.pos.x + by, self.pos.y);
+        self.pos += Point::new(by, 0);
         Ok(())
     }
 
@@ -153,85 +136,69 @@ where
         &mut self,
         change: ChangeTextStyle<<F as CharacterStyle>::Color>,
     ) -> Result<(), Self::Error> {
-        change.apply(self.style);
+        change.apply(self.text_renderer);
         Ok(())
     }
 }
 
-impl<'a, 'b, F, M> Drawable for StyledLineRenderer<'a, 'b, F, M>
+impl<'a, 'b, 'c, F, M> StyledLineRenderer<'a, 'b, 'c, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
     <F as CharacterStyle>::Color: From<Rgb888>,
     M: Plugin<'a, <F as TextRenderer>::Color> + Plugin<'a, <F as CharacterStyle>::Color>,
 {
-    type Color = <F as CharacterStyle>::Color;
-    type Output = LineRenderState<'a, 'b, F, M>;
-
     #[inline]
-    fn draw<D>(&self, display: &mut D) -> Result<Self::Output, D::Error>
+    pub(crate) fn draw<D>(mut self, display: &mut D) -> Result<(), D::Error>
     where
-        D: DrawTarget<Color = Self::Color>,
+        D: DrawTarget<Color = <F as CharacterStyle>::Color>,
     {
         let LineRenderState {
-            mut parser,
-            mut character_style,
-            style,
+            ref mut parser,
+            ref mut text_renderer,
             plugin,
             ..
-        } = self.state.clone();
+        } = self.state;
 
         let lm = {
             // Ensure the clone lives for as short as possible.
             let mut cloned_parser = parser.clone();
             let measure_plugin = plugin.clone();
             measure_plugin.set_state(ProcessingState::Measure);
-            style.measure_line(
+            self.style.measure_line(
                 &measure_plugin,
-                &character_style,
+                text_renderer,
                 &mut cloned_parser,
                 self.cursor.line_width(),
             )
         };
 
-        let (left, space_config) = style.alignment.place_line(&character_style, lm);
+        let (left, space_config) = self.style.alignment.place_line(text_renderer, lm);
 
-        let mut cursor = self.cursor.clone();
-        cursor.move_cursor(left.saturating_as()).ok();
-
-        let pos = cursor.pos();
-        let mut elements =
-            LineElementParser::new(&mut parser, plugin, cursor, space_config, &style);
+        self.cursor.move_cursor(left as i32).ok();
 
         let mut render_element_handler = RenderElementHandler {
-            style: &mut character_style,
+            text_renderer,
             display,
-            pos,
-            plugin,
+            pos: self.cursor.pos(),
+            plugin: *plugin,
         };
-        let end_type = elements.process(&mut render_element_handler)?;
-        let end_pos = render_element_handler.pos;
+        let end_type =
+            LineElementParser::new(parser, plugin, self.cursor, space_config, self.style)
+                .process(&mut render_element_handler)?;
 
-        let next_state = LineRenderState {
-            parser,
-            character_style,
-            style,
-            end_type,
-            plugin,
-        };
-
-        if next_state.end_type == LineEndType::EndOfText {
-            next_state.plugin.post_render(
+        if end_type == LineEndType::EndOfText {
+            let end_pos = render_element_handler.pos;
+            plugin.post_render(
                 display,
-                &next_state.character_style,
+                text_renderer,
                 None,
-                Rectangle::new(
-                    end_pos,
-                    Size::new(0, next_state.character_style.line_height()),
-                ),
+                Rectangle::new(end_pos, Size::new(0, text_renderer.line_height())),
             )?;
         }
 
-        Ok(next_state)
+        self.state.end_type = end_type;
+
+        Ok(())
     }
 }
 
@@ -255,7 +222,6 @@ mod test {
         pixelcolor::{BinaryColor, Rgb888},
         primitives::Rectangle,
         text::renderer::{CharacterStyle, TextRenderer},
-        Drawable,
     };
 
     fn test_rendered_text<'a, S>(
@@ -276,15 +242,18 @@ mod test {
 
         let plugin = PluginWrapper::new(NoPlugin::new());
 
-        let state = LineRenderState {
+        let mut state = LineRenderState {
             parser,
-            character_style,
-            style: &style,
+            text_renderer: character_style,
             end_type: LineEndType::EndOfText,
             plugin: &plugin,
         };
 
-        let renderer = StyledLineRenderer::new(cursor, state);
+        let renderer = StyledLineRenderer {
+            cursor,
+            state: &mut state,
+            style: &style,
+        };
         let mut display = MockDisplay::new();
         display.set_allow_overdraw(true);
 

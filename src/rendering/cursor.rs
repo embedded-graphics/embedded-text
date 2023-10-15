@@ -1,7 +1,7 @@
 //! Cursor to track rendering position.
-use embedded_graphics::{geometry::Point, prelude::Size, primitives::Rectangle, text::LineHeight};
+use embedded_graphics::{geometry::Point, primitives::Rectangle, text::LineHeight};
 
-use az::{SaturatingAs, SaturatingCast};
+use az::SaturatingAs;
 
 /// Tracks position within a line.
 #[derive(Debug, Clone)]
@@ -60,10 +60,10 @@ impl LineCursor {
                 self.position -= abs;
                 Ok(by)
             } else {
-                Err(-self.position.saturating_as::<i32>())
+                Err(-(self.position as i32))
             }
         } else {
-            let space = self.space().saturating_cast();
+            let space = self.space() as i32;
             if by <= space {
                 // Here we know by > 0, cast is safe
                 self.position += by as u32;
@@ -71,6 +71,18 @@ impl LineCursor {
             } else {
                 Err(space)
             }
+        }
+    }
+
+    /// Moves the cursor forward by a given amount.
+    pub fn move_cursor_forward(&mut self, by: u32) -> Result<u32, u32> {
+        let space = self.space();
+        if by <= space {
+            // Here we know by > 0, cast is safe
+            self.position += by;
+            Ok(by)
+        } else {
+            Err(space)
         }
     }
 }
@@ -83,10 +95,11 @@ pub struct Cursor {
     /// Current cursor position
     pub y: i32,
 
-    /// TextBox bounding rectangle
-    bounds: Rectangle,
+    top_left: Point,
+    bottom: i32,
 
-    line_height: i32,
+    line_width: u32,
+    line_height: u32,
     line_spacing: i32,
     tab_width: u32,
 }
@@ -103,9 +116,14 @@ impl Cursor {
     ) -> Self {
         Self {
             y: bounds.top_left.y,
-            line_height: base_line_height.saturating_as(),
+
+            top_left: bounds.top_left,
+            bottom: bounds.top_left.y + bounds.size.height.saturating_as::<i32>()
+                - base_line_height.saturating_as::<i32>(),
+
+            line_width: bounds.size.width,
+            line_height: base_line_height,
             line_spacing: line_height.to_absolute(base_line_height).saturating_as(),
-            bounds: Rectangle::new(bounds.top_left, bounds.size + Size::new(0, 1)),
             tab_width,
         }
     }
@@ -113,34 +131,40 @@ impl Cursor {
     #[must_use]
     pub(crate) fn line(&self) -> LineCursor {
         LineCursor {
-            start: Point::new(self.bounds.top_left.x, self.y),
-            width: self.bounds.size.width,
+            start: self.line_start(),
+            width: self.line_width,
             position: 0,
             tab_width: self.tab_width,
         }
     }
 
-    /// Returns the coordinates of the bottom right corner.
+    /// Returns the coordinates of the start of the current line.
     #[inline]
-    pub fn bottom_right(&self) -> Point {
-        self.bounds.bottom_right().unwrap_or(self.bounds.top_left)
+    pub(crate) fn line_start(&self) -> Point {
+        Point::new(self.top_left.x, self.y)
     }
 
-    /// Returns the coordinates of the bottom right corner.
+    /// Returns the vertical offset of the bottom of the last visible line.
+    #[inline]
+    pub fn bottom(&self) -> i32 {
+        self.bottom
+    }
+
+    /// Returns the coordinates of the top left corner.
     #[inline]
     pub fn top_left(&self) -> Point {
-        self.bounds.top_left
+        self.top_left
     }
 
     /// Returns the width of the text box.
     #[inline]
     pub fn line_width(&self) -> u32 {
-        self.bounds.size.width
+        self.line_width
     }
 
     /// Returns the height of a line.
     #[inline]
-    pub fn line_height(&self) -> i32 {
+    pub fn line_height(&self) -> u32 {
         self.line_height
     }
 
@@ -159,6 +183,6 @@ impl Cursor {
     #[inline]
     #[must_use]
     pub fn in_display_area(&self) -> bool {
-        self.bounds.top_left.y <= self.y && self.y + self.line_height <= self.bottom_right().y
+        self.top_left.y <= self.y && self.y <= self.bottom
     }
 }

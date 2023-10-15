@@ -329,7 +329,7 @@ mod test {
 
         let parser = Parser::parse("foo\x1b[2Dsample");
 
-        let character_style = MonoTextStyleBuilder::new()
+        let text_renderer = MonoTextStyleBuilder::new()
             .font(&FONT_6X9)
             .text_color(BinaryColor::On)
             .background_color(BinaryColor::Off)
@@ -339,20 +339,23 @@ mod test {
 
         let cursor = LineCursor::new(
             size_for(&FONT_6X9, 7, 1).width,
-            TabSize::Spaces(4).into_pixels(&character_style),
+            TabSize::Spaces(4).into_pixels(&text_renderer),
         );
 
         let plugin = PluginWrapper::new(Ansi::new());
-        let state = LineRenderState {
+        let mut state = LineRenderState {
             parser,
-            character_style,
-            style: &style,
+            text_renderer,
             end_type: LineEndType::EndOfText,
             plugin: &plugin,
         };
-        StyledLineRenderer::new(cursor, state)
-            .draw(&mut display)
-            .unwrap();
+        StyledLineRenderer {
+            cursor,
+            state: &mut state,
+            style: &style,
+        }
+        .draw(&mut display)
+        .unwrap();
 
         display.assert_pattern(&[
             "..........................................",

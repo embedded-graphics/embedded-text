@@ -90,7 +90,7 @@ impl<'a, M: Clone, C: Clone> Clone for PluginWrapper<'a, M, C> {
         Self {
             inner: UnsafeCell::new(self.with(|this| PluginInner {
                 plugin: this.plugin.clone(),
-                state: this.state.clone(),
+                state: this.state,
                 peeked_token: unsafe { addr_of!(this.peeked_token).read() },
             })),
         }

@@ -89,7 +89,7 @@ where
 
                 Some(Token::Word(word))
             }
-            Some(Token::Break(_, _)) => {
+            Some(Token::Break(_)) => {
                 self.measured += 1;
                 token
             }
@@ -115,7 +115,7 @@ where
                 Some(Token::Whitespace(to_render, s.first_n_chars(to_render)))
             }
             Token::Word(s) => Some(Token::Word(s.first_n_chars(to_render))),
-            Token::Break(repl, orig) => Some(Token::Break(repl.first_n_chars(to_render), orig)),
+            Token::Break(repl) => Some(Token::Break(repl.first_n_chars(to_render))),
             _ => Some(token),
         }
     }

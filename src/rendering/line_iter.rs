@@ -110,7 +110,7 @@ where
                     width_set = true;
                 }
 
-                Some(Token::Break(w, _original)) => return Some(width + handler.measure(w)),
+                Some(Token::Break(w)) => return Some(width + handler.measure(w)),
                 Some(Token::ChangeTextStyle(_)) | Some(Token::MoveCursor { .. }) => {}
 
                 _ => {
@@ -125,6 +125,10 @@ where
 
     fn move_cursor(&mut self, by: i32) -> Result<i32, i32> {
         self.cursor.move_cursor(by)
+    }
+
+    fn move_cursor_forward(&mut self, by: u32) -> Result<u32, u32> {
+        self.cursor.move_cursor_forward(by)
     }
 
     fn longest_fitting_substr<E: ElementHandler>(
@@ -162,13 +166,11 @@ where
         let lookahead = self.plugin.clone();
         let mut lookahead_parser = self.parser.clone();
 
-        // We don't want to count the current token.
-        lookahead.consume_peeked_token();
-
         let mut exit = false;
         while !exit {
+            lookahead.consume_peeked_token();
             let width = match lookahead.peek_token(&mut lookahead_parser) {
-                Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
+                Some(Token::Word(w)) | Some(Token::Break(w)) => {
                     exit = true;
                     handler.measure(w).saturating_as()
                 }
@@ -185,7 +187,6 @@ where
                 _ => return false,
             };
 
-            lookahead.consume_peeked_token();
             if cursor.move_cursor(width).is_err() {
                 return false;
             }
@@ -198,8 +199,8 @@ where
         self.style.trailing_spaces
     }
 
-    fn render_leading_spaces(&self) -> bool {
-        self.style.leading_spaces
+    fn skip_leading_spaces(&self) -> bool {
+        self.empty && !self.style.leading_spaces
     }
 
     fn draw_whitespace<E: ElementHandler>(
@@ -209,23 +210,24 @@ where
         space_count: u32,
         space_width: u32,
     ) -> Result<bool, E::Error> {
-        if self.empty && !self.render_leading_spaces() {
+        if self.skip_leading_spaces() {
             handler.whitespace(string, space_count, 0)?;
             return Ok(false);
         }
 
-        match self.move_cursor(space_width.saturating_as()) {
+        match self.move_cursor_forward(space_width) {
             Ok(moved) => {
                 handler.whitespace(
                     string,
                     space_count,
-                    moved.saturating_as::<u32>() * self.should_draw_whitespace(handler) as u32,
+                    moved * self.should_draw_whitespace(handler) as u32,
                 )?;
+                Ok(false)
             }
 
             Err(moved) => {
                 let single = space_width / space_count;
-                let consumed = moved as u32 / single;
+                let consumed = moved / single;
                 if consumed > 0 {
                     let consumed_str = string
                         .char_indices()
@@ -238,7 +240,7 @@ where
 
                     let consumed_width = consumed * single;
 
-                    let _ = self.move_cursor(consumed_width.saturating_as());
+                    let _ = self.move_cursor_forward(consumed_width);
                     handler.whitespace(
                         consumed_str,
                         consumed,
@@ -248,27 +250,23 @@ where
 
                 self.plugin
                     .consume_partial((consumed + 1).min(space_count) as usize);
-                return Ok(true);
+                Ok(true)
             }
         }
-        Ok(false)
     }
 
-    fn draw_tab<E: ElementHandler>(
-        &mut self,
-        handler: &mut E,
-        space_width: u32,
-    ) -> Result<(), E::Error> {
-        if self.empty && !self.render_leading_spaces() {
+    fn draw_tab<E: ElementHandler>(&mut self, handler: &mut E) -> Result<(), E::Error> {
+        if self.skip_leading_spaces() {
             return Ok(());
         }
 
-        match self.move_cursor(space_width.saturating_as()) {
+        let space_width = self.cursor.next_tab_width();
+        match self.move_cursor_forward(space_width) {
             Ok(moved) if self.should_draw_whitespace(handler) => {
-                handler.whitespace("\t", 0, moved.saturating_as())?
+                handler.whitespace("\t", 0, moved)?
             }
 
-            Ok(moved) | Err(moved) => handler.move_cursor(moved)?,
+            Ok(moved) | Err(moved) => handler.move_cursor(moved as i32)?,
         }
         Ok(())
     }
@@ -296,19 +294,18 @@ where
                 }
 
                 Token::Tab => {
-                    let space_width = self.cursor.next_tab_width();
-                    self.draw_tab(handler, space_width)?;
+                    self.draw_tab(handler)?;
                 }
 
-                Token::Break(c, _original) => {
+                Token::Break(c) => {
                     if let Some(word_width) = self.next_word_width(handler) {
                         if !self.cursor.fits_in_line(word_width) || self.empty {
                             // this line is done, decide how to end
 
                             // If the next Word token does not fit the line, display break character
                             let width = handler.measure(c);
-                            if self.move_cursor(width.saturating_as()).is_ok() {
-                                if let Some(Token::Break(c, _)) = self.plugin.render_token(token) {
+                            if self.move_cursor_forward(width).is_ok() {
+                                if let Some(Token::Break(c)) = self.plugin.render_token(token) {
                                     handler.printed_characters(c, Some(width))?;
                                 }
                                 self.consume_token();
@@ -325,7 +322,7 @@ where
 
                 Token::Word(w) => {
                     let width = handler.measure(w);
-                    let (word, remainder) = if self.move_cursor(width.saturating_as()).is_ok() {
+                    let (word, remainder) = if self.move_cursor_forward(width).is_ok() {
                         // We can move the cursor here since `process_word()`
                         // doesn't depend on it.
                         (w, "")
@@ -446,7 +443,8 @@ where
     }
 
     fn should_draw_whitespace<E: ElementHandler>(&self, handler: &E) -> bool {
-        (self.empty && self.render_leading_spaces())
+        self.empty // We know that when this function is called,
+                   // an empty line means leading spaces are allowed
             || self.render_trailing_spaces()
             || self.next_word_fits(handler)
     }

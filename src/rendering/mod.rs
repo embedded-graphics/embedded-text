@@ -95,8 +95,7 @@ where
         self.plugin.on_start_render(&mut cursor, props);
 
         let mut state = LineRenderState {
-            style: &self.style,
-            character_style: self.character_style.clone(),
+            text_renderer: self.character_style.clone(),
             parser: Parser::parse(self.text),
             end_type: LineEndType::EndOfText,
             plugin: &self.plugin,
@@ -107,27 +106,27 @@ where
         let mut anything_drawn = false;
         loop {
             state.plugin.new_line();
-            let line_cursor = cursor.line();
 
             let display_range = self
                 .style
                 .height_mode
                 .calculate_displayed_row_range(&cursor);
-            let display_size = Size::new(
-                cursor.line_width(),
-                display_range.clone().count().saturating_as(),
-            );
+            let display_range_start = display_range.start.saturating_as::<i32>();
+            let display_range_count = display_range.count() as u32;
+            let display_size = Size::new(cursor.line_width(), display_range_count);
 
-            let line_start = line_cursor.pos();
+            let line_start = cursor.line_start();
 
             // FIXME: cropping isn't necessary for whole lines, but make sure not to blow up the
-            // binary size as well.
+            // binary size as well. We could also use a different way to consume invisible text.
             let mut display = display.clipped(&Rectangle::new(
-                line_start + Point::new(0, display_range.start),
+                line_start + Point::new(0, display_range_start),
                 display_size,
             ));
-            if display_range.start >= display_range.end {
+            if display_range_count == 0 {
+                // Display range can be empty if we are above, or below the visible text section
                 if anything_drawn {
+                    // We are below, so we won't be drawing anything else
                     let remaining_bytes = state.parser.as_str().len();
                     let consumed_bytes = self.text.len() - remaining_bytes;
 
@@ -135,10 +134,7 @@ where
                         &mut display,
                         &self.character_style,
                         None,
-                        Rectangle::new(
-                            line_start,
-                            Size::new(0, cursor.line_height().saturating_as()),
-                        ),
+                        Rectangle::new(line_start, Size::new(0, cursor.line_height())),
                     )?;
                     state.plugin.on_rendering_finished();
                     return Ok(self.text.get(consumed_bytes..).unwrap());
@@ -147,7 +143,12 @@ where
                 anything_drawn = true;
             }
 
-            state = StyledLineRenderer::new(line_cursor, state).draw(&mut display)?;
+            StyledLineRenderer {
+                cursor: cursor.line(),
+                state: &mut state,
+                style: &self.style,
+            }
+            .draw(&mut display)?;
 
             match state.end_type {
                 LineEndType::EndOfText => {
