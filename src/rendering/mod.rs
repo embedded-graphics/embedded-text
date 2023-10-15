@@ -132,10 +132,7 @@ where
                         &mut display,
                         &self.character_style,
                         None,
-                        Rectangle::new(
-                            line_start,
-                            Size::new(0, cursor.line_height().saturating_as()),
-                        ),
+                        Rectangle::new(line_start, Size::new(0, cursor.line_height())),
                     )?;
                     state.plugin.on_rendering_finished();
                     return Ok(self.text.get(consumed_bytes..).unwrap());
