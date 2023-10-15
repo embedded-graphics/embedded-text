@@ -266,7 +266,7 @@ where
                 handler.whitespace("\t", 0, moved)?
             }
 
-            Ok(moved) | Err(moved) => handler.move_cursor(moved.saturating_as())?,
+            Ok(moved) | Err(moved) => handler.move_cursor(moved as i32)?,
         }
         Ok(())
     }

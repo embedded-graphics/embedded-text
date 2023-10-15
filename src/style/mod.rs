@@ -194,7 +194,6 @@ use crate::{
     },
     utils::str_width,
 };
-use az::SaturatingAs;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     text::{renderer::TextRenderer, LineHeight},
@@ -407,7 +406,7 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
     }
 
     fn move_cursor(&mut self, by: i32) -> Result<(), Self::Error> {
-        self.cursor = (self.cursor.saturating_as::<i32>() + by) as u32;
+        self.cursor = (self.cursor as i32 + by) as u32;
 
         Ok(())
     }

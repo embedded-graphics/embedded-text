@@ -60,10 +60,10 @@ impl LineCursor {
                 self.position -= abs;
                 Ok(by)
             } else {
-                Err(-self.position.saturating_as::<i32>())
+                Err(-(self.position as i32))
             }
         } else {
-            let space = self.space().saturating_as();
+            let space = self.space() as i32;
             if by <= space {
                 // Here we know by > 0, cast is safe
                 self.position += by as u32;

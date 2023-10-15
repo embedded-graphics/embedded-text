@@ -1,6 +1,5 @@
 //! Misc utilities
 
-use az::SaturatingAs;
 use embedded_graphics::{
     prelude::Point,
     text::{renderer::TextRenderer, Baseline},
@@ -11,8 +10,7 @@ pub fn str_width(renderer: &impl TextRenderer, s: &str) -> u32 {
     renderer
         .measure_string(s, Point::zero(), Baseline::Top)
         .next_position
-        .x
-        .saturating_as()
+        .x as u32
 }
 
 #[cfg(test)]

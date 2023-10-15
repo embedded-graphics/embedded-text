@@ -10,7 +10,6 @@ use crate::{
     style::TextBoxStyle,
     utils::str_width,
 };
-use az::SaturatingAs;
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
@@ -175,7 +174,7 @@ where
 
         let (left, space_config) = self.style.alignment.place_line(text_renderer, lm);
 
-        self.cursor.move_cursor(left.saturating_as()).ok();
+        self.cursor.move_cursor(left as i32).ok();
 
         let mut render_element_handler = RenderElementHandler {
             text_renderer,

@@ -31,14 +31,14 @@ impl HorizontalAlignment {
         self,
         renderer: &impl TextRenderer,
         measurement: LineMeasurement,
-    ) -> (u32, SpaceConfig) {
+    ) -> (i32, SpaceConfig) {
         let space_width = str_width(renderer, " ");
         let space_config = SpaceConfig::new(space_width, None);
         let remaining_space = measurement.max_line_width - measurement.width;
         match self {
             HorizontalAlignment::Left => (0, space_config),
-            HorizontalAlignment::Center => ((remaining_space + 1) / 2, space_config),
-            HorizontalAlignment::Right => (remaining_space, space_config),
+            HorizontalAlignment::Center => ((remaining_space as i32 + 1) / 2, space_config),
+            HorizontalAlignment::Right => (remaining_space as i32, space_config),
             HorizontalAlignment::Justified => {
                 let space_count = measurement.space_count;
                 let space_info = if !measurement.last_line() && space_count != 0 {
