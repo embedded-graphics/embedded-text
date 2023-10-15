@@ -1,7 +1,7 @@
 //! Cursor to track rendering position.
 use embedded_graphics::{geometry::Point, primitives::Rectangle, text::LineHeight};
 
-use az::{SaturatingAs, SaturatingCast};
+use az::SaturatingAs;
 
 /// Tracks position within a line.
 #[derive(Debug, Clone)]
@@ -63,7 +63,7 @@ impl LineCursor {
                 Err(-self.position.saturating_as::<i32>())
             }
         } else {
-            let space = self.space().saturating_cast();
+            let space = self.space().saturating_as();
             if by <= space {
                 // Here we know by > 0, cast is safe
                 self.position += by as u32;
