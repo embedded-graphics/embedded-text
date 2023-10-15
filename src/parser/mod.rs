@@ -56,8 +56,8 @@ pub enum Token<'a, C> {
     /// A word (a sequence of non-whitespace characters).
     Word(&'a str),
 
-    /// A possible wrapping point
-    Break(&'a str, &'a str),
+    /// A possible wrapping point. Contains the separator character(s).
+    Break(&'a str),
 
     /// Change of text style.
     ChangeTextStyle(ChangeTextStyle<C>),
@@ -170,11 +170,6 @@ where
                     })),
                     SPEC_CHAR_SHY => Some(Token::Break(
                         "-", // translate SHY to a printable character
-                        unsafe {
-                            // SAFETY: we only work with character boundaries and
-                            // offset is <= length
-                            string.get_unchecked(0..c.len_utf8())
-                        },
                     )),
 
                     // count consecutive whitespace
@@ -232,7 +227,7 @@ mod test {
                 Token::Word("sit"),
                 Token::Whitespace(1, " "),
                 Token::Word("am"),
-                Token::Break("-", "\u{ad}"),
+                Token::Break("-"),
                 Token::Word("et,"),
                 Token::Tab,
                 Token::Word("conse😅ctetur"),
@@ -280,11 +275,7 @@ mod test {
     fn parse_shy_issue_42() {
         assert_tokens(
             "foo\u{AD}bar",
-            vec![
-                Token::Word("foo"),
-                Token::Break("-", "\u{ad}"),
-                Token::Word("bar"),
-            ],
+            vec![Token::Word("foo"), Token::Break("-"), Token::Word("bar")],
         );
     }
 }

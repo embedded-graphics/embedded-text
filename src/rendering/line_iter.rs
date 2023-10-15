@@ -110,7 +110,7 @@ where
                     width_set = true;
                 }
 
-                Some(Token::Break(w, _original)) => return Some(width + handler.measure(w)),
+                Some(Token::Break(w)) => return Some(width + handler.measure(w)),
                 Some(Token::ChangeTextStyle(_)) | Some(Token::MoveCursor { .. }) => {}
 
                 _ => {
@@ -166,7 +166,7 @@ where
         while !exit {
             lookahead.consume_peeked_token();
             let width = match lookahead.peek_token(&mut lookahead_parser) {
-                Some(Token::Word(w)) | Some(Token::Break(w, _)) => {
+                Some(Token::Word(w)) | Some(Token::Break(w)) => {
                     exit = true;
                     handler.measure(w).saturating_as()
                 }
@@ -297,7 +297,7 @@ where
                     self.draw_tab(handler, space_width)?;
                 }
 
-                Token::Break(c, _original) => {
+                Token::Break(c) => {
                     if let Some(word_width) = self.next_word_width(handler) {
                         if !self.cursor.fits_in_line(word_width) || self.empty {
                             // this line is done, decide how to end
@@ -305,7 +305,7 @@ where
                             // If the next Word token does not fit the line, display break character
                             let width = handler.measure(c);
                             if self.move_cursor(width.saturating_as()).is_ok() {
-                                if let Some(Token::Break(c, _)) = self.plugin.render_token(token) {
+                                if let Some(Token::Break(c)) = self.plugin.render_token(token) {
                                     handler.printed_characters(c, Some(width))?;
                                 }
                                 self.consume_token();
