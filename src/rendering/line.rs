@@ -85,12 +85,9 @@ where
     M: Plugin<'a, <F as TextRenderer>::Color>,
 {
     fn post_print(&mut self, width: u32, st: &str) -> Result<(), D::Error> {
-        let bounds = Rectangle::new(
-            self.pos,
-            Size::new(width, self.text_renderer.line_height().saturating_as()),
-        );
+        let bounds = Rectangle::new(self.pos, Size::new(width, self.text_renderer.line_height()));
 
-        self.pos += Point::new(width.saturating_as(), 0);
+        self.pos += Point::new(width as i32, 0);
 
         self.plugin
             .post_render(self.display, self.text_renderer, Some(st), bounds)
