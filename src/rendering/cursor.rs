@@ -73,6 +73,18 @@ impl LineCursor {
             }
         }
     }
+
+    /// Moves the cursor forward by a given amount.
+    pub fn move_cursor_forward(&mut self, by: u32) -> Result<u32, u32> {
+        let space = self.space();
+        if by <= space {
+            // Here we know by > 0, cast is safe
+            self.position += by;
+            Ok(by)
+        } else {
+            Err(space)
+        }
+    }
 }
 
 /// Internal structure that keeps track of position information while rendering a [`TextBox`].

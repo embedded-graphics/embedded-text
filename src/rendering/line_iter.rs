@@ -127,6 +127,10 @@ where
         self.cursor.move_cursor(by)
     }
 
+    fn move_cursor_forward(&mut self, by: u32) -> Result<u32, u32> {
+        self.cursor.move_cursor_forward(by)
+    }
+
     fn longest_fitting_substr<E: ElementHandler>(
         &mut self,
         handler: &E,
@@ -211,18 +215,18 @@ where
             return Ok(false);
         }
 
-        match self.move_cursor(space_width.saturating_as()) {
+        match self.move_cursor_forward(space_width) {
             Ok(moved) => {
                 handler.whitespace(
                     string,
                     space_count,
-                    moved.saturating_as::<u32>() * self.should_draw_whitespace(handler) as u32,
+                    moved * self.should_draw_whitespace(handler) as u32,
                 )?;
             }
 
             Err(moved) => {
                 let single = space_width / space_count;
-                let consumed = moved as u32 / single;
+                let consumed = moved / single;
                 if consumed > 0 {
                     let consumed_str = string
                         .char_indices()
@@ -235,7 +239,7 @@ where
 
                     let consumed_width = consumed * single;
 
-                    let _ = self.move_cursor(consumed_width.saturating_as());
+                    let _ = self.move_cursor_forward(consumed_width);
                     handler.whitespace(
                         consumed_str,
                         consumed,
@@ -260,12 +264,12 @@ where
             return Ok(());
         }
 
-        match self.move_cursor(space_width.saturating_as()) {
+        match self.move_cursor_forward(space_width) {
             Ok(moved) if self.should_draw_whitespace(handler) => {
                 handler.whitespace("\t", 0, moved.saturating_as())?
             }
 
-            Ok(moved) | Err(moved) => handler.move_cursor(moved)?,
+            Ok(moved) | Err(moved) => handler.move_cursor(moved.saturating_as())?,
         }
         Ok(())
     }
@@ -304,7 +308,7 @@ where
 
                             // If the next Word token does not fit the line, display break character
                             let width = handler.measure(c);
-                            if self.move_cursor(width.saturating_as()).is_ok() {
+                            if self.move_cursor_forward(width).is_ok() {
                                 if let Some(Token::Break(c)) = self.plugin.render_token(token) {
                                     handler.printed_characters(c, Some(width))?;
                                 }
@@ -322,7 +326,7 @@ where
 
                 Token::Word(w) => {
                     let width = handler.measure(w);
-                    let (word, remainder) = if self.move_cursor(width.saturating_as()).is_ok() {
+                    let (word, remainder) = if self.move_cursor_forward(width).is_ok() {
                         // We can move the cursor here since `process_word()`
                         // doesn't depend on it.
                         (w, "")
