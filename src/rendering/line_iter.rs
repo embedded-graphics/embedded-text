@@ -198,8 +198,8 @@ where
         self.style.trailing_spaces
     }
 
-    fn render_leading_spaces(&self) -> bool {
-        self.style.leading_spaces
+    fn skip_leading_spaces(&self) -> bool {
+        self.empty && !self.style.leading_spaces
     }
 
     fn draw_whitespace<E: ElementHandler>(
@@ -209,7 +209,7 @@ where
         space_count: u32,
         space_width: u32,
     ) -> Result<bool, E::Error> {
-        if self.empty && !self.render_leading_spaces() {
+        if self.skip_leading_spaces() {
             handler.whitespace(string, space_count, 0)?;
             return Ok(false);
         }
@@ -259,7 +259,7 @@ where
         handler: &mut E,
         space_width: u32,
     ) -> Result<(), E::Error> {
-        if self.empty && !self.render_leading_spaces() {
+        if self.skip_leading_spaces() {
             return Ok(());
         }
 
@@ -446,7 +446,8 @@ where
     }
 
     fn should_draw_whitespace<E: ElementHandler>(&self, handler: &E) -> bool {
-        (self.empty && self.render_leading_spaces())
+        self.empty // We know that when this function is called,
+                   // an empty line means leading spaces are allowed
             || self.render_trailing_spaces()
             || self.next_word_fits(handler)
     }
