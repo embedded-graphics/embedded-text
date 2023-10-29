@@ -13,7 +13,6 @@ use crate::{
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Point,
-    pixelcolor::{BinaryColor, Rgb888},
     prelude::{PixelColor, Size},
     primitives::Rectangle,
     text::{
@@ -24,12 +23,12 @@ use embedded_graphics::{
 
 impl<C> ChangeTextStyle<C>
 where
-    C: PixelColor + From<Rgb888>,
+    C: PixelColor + Default,
 {
     pub(crate) fn apply<S: CharacterStyle<Color = C>>(self, text_renderer: &mut S) {
         match self {
             ChangeTextStyle::Reset => {
-                text_renderer.set_text_color(Some(Into::<Rgb888>::into(BinaryColor::On).into()));
+                text_renderer.set_text_color(Some(C::default()));
                 text_renderer.set_background_color(None);
                 text_renderer.set_underline_color(DecorationColor::None);
                 text_renderer.set_strikethrough_color(DecorationColor::None);
@@ -79,7 +78,6 @@ where
 impl<'a, 'b, F, D, M> RenderElementHandler<'a, 'b, F, D, M>
 where
     F: CharacterStyle + TextRenderer,
-    <F as CharacterStyle>::Color: From<Rgb888>,
     D: DrawTarget<Color = <F as TextRenderer>::Color>,
     M: Plugin<'a, <F as TextRenderer>::Color>,
 {
@@ -96,9 +94,9 @@ where
 impl<'a, 'c, F, D, M> ElementHandler for RenderElementHandler<'a, 'c, F, D, M>
 where
     F: CharacterStyle + TextRenderer,
-    <F as CharacterStyle>::Color: From<Rgb888>,
     D: DrawTarget<Color = <F as TextRenderer>::Color>,
     M: Plugin<'a, <F as TextRenderer>::Color>,
+    <F as CharacterStyle>::Color: Default,
 {
     type Error = D::Error;
     type Color = <F as CharacterStyle>::Color;
@@ -144,8 +142,8 @@ where
 impl<'a, 'b, 'c, F, M> StyledLineRenderer<'a, 'b, 'c, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
-    <F as CharacterStyle>::Color: From<Rgb888>,
     M: Plugin<'a, <F as TextRenderer>::Color> + Plugin<'a, <F as CharacterStyle>::Color>,
+    <F as CharacterStyle>::Color: Default,
 {
     #[inline]
     pub(crate) fn draw<D>(mut self, display: &mut D) -> Result<(), D::Error>
@@ -174,7 +172,7 @@ where
 
         let (left, space_config) = self.style.alignment.place_line(text_renderer, lm);
 
-        self.cursor.move_cursor(left as i32).ok();
+        self.cursor.move_cursor(left).ok();
 
         let mut render_element_handler = RenderElementHandler {
             text_renderer,
@@ -219,7 +217,7 @@ mod test {
         geometry::Point,
         mock_display::MockDisplay,
         mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
-        pixelcolor::{BinaryColor, Rgb888},
+        pixelcolor::BinaryColor,
         primitives::Rectangle,
         text::renderer::{CharacterStyle, TextRenderer},
     };
@@ -232,7 +230,7 @@ mod test {
         pattern: &[&str],
     ) where
         S: TextRenderer<Color = <S as CharacterStyle>::Color> + CharacterStyle,
-        <S as CharacterStyle>::Color: From<Rgb888> + embedded_graphics::mock_display::ColorMapping,
+        <S as CharacterStyle>::Color: embedded_graphics::mock_display::ColorMapping + Default,
     {
         let parser = Parser::parse(text);
         let cursor = LineCursor::new(

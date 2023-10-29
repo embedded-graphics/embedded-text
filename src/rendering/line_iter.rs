@@ -11,7 +11,7 @@ use crate::{
     style::TextBoxStyle,
 };
 use az::SaturatingAs;
-use embedded_graphics::{pixelcolor::Rgb888, prelude::PixelColor};
+use embedded_graphics::prelude::PixelColor;
 
 /// Parser to break down a line into primitive elements used by measurement and rendering.
 #[derive(Debug)]
@@ -72,7 +72,7 @@ pub trait ElementHandler {
 
 impl<'a, 'b, M, C> LineElementParser<'a, 'b, M, C>
 where
-    C: PixelColor + From<Rgb888>,
+    C: PixelColor,
     M: Plugin<'a, C>,
 {
     /// Creates a new element parser.
@@ -464,7 +464,7 @@ pub(crate) mod test {
     use embedded_graphics::{
         geometry::{Point, Size},
         mono_font::{ascii::FONT_6X9, MonoTextStyle},
-        pixelcolor::BinaryColor,
+        pixelcolor::{BinaryColor, Rgb888},
         primitives::Rectangle,
         text::{renderer::TextRenderer, LineHeight},
     };
