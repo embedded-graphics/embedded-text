@@ -18,7 +18,6 @@ use crate::{
 use az::SaturatingAs;
 use embedded_graphics::{
     draw_target::{DrawTarget, DrawTargetExt},
-    pixelcolor::Rgb888,
     prelude::{Dimensions, Point, Size},
     primitives::Rectangle,
     text::renderer::{CharacterStyle, TextRenderer},
@@ -47,8 +46,8 @@ pub struct TextBoxProperties<'a, S> {
 impl<'a, F, M> Drawable for TextBox<'a, F, M>
 where
     F: TextRenderer<Color = <F as CharacterStyle>::Color> + CharacterStyle,
-    <F as CharacterStyle>::Color: From<Rgb888>,
     M: Plugin<'a, <F as TextRenderer>::Color> + Plugin<'a, <F as CharacterStyle>::Color>,
+    <F as CharacterStyle>::Color: Default,
 {
     type Color = <F as CharacterStyle>::Color;
     type Output = &'a str;

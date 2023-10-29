@@ -194,10 +194,7 @@ use crate::{
     },
     utils::str_width,
 };
-use embedded_graphics::{
-    pixelcolor::Rgb888,
-    text::{renderer::TextRenderer, LineHeight},
-};
+use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
 
 pub use self::{
     builder::TextBoxStyleBuilder, height_mode::HeightMode, vertical_overdraw::VerticalOverdraw,
@@ -431,7 +428,6 @@ impl TextBoxStyle {
     where
         S: TextRenderer,
         M: Plugin<'a, S::Color>,
-        S::Color: From<Rgb888>,
     {
         let cursor = LineCursor::new(max_line_width, self.tab_size.into_pixels(character_style));
 
@@ -503,7 +499,6 @@ impl TextBoxStyle {
     pub fn measure_text_height<S>(&self, character_style: &S, text: &str, max_width: u32) -> u32
     where
         S: TextRenderer,
-        S::Color: From<Rgb888>,
     {
         let plugin = PluginWrapper::new(NoPlugin::new());
         self.measure_text_height_impl(plugin, character_style, text, max_width)
@@ -519,7 +514,6 @@ impl TextBoxStyle {
     where
         S: TextRenderer,
         M: Plugin<'a, S::Color>,
-        S::Color: From<Rgb888>,
     {
         let mut parser = Parser::parse(text);
         let base_line_height = character_style.line_height();
