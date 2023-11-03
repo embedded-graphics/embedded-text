@@ -1,3 +1,10 @@
+0.7.0 (2023-11-03)
+==================
+
+ - [#165] Relaxed trait bounds on PixelColor
+
+[#165]: https://github.com/embedded-graphics/embedded-text/pull/165
+
 0.6.6 (2023-10-15)
 ==================
 
