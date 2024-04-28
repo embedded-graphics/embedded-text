@@ -47,7 +47,7 @@ pub trait ElementHandler {
     fn measure(&self, st: &str) -> u32;
 
     /// Returns the left offset in pixels.
-    fn measure_left_offset(&self, _st: &str) -> u32;
+    fn measure_width_and_left_offset(&self, _st: &str) -> (u32, u32);
 
     /// A whitespace block with the given width.
     fn whitespace(&mut self, _st: &str, _space_count: u32, _width: u32) -> Result<(), Self::Error> {
@@ -324,16 +324,18 @@ where
                 }
 
                 Token::Word(w) => {
-                    if self.empty {
+                    let width = if self.empty {
                         // If this is the first word on the line, offset the line by
                         // the word's left negative boundary to make sure it is not clipped.
-                        let offset = handler.measure_left_offset(w);
+                        let (width, offset) = handler.measure_width_and_left_offset(w);
                         if offset > 0 && self.move_cursor_forward(offset).is_ok() {
                             handler.whitespace("", 0, offset).ok();
                         };
-                    }
+                        width
+                    } else {
+                        handler.measure(w)
+                    };
 
-                    let width = handler.measure(w);
                     let (word, remainder) = if self.move_cursor_forward(width).is_ok() {
                         // We can move the cursor here since `process_word()`
                         // doesn't depend on it.
@@ -472,7 +474,7 @@ pub(crate) mod test {
         plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
-        utils::{str_left_offset, str_width, test::size_for},
+        utils::{str_width, str_width_and_left_offset, test::size_for},
     };
     use embedded_graphics::{
         geometry::{Point, Size},
@@ -524,8 +526,8 @@ pub(crate) mod test {
             str_width(&self.style, st)
         }
 
-        fn measure_left_offset(&self, st: &str) -> u32 {
-            str_left_offset(&self.style, st)
+        fn measure_width_and_left_offset(&self, st: &str) -> (u32, u32) {
+            str_width_and_left_offset(&self.style, st)
         }
 
         fn whitespace(&mut self, _string: &str, count: u32, width: u32) -> Result<(), Self::Error> {

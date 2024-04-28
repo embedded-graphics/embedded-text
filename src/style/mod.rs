@@ -192,7 +192,7 @@ use crate::{
         line_iter::{ElementHandler, LineElementParser, LineEndType},
         space_config::SpaceConfig,
     },
-    utils::{str_left_offset, str_width},
+    utils::{str_width, str_width_and_left_offset},
 };
 use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
 
@@ -385,8 +385,8 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
         str_width(self.style, st)
     }
 
-    fn measure_left_offset(&self, st: &str) -> u32 {
-        str_left_offset(self.style, st)
+    fn measure_width_and_left_offset(&self, st: &str) -> (u32, u32) {
+        str_width_and_left_offset(self.style, st)
     }
 
     fn whitespace(&mut self, _st: &str, count: u32, width: u32) -> Result<(), Self::Error> {
