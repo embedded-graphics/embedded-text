@@ -192,7 +192,7 @@ use crate::{
         line_iter::{ElementHandler, LineElementParser, LineEndType},
         space_config::SpaceConfig,
     },
-    utils::str_width,
+    utils::{str_left_offset, str_width},
 };
 use embedded_graphics::text::{renderer::TextRenderer, LineHeight};
 
@@ -323,6 +323,9 @@ impl TextBoxStyle {
 #[derive(Debug, Copy, Clone)]
 #[must_use]
 pub(crate) struct LineMeasurement {
+    /// Left offset in pixels.
+    pub left_offset: u32,
+
     /// Maximum line width in pixels.
     pub max_line_width: u32,
 
@@ -354,6 +357,7 @@ struct MeasureLineElementHandler<'a, S> {
     trailing_spaces: bool,
     cursor: u32,
     pos: u32,
+    left_offset: u32,
     right: u32,
     partial_space_count: u32,
     space_count: u32,
@@ -366,6 +370,10 @@ impl<'a, S> MeasureLineElementHandler<'a, S> {
         } else {
             self.space_count
         }
+    }
+
+    fn left_offset(&self) -> u32 {
+        self.left_offset
     }
 
     fn right(&self) -> u32 {
@@ -383,6 +391,16 @@ impl<'a, S: TextRenderer> ElementHandler for MeasureLineElementHandler<'a, S> {
 
     fn measure(&self, st: &str) -> u32 {
         str_width(self.style, st)
+    }
+
+    fn measure_left_offset(&self, st: &str) -> u32 {
+        str_left_offset(self.style, st)
+    }
+
+    fn left_offset(&mut self, offset: u32) {
+        self.left_offset = offset;
+        self.cursor += offset;
+        self.pos = self.pos.max(self.cursor);
     }
 
     fn whitespace(&mut self, _st: &str, count: u32, width: u32) -> Result<(), Self::Error> {
@@ -445,6 +463,7 @@ impl TextBoxStyle {
 
             cursor: 0,
             pos: 0,
+            left_offset: 0,
             right: 0,
             partial_space_count: 0,
             space_count: 0,
@@ -452,6 +471,7 @@ impl TextBoxStyle {
         let last_token = iter.process(&mut handler).unwrap();
 
         LineMeasurement {
+            left_offset: handler.left_offset(),
             max_line_width,
             width: handler.right(),
             space_count: handler.space_count(),

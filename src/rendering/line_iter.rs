@@ -46,6 +46,12 @@ pub trait ElementHandler {
     /// Returns the width of the given string in pixels.
     fn measure(&self, st: &str) -> u32;
 
+    /// Returns the left offset in pixels.
+    fn measure_left_offset(&self, _st: &str) -> u32;
+
+    /// Start a new line at the given horizontal offset in pixels.
+    fn left_offset(&mut self, _offset: u32);
+
     /// A whitespace block with the given width.
     fn whitespace(&mut self, _st: &str, _space_count: u32, _width: u32) -> Result<(), Self::Error> {
         Ok(())
@@ -321,6 +327,15 @@ where
                 }
 
                 Token::Word(w) => {
+                    if self.empty {
+                        // If this is the first word on the line, offset the line by
+                        // the word's left negative boundary to make sure it is not clipped.
+                        let offset = handler.measure_left_offset(w);
+                        if offset > 0 && self.move_cursor_forward(offset).is_ok() {
+                            handler.left_offset(offset);
+                        };
+                    }
+
                     let width = handler.measure(w);
                     let (word, remainder) = if self.move_cursor_forward(width).is_ok() {
                         // We can move the cursor here since `process_word()`
@@ -452,6 +467,7 @@ where
 
 #[cfg(test)]
 pub(crate) mod test {
+    use core::fmt::Debug;
     use std::convert::Infallible;
 
     use super::*;
@@ -459,7 +475,7 @@ pub(crate) mod test {
         plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
-        utils::{str_width, test::size_for},
+        utils::{str_left_offset, str_width, test::size_for},
     };
     use embedded_graphics::{
         geometry::{Point, Size},
@@ -471,6 +487,7 @@ pub(crate) mod test {
 
     #[derive(PartialEq, Eq, Debug)]
     pub enum RenderElement<C: PixelColor> {
+        LeftOffset(u32),
         Space(u32, bool),
         String(String, u32),
         MoveCursor(i32),
@@ -509,6 +526,14 @@ pub(crate) mod test {
 
         fn measure(&self, st: &str) -> u32 {
             str_width(&self.style, st)
+        }
+
+        fn measure_left_offset(&self, st: &str) -> u32 {
+            str_left_offset(&self.style, st)
+        }
+
+        fn left_offset(&mut self, offset: u32) {
+            self.elements.push(RenderElement::LeftOffset(offset));
         }
 
         fn whitespace(&mut self, _string: &str, count: u32, width: u32) -> Result<(), Self::Error> {
@@ -780,5 +805,97 @@ pub(crate) mod test {
         let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)], &mw);
+    }
+
+    /// A font where each glyph is 4x10 pixels, where the
+    /// glyph 'j' has a left side bearing of 2 pixels (renders with negative offset)
+    struct TestTextStyle {}
+
+    impl TextRenderer for TestTextStyle {
+        type Color = Rgb888;
+
+        fn draw_string<D>(
+            &self,
+            text: &str,
+            position: Point,
+            baseline: embedded_graphics::text::Baseline,
+            _target: &mut D,
+        ) -> Result<Point, D::Error>
+        where
+            D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
+        {
+            return Ok(self.measure_string(text, position, baseline).next_position);
+        }
+
+        fn draw_whitespace<D>(
+            &self,
+            width: u32,
+            position: Point,
+            _baseline: embedded_graphics::text::Baseline,
+            _target: &mut D,
+        ) -> Result<Point, D::Error>
+        where
+            D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
+        {
+            return Ok(Point::new(position.x + width as i32, position.y));
+        }
+
+        fn measure_string(
+            &self,
+            text: &str,
+            position: Point,
+            _baseline: embedded_graphics::text::Baseline,
+        ) -> embedded_graphics::text::renderer::TextMetrics {
+            let offset = if text.starts_with("j") { -2 } else { 0 };
+            let width = text.len() as u32 * 4;
+            let top_left = Point::new(position.x + offset, position.y);
+            embedded_graphics::text::renderer::TextMetrics {
+                bounding_box: Rectangle::new(top_left, Size::new(width, 10)),
+                next_position: Point::new(top_left.x + width as i32, position.y),
+            }
+        }
+
+        fn line_height(&self) -> u32 {
+            10
+        }
+    }
+
+    #[test]
+    fn negative_left_side_bearing_of_the_first_glyph_sets_left_offset() {
+        let text = "just a jet";
+        let mut parser = Parser::parse(text);
+        let plugin = PluginWrapper::new(NoPlugin::<Rgb888>::new());
+        let style = TestTextStyle {};
+        // the glyph 'j' occupies 2 pixels because of the negative left side bearing
+        // however, the first 'j' is rendered in full because of the left line offset
+        let size = Size::new(4 * text.len() as u32 - 2, 10);
+        let config = SpaceConfig::new(str_width(&style, " "), None);
+        let cursor = Cursor::new(
+            Rectangle::new(Point::zero(), size),
+            style.line_height(),
+            LineHeight::Percent(100),
+            TabSize::Spaces(4).into_pixels(&style),
+        )
+        .line();
+
+        let text_box_style = TextBoxStyle::default();
+
+        let mut handler = TestElementHandler::new(style);
+        let mut line1 =
+            LineElementParser::new(&mut parser, &plugin, cursor, config, &text_box_style);
+
+        line1.process(&mut handler).unwrap();
+
+        assert_eq!(
+            handler.elements,
+            &[
+                RenderElement::LeftOffset(2),
+                RenderElement::string("just", 14),
+                RenderElement::Space(1, true),
+                RenderElement::string("a", 4),
+                RenderElement::Space(1, true),
+                RenderElement::string("jet", 10),
+            ]
+        );
     }
 }

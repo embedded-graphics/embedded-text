@@ -35,10 +35,13 @@ impl HorizontalAlignment {
         let space_width = str_width(renderer, " ");
         let space_config = SpaceConfig::new(space_width, None);
         let remaining_space = measurement.max_line_width - measurement.width;
+        let left_offset = measurement.left_offset as i32;
         match self {
-            HorizontalAlignment::Left => (0, space_config),
-            HorizontalAlignment::Center => ((remaining_space as i32 + 1) / 2, space_config),
-            HorizontalAlignment::Right => (remaining_space as i32, space_config),
+            HorizontalAlignment::Left => (left_offset, space_config),
+            HorizontalAlignment::Center => {
+                (left_offset + (remaining_space as i32 + 1) / 2, space_config)
+            }
+            HorizontalAlignment::Right => (left_offset + remaining_space as i32, space_config),
             HorizontalAlignment::Justified => {
                 let space_count = measurement.space_count;
                 let space_info = if !measurement.last_line() && space_count != 0 {
@@ -49,7 +52,7 @@ impl HorizontalAlignment {
                 } else {
                     space_config
                 };
-                (0, space_info)
+                (left_offset, space_info)
             }
         }
     }

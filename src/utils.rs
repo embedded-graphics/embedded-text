@@ -13,6 +13,20 @@ pub fn str_width(renderer: &impl TextRenderer, s: &str) -> u32 {
         .x as u32
 }
 
+/// Measure the distance between the left edge of the bounding box
+/// and the left edge of the text.
+/// This function is particularly useful when the first glyph on
+/// the line has a negative left side bearing.
+pub fn str_left_offset(renderer: &impl TextRenderer, s: &str) -> u32 {
+    renderer
+        .measure_string(s, Point::zero(), Baseline::Top)
+        .bounding_box
+        .top_left
+        .x
+        .min(0)
+        .abs() as u32
+}
+
 #[cfg(test)]
 pub mod test {
     use embedded_graphics::{
