@@ -34,6 +34,9 @@ impl HorizontalAlignment {
     ) -> (i32, SpaceConfig) {
         let space_width = str_width(renderer, " ");
         let space_config = SpaceConfig::new(space_width, None);
+        if measurement.max_line_width < measurement.width {
+            panic!("{} {}", measurement.max_line_width, measurement.width)
+        }
         let remaining_space = measurement.max_line_width - measurement.width;
         match self {
             HorizontalAlignment::Left => (0, space_config),

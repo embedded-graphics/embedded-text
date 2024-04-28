@@ -474,7 +474,10 @@ pub(crate) mod test {
         plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
-        utils::{str_width, str_width_and_left_offset, test::size_for},
+        utils::{
+            str_width, str_width_and_left_offset,
+            test::{size_for, TestFont},
+        },
     };
     use embedded_graphics::{
         geometry::{Point, Size},
@@ -801,68 +804,17 @@ pub(crate) mod test {
         assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)], &mw);
     }
 
-    /// A font where each glyph is 4x10 pixels, where the
-    /// glyph 'j' has a negative left side bearing of 2 pixels
-    struct TestTextStyle {}
-
-    impl TextRenderer for TestTextStyle {
-        type Color = Rgb888;
-
-        fn draw_string<D>(
-            &self,
-            text: &str,
-            position: Point,
-            baseline: embedded_graphics::text::Baseline,
-            _target: &mut D,
-        ) -> Result<Point, D::Error>
-        where
-            D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
-        {
-            return Ok(self.measure_string(text, position, baseline).next_position);
-        }
-
-        fn draw_whitespace<D>(
-            &self,
-            width: u32,
-            position: Point,
-            _baseline: embedded_graphics::text::Baseline,
-            _target: &mut D,
-        ) -> Result<Point, D::Error>
-        where
-            D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
-        {
-            return Ok(Point::new(position.x + width as i32, position.y));
-        }
-
-        fn measure_string(
-            &self,
-            text: &str,
-            position: Point,
-            _baseline: embedded_graphics::text::Baseline,
-        ) -> embedded_graphics::text::renderer::TextMetrics {
-            let offset = if text.starts_with("j") { -2 } else { 0 };
-            let width = text.len() as u32 * 4;
-            let top_left = Point::new(position.x + offset, position.y);
-            embedded_graphics::text::renderer::TextMetrics {
-                bounding_box: Rectangle::new(top_left, Size::new(width, 10)),
-                next_position: Point::new(top_left.x + width as i32, position.y),
-            }
-        }
-
-        fn line_height(&self) -> u32 {
-            10
-        }
-    }
-
     #[test]
     fn negative_left_side_bearing_of_the_first_glyph_sets_left_offset() {
         let text = "just a jet";
         let mut parser = Parser::parse(text);
         let plugin = PluginWrapper::new(NoPlugin::<Rgb888>::new());
-        let style = TestTextStyle {};
-        // the glyph 'j' occupies 2 pixels because of the negative left side bearing
-        // however, the first 'j' on the line is prepended with an extra 2 pixel whitespace
-        let size = Size::new(4 * text.len() as u32 - 2, 10);
+        let style = TestFont::new(BinaryColor::On.into(), BinaryColor::Off.into());
+
+        let size = style
+            .measure_string(text, Point::zero(), embedded_graphics::text::Baseline::Top)
+            .bounding_box
+            .size;
         let config = SpaceConfig::new(str_width(&style, " "), None);
         let cursor = Cursor::new(
             Rectangle::new(Point::zero(), size),
@@ -880,15 +832,17 @@ pub(crate) mod test {
 
         line1.process(&mut handler).unwrap();
 
+        // 'j' occupies 1 pixel because of the negative left side bearing -2 (its width is 3 pixels)
+        // each additional glyph in a word occupies 5 pixels (4 for the glyph and 1 for letter spacing)
         assert_eq!(
             handler.elements,
             &[
-                RenderElement::Space(0, true),
-                RenderElement::string("just", 14),
+                RenderElement::Space(0, true), // 2 pixels, to compensate for the negative left side bearing
+                RenderElement::string("just", 16), // 1 for j + 5 for each additional glyph
                 RenderElement::Space(1, true),
                 RenderElement::string("a", 4),
                 RenderElement::Space(1, true),
-                RenderElement::string("jet", 10),
+                RenderElement::string("jet", 11), // 1 for j + 5 for each additional glyph
             ]
         );
     }

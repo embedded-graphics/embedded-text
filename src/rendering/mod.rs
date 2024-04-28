@@ -180,12 +180,13 @@ pub mod test {
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
+        text::renderer::TextRenderer,
     };
 
     use crate::{
         alignment::HorizontalAlignment,
         style::{HeightMode, TextBoxStyle, TextBoxStyleBuilder, VerticalOverdraw},
-        utils::test::size_for,
+        utils::test::{size_for, TestFont},
         TextBox,
     };
 
@@ -412,6 +413,51 @@ pub mod test {
             "......####..                                                ",
             "............                                                ",
             "............                                                ",
+        ]);
+    }
+
+    #[test]
+    fn rendering_justified_text_with_negative_left_side_bearing() {
+        let mut display: MockDisplay<BinaryColor> = MockDisplay::new();
+        display.set_allow_overdraw(true);
+
+        let text = "j000 0 j00 00j00 0";
+        let character_style = TestFont::new(BinaryColor::On, BinaryColor::Off);
+        let size = Size::new(50, 0);
+
+        TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), size),
+            character_style,
+            TextBoxStyleBuilder::new()
+                .alignment(HorizontalAlignment::Justified)
+                .height_mode(HeightMode::FitToText)
+                .build(),
+        )
+        .draw(&mut display)
+        .unwrap();
+
+        display.assert_pattern(&[
+            "..#.####.####.####.........####........#.####.####",
+            "....#..#.#..#.#..#.........#..#..........#..#.#..#",
+            "..#.#..#.#..#.#..#.........#..#........#.#..#.#..#",
+            "..#.#..#.#..#.#..#.........#..#........#.#..#.#..#",
+            "..#.#..#.#..#.#..#.........#..#........#.#..#.#..#",
+            "..#.#..#.#..#.#..#.........#..#........#.#..#.#..#",
+            "..#.####.####.####.........####........#.####.####",
+            "..#....................................#..........",
+            "..#....................................#..........",
+            "##...................................##...........",
+            "####.####.#.####.####....####                     ",
+            "#..#.#..#...#..#.#..#....#..#                     ",
+            "#..#.#..#.#.#..#.#..#....#..#                     ",
+            "#..#.#..#.#.#..#.#..#....#..#                     ",
+            "#..#.#..#.#.#..#.#..#....#..#                     ",
+            "#..#.#..#.#.#..#.#..#....#..#                     ",
+            "####.####.#.####.####....####                     ",
+            "..........#..................                     ",
+            "..........#..................                     ",
+            "........##...................                     ",
         ]);
     }
 }
