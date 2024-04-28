@@ -49,9 +49,6 @@ pub trait ElementHandler {
     /// Returns the left offset in pixels.
     fn measure_left_offset(&self, _st: &str) -> u32;
 
-    /// Start a new line at the given horizontal offset in pixels.
-    fn left_offset(&mut self, _offset: u32);
-
     /// A whitespace block with the given width.
     fn whitespace(&mut self, _st: &str, _space_count: u32, _width: u32) -> Result<(), Self::Error> {
         Ok(())
@@ -332,7 +329,7 @@ where
                         // the word's left negative boundary to make sure it is not clipped.
                         let offset = handler.measure_left_offset(w);
                         if offset > 0 && self.move_cursor_forward(offset).is_ok() {
-                            handler.left_offset(offset);
+                            handler.whitespace("", 0, offset).ok();
                         };
                     }
 
@@ -487,7 +484,6 @@ pub(crate) mod test {
 
     #[derive(PartialEq, Eq, Debug)]
     pub enum RenderElement<C: PixelColor> {
-        LeftOffset(u32),
         Space(u32, bool),
         String(String, u32),
         MoveCursor(i32),
@@ -530,10 +526,6 @@ pub(crate) mod test {
 
         fn measure_left_offset(&self, st: &str) -> u32 {
             str_left_offset(&self.style, st)
-        }
-
-        fn left_offset(&mut self, offset: u32) {
-            self.elements.push(RenderElement::LeftOffset(offset));
         }
 
         fn whitespace(&mut self, _string: &str, count: u32, width: u32) -> Result<(), Self::Error> {
@@ -808,7 +800,7 @@ pub(crate) mod test {
     }
 
     /// A font where each glyph is 4x10 pixels, where the
-    /// glyph 'j' has a left side bearing of 2 pixels (renders with negative offset)
+    /// glyph 'j' has a negative left side bearing of 2 pixels
     struct TestTextStyle {}
 
     impl TextRenderer for TestTextStyle {
@@ -867,7 +859,7 @@ pub(crate) mod test {
         let plugin = PluginWrapper::new(NoPlugin::<Rgb888>::new());
         let style = TestTextStyle {};
         // the glyph 'j' occupies 2 pixels because of the negative left side bearing
-        // however, the first 'j' is rendered in full because of the left line offset
+        // however, the first 'j' on the line is prepended with an extra 2 pixel whitespace
         let size = Size::new(4 * text.len() as u32 - 2, 10);
         let config = SpaceConfig::new(str_width(&style, " "), None);
         let cursor = Cursor::new(
@@ -889,7 +881,7 @@ pub(crate) mod test {
         assert_eq!(
             handler.elements,
             &[
-                RenderElement::LeftOffset(2),
+                RenderElement::Space(0, true),
                 RenderElement::string("just", 14),
                 RenderElement::Space(1, true),
                 RenderElement::string("a", 4),

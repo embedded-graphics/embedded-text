@@ -109,11 +109,6 @@ where
         str_left_offset(self.text_renderer, st)
     }
 
-    fn left_offset(&mut self, _offset: u32) {
-        // Not used in rendering, because this is set when measuring.
-        // Rendering starts from the measured position.
-    }
-
     fn whitespace(&mut self, st: &str, _space_count: u32, width: u32) -> Result<(), Self::Error> {
         if width > 0 {
             self.text_renderer
