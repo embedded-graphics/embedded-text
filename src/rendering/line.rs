@@ -8,7 +8,7 @@ use crate::{
         line_iter::{ElementHandler, LineElementParser, LineEndType},
     },
     style::TextBoxStyle,
-    utils::str_width,
+    utils::{str_width, str_width_and_left_offset},
 };
 use embedded_graphics::{
     draw_target::DrawTarget,
@@ -103,6 +103,10 @@ where
 
     fn measure(&self, st: &str) -> u32 {
         str_width(self.text_renderer, st)
+    }
+
+    fn measure_width_and_left_offset(&self, st: &str) -> (u32, u32) {
+        str_width_and_left_offset(self.text_renderer, st)
     }
 
     fn whitespace(&mut self, st: &str, _space_count: u32, width: u32) -> Result<(), Self::Error> {

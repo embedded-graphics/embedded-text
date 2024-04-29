@@ -1,3 +1,10 @@
+0.7.1 (2024-04-28)
+==================
+
+ - [#167] Offset the line to fit the glyph with negative side bearing
+
+[#167]: https://github.com/embedded-graphics/embedded-text/pull/167
+
 0.7.0 (2023-11-03)
 ==================
 

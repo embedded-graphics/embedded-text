@@ -46,6 +46,9 @@ pub trait ElementHandler {
     /// Returns the width of the given string in pixels.
     fn measure(&self, st: &str) -> u32;
 
+    /// Returns the left offset in pixels.
+    fn measure_width_and_left_offset(&self, _st: &str) -> (u32, u32);
+
     /// A whitespace block with the given width.
     fn whitespace(&mut self, _st: &str, _space_count: u32, _width: u32) -> Result<(), Self::Error> {
         Ok(())
@@ -136,13 +139,12 @@ where
         handler: &E,
         w: &'a str,
     ) -> (&'a str, &'a str) {
-        let mut width = 0;
         for (idx, c) in w.char_indices() {
-            let char_width = handler.measure(unsafe {
+            let width = handler.measure(unsafe {
                 // SAFETY: we are working on character boundaries
-                w.get_unchecked(idx..idx + c.len_utf8())
+                w.get_unchecked(0..idx + c.len_utf8())
             });
-            if !self.cursor.fits_in_line(width + char_width) {
+            if !self.cursor.fits_in_line(width) {
                 unsafe {
                     if w.is_char_boundary(idx) {
                         return w.split_at(idx);
@@ -151,7 +153,6 @@ where
                     }
                 }
             }
-            width += char_width;
         }
 
         (w, "")
@@ -321,7 +322,18 @@ where
                 }
 
                 Token::Word(w) => {
-                    let width = handler.measure(w);
+                    let width = if self.empty {
+                        // If this is the first word on the line, offset the line by
+                        // the word's left negative boundary to make sure it is not clipped.
+                        let (width, offset) = handler.measure_width_and_left_offset(w);
+                        if offset > 0 && self.move_cursor_forward(offset).is_ok() {
+                            handler.whitespace("", 0, offset).ok();
+                        };
+                        width
+                    } else {
+                        handler.measure(w)
+                    };
+
                     let (word, remainder) = if self.move_cursor_forward(width).is_ok() {
                         // We can move the cursor here since `process_word()`
                         // doesn't depend on it.
@@ -452,6 +464,7 @@ where
 
 #[cfg(test)]
 pub(crate) mod test {
+    use core::fmt::Debug;
     use std::convert::Infallible;
 
     use super::*;
@@ -459,7 +472,10 @@ pub(crate) mod test {
         plugin::{NoPlugin, PluginMarker as Plugin, PluginWrapper},
         rendering::{cursor::Cursor, space_config::SpaceConfig},
         style::TabSize,
-        utils::{str_width, test::size_for},
+        utils::{
+            str_width, str_width_and_left_offset,
+            test::{size_for, TestFont},
+        },
     };
     use embedded_graphics::{
         geometry::{Point, Size},
@@ -509,6 +525,10 @@ pub(crate) mod test {
 
         fn measure(&self, st: &str) -> u32 {
             str_width(&self.style, st)
+        }
+
+        fn measure_width_and_left_offset(&self, st: &str) -> (u32, u32) {
+            str_width_and_left_offset(&self.style, st)
         }
 
         fn whitespace(&mut self, _string: &str, count: u32, width: u32) -> Result<(), Self::Error> {
@@ -780,5 +800,48 @@ pub(crate) mod test {
         let mw = PluginWrapper::new(NoPlugin::<Rgb888>::new());
 
         assert_line_elements(&mut parser, 2, &[RenderElement::string("So", 12)], &mw);
+    }
+
+    #[test]
+    fn negative_left_side_bearing_of_the_first_glyph_sets_left_offset() {
+        let text = "just a jet";
+        let mut parser = Parser::parse(text);
+        let plugin = PluginWrapper::new(NoPlugin::<Rgb888>::new());
+        let style = TestFont::new(BinaryColor::On.into(), BinaryColor::Off.into());
+
+        let size = style
+            .measure_string(text, Point::zero(), embedded_graphics::text::Baseline::Top)
+            .bounding_box
+            .size;
+        let config = SpaceConfig::new(str_width(&style, " "), None);
+        let cursor = Cursor::new(
+            Rectangle::new(Point::zero(), size),
+            style.line_height(),
+            LineHeight::Percent(100),
+            TabSize::Spaces(4).into_pixels(&style),
+        )
+        .line();
+
+        let text_box_style = TextBoxStyle::default();
+
+        let mut handler = TestElementHandler::new(style);
+        let mut line1 =
+            LineElementParser::new(&mut parser, &plugin, cursor, config, &text_box_style);
+
+        line1.process(&mut handler).unwrap();
+
+        // 'j' occupies 1 pixel because of the negative left side bearing -2 (its width is 3 pixels)
+        // each additional glyph in a word occupies 5 pixels (4 for the glyph and 1 for letter spacing)
+        assert_eq!(
+            handler.elements,
+            &[
+                RenderElement::Space(0, true), // 2 pixels, to compensate for the negative left side bearing
+                RenderElement::string("just", 16), // 1 for j + 5 for each additional glyph
+                RenderElement::Space(1, true),
+                RenderElement::string("a", 4),
+                RenderElement::Space(1, true),
+                RenderElement::string("jet", 11), // 1 for j + 5 for each additional glyph
+            ]
+        );
     }
 }
