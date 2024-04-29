@@ -1,4 +1,4 @@
-0.7.1 (2024-04-28)
+0.7.1 (2024-04-29)
 ==================
 
  - [#167] Offset the line to fit the glyph with negative side bearing
