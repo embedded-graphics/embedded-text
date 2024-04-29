@@ -139,13 +139,12 @@ where
         handler: &E,
         w: &'a str,
     ) -> (&'a str, &'a str) {
-        let mut width = 0;
         for (idx, c) in w.char_indices() {
-            let char_width = handler.measure(unsafe {
+            let width = handler.measure(unsafe {
                 // SAFETY: we are working on character boundaries
-                w.get_unchecked(idx..idx + c.len_utf8())
+                w.get_unchecked(0..idx + c.len_utf8())
             });
-            if !self.cursor.fits_in_line(width + char_width) {
+            if !self.cursor.fits_in_line(width) {
                 unsafe {
                     if w.is_char_boundary(idx) {
                         return w.split_at(idx);
@@ -154,7 +153,6 @@ where
                     }
                 }
             }
-            width += char_width;
         }
 
         (w, "")
