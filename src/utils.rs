@@ -32,6 +32,7 @@ pub mod test {
     use embedded_graphics::{
         draw_target::DrawTarget,
         geometry::Point,
+        mock_display::MockDisplay,
         mono_font::{ascii::FONT_6X9, MonoFont, MonoTextStyle},
         pixelcolor::{BinaryColor, PixelColor},
         prelude::Size,
@@ -56,6 +57,7 @@ pub mod test {
         text_color: C,
         background_color: C,
         letter_spacing: u32,
+        line_height: u32,
     }
 
     enum LineElement {
@@ -84,6 +86,7 @@ pub mod test {
                 text_color,
                 background_color,
                 letter_spacing: 1,
+                line_height: 10,
             }
         }
 
@@ -142,29 +145,33 @@ where {
         {
             let style = PrimitiveStyle::with_stroke(self.text_color, 1);
             let bg_style = PrimitiveStyle::with_fill(self.background_color);
-            let letter_spacing = self.letter_spacing;
             for (p, element) in self.line_elements(position, text) {
                 match element {
-                    LineElement::Char('j') => {
-                        // draw the 'j' character background, occyping the space behind the stem
-                        Rectangle::new(p + Point::new(2, 0), Size::new(1, 10))
-                            .draw_styled(&bg_style, target)?;
-                        // draw the 'j' character
-                        Pixel(p + Point::new(2, 0), self.text_color).draw(target)?;
-                        Line::new(p + Point::new(2, 2), p + Point::new(2, 8))
-                            .draw_styled(&style, target)?;
-                        Line::new(p + Point::new(0, 9), p + Point::new(1, 9))
-                            .draw_styled(&style, target)?;
-                    }
-                    LineElement::Char(_) => {
-                        // draw the background for other characters
-                        Rectangle::new(p, Size::new(4, 10)).draw_styled(&bg_style, target)?;
-                        // draw a 4x7 rectangle for other characters
-                        Rectangle::new(p, Size::new(4, 7)).draw_styled(&style, target)?
+                    LineElement::Char(c) => {
+                        // fill the background rectangle,
+                        // taking into account the left side bearing
+                        Rectangle::new(
+                            p + Point::new(-left_side_bearing(c), 0),
+                            Size::new(
+                                (char_width(c) as i32 + left_side_bearing(c)) as u32,
+                                self.line_height,
+                            ),
+                        )
+                        .draw_styled(&bg_style, target)?;
+                        match c {
+                            'j' => {
+                                Pixel(p + Point::new(2, 0), self.text_color).draw(target)?;
+                                Line::new(p + Point::new(2, 2), p + Point::new(2, 8))
+                                    .draw_styled(&style, target)?;
+                                Line::new(p + Point::new(0, 9), p + Point::new(1, 9))
+                                    .draw_styled(&style, target)?;
+                            }
+                            _ => Rectangle::new(p, Size::new(4, 7)).draw_styled(&style, target)?,
+                        }
                     }
                     LineElement::Spacing => {
-                        // draw a 1x10 rectangle for letter spacing
-                        Rectangle::new(p, Size::new(letter_spacing, 10))
+                        // fill a rectangle for letter spacing
+                        Rectangle::new(p, Size::new(self.letter_spacing, self.line_height))
                             .draw_styled(&bg_style, target)?
                     }
                     LineElement::Done => return Ok(p),
@@ -184,7 +191,8 @@ where {
             D: DrawTarget<Color = Self::Color>,
         {
             let bg_style = PrimitiveStyle::with_fill(self.background_color);
-            Rectangle::new(position, Size::new(width, 10)).draw_styled(&bg_style, target)?;
+            Rectangle::new(position, Size::new(width, self.line_height))
+                .draw_styled(&bg_style, target)?;
             return Ok(Point::new(position.x + width as i32, position.y));
         }
 
@@ -210,8 +218,37 @@ where {
         }
 
         fn line_height(&self) -> u32 {
-            10
+            self.line_height
         }
+    }
+
+    #[test]
+    fn glyph_j_has_negative_left_side_bearing() {
+        let font = TestFont::new(BinaryColor::On, BinaryColor::Off);
+        let mut display: MockDisplay<BinaryColor> = MockDisplay::new();
+        display.set_allow_overdraw(true);
+
+        font.draw_string("j0j", Point::new(2, 0), Baseline::Top, &mut display)
+            .unwrap();
+
+        // The background of the first 'j' is only drawn behind the stem,
+        // because the tail of the 'j' is pulled to the left by the negative
+        // left side bearing of 2 pixels.
+        assert_eq!(
+            display,
+            MockDisplay::from_pattern(&[
+                "  #.####.#",
+                "  ..#..#..",
+                "  #.#..#.#",
+                "  #.#..#.#",
+                "  #.#..#.#",
+                "  #.#..#.#",
+                "  #.####.#",
+                "  #......#",
+                "  #......#",
+                "##.....##.",
+            ])
+        );
     }
 
     #[test]

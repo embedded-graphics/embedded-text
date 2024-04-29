@@ -180,7 +180,6 @@ pub mod test {
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::Rectangle,
-        text::renderer::TextRenderer,
     };
 
     use crate::{
