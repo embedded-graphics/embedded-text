@@ -459,4 +459,27 @@ pub mod test {
             "........##...................                     ",
         ]);
     }
+
+    #[test]
+    fn correctly_breaks_long_words() {
+        let mut display: MockDisplay<BinaryColor> = MockDisplay::new();
+        display.set_allow_overdraw(true);
+
+        let text = "000000000000000000";
+        let character_style = TestFont::new(BinaryColor::On, BinaryColor::Off);
+        let size = Size::new(50, 0);
+
+        // This currently works for MonoTextStyle, but panics for TestFont
+        TextBox::with_textbox_style(
+            text,
+            Rectangle::new(Point::zero(), size),
+            character_style,
+            TextBoxStyleBuilder::new()
+                .alignment(HorizontalAlignment::Left)
+                .height_mode(HeightMode::FitToText)
+                .build(),
+        )
+        .draw(&mut display)
+        .unwrap();
+    }
 }
