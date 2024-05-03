@@ -363,7 +363,7 @@ where
 
                     if !remainder.is_empty() {
                         // Consume what was printed.
-                        self.plugin.consume_partial(word.len());
+                        self.plugin.consume_partial(word.chars().count());
                         return Ok(LineEndType::LineBreak);
                     }
                 }
