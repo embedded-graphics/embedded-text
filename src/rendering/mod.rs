@@ -552,4 +552,46 @@ pub mod test {
             ".......................................          ",
         ]);
     }
+
+    #[test]
+    fn correctly_breaks_long_words_with_wide_utf8_characters() {
+        let mut display = MockDisplay::new();
+        let character_style = MonoTextStyleBuilder::new()
+            .font(&FONT_6X10)
+            .text_color(BinaryColor::On)
+            .background_color(BinaryColor::Off)
+            .build();
+
+        TextBox::with_textbox_style(
+            "広広広", // MonoText replaces unrecognized characters with "?"
+            Rectangle::new(Point::zero(), size_for(&FONT_6X10, 2, 2)),
+            character_style,
+            TextBoxStyleBuilder::new().build(),
+        )
+        .draw(&mut display)
+        .unwrap();
+
+        display.assert_pattern(&[
+            "............",
+            ".###...###..",
+            "#...#.#...#.",
+            "...#.....#..",
+            "..#.....#...",
+            "..#.....#...",
+            "............",
+            "..#.....#...",
+            "............",
+            "............",
+            "......      ",
+            ".###..      ",
+            "#...#.      ",
+            "...#..      ",
+            "..#...      ",
+            "..#...      ",
+            "......      ",
+            "..#...      ",
+            "......      ",
+            "......      ",
+        ]);
+    }
 }
