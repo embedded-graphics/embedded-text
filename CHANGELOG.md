@@ -1,7 +1,7 @@
-0.7.2 (2024-05-03)
+0.7.2 (2024-05-27)
 ==================
 
- - [#168] Fix breaking long words with wide utf8 characters 
+ - [#168] Fix breaking long words with wide utf8 characters
 
 [#168]: https://github.com/embedded-graphics/embedded-text/pull/168
 
