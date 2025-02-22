@@ -376,16 +376,6 @@ where
         )
     }
 
-    /// Sets the vertical text offset.
-    ///
-    /// Vertical offset changes the vertical position of the displayed text within the bounding box.
-    /// Setting a positive value moves the text down.
-    #[inline]
-    pub fn set_vertical_offset(&mut self, offset: i32) -> &mut Self {
-        self.vertical_offset = offset;
-        self
-    }
-
     /// Adds a new plugin to the `TextBox`.
     #[inline]
     pub fn add_plugin<M>(self, plugin: M) -> TextBox<'a, S, Chain<M>>
@@ -501,6 +491,16 @@ where
         // Apply height
         self.bounds.size.height = text_height;
 
+        self
+    }
+
+    /// Sets the vertical text offset.
+    ///
+    /// Vertical offset changes the vertical position of the displayed text within the bounding box.
+    /// Setting a positive value moves the text down.
+    #[inline]
+    pub fn set_vertical_offset(&mut self, offset: i32) -> &mut Self {
+        self.vertical_offset = offset;
         self
     }
 }
